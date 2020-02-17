@@ -1,0 +1,5 @@
+.idea
+logs
+build
+node_modules
+config/connections.json
