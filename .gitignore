@@ -3,3 +3,4 @@ logs
 build
 node_modules
 config/connections.json
+config/contracts.json

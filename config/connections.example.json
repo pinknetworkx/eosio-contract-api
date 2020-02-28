@@ -1,1 +1,19 @@
-{}
+{
+  "postgres": {
+    "host": "postgres",
+    "port": 5432,
+    "user": "username",
+    "password": "changeme",
+    "database": "atomicassets"
+  },
+  "redis": {
+    "host": "redis",
+    "port": 6379
+  },
+  "chain": {
+    "chain_name": "wax-testnet",
+    "chain_id": "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906",
+    "http": "http://nodeos:8888",
+    "ship": "ws://nodeos:8080"
+  }
+}

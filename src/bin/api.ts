@@ -19,9 +19,9 @@ const normalizePort = (val: number|string): number|string|boolean => {
 };
 
 const port = normalizePort(process.env.PORT || 3000);
+
 App.set('port', port);
 
-// handle all kind of server errors
 const onError = (error: NodeJS.ErrnoException) => {
     if (error.syscall !== 'listen') { throw error; }
     const bind = (typeof port === 'string') ? 'Pipe ' + port : 'Port ' + port;
@@ -29,10 +29,12 @@ const onError = (error: NodeJS.ErrnoException) => {
         case 'EACCES':
             logger.error(`${bind} requires elevated privileges`);
             process.exit(1);
+
             break;
         case 'EADDRINUSE':
             logger.error(`${bind} is already in use`);
             process.exit(1);
+
             break;
         default:
             throw error;

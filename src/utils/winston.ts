@@ -9,7 +9,13 @@ const options = {
 
 const logger = new createLogger(options);
 
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === 'production') {
+    logger.add(new transports.Console({
+        colorize: true,
+        showLevel: true,
+        timestamp: true
+    }));
+} else {
     logger.add(new transports.Console({
         colorize: true,
         showLevel: true,

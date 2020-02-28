@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "module": "es6",
+    "module": "commonjs",
     "noImplicitAny": true,
-    "target": "es5",
-    "outDir": "./build/",
+    "target": "es2019",
+    "outDir": "./build",
     "sourceMap": true,
     "allowJs": true
   },
