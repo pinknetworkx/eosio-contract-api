@@ -1,0 +1,49 @@
+{
+    "apps": [
+    {
+        "name": "filler",
+        "script": "build/bin/filler.js",
+
+        "autorestart": false,
+        "kill_timeout": 3600,
+
+        "watch": false,
+        "time": true,
+
+        "env": {
+            "START_ON": 0,
+            "STOP_ON": 0,
+            "USE_SNAPSHOT": false,
+
+            "SHIP_PREFETCH_BLOCKS": 50,
+            "SHIP_MIN_BLOCK_CONFIRMATION": 30,
+
+            "DELETE_TABLES": false
+        }
+    },
+    {
+        "name": "api",
+        "script": "build/bin/api.js",
+
+        "autorestart": true,
+        "exp_backoff_restart_delay": 100,
+
+        "exec_mode": "cluster",
+        "merge_logs": true,
+        "instances": 2,
+
+        "watch": false,
+
+        "env": {
+            "PROVIDER_NAME": "pink.network",
+            "PROVIDER_URL": "https://pink.network",
+
+            "SERVER_ADDR": "0.0.0.0",
+            "SERVER_NAME": "wax.atomicassets.io",
+            "SERVER_PORT": 3000,
+
+            "CACHE_LIFE": 1
+        }
+    }
+]
+}

@@ -1,0 +1,10 @@
+[
+  {
+    "scope": ["atomicassets:*"],
+    "handler": "atomicassets"
+  },
+  {
+    "scope": ["atomicmarket:*"],
+    "handler": "atomicmarket"
+  }
+]

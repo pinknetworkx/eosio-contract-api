@@ -2,5 +2,8 @@
 logs
 build
 node_modules
+
+# config
 config/connections.json
 config/contracts.json
+config/ecosystems.config.json
