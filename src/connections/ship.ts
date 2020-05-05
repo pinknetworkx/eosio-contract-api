@@ -1,11 +1,25 @@
-import { Serialize } from 'eosjs';
 import PQueue from 'p-queue';
-import { BlockRequestType, BlockResponseType, TraceResponseType, DeltaResponseType, IBlockReaderOptions } from '../types/ship';
+import { Serialize } from 'eosjs';
 
 import logger from '../utils/winston';
+import {
+    BlockRequestType,
+    ShipBlock,
+    ShipTransactionTrace,
+    ShipTableDelta,
+    IBlockReaderOptions,
+    ShipHeader
+} from '../types/ship';
 
 const { TextDecoder, TextEncoder } = require('text-encoding');
 const WebSocket = require('ws');
+
+export type BlockConsumer = (
+    header: ShipHeader,
+    block: ShipBlock,
+    traces: ShipTransactionTrace[],
+    deltas: ShipTableDelta[]
+) => any;
 
 export default class StateHistoryBlockReader {
     private ws: any;
@@ -16,7 +30,7 @@ export default class StateHistoryBlockReader {
 
     private blocksQueue: PQueue;
     private unconfirmed: number;
-    private consumer: (block: BlockResponseType, traces: TraceResponseType[], deltas: DeltaResponseType[]) => any;
+    private consumer: BlockConsumer;
 
     private currentArgs: BlockRequestType;
 
@@ -65,18 +79,18 @@ export default class StateHistoryBlockReader {
         }, 5000);
     }
 
-    serialize(type: string, value: any): Uint8Array {
+    serialize(type: string, value: any, types: Map<string, Serialize.Type>): Uint8Array {
         const buffer = new Serialize.SerialBuffer({ textEncoder: new TextEncoder, textDecoder: new TextDecoder });
-        Serialize.getType(this.types, type).serialize(buffer, value);
+        Serialize.getType(types, type).serialize(buffer, value);
 
         return buffer.asUint8Array();
     }
 
-    deserialize(type: string, array: any): any {
-        const buffer = new Serialize.SerialBuffer({ textEncoder: new TextEncoder, textDecoder: new TextDecoder, array });
-        const result = Serialize.getType(this.types, type).deserialize(buffer, new Serialize.SerializerState({ bytesAsUint8Array: true }));
+    deserialize(type: string, data: any, types: Map<string, Serialize.Type>): any {
+        const buffer = new Serialize.SerialBuffer({ textEncoder: new TextEncoder, textDecoder: new TextDecoder, array: data });
+        const result = Serialize.getType(types, type).deserialize(buffer, new Serialize.SerializerState({ bytesAsUint8Array: true }));
 
-        if (buffer.readPos !== array.length) {
+        if (buffer.readPos !== data.length) {
             throw new Error('Deserialization error: ' + type);
         }
 
@@ -86,7 +100,7 @@ export default class StateHistoryBlockReader {
     send(request: [string, any]): void {
         logger.debug('WebSocket send', request);
 
-        this.ws.send(this.serialize('request', request));
+        this.ws.send(this.serialize('request', request, this.types));
     }
 
     onConnect(): void {
@@ -110,7 +124,7 @@ export default class StateHistoryBlockReader {
                     this.requestBlocks();
                 }
             } else {
-                const [type, response] = this.deserialize('result', data);
+                const [type, response] = this.deserialize('result', data, this.types);
 
                 logger.debug('Websocket message received', {type, response});
 
@@ -182,28 +196,34 @@ export default class StateHistoryBlockReader {
     }
 
     async processBlock(response: any): Promise<void> {
-        let block = null, traces = [], deltas = [];
+        let block: ShipBlock;
+        let traces: ShipTransactionTrace[] = [];
+        let deltas: ShipTableDelta[] = [];
+
+        block = {...response.this_block};
 
         if (this.currentArgs.fetch_block && response.block && response.block.length) {
-            block = this.deserialize('signed_block', response.block);
+            block = { ...block, ...this.deserialize('signed_block', response.block, this.types) };
         }
 
         if (this.currentArgs.fetch_traces && response.traces && response.traces.length) {
-            traces = this.deserialize('transaction_trace[]', response.traces);
+            traces = this.deserialize('transaction_trace[]', response.traces, this.types);
         }
 
         if (this.currentArgs.fetch_deltas && response.deltas && response.deltas.length) {
-            deltas = this.deserialize('table_delta[]', response.deltas);
+            deltas = this.deserialize('table_delta[]', response.deltas, this.types);
         }
 
         logger.debug('received block', {block, traces, deltas});
 
+        const {head, last_irreversible, this_block, prev_block} = response;
+
         if (this.consumer) {
-            await this.consumer(block, traces, deltas);
+            await this.consumer({head, last_irreversible, this_block, prev_block}, block, traces, deltas);
         }
     }
 
-    consume(consumer: (block: BlockResponseType, traces: TraceResponseType[], deltas: DeltaResponseType[]) => any): void {
+    consume(consumer: BlockConsumer): void {
         this.consumer = consumer;
     }
 }

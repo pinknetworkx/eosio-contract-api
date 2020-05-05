@@ -1,4 +1,4 @@
-import {IConnectionsConfig, IContractConfig} from "../types/config";
+import { IConnectionsConfig, IContractConfig } from '../types/config';
 
 export interface IHandler {
 
@@ -14,6 +14,10 @@ class FillerLoader {
     }
 
     startFiller() {
+
+    }
+
+    loadContractHandlers() {
 
     }
 }

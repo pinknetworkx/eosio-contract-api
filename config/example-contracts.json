@@ -1,12 +1,10 @@
 [
   {
     "scope": ["atomicassets:*"],
-    "handler": "atomicassets",
-    "deltas": true
+    "handler": "atomicassets"
   },
   {
     "scope": ["atomicmarket:*"],
-    "handler": "atomicmarket",
-    "deltas": true
+    "handler": "atomicmarket"
   }
 ]
