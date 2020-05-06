@@ -1,0 +1,42 @@
+version: '3.0'
+services:
+  # hyperion history core
+  eosio-contract-api-filler:
+    container_name: eosio-contract-api-filler
+    build: .
+    command: yarn run start:filler
+    restart: on-failure
+    depends_on:
+      - eosio-contract-api-postgres
+      - eosio-contract-api-redis
+    volumes:
+      - ./hyperion/config/ecosystem.config.json:/root/app/Hyperion-History-API/ecosystem.config.json
+      - ./hyperion/config/connections.json:/root/app/Hyperion-History-API/connections.json
+  eosio-contract-api-web:
+    container_name: eosio-contract-api-web
+    build: .
+    command: yarn run start:api
+    restart: on-failure
+    ports:
+      - "3000:3000"
+    depends_on:
+      - eosio-contract-api-postgres
+      - eosio-contract-api-redis
+    volumes:
+      - ./hyperion/config/ecosystem.config.json:/root/app/Hyperion-History-API/ecosystem.config.json
+      - ./hyperion/config/connections.json:/root/app/Hyperion-History-API/connections.json
+  eosio-contract-api-redis:
+    container_name: eosio-contract-api-redis
+    image: redis:5-alpine
+    restart: on-failure
+    volumes:
+      - ./docker/redis/data:/data
+  eosio-contract-api-postgres:
+    container_name: eosio-contract-api-postgres
+    image: postgres:12
+    restart: on-failure
+    volumes:
+      - ./docker/postgres/data:/var/lib/postgresql/data
+    environment:
+      - 'POSTGRES_USER=eosio-contract-api'
+      - 'POSTGRES_PASSWORD=changeme'

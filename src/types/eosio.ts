@@ -1,5 +1,3 @@
-import {ShipActionReceipt} from "./ship";
-
 export type EosioAction = {
     account: string,
     name: string,

@@ -1,0 +1,25 @@
+[
+  {
+    "name": "atomic",
+
+    "start_block": 0,
+    "stop_block": 0,
+    "start_from_snapshot": false,
+
+    "ship_prefetch_blocks": 50,
+    "ship_min_block_confirmation": 30,
+
+    "delete_tables": false,
+
+    "contracts": [
+      {
+        "scope": ["atomicassets:*"],
+        "handler": "atomicassets"
+      },
+      {
+        "scope": ["atomicmarket:*"],
+        "handler": "atomicmarket"
+      }
+    ]
+  }
+]

@@ -1,11 +1,14 @@
 import * as http from 'http';
 
+const connectionsConfig = require('../../config/connections.json');
+const apiConfig = require('../../config/connections.json');
+
 import logger from '../utils/winston';
-import App from '../index';
+import App from '../api/loader';
 
 const server = http.createServer(App);
 
-const normalizePort = (val: number|string): number|string|boolean => {
+const normalizePort = (val: number | string): number | string | boolean => {
     const normolizedPort = (typeof val === 'string') ? parseInt(val, 10) : val;
     if (isNaN(normolizedPort)) {
         return val;
@@ -18,7 +21,7 @@ const normalizePort = (val: number|string): number|string|boolean => {
     return false;
 };
 
-const port = normalizePort(process.env.PORT || 3000);
+const port = normalizePort(parseInt(apiConfig.port, 10) || 3000);
 
 App.set('port', port);
 

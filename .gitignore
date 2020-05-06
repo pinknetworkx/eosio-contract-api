@@ -4,6 +4,6 @@ build
 node_modules
 
 # config
-config/connections.json
-config/contracts.json
-config/ecosystems.config.json
+config/connections.config.json
+config/readers.config.json
+config/api.config.json

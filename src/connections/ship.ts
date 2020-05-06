@@ -40,7 +40,7 @@ export default class StateHistoryBlockReader {
 
     constructor(
         private readonly endpoint: string,
-        private readonly options: IBlockReaderOptions = {min_block_confirmation: 1}
+        private options: IBlockReaderOptions = {min_block_confirmation: 1}
     ) {
         this.connected = false;
         this.connecting = false;
@@ -54,6 +54,10 @@ export default class StateHistoryBlockReader {
         this.tables = new Map();
 
         this.connect();
+    }
+
+    setOptions(options: IBlockReaderOptions) {
+        this.options = {...this.options, ...options};
     }
 
     connect(): void {

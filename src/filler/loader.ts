@@ -1,11 +1,11 @@
-import { IConnectionsConfig, IContractConfig } from '../types/config';
+import { IConnectionsConfig, IReaderConfig } from '../types/config';
 
 export interface IHandler {
 
 }
 
 class FillerLoader {
-    constructor(connectionConfig: IConnectionsConfig, contractConfig: IContractConfig[]) {
+    constructor(connectionConfig: IConnectionsConfig, readerConfig: IReaderConfig) {
 
     }
 

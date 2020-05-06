@@ -4,7 +4,7 @@ import { Abi } from 'eosjs/dist/eosjs-rpc-interfaces';
 import logger from '../utils/winston';
 import ConnectionManager from '../connections/manager';
 import StateHistoryBlockReader from '../connections/ship';
-import { IContractConfig } from '../types/config';
+import { IReaderConfig} from '../types/config';
 import { ShipActionTrace, ShipBlock, ShipHeader, ShipTableDelta, ShipTransactionTrace } from '../types/ship';
 import { EosioAction } from '../types/eosio';
 import { ContractDB, ContractDBTransaction } from './database';
@@ -21,9 +21,12 @@ class StateReceiver {
 
     private currentBlock = 0;
 
-    constructor(readonly name: string, private readonly connection: ConnectionManager, private readonly config: IContractConfig[]) {
-        this.ship = connection.createShipBlockReader();
-        this.database = new ContractDB(name, this.connection);
+    constructor(private readonly config: IReaderConfig, private readonly connection: ConnectionManager) {
+        this.ship = connection.createShipBlockReader({
+            min_block_confirmation: config.ship_min_block_confirmation
+        });
+
+        this.database = new ContractDB(this.config.name, this.connection);
         this.abis = {};
 
         this.ship.consume(this.consumer.bind(this));
@@ -31,7 +34,7 @@ class StateReceiver {
         this.database.getReaderPosition().then((blockNum: number) => {
             this.ship.startProcessing({
                 start_block_num: blockNum,
-                max_messages_in_flight: parseInt(process.env.SHIP_PREFETCH_BLOCKS, 10) || 10,
+                max_messages_in_flight: config.ship_prefetch_blocks || 10,
                 fetch_block: true,
                 fetch_traces: true,
                 fetch_deltas: true
@@ -47,7 +50,7 @@ class StateReceiver {
         traces: ShipTransactionTrace[],
         deltas: ShipTableDelta[]
     ): Promise<void> {
-        let processDeltas = !!process.env.USE_SNAPSHOT && this.currentBlock === 0;
+        let processDeltas = this.config.start_from_snapshot && this.currentBlock === 0;
 
         const db = await this.database.startTransaction(header.this_block.block_num, header.last_irreversible.block_num);
 

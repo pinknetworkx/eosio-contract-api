@@ -3,6 +3,7 @@ import ChainApi from './chain';
 import RedisConnection from './redis';
 import PostgresConnection from './postgres';
 import { IConnectionsConfig } from '../types/config';
+import {IBlockReaderOptions} from "../types/ship";
 
 export default class ConnectionManager {
     readonly chain: ChainApi;
@@ -13,7 +14,6 @@ export default class ConnectionManager {
         this.chain = new ChainApi(config.chain.http);
 
         this.redis = new RedisConnection(
-            config.chain.name + '-' + config.redis.prefix,
             config.redis.host,
             config.redis.port
         );
@@ -27,9 +27,13 @@ export default class ConnectionManager {
         );
     }
 
-    createShipBlockReader(): StateHistoryBlockReader {
-        return new StateHistoryBlockReader(this.config.chain.ship, {
-            min_block_confirmation: parseInt(process.env.SHIP_MIN_BLOCK_CONFIRMATION, 10) || 1
-        });
+    createShipBlockReader(options?: IBlockReaderOptions): StateHistoryBlockReader {
+        const reader = new StateHistoryBlockReader(this.config.chain.ship);
+
+        if (options) {
+            reader.setOptions(options);
+        }
+
+        return reader;
     }
 }
