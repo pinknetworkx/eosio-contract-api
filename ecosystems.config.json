@@ -1,0 +1,32 @@
+{
+  "apps": [
+    {
+      "name": "filler",
+      "script": "build/bin/filler.js",
+
+      "autorestart": false,
+      "kill_timeout": 3600,
+
+      "watch": false,
+      "time": false,
+
+      "env": {
+        "NODE_ENV": "production"
+      }
+    },
+    {
+      "name": "api",
+      "script": "build/bin/api.js",
+
+      "autorestart": true,
+      "exp_backoff_restart_delay": 100,
+
+      "watch": true,
+      "time": false,
+
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  ]
+}

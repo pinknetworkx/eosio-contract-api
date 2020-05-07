@@ -1,5 +1,6 @@
 import PQueue from 'p-queue';
 import { Serialize } from 'eosjs';
+import { Abi } from 'eosjs/dist/eosjs-rpc-interfaces';
 
 import logger from '../utils/winston';
 import {
@@ -22,6 +23,10 @@ export type BlockConsumer = (
 ) => any;
 
 export default class StateHistoryBlockReader {
+    abi: Abi;
+    types: Map<string, Serialize.Type>;
+    tables: Map<string, string>;
+
     private ws: any;
 
     private connected: boolean;
@@ -33,10 +38,6 @@ export default class StateHistoryBlockReader {
     private consumer: BlockConsumer;
 
     private currentArgs: BlockRequestType;
-
-    private abi: any;
-    private types: any;
-    private tables: any;
 
     constructor(
         private readonly endpoint: string,
@@ -56,13 +57,13 @@ export default class StateHistoryBlockReader {
         this.connect();
     }
 
-    setOptions(options: IBlockReaderOptions) {
+    setOptions(options: IBlockReaderOptions): void {
         this.options = {...this.options, ...options};
     }
 
     connect(): void {
         if (!this.connected && !this.connecting) {
-            logger.info(`Websocket connecting to ${this.endpoint}`);
+            logger.info(`Connecting to ship endpoint ${this.endpoint}`);
 
             this.connecting = true;
 
@@ -76,7 +77,7 @@ export default class StateHistoryBlockReader {
     }
 
     reconnect(): void {
-        logger.info(`Reconnecting to State History...`);
+        logger.info(`Reconnecting to Ship...`);
 
         setTimeout(() => {
             this.connect();
@@ -102,7 +103,7 @@ export default class StateHistoryBlockReader {
     }
 
     send(request: [string, any]): void {
-        logger.debug('WebSocket send', request);
+        logger.debug('Send request to ship', request);
 
         this.ws.send(this.serialize('request', request, this.types));
     }
@@ -130,7 +131,7 @@ export default class StateHistoryBlockReader {
             } else {
                 const [type, response] = this.deserialize('result', data, this.types);
 
-                logger.debug('Websocket message received', {type, response});
+                logger.debug('Message received from ship', {type});
 
                 if (type === 'get_blocks_result_v0') {
                     this.blocksQueue.add(async () => {
@@ -218,7 +219,7 @@ export default class StateHistoryBlockReader {
             deltas = this.deserialize('table_delta[]', response.deltas, this.types);
         }
 
-        logger.debug('received block', {block, traces, deltas});
+        logger.debug('received block', {block_num: response.this_block.block_num});
 
         const {head, last_irreversible, this_block, prev_block} = response;
 

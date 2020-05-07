@@ -110,6 +110,18 @@ export type ShipTableDelta = [
     'table_delta_v0',
     {
         name: string,
-        rows: Array<{present: true, data: {[key: string]: number}}>
+        rows: Array<{present: boolean, data: {[key: string]: number}}>
+    }
+];
+
+export type ShipContractRow = [
+    'contract_row_v0',
+    {
+        code: string,
+        scope: string,
+        table: string,
+        primary_key: string,
+        payer: string,
+        value: Uint8Array
     }
 ];

@@ -11,19 +11,16 @@ export class ContractDB {
         return new ContractDBTransaction(client, this.name, currentBlock, lastIrreversibleBlock);
     }
 
-    async fetchAbi(contract: string, blockNum: number): Promise<{data: Uint8Array, block_num: number}> {
+    async fetchAbi(contract: string, blockNum: number): Promise<{data: Uint8Array, block_num: number} | null> {
         // TODO fetch real ABI
 
-        return {
-            data: new Uint8Array(0),
-            block_num: 0
-        };
+        return null;
     }
 
     async getReaderPosition(): Promise<number> {
         // TODO: fetch real position
 
-        return 25277657;
+        return 26185335;
     }
 }
 

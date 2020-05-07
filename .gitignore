@@ -6,4 +6,4 @@ node_modules
 # config
 config/connections.config.json
 config/readers.config.json
-config/api.config.json
+config/server.config.json

@@ -3,7 +3,7 @@ import ChainApi from './chain';
 import RedisConnection from './redis';
 import PostgresConnection from './postgres';
 import { IConnectionsConfig } from '../types/config';
-import {IBlockReaderOptions} from "../types/ship";
+import { IBlockReaderOptions } from '../types/ship';
 
 export default class ConnectionManager {
     readonly chain: ChainApi;

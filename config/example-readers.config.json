@@ -14,11 +14,18 @@
     "contracts": [
       {
         "scope": ["atomicassets:*"],
-        "handler": "atomicassets"
+        "handler": "atomicassets",
+        "args": {
+          "atomicassets_account": "atomicassets"
+        }
       },
       {
         "scope": ["atomicmarket:*"],
-        "handler": "atomicmarket"
+        "handler": "atomicmarket",
+        "args": {
+          "atomicassets_account": "atomicassets",
+          "atomicmarket_account": "atomicmarket"
+        }
       }
     ]
   }

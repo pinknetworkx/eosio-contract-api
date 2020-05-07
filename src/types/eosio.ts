@@ -2,5 +2,5 @@ export type EosioAction = {
     account: string,
     name: string,
     authorization: Array<{actor: string, permission: string}>,
-    data: {[key: string]: any}
+    data: {[key: string]: any} | string
 };

@@ -42,5 +42,11 @@ export interface IReaderConfig {
 
     delete_tables: boolean;
 
-    contracts: Array<{ scope: string, handler: string }>;
+    contracts: IContractConfig[];
 };
+
+export interface IContractConfig {
+    scope: string[];
+    handler: string;
+    args: any;
+}

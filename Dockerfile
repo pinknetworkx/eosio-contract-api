@@ -20,6 +20,11 @@ WORKDIR /root/app/
 
 COPY --from=build-stage /root/app/build .
 
+COPY package.json .
+COPY yarn.lock .
+
+RUN yarn install --production
+
 ENV NODE_ENV production
 
 EXPOSE 3000
