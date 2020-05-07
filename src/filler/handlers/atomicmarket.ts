@@ -1,8 +1,9 @@
 import { IContractHandler } from './index';
 import { ShipBlock } from '../../types/ship';
-import { EosioAction } from '../../types/eosio';
+import { EosioAction, EosioTableRow } from '../../types/eosio';
 import { ContractDBTransaction } from "../database";
 import ConnectionManager from '../../connections/manager';
+import logger from '../../utils/winston';
 
 export default class AtomicMarketHandler implements IContractHandler {
     readonly name = 'atomicmarket';
@@ -22,10 +23,10 @@ export default class AtomicMarketHandler implements IContractHandler {
     }
 
     onAction(db: ContractDBTransaction, block: ShipBlock, action: EosioAction): void {
-
+        logger.debug('atomicmarket', action);
     }
 
-    onTableChange(db: ContractDBTransaction, block: ShipBlock, delta: any): void {
-
+    onTableChange(db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow): void {
+        logger.debug('atomicmarket', delta);
     }
 }

@@ -1,6 +1,6 @@
 import ConnectionManager from '../../connections/manager';
 import { ShipBlock } from '../../types/ship';
-import { EosioAction } from '../../types/eosio';
+import { EosioAction, EosioTableRow } from '../../types/eosio';
 import { ContractDBTransaction } from '../database';
 import { IContractConfig } from '../../types/config';
 
@@ -15,7 +15,7 @@ export interface IContractHandler {
 
     init(): any;
     onAction(db: ContractDBTransaction, block: ShipBlock, action: EosioAction): any;
-    onTableChange(db: ContractDBTransaction, block: ShipBlock, delta: any): any;
+    onTableChange(db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow): any;
 }
 
 export default function getHandlers(configs: IContractConfig[], connection: ConnectionManager): IContractHandler[] {

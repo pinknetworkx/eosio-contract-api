@@ -116,7 +116,7 @@ export default class StateHistoryBlockReader {
     onMessage(data: any): void {
         try {
             if (!this.abi) {
-                logger.info('receiving abi');
+                logger.info('Receiving ABI...');
 
                 this.abi = JSON.parse(data);
                 this.types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), this.abi);
@@ -135,7 +135,15 @@ export default class StateHistoryBlockReader {
 
                 if (type === 'get_blocks_result_v0') {
                     this.blocksQueue.add(async () => {
-                        await this.processBlock(response);
+                        try {
+                            await this.processBlock(response);
+                        } catch (e) {
+                            // abort reader if error is thrown
+                            this.blocksQueue.clear();
+                            this.blocksQueue.pause();
+
+                            throw e;
+                        }
 
                         this.unconfirmed += 1;
 
@@ -144,7 +152,11 @@ export default class StateHistoryBlockReader {
                             this.unconfirmed = 0;
                         }
 
-                        this.currentArgs.start_block_num = response.this_block.block_num;
+                        if (response.this_block) {
+                            this.currentArgs.start_block_num = response.this_block.block_num;
+                        } else {
+                            this.currentArgs.start_block_num += 1;
+                        }
                     }).then();
                 } else {
                     logger.warn('Not supported message received', {type, response});
@@ -205,6 +217,16 @@ export default class StateHistoryBlockReader {
         let traces: ShipTransactionTrace[] = [];
         let deltas: ShipTableDelta[] = [];
 
+        if (!response.this_block) {
+            logger.warn(
+                'Empty block #' + this.currentArgs.start_block_num + ' received. ' +
+                'Node was likely started with a snapshot and you tried to process a blocks range ' +
+                'older than the snapshot. Catching up until init block.'
+            );
+
+            return;
+        }
+
         block = {...response.this_block};
 
         if (this.currentArgs.fetch_block && response.block && response.block.length) {
@@ -219,7 +241,7 @@ export default class StateHistoryBlockReader {
             deltas = this.deserialize('table_delta[]', response.deltas, this.types);
         }
 
-        logger.debug('received block', {block_num: response.this_block.block_num});
+        logger.debug('Received block', {block_num: response.this_block.block_num});
 
         const {head, last_irreversible, this_block, prev_block} = response;
 

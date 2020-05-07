@@ -29,7 +29,7 @@ export default class ReaderLoader {
         }
     }
 
-    async startFiller(): Promise<void> {
+    async startFiller(logInterval: number): Promise<void> {
         if (this.config.delete_tables) {
             await this.connection.database.query('DELETE FROM contract_readers WHERE name = $1', [this.config.name]);
 
@@ -43,18 +43,49 @@ export default class ReaderLoader {
 
             await this.connection.database.query(
                 'INSERT INTO contract_readers(name, block_num, block_time, updated) VALUES ($1, $2, $3, $4)',
-                [this.config.name, Math.max(this.config.start_block, 1), 0, Date.now()]
+                [this.config.name, Math.max(this.config.start_block - 1, 0), 0, Date.now()]
             );
 
             await this.initDB();
         }
 
-        logger.info('starting reader ' + this.config.name);
+        logger.info('Starting reader: ' + this.config.name);
 
         for (const handler of this.handlers) {
             await handler.init();
         }
 
         await this.reader.startProcessing();
+
+        let lastBlock = 0;
+        setInterval(() => {
+            if (lastBlock === 0) {
+                lastBlock = this.reader.currentBlock;
+
+                return;
+            }
+
+            const speed = (this.reader.currentBlock - lastBlock) / logInterval;
+
+            if (lastBlock === this.reader.currentBlock && lastBlock > 0) {
+                logger.warn('Reader ' + this.config.name + ' - No blocks processed');
+            } else if (this.reader.currentBlock > this.reader.lastIrreversibleBlock) {
+                logger.info(
+                    'Reader ' + this.config.name + ' - ' +
+                    'Progress: ' + this.reader.currentBlock + ' / ' + this.reader.headBlock + ' ' +
+                    '(' + (100 * this.reader.currentBlock / this.reader.headBlock).toFixed(2) + '%) ' +
+                    'Speed: ' + speed.toFixed(1) + ' B/s ' +
+                    'Syncs in: ' + (this.reader.headBlock - this.reader.currentBlock) / speed + ' seconds'
+                );
+            } else {
+                logger.info(
+                    'Reader ' + this.config.name + ' - ' +
+                    'Current Block: ' + this.reader.currentBlock + ' ' +
+                    'Speed: ' + speed.toFixed(1) + ' B/s '
+                );
+            }
+
+            lastBlock = this.reader.currentBlock;
+        }, logInterval * 1000);
     }
 }

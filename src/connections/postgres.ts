@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { Pool, PoolClient, QueryResult } from 'pg';
 
 export default class PostgresConnection {
     private pool: Pool;
@@ -7,15 +7,19 @@ export default class PostgresConnection {
         this.pool = new Pool({ host, port, user, password, database });
     }
 
-    async query(queryText: string, values: any[] = []) {
+    async query(queryText: string, values: any[] = []): Promise<QueryResult> {
         return await this.pool.query(queryText, values);
     }
 
-    async begin() {
+    async begin(): Promise<PoolClient> {
         const client = await this.pool.connect();
 
         await client.query('BEGIN');
 
         return client;
+    }
+
+    escape(val: any): any {
+        return val;
     }
 }

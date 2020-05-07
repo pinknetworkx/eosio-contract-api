@@ -17,10 +17,22 @@ export class ContractDB {
         return null;
     }
 
+    async fetchNextAbi(contract: string, blockNum: number): Promise<{data: Uint8Array, block_num: number} | null> {
+        // TODO fetch real next ABI
+
+        return null;
+    }
+
     async getReaderPosition(): Promise<number> {
         // TODO: fetch real position
 
-        return 26185335;
+        // abi and code update
+        // return 26185333;
+        // atomicassets transfer
+        // return 25866660;
+        // update
+        // return 25855419;
+        return 25856264;
     }
 }
 
@@ -38,6 +50,10 @@ export class ContractDBTransaction {
     }
 
     async delete() {
+
+    }
+
+    async replace() {
 
     }
 
