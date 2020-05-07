@@ -18,8 +18,4 @@ export default class PostgresConnection {
 
         return client;
     }
-
-    escape(val: any): any {
-        return val;
-    }
 }

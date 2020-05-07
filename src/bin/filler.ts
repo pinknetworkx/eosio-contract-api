@@ -41,7 +41,5 @@ if (cluster.isMaster) {
     const connection = new ConnectionManager(connectionConfig);
     const reader = new ReaderLoader(readerConfigs[parseInt(process.env.config_index, 10)], connection);
 
-    reader.startFiller(2).then(() => {
-        logger.info('Started reading on worker ' + process.pid);
-    });
+    reader.startFiller(2).then();
 }

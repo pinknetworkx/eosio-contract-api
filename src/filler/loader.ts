@@ -3,6 +3,7 @@ import StateReceiver from './receiver';
 import logger from '../utils/winston';
 import getHandlers, { IContractHandler } from './handlers';
 import { IReaderConfig } from '../types/config';
+import { formatSecondsLeft } from '../utils/time';
 
 export default class ReaderLoader {
     private readonly handlers: IContractHandler[];
@@ -69,13 +70,13 @@ export default class ReaderLoader {
 
             if (lastBlock === this.reader.currentBlock && lastBlock > 0) {
                 logger.warn('Reader ' + this.config.name + ' - No blocks processed');
-            } else if (this.reader.currentBlock > this.reader.lastIrreversibleBlock) {
+            } else if (this.reader.currentBlock < this.reader.lastIrreversibleBlock) {
                 logger.info(
                     'Reader ' + this.config.name + ' - ' +
                     'Progress: ' + this.reader.currentBlock + ' / ' + this.reader.headBlock + ' ' +
                     '(' + (100 * this.reader.currentBlock / this.reader.headBlock).toFixed(2) + '%) ' +
                     'Speed: ' + speed.toFixed(1) + ' B/s ' +
-                    'Syncs in: ' + (this.reader.headBlock - this.reader.currentBlock) / speed + ' seconds'
+                    '(Syncs ' + formatSecondsLeft(Math.floor((this.reader.headBlock - this.reader.currentBlock) / speed)) + ')'
                 );
             } else {
                 logger.info(

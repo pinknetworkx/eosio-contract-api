@@ -23,9 +23,9 @@ export function serializeUInt(n: bigint | string, size: number = 8): bigint {
 }
 
 export function binToHex(data: any): string {
-    if (typeof data[Symbol.iterator] === 'function') {
-        let hex = '';
+    let hex = '';
 
+    if (typeof data[Symbol.iterator] === 'function') {
         for (const byte of data) {
             hex += ('0' + (byte & 0xFF).toString(16)).slice(-2);
         }
@@ -33,7 +33,6 @@ export function binToHex(data: any): string {
         return hex;
     }
 
-    let hex = '';
     let i = 0;
 
     while (typeof data[String(i)] === 'number') {

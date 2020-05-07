@@ -10,6 +10,8 @@ import { EosioAction, EosioTableRow } from '../types/eosio';
 import { ContractDB, ContractDBTransaction } from './database';
 import { IContractHandler } from './handlers';
 import { binToHex } from '../utils/binary';
+import { eosioTimestampToDate } from '../utils/time';
+import { serializeEosioName } from '../utils/eosio';
 
 type AbiCache = {
     types: Map<string, Serialize.Type>,
@@ -51,6 +53,8 @@ export default class StateReceiver {
 
         startBlock = Math.max(startBlock, this.config.start_block);
 
+        logger.info('Reader ' + this.config.name + ' starting on block #' + startBlock);
+
         this.ship.startProcessing({
             start_block_num: startBlock,
             max_messages_in_flight: this.config.ship_prefetch_blocks || 10,
@@ -71,7 +75,7 @@ export default class StateReceiver {
         const db = await this.database.startTransaction(header.this_block.block_num, header.last_irreversible.block_num);
 
         if (header.this_block.block_num <= this.currentBlock) {
-            await db.applyForkDatabase(header.this_block.block_num);
+            await db.rollbackReversibleBlocks();
         }
 
         for (const transactionTrace of traces) {
@@ -83,20 +87,18 @@ export default class StateReceiver {
                 await this.handleDelta(db, block, delta);
             }
 
-            await db.updateReaderPosition(header.this_block.block_num);
-            await db.clearForkDatabase(header.last_irreversible.block_num);
+            await db.updateReaderPosition(block);
+            await db.clearForkDatabase();
         } else if (header.this_block.block_num >= header.last_irreversible.block_num) {
             // always update reader position when in live reader mode
-            await db.updateReaderPosition(header.this_block.block_num);
+            await db.updateReaderPosition(block);
+        } else if (header.this_block.block_num % 100 === 0) {
+            await db.updateReaderPosition(block);
         }
 
         this.currentBlock = header.this_block.block_num;
         this.headBlock = header.head.block_num;
         this.lastIrreversibleBlock = header.last_irreversible.block_num;
-
-        if (header.last_irreversible.block_num % 100 === 0) {
-            await db.updateReaderPosition(header.this_block.block_num);
-        }
 
         await db.commit();
     }
@@ -264,9 +266,21 @@ export default class StateReceiver {
 
             this.abis[action.data.account] = { json: abiJson, types, block_num: block.block_num };
 
-            // TODO: save abi to database
+            const query = await db.client.query(
+                'SELECT account FROM contract_abis WHERE account = $1 AND block_num = $2',
+                [serializeEosioName(action.data.account), block.block_num]
+            );
 
-            const buffer = action.data.abi;
+            if (query.rows.length > 0) {
+                await db.insert('contract_abis', {
+                    account: serializeEosioName(action.data.account),
+                    abi: action.data.abi,
+                    block_num: block.block_num,
+                    block_time: eosioTimestampToDate(block.timestamp).getTime()
+                }, ['account', 'block_num']);
+            } else {
+                logger.info('ABI ' + action.data.account + ' already in cache. Ignoring ABI update');
+            }
 
             logger.info('ABI updated for contract ' + action.data.account);
         } else {
@@ -276,7 +290,20 @@ export default class StateReceiver {
 
     private async handleCodeUpdate(db: ContractDBTransaction, block: ShipBlock, action: EosioAction): Promise<void> {
         if (typeof action.data !== 'string') {
-            // TODO insert in code update log
+            const query = await db.client.query(
+                'SELECT account FROM contract_codes WHERE account = $1 AND block_num = $2',
+                [serializeEosioName(action.data.account), block.block_num]
+            );
+
+            if (query.rows.length > 0) {
+                await db.insert('contract_codes', {
+                    account: serializeEosioName(action.data.account),
+                    block_num: block.block_num,
+                    block_time: eosioTimestampToDate(block.timestamp).getTime()
+                }, ['account', 'block_num']);
+            } else {
+                logger.info('Code ' + action.data.account + ' already in cache. Ignoring code update');
+            }
 
             logger.info('Code updated for contract ' + action.data.account);
         } else {
