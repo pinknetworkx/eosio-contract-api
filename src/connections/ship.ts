@@ -210,6 +210,14 @@ export default class StateHistoryBlockReader {
         }
 
         this.started = true;
+        this.blocksQueue.start();
+    }
+
+    stopProcessing() {
+        this.started = false;
+
+        this.blocksQueue.clear();
+        this.blocksQueue.pause();
     }
 
     async processBlock(response: any): Promise<void> {

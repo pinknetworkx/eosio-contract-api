@@ -1,5 +1,5 @@
-import { expect } from 'chai';
 import 'mocha';
+import { expect } from 'chai';
 
 import ConnectionManager from '../src/connections/manager';
 import { ContractDB } from '../src/filler/database';
