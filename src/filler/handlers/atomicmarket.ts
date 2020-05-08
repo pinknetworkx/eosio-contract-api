@@ -1,7 +1,7 @@
 import { IContractHandler } from './index';
 import { ShipBlock } from '../../types/ship';
 import { EosioAction, EosioTableRow } from '../../types/eosio';
-import { ContractDBTransaction } from "../database";
+import { ContractDBTransaction } from '../database';
 import ConnectionManager from '../../connections/manager';
 import logger from '../../utils/winston';
 

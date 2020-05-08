@@ -43,7 +43,7 @@ export interface IReaderConfig {
     delete_tables: boolean;
 
     contracts: IContractConfig[];
-};
+}
 
 export interface IContractConfig {
     scope: string[];

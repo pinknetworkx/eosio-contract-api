@@ -75,7 +75,7 @@ export default class StateReceiver {
         const db = await this.database.startTransaction(header.this_block.block_num, header.last_irreversible.block_num);
 
         if (header.this_block.block_num <= this.currentBlock) {
-            await db.rollbackReversibleBlocks();
+            await db.rollbackReversibleBlocks(header.this_block.block_num);
         }
 
         for (const transactionTrace of traces) {

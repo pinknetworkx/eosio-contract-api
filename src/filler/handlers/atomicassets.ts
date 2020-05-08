@@ -8,7 +8,7 @@ import logger from '../../utils/winston';
 export default class AtomicAssetsHandler implements IContractHandler {
     readonly name = 'atomicassets';
 
-    constructor(private readonly connection: ConnectionManager, private readonly args: { atomicassets_contract: string  }) { }
+    constructor(private readonly connection: ConnectionManager, private readonly args: { atomicassets_contract: string }) { }
 
     initDB(): void {
 

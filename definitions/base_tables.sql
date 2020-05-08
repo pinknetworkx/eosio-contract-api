@@ -21,6 +21,8 @@ CREATE TABLE contract_readers (
 CREATE TABLE reversible_queries
 (
     id integer NOT NULL DEFAULT nextval('reversible_queries_id_seq'::regclass),
+    reader character varying(64) NOT NULL,
+    operation character varying(64) NOT NULL,
     "table" character varying(64) NOT NULL,
     "values" text COLLATE pg_catalog."default" NOT NULL,
     condition text COLLATE pg_catalog."default" NOT NULL,
@@ -39,3 +41,4 @@ CREATE INDEX contract_codes_account ON contract_codes USING btree (account);
 CREATE INDEX contract_codes_block_num ON contract_codes USING btree (block_num);
 CREATE INDEX contract_codes_block_time ON contract_codes USING btree (block_time);
 CREATE INDEX reversible_queries_block_num ON reversible_queries USING btree (block_num);
+CREATE INDEX reversible_queries_reader ON reversible_queries USING btree (reader);

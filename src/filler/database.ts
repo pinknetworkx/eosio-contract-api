@@ -1,10 +1,10 @@
-import { PoolClient } from 'pg';
+import { PoolClient, QueryResult } from 'pg';
 
 import ConnectionManager from '../connections/manager';
 import { ShipBlock } from '../types/ship';
-import logger from '../utils/winston';
 import { eosioTimestampToDate } from '../utils/time';
 import { serializeEosioName } from '../utils/eosio';
+import { arraysEqual } from '../utils';
 
 export class ContractDB {
     constructor(readonly name: string, readonly connection: ConnectionManager) { }
@@ -63,61 +63,180 @@ export class ContractDBTransaction {
         readonly client: PoolClient, readonly name: string, readonly currentBlock: number, readonly lastIrreversibleBlock: number
     ) { }
 
-    async insert(table: string, values: object, primaryKey: string[], reversible: boolean = true) {
-        if (this.currentBlock > this.lastIrreversibleBlock && reversible) {
-            // TODO
+    async insert(
+        table: string, values: object, primaryKey: string[], reversible: boolean = true
+    ): Promise<QueryResult> {
+        let insertValues: {[key: string]: any}[];
+
+        if (!Array.isArray(values)) {
+            insertValues = [values];
+        } else {
+            insertValues = values;
         }
 
-        let query = 'INSERT INTO ' + table + '';
+        if (insertValues.length === 0 || typeof insertValues[0] !== 'object') {
+            throw new Error('ContractDB invalid insert values');
+        }
 
-        if (Array.isArray(values)) {
-            if (values.length === 0 || typeof values[0] !== 'object') {
-                logger.warn('ContractDB invalid insert values');
+        const keys = Object.keys(insertValues[0]);
+        const queryValues = [];
+        const queryRows = [];
 
-                return;
+        let varCounter = 1;
+
+        for (const vals of insertValues) {
+            if (!arraysEqual(keys, Object.keys(vals))) {
+                throw new Error('Different insert keys on mass insert');
             }
 
-            let keys = Object.keys(values[0]);
+            const rowVars = [];
 
-            for (const vals of values) {
+            for (const key of keys) {
+                queryValues.push(vals[key]);
+                rowVars.push('$' + varCounter);
+                varCounter += 1;
+            }
 
+            queryRows.push('(' + rowVars.join(', ') + ')');
+        }
+
+        let queryStr = 'INSERT INTO ' + this.client.escapeIdentifier(table) + ' ';
+        queryStr += '(' + keys.map(this.client.escapeIdentifier).join(', ') + ') ';
+        queryStr += 'VALUES ' + queryRows.join(', ') + ' ';
+
+        if (primaryKey.length > 0) {
+            queryStr += 'RETURNING ' + primaryKey.map(this.client.escapeIdentifier).join(', ') + ' ';
+        }
+
+        queryStr += ';';
+
+        const query = await this.client.query(queryStr, queryValues);
+
+        if (this.currentBlock > this.lastIrreversibleBlock && reversible) {
+            const condition = query.rows.map((row) => {
+                return '(' + this.buildPrimaryCondition(row, primaryKey) + ')';
+            }).join(' OR ');
+
+            await this.addRollbackQuery('delete', table, null, condition);
+        }
+
+        return query;
+    }
+
+    async update(
+        table: string, values: {[key: string]: any}, condition: string, primaryKey: string[], reversible: boolean = true
+    ): Promise<QueryResult> {
+        let selectQuery = null;
+
+        if (this.currentBlock > this.lastIrreversibleBlock && reversible) {
+            selectQuery = await this.client.query('SELECT * FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition + ';');
+        }
+
+        const keys = Object.keys(values);
+        const queryUpdates = [];
+        const queryValues = [];
+
+        let varCounter = 1;
+
+        for (const key of keys) {
+            queryUpdates.push('' + this.client.escapeIdentifier(key) + ' = $' + varCounter);
+            queryValues.push(values[key]);
+            varCounter += 1;
+        }
+
+        let queryStr = 'UPDATE ' + this.client.escapeIdentifier(table) + ' SET ';
+        queryStr += queryUpdates.join(', ') + ' ';
+        queryStr += 'WHERE ' + condition + ';';
+
+        const query = await this.client.query(queryStr, queryValues);
+
+        if (selectQuery !== null && selectQuery.rows.length > 0) {
+            for (const row of selectQuery.rows) {
+                await this.addRollbackQuery('update', table, row, this.buildPrimaryCondition(row, primaryKey));
+            }
+        }
+
+        return query;
+    }
+
+    async delete(
+        table: string, condition: string, reversible: boolean = true
+    ): Promise<QueryResult> {
+        let selectQuery = null;
+
+        if (this.currentBlock > this.lastIrreversibleBlock && reversible) {
+            selectQuery = await this.client.query(
+                'SELECT * FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition + ';'
+            );
+        }
+
+        const queryStr = 'DELETE FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition + ';';
+        const query = await this.client.query(queryStr);
+
+        if (selectQuery !== null && selectQuery.rows.length > 0) {
+            await this.addRollbackQuery('insert', table, selectQuery.rows, '');
+        }
+
+        return query;
+    }
+
+    async replace(
+        table: string, values: object, condition: string, primaryKey: string[], reversible: boolean = true
+    ): Promise<QueryResult> {
+        const selectQuery = await this.client.query('SELECT * FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition + ' LIMIT 1;');
+
+        if (selectQuery.rows.length > 0) {
+            await this.update(table, values, condition, primaryKey, false);
+
+            if (this.currentBlock > this.lastIrreversibleBlock && reversible) {
+                await this.addRollbackQuery(
+                    'update', table, selectQuery.rows[0],
+                    this.buildPrimaryCondition(selectQuery.rows[0], primaryKey)
+                );
             }
         } else {
-
-        }
-
-        query += ' RETURNING ' + primaryKey.join(', ');
-
-        // TODO query and get primary keys / save keys to delete it later on
-    }
-
-    async update(table: string, values: object, condition: string, primaryKey: string[], reversible: boolean = true) {
-        if (this.currentBlock > this.lastIrreversibleBlock && reversible ) {
-            // TODO
+            return await this.insert(table, values, primaryKey, reversible);
         }
     }
 
-    async delete(table: string, values: object, condition: string, primaryKey: string[], reversible: boolean = true) {
-        if (this.currentBlock > this.lastIrreversibleBlock && reversible) {
-            // TODO
-        }
+    async addRollbackQuery(operation: string, table: string, values: object, condition: string): Promise<void> {
+        await this.client.query(
+            'INSERT INTO reversible_queries (operation, "table", "values", condition, block_num, reader) ' +
+            'VALUES ($1, $2, $3, $4, $5, $6);',
+            [operation, table, JSON.stringify(values), condition, this.currentBlock, this.name]
+        );
     }
 
-    async replace(table: string, values: object, condition: string, primaryKey: string[], reversible: boolean = true) {
-        if (this.currentBlock > this.lastIrreversibleBlock && reversible) {
-            // TODO
+    async rollbackReversibleBlocks(blockNum: number): Promise<void> {
+        const query = await this.client.query(
+            'SELECT operation, "table", "values", condition ' +
+            'FROM reversible_queries WHERE block_num >= $1 AND name = $2' +
+            'ORDER BY block_num DESC, id DESC;',
+            [blockNum, this.name]
+        );
+
+        for (const row of query.rows) {
+            if (row.operation === 'insert') {
+                await this.insert(row.table, JSON.parse(row.values), [], false);
+            } else if (row.operation === 'update') {
+                await this.update(row.table, JSON.parse(row.values), row.condition, [], false);
+            } else if (row.operation === 'delete') {
+                await this.delete(row.table, row.condition, false);
+            } else {
+                throw Error('Invalid rollback operation in database');
+            }
         }
 
-    }
-
-    async rollbackReversibleBlocks(): Promise<void> {
-        // TODO
+        await this.client.query(
+            'DELETE FROM reversible_queries WHERE block_num >= $1 AND name = $2;',
+        [blockNum, this.name]
+        );
     }
 
     async clearForkDatabase(): Promise<void> {
         await this.client.query(
-            'DELETE FROM reversible_queries WHERE block_num <= $1',
-            [this.lastIrreversibleBlock]
+            'DELETE FROM reversible_queries WHERE block_num <= $1 AND name = $2',
+            [this.lastIrreversibleBlock, this.name]
         );
     }
 
@@ -142,5 +261,11 @@ export class ContractDBTransaction {
         } finally {
             this.client.release();
         }
+    }
+
+    private buildPrimaryCondition(values: {[key: string]: any}, primaryKey: string[]): string {
+        return primaryKey.map((key) => {
+            return this.client.escapeIdentifier(key) + ' = ' + this.client.escapeLiteral(values[key]);
+        }).join(' AND ');
     }
 }

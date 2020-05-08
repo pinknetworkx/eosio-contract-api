@@ -1,4 +1,4 @@
-const { createLogger, transports, format, } = require('winston');
+const { createLogger, transports, format } = require('winston');
 
 const defaultLevel = process.env.LOG_LEVEL || 'info';
 
