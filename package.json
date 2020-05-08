@@ -2,7 +2,7 @@
   "name": "eosio-contract-api",
   "version": "0.1.0",
   "description": "AtomicAssets API",
-  "author": "Fabian Emilius",
+  "author": "pink.network",
   "license": "AGPL-3.0",
   "repository": "https://github.com/pinknetworkx/atomicassets-api",
 
