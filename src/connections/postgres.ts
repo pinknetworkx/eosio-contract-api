@@ -18,4 +18,12 @@ export default class PostgresConnection {
 
         return client;
     }
+
+    /*escapeLiteral(input: any): string {
+        return this.pool.escapeLiteral(input);
+    }
+
+    escapeIdentifier(input: any): string {
+        return this.pool.escapeIdentifier(input);
+    }*/
 }

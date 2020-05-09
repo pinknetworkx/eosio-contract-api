@@ -31,7 +31,7 @@ export default class StateHistoryBlockReader {
 
     private connected: boolean;
     private connecting: boolean;
-    private started: boolean;
+    private stopped: boolean;
 
     private blocksQueue: PQueue;
     private unconfirmed: number;
@@ -45,7 +45,7 @@ export default class StateHistoryBlockReader {
     ) {
         this.connected = false;
         this.connecting = false;
-        this.started = false;
+        this.stopped = true;
 
         this.blocksQueue = new PQueue({concurrency: 1, autoStart: true});
         this.consumer = null;
@@ -53,8 +53,6 @@ export default class StateHistoryBlockReader {
         this.abi = null;
         this.types = null;
         this.tables = new Map();
-
-        this.connect();
     }
 
     setOptions(options: IBlockReaderOptions): void {
@@ -62,7 +60,7 @@ export default class StateHistoryBlockReader {
     }
 
     connect(): void {
-        if (!this.connected && !this.connecting) {
+        if (!this.connected && !this.connecting && !this.stopped) {
             logger.info(`Connecting to ship endpoint ${this.endpoint}`);
 
             this.connecting = true;
@@ -125,7 +123,7 @@ export default class StateHistoryBlockReader {
                     this.tables.set(table.name, table.type);
                 }
 
-                if (this.started) {
+                if (!this.stopped) {
                     this.requestBlocks();
                 }
             } else {
@@ -204,17 +202,21 @@ export default class StateHistoryBlockReader {
             fetch_deltas: false,
             ...request
         };
+        this.stopped = false;
 
-        if (!this.started && this.connected && this.abi) {
+        if (this.connected && this.abi) {
             this.requestBlocks();
         }
 
-        this.started = true;
         this.blocksQueue.start();
+
+        this.connect();
     }
 
-    stopProcessing() {
-        this.started = false;
+    stopProcessing(): void {
+        this.stopped = true;
+
+        this.ws.close();
 
         this.blocksQueue.clear();
         this.blocksQueue.pause();

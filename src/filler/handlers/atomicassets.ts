@@ -5,6 +5,10 @@ import { ContractDBTransaction } from '../database';
 import ConnectionManager from '../../connections/manager';
 import logger from '../../utils/winston';
 
+export enum OfferState {
+    PENDING = 0
+}
+
 export default class AtomicAssetsHandler implements IContractHandler {
     readonly name = 'atomicassets';
 

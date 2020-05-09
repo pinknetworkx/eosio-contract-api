@@ -18,6 +18,7 @@ CREATE TABLE contract_readers (
     updated bigint NOT NULL
 );
 
+CREATE SEQUENCE reversible_queries_id_seq;
 CREATE TABLE reversible_queries
 (
     id integer NOT NULL DEFAULT nextval('reversible_queries_id_seq'::regclass),
