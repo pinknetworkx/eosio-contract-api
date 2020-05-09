@@ -12,6 +12,11 @@ export type Condition = {
     values: any[]
 };
 
+type SerializedValue = {
+    type: string,
+    data: any
+};
+
 export class ContractDB {
     constructor(readonly name: string, readonly connection: ConnectionManager) { }
 
@@ -222,7 +227,7 @@ export class ContractDBTransaction {
             const query = await this.client.query(queryStr, condition.values);
 
             if (selectQuery !== null && selectQuery.rows.length > 0) {
-                await this.addRollbackQuery('insert', table, selectQuery.rows, {str: '', values: []});
+                await this.addRollbackQuery('insert', table, selectQuery.rows, null);
             }
 
             return query;
@@ -256,11 +261,40 @@ export class ContractDBTransaction {
         }
     }
 
-    async addRollbackQuery(operation: string, table: string, values: object, condition: Condition): Promise<void> {
+    async addRollbackQuery(operation: string, table: string, values: any, condition: Condition | null): Promise<void> {
+        let serializedCondition = null;
+        if (condition) {
+            serializedCondition = {
+                str: condition.str,
+                values: condition.values.map((value) => this.serializeValue(value))
+            };
+        }
+
+        let serializedValues: any = null;
+        if (Array.isArray(values)) {
+            serializedValues = [];
+
+            for (const value of values) {
+                const row = {...value};
+
+                for (const key of Object.keys(value)) {
+                    row[key] = this.serializeValue(value[key]);
+                }
+
+                serializedValues.push(row);
+            }
+        } else if (values) {
+            serializedValues = {...values};
+
+            for (const key of Object.keys(serializedValues)) {
+                serializedValues[key] = this.serializeValue(values[key]);
+            }
+        }
+
         await this.client.query(
             'INSERT INTO reversible_queries (operation, "table", "values", condition, block_num, reader) ' +
             'VALUES ($1, $2, $3, $4, $5, $6);',
-            [operation, table, JSON.stringify(values), JSON.stringify(condition), this.currentBlock, this.name]
+            [operation, table, JSON.stringify(serializedValues), JSON.stringify(serializedCondition), this.currentBlock, this.name]
         );
     }
 
@@ -276,12 +310,31 @@ export class ContractDBTransaction {
             );
 
             for (const row of query.rows) {
+                const values = JSON.parse(row.values);
+                const condition: Condition | null = JSON.parse(row.condition);
+
+                if (condition) {
+                    condition.values = condition.values.map((value) => this.deserializeValue(value));
+                }
+
+                if (Array.isArray(values)) {
+                    for (const value of values) {
+                        for (const key of Object.keys(value)) {
+                            value[key] = this.deserializeValue(value[key]);
+                        }
+                    }
+                } else {
+                    for (const key of Object.keys(values)) {
+                        values[key] = this.deserializeValue(values[key]);
+                    }
+                }
+
                 if (row.operation === 'insert') {
-                    await this.insert(row.table, JSON.parse(row.values), [], false, false);
+                    await this.insert(row.table, values, [], false, false);
                 } else if (row.operation === 'update') {
-                    await this.update(row.table, JSON.parse(row.values), JSON.parse(row.condition), [], false, false);
+                    await this.update(row.table, values, condition, [], false, false);
                 } else if (row.operation === 'delete') {
-                    await this.delete(row.table, JSON.parse(row.condition), false, false);
+                    await this.delete(row.table, condition, false, false);
                 } else {
                     throw Error('Invalid rollback operation in database');
                 }
@@ -350,6 +403,50 @@ export class ContractDBTransaction {
 
     escapeIdentifier(input: any): string {
         return this.client.escapeIdentifier(input);
+    }
+
+    serializeValue(value: any): SerializedValue {
+        if (value instanceof Buffer) {
+            return {
+                type: 'buffer',
+                data: [...value]
+            };
+        }
+
+        if (ArrayBuffer.isView(value)) {
+            return {
+                type: 'bytes',
+                data: [...Buffer.from(value.buffer, value.byteOffset, value.byteLength)]
+            };
+        }
+
+        if (value instanceof Date) {
+            return {
+                type: 'date',
+                data: value.getTime()
+            };
+        }
+
+        return {
+            type: 'raw',
+            data: value
+        };
+    }
+
+    deserializeValue(value: SerializedValue): any {
+        if (value.type === 'buffer') {
+            return Buffer.from(value.data);
+        }
+
+        if (value.type === 'bytes') {
+            return new Uint8Array(value.data);
+        }
+
+        if (value.type === 'date') {
+            return new Date(value.data);
+        }
+
+        return value.data;
     }
 
     private buildPrimaryCondition(values: {[key: string]: any}, primaryKey: string[], offset: number = 0): Condition {

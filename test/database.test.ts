@@ -11,15 +11,6 @@ describe('database tests', () => {
     const connection = new ConnectionManager(config);
     const contract = new ContractDB('test', connection);
 
-    it('escape', async () => {
-        const transaction = await contract.startTransaction(1, 0);
-        
-        expect(transaction.escapeLiteral(BigInt(4))).to.equal('dfs');
-        // expect(transaction.escapeLiteral(['hello', 'world'])).to.equal('');
-
-        await transaction.commit();
-    });
-
     it('Contract DB Transaction Insert', async () => {
         const transaction = await contract.startTransaction(1, 0);
 
@@ -81,9 +72,9 @@ describe('database tests', () => {
     });
 
     it('Contract DB Rollback', async () => {
-        const transaction = await contract.startTransaction(1, 0);
+        const transaction = await contract.startTransaction(4, 0);
 
-        await transaction.rollbackReversibleBlocks(1);
+        await transaction.rollbackReversibleBlocks(4);
 
         await transaction.commit();
     });
