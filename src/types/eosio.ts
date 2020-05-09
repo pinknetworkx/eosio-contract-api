@@ -5,6 +5,18 @@ export type EosioAction = {
     data: {[key: string]: any} | string
 };
 
+export type EosioActionTrace = {
+    action_ordinal: number,
+    creator_action_ordinal: number,
+    act: EosioAction
+};
+
+export type EosioTransaction = {
+    id: string,
+    cpu_usage_us: number,
+    net_usage_words: number
+};
+
 export type EosioTableRow = {
     code: string,
     scope: string,

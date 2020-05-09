@@ -198,7 +198,13 @@ export class ContractDBTransaction {
 
             if (selectQuery !== null && selectQuery.rows.length > 0) {
                 for (const row of selectQuery.rows) {
-                    await this.addRollbackQuery('update', table, row, this.buildPrimaryCondition(row, primaryKey));
+                    const filteredValues = this.removeIdenticalValues(row, values, primaryKey);
+
+                    if (Object.keys(filteredValues).length === 0) {
+                        continue;
+                    }
+
+                    await this.addRollbackQuery('update', table, filteredValues, this.buildPrimaryCondition(row, primaryKey));
                 }
             }
 
@@ -250,7 +256,11 @@ export class ContractDBTransaction {
                 await this.update(table, values, condition, primaryKey, false, false);
 
                 if (this.currentBlock > this.lastIrreversibleBlock && reversible) {
-                    await this.addRollbackQuery('update', table, selectQuery.rows[0], condition);
+                    const filteredValues = this.removeIdenticalValues(selectQuery.rows[0], values, primaryKey);
+
+                    if (Object.keys(filteredValues).length > 0) {
+                        await this.addRollbackQuery('update', table, filteredValues, condition);
+                    }
                 }
             } else {
                 return await this.insert(table, values, primaryKey, reversible, false);
@@ -407,7 +417,7 @@ export class ContractDBTransaction {
     serializeValue(value: any): SerializedValue {
         if (value instanceof Buffer) {
             return {
-                type: 'buffer',
+                type: 'bytes',
                 data: [...value]
             };
         }
@@ -433,10 +443,6 @@ export class ContractDBTransaction {
     }
 
     deserializeValue(value: SerializedValue): any {
-        if (value.type === 'buffer') {
-            return Buffer.from(value.data);
-        }
-
         if (value.type === 'bytes') {
             return new Uint8Array(value.data);
         }
@@ -448,6 +454,25 @@ export class ContractDBTransaction {
         return value.data;
     }
 
+    compareValues(value1: any, value2: any): boolean {
+        const serializedValue1 = this.serializeValue(value1);
+        const serializedValue2 = this.serializeValue(value2);
+
+        if (serializedValue1.type !== serializedValue2.type) {
+            return false;
+        }
+
+        if (serializedValue1.type === 'bytes' && arraysEqual(serializedValue1.data, serializedValue2.data)) {
+            return true;
+        }
+
+        if (serializedValue1.type === 'raw' && String(serializedValue1.data) === String(serializedValue2.data)) {
+            return true;
+        }
+
+        return serializedValue1.data === serializedValue2.data;
+    }
+
     private buildPrimaryCondition(values: {[key: string]: any}, primaryKey: string[], offset: number = 0): Condition {
         const conditionStr = primaryKey.map((key, index) => {
             return this.client.escapeIdentifier(key) + ' = $' + (offset + index + 1);
@@ -455,6 +480,27 @@ export class ContractDBTransaction {
         const conditionValues = primaryKey.map((key) => values[key]);
 
         return { str: conditionStr, values: conditionValues };
+    }
+
+    private removeIdenticalValues(
+        currentValues: {[key: string]: any}, previousValues: {[key: string]: any}, primaryKey: string[] = []
+    ): {[key: string]: any} {
+        const keys = Object.keys(currentValues);
+        const result: {[key: string]: any} = {};
+
+        for (const key of keys) {
+            if (primaryKey.indexOf(key) >= 0) {
+                continue;
+            }
+
+            if (this.compareValues(currentValues[key], previousValues[key])) {
+                continue;
+            }
+
+            result[key] = currentValues[key];
+        }
+
+        return result;
     }
 
     private changeQueryVarOffset(str: string, length: number, offset: number): string {

@@ -21,4 +21,3 @@ export function formatSecondsLeft(n: number): string {
 
     return str;
 }
-

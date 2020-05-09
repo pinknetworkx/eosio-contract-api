@@ -4,14 +4,17 @@ import logger from '../utils/winston';
 import getHandlers, { IContractHandler } from './handlers';
 import { IReaderConfig } from '../types/config';
 import { formatSecondsLeft } from '../utils/time';
+import { PromiseEventHandler } from '../utils/event';
 
 export default class ReaderLoader {
     private readonly handlers: IContractHandler[];
     private readonly reader: StateReceiver;
+    private readonly events: PromiseEventHandler;
 
     constructor(private readonly config: IReaderConfig, private readonly connection: ConnectionManager) {
-        this.handlers = getHandlers(config.contracts, connection);
-        this.reader = new StateReceiver(config, connection, this.handlers);
+        this.events = new PromiseEventHandler();
+        this.handlers = getHandlers(config.contracts, connection, this.events);
+        this.reader = new StateReceiver(config, connection, this.events, this.handlers);
     }
 
     async initDB(): Promise<void> {

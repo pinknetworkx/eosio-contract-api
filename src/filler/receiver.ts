@@ -6,11 +6,12 @@ import ConnectionManager from '../connections/manager';
 import StateHistoryBlockReader from '../connections/ship';
 import { IReaderConfig } from '../types/config';
 import { ShipActionTrace, ShipBlock, ShipContractRow, ShipHeader, ShipTableDelta, ShipTransactionTrace } from '../types/ship';
-import { EosioAction, EosioTableRow } from '../types/eosio';
+import { EosioAction, EosioActionTrace, EosioTableRow, EosioTransaction } from '../types/eosio';
 import { ContractDB, ContractDBTransaction } from './database';
 import { IContractHandler } from './handlers';
 import { binToHex } from '../utils/binary';
 import { eosioTimestampToDate, serializeEosioName } from '../utils/eosio';
+import { PromiseEventHandler } from '../utils/event';
 
 type AbiCache = {
     types: Map<string, Serialize.Type>,
@@ -31,6 +32,7 @@ export default class StateReceiver {
     constructor(
         private readonly config: IReaderConfig,
         private readonly connection: ConnectionManager,
+        private readonly events: PromiseEventHandler,
         private readonly handlers: IContractHandler[]
     ) {
         this.ship = connection.createShipBlockReader({
@@ -88,10 +90,7 @@ export default class StateReceiver {
 
             await db.updateReaderPosition(block);
             await db.clearForkDatabase();
-        } else if (header.this_block.block_num >= header.last_irreversible.block_num) {
-            // always update reader position when in live reader mode
-            await db.updateReaderPosition(block);
-        } else if (header.this_block.block_num % 100 === 0) {
+        } else if (header.this_block.block_num >= header.last_irreversible.block_num || header.this_block.block_num % 100 === 0) {
             await db.updateReaderPosition(block);
         }
 
@@ -106,16 +105,28 @@ export default class StateReceiver {
         db: ContractDBTransaction, block: ShipBlock, transactionTrace: ShipTransactionTrace
     ): Promise<boolean> {
         if (transactionTrace[0] === 'transaction_trace_v0') {
-            if (transactionTrace[1].error_code) {
+            if (transactionTrace[1].status !== 0) {
                 logger.warn('Failed transaction ' + transactionTrace[1].id + ' received from ship');
 
                 return false;
             }
 
+            const transaction: EosioTransaction = {
+                id: transactionTrace[1].id,
+                cpu_usage_us: transactionTrace[1].cpu_usage_us,
+                net_usage_words: transactionTrace[1].net_usage_words
+            };
+
             let processDeltas = false;
 
             for (const actionTrace of transactionTrace[1].action_traces) {
-                processDeltas = await this.handleActionTrace(db, block, actionTrace) || processDeltas;
+                if (!await this.handleActionTrace(db, block, actionTrace, transaction)) {
+                    continue;
+                }
+
+                logger.debug('Transaction for handler received', transactionTrace);
+
+                processDeltas = true;
             }
 
             return processDeltas;
@@ -127,7 +138,7 @@ export default class StateReceiver {
     }
 
     private async handleActionTrace(
-        db: ContractDBTransaction, block: ShipBlock, actionTrace: ShipActionTrace
+        db: ContractDBTransaction, block: ShipBlock, actionTrace: ShipActionTrace, tx: EosioTransaction
     ): Promise<boolean> {
         if (actionTrace[0] === 'action_trace_v0') {
             // ignore if its a notification
@@ -154,12 +165,18 @@ export default class StateReceiver {
                     }
                 }
 
-                await this.handleAction(db, block, {
-                    account: actionTrace[1].act.account,
-                    name: actionTrace[1].act.name,
-                    authorization: actionTrace[1].act.authorization,
-                    data
-                });
+                const trace: EosioActionTrace = {
+                    action_ordinal: actionTrace[1].action_ordinal,
+                    creator_action_ordinal: actionTrace[1].creator_action_ordinal,
+                    act: {
+                        account: actionTrace[1].act.account,
+                        name: actionTrace[1].act.name,
+                        authorization: actionTrace[1].act.authorization,
+                        data
+                    }
+                };
+
+                await this.handleAction(db, block, trace, tx);
             }
 
             return this.isContractInScope(actionTrace[1].act.account);
@@ -170,19 +187,21 @@ export default class StateReceiver {
         throw new Error('Unsupported trace response received: ' + actionTrace[0]);
     }
 
-    private async handleAction(db: ContractDBTransaction, block: ShipBlock, action: EosioAction): Promise<void> {
-        if (action.account === 'eosio') {
-            if (action.name === 'setcode') {
-                await this.handleCodeUpdate(db, block, action);
-            } else if (action.name === 'setabi') {
-                await this.handleAbiUpdate(db, block, action);
+    private async handleAction(
+        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction
+    ): Promise<void> {
+        if (trace.act.account === 'eosio') {
+            if (trace.act.name === 'setcode') {
+                await this.handleCodeUpdate(db, block, trace.act);
+            } else if (trace.act.name === 'setabi') {
+                await this.handleAbiUpdate(db, block, trace.act);
             }
         }
 
-        const handlers = this.getActionHandlers(action.account, action.name);
+        const handlers = this.getActionHandlers(trace.act.account, trace.act.name);
 
         for (const handler of handlers) {
-            await handler.onAction(db, block, action);
+            await handler.onAction(db, block, trace, tx);
         }
     }
 

@@ -1,11 +1,12 @@
 import ConnectionManager from '../../connections/manager';
 import { ShipBlock } from '../../types/ship';
-import { EosioAction, EosioTableRow } from '../../types/eosio';
+import { EosioActionTrace, EosioTableRow, EosioTransaction } from '../../types/eosio';
 import { ContractDBTransaction } from '../database';
 import { IContractConfig } from '../../types/config';
 
-import AtomicAssetsHandler from './atomicassets';
-import AtomicMarketHandler from './atomicmarket';
+import AtomicAssetsHandler from './atomicassets/index';
+import AtomicMarketHandler from './atomicmarket/index';
+import { PromiseEventHandler } from '../../utils/event';
 
 export interface IContractHandler {
     readonly name: string;
@@ -14,18 +15,20 @@ export interface IContractHandler {
     deleteDB(): any;
 
     init(): any;
-    onAction(db: ContractDBTransaction, block: ShipBlock, action: EosioAction): any;
+    onAction(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): any;
     onTableChange(db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow): any;
 }
 
-export default function getHandlers(configs: IContractConfig[], connection: ConnectionManager): IContractHandler[] {
+export default function getHandlers(
+    configs: IContractConfig[], connection: ConnectionManager, events: PromiseEventHandler
+): IContractHandler[] {
     const handlers = [];
 
     for (const config of configs) {
         if (config.handler === 'atomicassets') {
-            handlers.push(new AtomicAssetsHandler(connection, config.args));
+            handlers.push(new AtomicAssetsHandler(connection, events, config.args));
         } else if (config.handler === 'atomicmarket') {
-            handlers.push(new AtomicMarketHandler(connection, config.args));
+            handlers.push(new AtomicMarketHandler(connection, events, config.args));
         } else {
             throw new Error('contract handler not found');
         }
