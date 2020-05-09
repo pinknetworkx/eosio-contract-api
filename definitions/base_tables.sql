@@ -25,8 +25,8 @@ CREATE TABLE reversible_queries
     reader character varying(64) NOT NULL,
     operation character varying(64) NOT NULL,
     "table" character varying(64) NOT NULL,
-    "values" text COLLATE pg_catalog."default" NOT NULL,
-    condition text COLLATE pg_catalog."default" NOT NULL,
+    "values" json NOT NULL,
+    condition json NOT NULL,
     block_num bigint NOT NULL
 );
 
