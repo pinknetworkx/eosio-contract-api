@@ -22,6 +22,3 @@ export function formatSecondsLeft(n: number): string {
     return str;
 }
 
-export function eosioTimestampToDate(timestamp: string): Date {
-    return new Date(timestamp + '+0000');
-}

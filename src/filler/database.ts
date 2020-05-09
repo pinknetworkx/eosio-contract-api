@@ -3,8 +3,7 @@ import AwaitLock from 'await-lock';
 
 import ConnectionManager from '../connections/manager';
 import { ShipBlock } from '../types/ship';
-import { eosioTimestampToDate } from '../utils/time';
-import { serializeEosioName } from '../utils/eosio';
+import { eosioTimestampToDate, serializeEosioName } from '../utils/eosio';
 import { arraysEqual } from '../utils';
 
 export type Condition = {

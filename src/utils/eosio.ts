@@ -32,3 +32,7 @@ export function deserializeEosioName(data: string): string {
 
     return buffer.getName();
 }
+
+export function eosioTimestampToDate(timestamp: string): Date {
+    return new Date(timestamp + '+0000');
+}

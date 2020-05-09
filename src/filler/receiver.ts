@@ -10,8 +10,7 @@ import { EosioAction, EosioTableRow } from '../types/eosio';
 import { ContractDB, ContractDBTransaction } from './database';
 import { IContractHandler } from './handlers';
 import { binToHex } from '../utils/binary';
-import { eosioTimestampToDate } from '../utils/time';
-import { serializeEosioName } from '../utils/eosio';
+import { eosioTimestampToDate, serializeEosioName } from '../utils/eosio';
 
 type AbiCache = {
     types: Map<string, Serialize.Type>,
