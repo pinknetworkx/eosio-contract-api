@@ -326,15 +326,17 @@ export class ContractDBTransaction {
                     condition.values = condition.values.map((value) => this.deserializeValue(value));
                 }
 
-                if (Array.isArray(values)) {
-                    for (const value of values) {
-                        for (const key of Object.keys(value)) {
-                            value[key] = this.deserializeValue(value[key]);
+                if (values !== null) {
+                    if (Array.isArray(values)) {
+                        for (const value of values) {
+                            for (const key of Object.keys(value)) {
+                                value[key] = this.deserializeValue(value[key]);
+                            }
                         }
-                    }
-                } else {
-                    for (const key of Object.keys(values)) {
-                        values[key] = this.deserializeValue(values[key]);
+                    } else {
+                        for (const key of Object.keys(values)) {
+                            values[key] = this.deserializeValue(values[key]);
+                        }
                     }
                 }
 

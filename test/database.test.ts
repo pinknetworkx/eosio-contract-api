@@ -74,7 +74,7 @@ describe('database tests', () => {
     it('Contract DB Rollback', async () => {
         const transaction = await contract.startTransaction(4, 0);
 
-        await transaction.rollbackReversibleBlocks(4);
+        await transaction.rollbackReversibleBlocks(1);
 
         await transaction.commit();
     });

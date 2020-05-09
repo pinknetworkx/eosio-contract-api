@@ -37,6 +37,8 @@ export default class AtomicAssetsHandler implements IContractHandler {
 
     onAction(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): void {
         logger.debug('atomicassets', {trace, tx});
+
+
     }
 
     onTableChange(db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow): void {

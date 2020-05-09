@@ -7,5 +7,15 @@
   "server_port": 3000,
 
   "processes": 1,
-  "cache_life_ms": 500
+  "cache_life_ms": 500,
+
+  "handlers": [
+    {
+      "name": "atomicassets",
+      "reader": "atomic",
+      "args": {
+        "contracts": ["atomicassets"]
+      }
+    }
+  ]
 }

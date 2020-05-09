@@ -4,7 +4,7 @@
     "port": 5432,
     "user": "username",
     "password": "changeme",
-    "database": "atomicassets"
+    "database": "eosio-contract-api"
   },
   "redis": {
     "host": "eosio-contract-api-redis",
