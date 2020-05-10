@@ -8,7 +8,7 @@ import { IReaderConfig } from '../types/config';
 import { ShipActionTrace, ShipBlock, ShipContractRow, ShipHeader, ShipTableDelta, ShipTransactionTrace } from '../types/ship';
 import { EosioAction, EosioActionTrace, EosioTableRow, EosioTransaction } from '../types/eosio';
 import { ContractDB, ContractDBTransaction } from './database';
-import { IContractHandler } from './handlers';
+import { ContractHandler } from './handlers';
 import { binToHex } from '../utils/binary';
 import { eosioTimestampToDate, serializeEosioName } from '../utils/eosio';
 import { PromiseEventHandler } from '../utils/event';
@@ -33,7 +33,7 @@ export default class StateReceiver {
         private readonly config: IReaderConfig,
         private readonly connection: ConnectionManager,
         private readonly events: PromiseEventHandler,
-        private readonly handlers: IContractHandler[]
+        private readonly handlers: ContractHandler[]
     ) {
         this.ship = connection.createShipBlockReader({
             min_block_confirmation: config.ship_min_block_confirmation
@@ -451,7 +451,7 @@ export default class StateReceiver {
         return false;
     }
 
-    private getActionHandlers(contract: string, action?: string): IContractHandler[] {
+    private getActionHandlers(contract: string, action?: string): ContractHandler[] {
         const handlers = [];
 
         for (let i = 0; i < this.config.contracts.length; i++) {

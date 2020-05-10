@@ -323,5 +323,3 @@ ALTER TABLE ONLY atomicassets_transfers_assets
 
 ALTER TABLE ONLY atomicassets_transfers_assets
     ADD CONSTRAINT atomicassets_transfers_assets_transfers FOREIGN KEY (transfer_id) REFERENCES atomicassets_transfers(transfer_id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-

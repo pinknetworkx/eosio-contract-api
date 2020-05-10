@@ -35,7 +35,9 @@
     "text-encoding": "^0.7.0",
     "p-queue": "^6.3.0",
     "await-lock": "^2.0.1",
-    "ws": "^7.2.5"
+    "ws": "^7.2.5",
+
+    "atomicassets": "^0.4.0"
   },
   "devDependencies": {
     "@types/body-parser": "^1.19.0",
@@ -44,6 +46,10 @@
     "@types/mocha": "^7.0.2",
     "@types/ioredis": "^4.16.0",
     "@types/pg": "^7.14.3",
+    "@types/node": "^13.13.5",
+    "@types/ws": "^7.2.4",
+    "@types/text-encoding": "^0.0.35",
+    "@types/node-fetch": "^2.5.7",
     "chai": "^4.2.0",
     "mocha": "^7.1.2",
     "ts-node": "^8.10.1",

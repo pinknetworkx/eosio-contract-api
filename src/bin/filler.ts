@@ -1,11 +1,10 @@
 import * as cluster from 'cluster';
+import * as fs from 'fs';
 
 import ReaderLoader from '../filler/loader';
 import ConnectionManager from '../connections/manager';
 import logger from '../utils/winston';
 import { IConnectionsConfig, IReaderConfig } from '../types/config';
-
-const fs = require('fs');
 
 const readerConfigs: IReaderConfig[] = require('../../config/readers.config.json');
 const connectionConfig: IConnectionsConfig = require('../../config/connections.config.json');

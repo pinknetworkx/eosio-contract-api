@@ -415,14 +415,6 @@ export class ContractDBTransaction {
         }
     }
 
-    escapeLiteral(input: any): string {
-        return this.client.escapeLiteral(input);
-    }
-
-    escapeIdentifier(input: any): string {
-        return this.client.escapeIdentifier(input);
-    }
-
     serializeValue(value: any): SerializedValue {
         if (value instanceof Buffer) {
             return {

@@ -40,7 +40,7 @@ export interface IReaderConfig {
     ship_prefetch_blocks: number;
     ship_min_block_confirmation: number;
 
-    delete_tables: boolean;
+    delete_data: boolean;
 
     contracts: IContractConfig[];
 }

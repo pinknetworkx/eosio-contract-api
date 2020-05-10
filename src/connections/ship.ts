@@ -1,6 +1,8 @@
 import PQueue from 'p-queue';
 import { Serialize } from 'eosjs';
 import { Abi } from 'eosjs/dist/eosjs-rpc-interfaces';
+import * as WebSocket from 'ws';
+import { TextDecoder, TextEncoder } from 'text-encoding';
 
 import logger from '../utils/winston';
 import {
@@ -11,9 +13,6 @@ import {
     IBlockReaderOptions,
     ShipHeader
 } from '../types/ship';
-
-const { TextDecoder, TextEncoder } = require('text-encoding');
-const WebSocket = require('ws');
 
 export type BlockConsumer = (
     header: ShipHeader,

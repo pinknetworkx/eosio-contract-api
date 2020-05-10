@@ -6,7 +6,7 @@ const apiConfig = require('../../config/connections.json');
 import logger from '../utils/winston';
 import App from '../api/loader';
 
-const server = http.createServer(App);
+const api = http.createServer(App);
 
 const normalizePort = (val: number | string): number | string | boolean => {
     const normolizedPort = (typeof val === 'string') ? parseInt(val, 10) : val;
@@ -45,11 +45,11 @@ const onError = (error: NodeJS.ErrnoException) => {
 };
 
 const onListening = () => {
-    const addr = server.address();
+    const addr = api.address();
     const bind = (typeof addr === 'string') ? `pipe ${addr}` : `port ${addr.port}`;
     logger.info(`Listening on ${bind}`);
 };
 
-server.listen(port);
-server.on('error', onError);
-server.on('listening', onListening);
+api.listen(port);
+api.on('error', onError);
+api.on('listening', onListening);

@@ -9,7 +9,7 @@
     "ship_prefetch_blocks": 50,
     "ship_min_block_confirmation": 30,
 
-    "delete_tables": false,
+    "delete_data": false,
 
     "contracts": [
       {

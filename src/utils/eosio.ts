@@ -1,8 +1,7 @@
+import { TextDecoder, TextEncoder } from 'text-encoding';
 import { SerialBuffer } from 'eosjs/dist/eosjs-serialize';
 
 import { deserializeUInt, serializeUInt } from './binary';
-
-const { TextDecoder, TextEncoder } = require('text-encoding');
 
 export function serializeEosioName(name: string): string {
     const buffer = new SerialBuffer({textEncoder: new TextEncoder, textDecoder: new TextDecoder});

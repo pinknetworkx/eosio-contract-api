@@ -1,4 +1,4 @@
-const { createLogger, transports, format } = require('winston');
+import { createLogger, format, transports } from 'winston';
 
 const defaultLevel = process.env.LOG_LEVEL || 'info';
 
@@ -15,19 +15,12 @@ const options = {
     )
 };
 
-const logger = new createLogger(options);
+const logger = createLogger(options);
 
 if (process.env.NODE_ENV === 'production') {
-    logger.add(new transports.Console({
-        colorize: true,
-        showLevel: true,
-        timestamp: true
-    }));
+    logger.add(new transports.Console());
 } else {
     logger.add(new transports.Console({
-        colorize: true,
-        showLevel: true,
-        timestamp: true,
         level: 'debug'
     }));
 }
