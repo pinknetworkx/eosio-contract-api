@@ -242,7 +242,8 @@ export class ContractDBTransaction {
     }
 
     async replace(
-        table: string, values: object, primaryKey: string[], reversible: boolean = true, lock: boolean = true
+        table: string, values: object, primaryKey: string[], updateBlacklist: string[] = [],
+        reversible: boolean = true, lock: boolean = true
     ): Promise<QueryResult> {
         await this.acquireLock(lock);
 
@@ -253,10 +254,16 @@ export class ContractDBTransaction {
             );
 
             if (selectQuery.rows.length > 0) {
-                await this.update(table, values, condition, primaryKey, false, false);
+                const updateValues: {[key: string]: any} = {...values};
+
+                for (const key of updateBlacklist) {
+                    delete updateValues[key];
+                }
+
+                await this.update(table, updateValues, condition, primaryKey, false, false);
 
                 if (this.currentBlock > this.lastIrreversibleBlock && reversible) {
-                    const filteredValues = this.removeIdenticalValues(selectQuery.rows[0], values, primaryKey);
+                    const filteredValues = this.removeIdenticalValues(selectQuery.rows[0], updateValues, primaryKey);
 
                     if (Object.keys(filteredValues).length > 0) {
                         await this.addRollbackQuery('update', table, filteredValues, condition);
