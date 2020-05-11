@@ -7,6 +7,6 @@ export default class AtomicAssetsTableHandler {
     constructor(readonly core: AtomicAssetsHandler) { }
 
     async handleUpdate(db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow) {
-
+        console.log(delta);
     }
 }

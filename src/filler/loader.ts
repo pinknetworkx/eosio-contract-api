@@ -1,7 +1,8 @@
 import ConnectionManager from '../connections/manager';
 import StateReceiver from './receiver';
 import logger from '../utils/winston';
-import getHandlers, { ContractHandler } from './handlers';
+import { getHandlers } from './handlers';
+import { ContractHandler } from './handlers/interfaces';
 import { IReaderConfig } from '../types/config';
 import { formatSecondsLeft } from '../utils/time';
 import { PromiseEventHandler } from '../utils/event';
@@ -48,10 +49,10 @@ export default class ReaderLoader {
                 [this.config.name, Math.max(this.config.start_block - 1, 0), 0, Date.now()]
             );
         } else if (this.config.start_block > 0) {
-            if (this.config.start_block > query.rows[0].block_num) {
+            if (this.config.start_block - 1 >= query.rows[0].block_num) {
                 await this.connection.database.query(
                     'UPDATE contract_readers SET block_num = $1 WHERE name = $2',
-                    [this.config.start_block, this.config.name]
+                    [this.config.start_block - 1, this.config.name]
                 );
             } else {
                 throw new Error('Reader start block cannot be earlier than the last indexed block without deleting all data');

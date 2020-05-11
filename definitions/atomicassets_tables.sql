@@ -76,7 +76,7 @@ CREATE TABLE atomicassets_logs (
     created_at_time bigint NOT NULL
 );
 
-CREATE SEQUENCE atomicassets_logs_id_seq
+CREATE SEQUENCE atomicassets_logs_log_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -170,9 +170,9 @@ ALTER SEQUENCE atomicassets_transfers_transfer_id_seq OWNED BY atomicassets_tran
 
 
 -- SEQUENCES --
-ALTER TABLE ONLY atomicassets_logs ALTER COLUMN id SET DEFAULT nextval('atomicassets_logs_id_seq'::regclass);
+ALTER TABLE ONLY atomicassets_logs ALTER COLUMN log_id SET DEFAULT nextval('atomicassets_logs_log_id_seq'::regclass);
 
-ALTER TABLE ONLY atomicassets_transfers ALTER COLUMN id SET DEFAULT nextval('atomicassets_transfers_id_seq'::regclass);
+ALTER TABLE ONLY atomicassets_transfers ALTER COLUMN transfer_id SET DEFAULT nextval('atomicassets_transfers_transfer_id_seq'::regclass);
 
 -- PRIMARY KEYS --
 ALTER TABLE ONLY atomicassets_assets_backed_tokens
@@ -185,7 +185,7 @@ ALTER TABLE ONLY atomicassets_assets
     ADD CONSTRAINT atomicassets_assets_pkey PRIMARY KEY (contract, asset_id);
 
 ALTER TABLE ONLY atomicassets_balances
-    ADD CONSTRAINT atomicassets_balances_pkey PRIMARY KEY (contract, owner, symbol);
+    ADD CONSTRAINT atomicassets_balances_pkey PRIMARY KEY (contract, owner, token_symbol);
 
 ALTER TABLE ONLY atomicassets_collections
     ADD CONSTRAINT atomicassets_collections_pkey PRIMARY KEY (contract, collection_name);
@@ -203,7 +203,7 @@ ALTER TABLE ONLY atomicassets_offers
     ADD CONSTRAINT atomicassets_offers_pkey PRIMARY KEY (contract, offer_id);
 
 ALTER TABLE ONLY atomicassets_presets_data
-    ADD CONSTRAINT atomicassets_presets_data_pkey PRIMARY KEY (contract, preset_id, key);
+    ADD CONSTRAINT atomicassets_presets_data_pkey PRIMARY KEY (contract, preset_id, "key");
 
 ALTER TABLE ONLY atomicassets_presets
     ADD CONSTRAINT atomicassets_presets_pkey PRIMARY KEY (contract, preset_id);
@@ -295,10 +295,10 @@ ALTER TABLE ONLY atomicassets_assets
     ADD CONSTRAINT atomicassets_assets_presets FOREIGN KEY (preset_id, contract) REFERENCES atomicassets_presets(preset_id, contract) ON UPDATE CASCADE ON DELETE RESTRICT NOT VALID;
 
 ALTER TABLE ONLY atomicassets_assets
-    ADD CONSTRAINT atomicassets_assets_schemes FOREIGN KEY (scheme_name, contract) REFERENCES atomicassets_schemes(scheme_name, contract) ON UPDATE CASCADE ON DELETE RESTRICT NOT VALID;
+    ADD CONSTRAINT atomicassets_assets_schemes FOREIGN KEY (collection_name, scheme_name, contract) REFERENCES atomicassets_schemes(collection_name, scheme_name, contract) ON UPDATE CASCADE ON DELETE RESTRICT NOT VALID;
 
 ALTER TABLE ONLY atomicassets_balances
-    ADD CONSTRAINT atomicassets_balances_symbols FOREIGN KEY (symbol, contract) REFERENCES atomicassets_token_symbols(token_symbol, contract) ON UPDATE CASCADE ON DELETE RESTRICT NOT VALID;
+    ADD CONSTRAINT atomicassets_balances_symbols FOREIGN KEY (token_symbol, contract) REFERENCES atomicassets_token_symbols(token_symbol, contract) ON UPDATE CASCADE ON DELETE RESTRICT NOT VALID;
 
 ALTER TABLE ONLY atomicassets_offers_assets
     ADD CONSTRAINT atomicassets_offers_assets_assets FOREIGN KEY (asset_id, contract) REFERENCES atomicassets_assets(asset_id, contract) ON UPDATE CASCADE ON DELETE RESTRICT NOT VALID;
@@ -313,7 +313,7 @@ ALTER TABLE ONLY atomicassets_presets_data
     ADD CONSTRAINT atomicassets_presets_data_presets FOREIGN KEY (preset_id, contract) REFERENCES atomicassets_presets(preset_id, contract) ON UPDATE CASCADE ON DELETE RESTRICT NOT VALID;
 
 ALTER TABLE ONLY atomicassets_presets
-    ADD CONSTRAINT atomicassets_presets_schemes FOREIGN KEY (scheme_name, contract) REFERENCES atomicassets_schemes(scheme_name, contract) ON UPDATE CASCADE ON DELETE RESTRICT NOT VALID;
+    ADD CONSTRAINT atomicassets_presets_schemes FOREIGN KEY (collection_name, scheme_name, contract) REFERENCES atomicassets_schemes(collection_name, scheme_name, contract) ON UPDATE CASCADE ON DELETE RESTRICT NOT VALID;
 
 ALTER TABLE ONLY atomicassets_schemes
     ADD CONSTRAINT atomicassets_schemes_collection FOREIGN KEY (collection_name, contract) REFERENCES atomicassets_collections(collection_name, contract) ON UPDATE CASCADE ON DELETE RESTRICT NOT VALID;

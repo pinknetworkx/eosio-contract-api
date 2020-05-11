@@ -1,7 +1,7 @@
 import { Pool, PoolClient, QueryResult } from 'pg';
 
 export default class PostgresConnection {
-    private pool: Pool;
+    readonly pool: Pool;
 
     constructor(host: string, port: number, user: string, password: string, database: string) {
         this.pool = new Pool({ host, port, user, password, database });
@@ -18,12 +18,4 @@ export default class PostgresConnection {
 
         return client;
     }
-
-    /*escapeLiteral(input: any): string {
-        return this.pool.escapeLiteral(input);
-    }
-
-    escapeIdentifier(input: any): string {
-        return this.pool.escapeIdentifier(input);
-    }*/
 }

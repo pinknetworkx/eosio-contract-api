@@ -46,7 +46,6 @@ export interface IReaderConfig {
 }
 
 export interface IContractConfig {
-    scope: string[];
     handler: string;
     args: any;
 }

@@ -1,7 +1,7 @@
 import * as http from 'http';
 
-const connectionsConfig = require('../../config/connections.json');
-const apiConfig = require('../../config/connections.json');
+const connectionsConfig = require('../../config/connections.config.json');
+const apiConfig = require('../../config/server.config.json');
 
 import logger from '../utils/winston';
 import App from '../api/loader';

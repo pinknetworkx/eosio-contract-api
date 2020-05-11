@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import { ObjectSchema } from 'atomicassets';
 import { ISchema } from 'atomicassets/build/Schema';
 
-import { ContractHandler } from '../index';
+import { ContractHandler } from '../interfaces';
 import { ShipBlock } from '../../../types/ship';
 import { EosioActionTrace, EosioTableRow, EosioTransaction } from '../../../types/eosio';
 import { ContractDBTransaction } from '../../database';
@@ -12,6 +12,7 @@ import AtomicAssetsTableHandler from './tables';
 import ConnectionManager from '../../../connections/manager';
 import { PromiseEventHandler } from '../../../utils/event';
 import AtomicAssetsActionHandler from './actions';
+import { serializeEosioName } from '../../../utils/eosio';
 
 export enum OfferState {
     PENDING = 0,
@@ -22,7 +23,7 @@ export enum OfferState {
 }
 
 export type AtomicAssetsArgs = {
-    atomicassets_contract: string
+    atomicassets_account: string
 };
 
 export default class AtomicAssetsHandler extends ContractHandler {
@@ -32,14 +33,38 @@ export default class AtomicAssetsHandler extends ContractHandler {
 
     config: {
         version: string,
-        collection_format: ISchema
+        collection_format?: ISchema
     };
 
     tableHandler: AtomicAssetsTableHandler;
     actionHandler: AtomicAssetsActionHandler;
 
     constructor(connection: ConnectionManager, events: PromiseEventHandler, args: {[key: string]: any}) {
+        if (typeof args.atomicassets_account !== 'string') {
+            throw new Error('Argument missing in atomicassets handler: atomicassets_account');
+        }
+
         super(connection, events, args);
+
+        this.scope = {
+            actions: [
+                {
+                    filter: this.args.atomicassets_account + ':*',
+                    deserialize: true
+                }
+            ],
+            tables: [
+                {
+                    filter: this.args.atomicassets_account + ':*',
+                    deserialize: true
+                }
+            ]
+        };
+
+        this.config = {
+            version: '0.0.0',
+            collection_format: undefined
+        };
 
         this.tableHandler = new AtomicAssetsTableHandler(this);
         this.actionHandler = new AtomicAssetsActionHandler(this);
@@ -50,8 +75,8 @@ export default class AtomicAssetsHandler extends ContractHandler {
 
         try {
             query = await this.connection.database.query(
-                'SELECT * FROM atomicassets_config LIMIT WHERE contract = $1',
-                [this.args.atomicassets_contract]
+                'SELECT * FROM atomicassets_config WHERE contract = $1',
+                [serializeEosioName(this.args.atomicassets_account)]
             );
         } catch (e) {
             logger.info('Could not find AtomicAssets tables. Create them now...');
@@ -64,15 +89,24 @@ export default class AtomicAssetsHandler extends ContractHandler {
         }
 
         if (query === null || query.rows.length === 0) {
-            const table = await this.connection.chain.rpc.get_table_rows({
-                json: true, code: this.args.atomicassets_contract,
-                scope: this.args.atomicassets_contract, table: 'config'
+            const configTable = await this.connection.chain.rpc.get_table_rows({
+                json: true, code: this.args.atomicassets_account,
+                scope: this.args.atomicassets_account, table: 'config'
             });
 
-            if (table.rows.length > 0) {
+            const tokenTable = await this.connection.chain.rpc.get_table_rows({
+                json: true, code: this.args.atomicassets_account,
+                scope: this.args.atomicassets_account, table: 'tokenconfigs'
+            });
+
+            if (configTable.rows.length > 0 && tokenTable.rows.length > 0 && tokenTable.rows[0].standard === 'atomicassets') {
                 await this.connection.database.query(
                     'INSERT INTO atomicassets_config (contract, version, collection_format) VALUES ($1, $2, $3)',
-                    [this.args.atomicassets_contract, table.rows[0].version, table.rows[0].collection_format]
+                    [
+                        serializeEosioName(this.args.atomicassets_account),
+                        tokenTable.rows[0].version,
+                        configTable.rows[0].collection_format.map((element: any) => JSON.stringify(element))
+                    ]
                 );
             } else {
                 throw new Error('Unable to fetch atomicassets version');
@@ -98,7 +132,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
             for (const table of tables) {
                 await client.query(
                     'DELETE FROM ' + client.escapeIdentifier(table) + ' WHERE contract = $1',
-                    [this.args.atomicassets_contract]
+                    [this.args.atomicassets_account]
                 );
             }
 

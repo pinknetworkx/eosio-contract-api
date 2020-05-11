@@ -8,7 +8,7 @@ import { IReaderConfig } from '../types/config';
 import { ShipActionTrace, ShipBlock, ShipContractRow, ShipHeader, ShipTableDelta, ShipTransactionTrace } from '../types/ship';
 import { EosioAction, EosioActionTrace, EosioTableRow, EosioTransaction } from '../types/eosio';
 import { ContractDB, ContractDBTransaction } from './database';
-import { ContractHandler } from './handlers';
+import { ContractHandler } from './handlers/interfaces';
 import { binToHex } from '../utils/binary';
 import { eosioTimestampToDate, serializeEosioName } from '../utils/eosio';
 import { PromiseEventHandler } from '../utils/event';
@@ -65,13 +65,11 @@ export default class StateReceiver {
         });
     }
 
-    private async consumer(
-        header: ShipHeader,
-        block: ShipBlock,
-        traces: ShipTransactionTrace[],
-        deltas: ShipTableDelta[]
-    ): Promise<void> {
+    private async consumer(header: ShipHeader, rawBlock: Uint8Array, rawTraces: Uint8Array, rawDeltas: Uint8Array): Promise<void> {
         let processDeltas = this.config.start_from_snapshot && this.currentBlock === 0;
+
+        const block: ShipBlock = { ...header.this_block, ...this.ship.deserialize('signed_block', rawBlock) };
+        const traces: ShipTransactionTrace[] = this.ship.deserialize('transaction_trace[]', rawTraces);
 
         const db = await this.database.startTransaction(header.this_block.block_num, header.last_irreversible.block_num);
 
@@ -84,6 +82,8 @@ export default class StateReceiver {
         }
 
         if (processDeltas) {
+            const deltas: ShipTableDelta[] = this.ship.deserialize('table_delta[]', rawDeltas);
+
             for (const delta of deltas) {
                 await this.handleDelta(db, block, delta);
             }
@@ -143,43 +143,47 @@ export default class StateReceiver {
         if (actionTrace[0] === 'action_trace_v0') {
             // ignore if its a notification
             if (actionTrace[1].receiver !== actionTrace[1].act.account) {
-                return this.isContractInScope(actionTrace[1].act.account);
+                return false;
             }
 
-            if (this.isActionInScope(actionTrace[1].act.account, actionTrace[1].act.name)) {
+            if (this.isActionBlacklisted(actionTrace[1].act.account, actionTrace[1].act.name)) {
+                return false;
+            }
+
+            const trace: EosioActionTrace = {
+                action_ordinal: actionTrace[1].action_ordinal,
+                creator_action_ordinal: actionTrace[1].creator_action_ordinal,
+                act: {
+                    account: actionTrace[1].act.account,
+                    name: actionTrace[1].act.name,
+                    authorization: actionTrace[1].act.authorization,
+                    data: binToHex(actionTrace[1].act.data)
+                }
+            };
+
+            const rawHandlers = this.getActionHandlers(actionTrace[1].act.account, actionTrace[1].act.name, false);
+            if (rawHandlers.length > 0) {
+                await this.handleAction(rawHandlers, db, block, trace, tx);
+            }
+
+            const dataHandlers = this.getActionHandlers(actionTrace[1].act.account, actionTrace[1].act.name, true);
+            if (dataHandlers.length > 0 || this.isActionWhitelisted(actionTrace[1].act.account, actionTrace[1].act.name)) {
                 const types = await this.fetchContractTypes(actionTrace[1].act.account, block.block_num);
                 const type = await this.getActionType(actionTrace[1].act.account, actionTrace[1].act.name, block.block_num);
 
-                let data;
-
                 // save hex data if ABI does not exist for contract
-                if (types === null || type === null) {
-                    data = binToHex(actionTrace[1].act.data);
-                } else {
+                if (types !== null && type !== null) {
                     try {
-                        data = this.ship.deserialize(type, actionTrace[1].act.data, types);
+                        trace.act.data = this.ship.deserialize(type, actionTrace[1].act.data, types);
                     } catch (e) {
-                        logger.error(e);
-
-                        data = binToHex(actionTrace[1].act.data);
+                        logger.warn(e);
                     }
                 }
 
-                const trace: EosioActionTrace = {
-                    action_ordinal: actionTrace[1].action_ordinal,
-                    creator_action_ordinal: actionTrace[1].creator_action_ordinal,
-                    act: {
-                        account: actionTrace[1].act.account,
-                        name: actionTrace[1].act.name,
-                        authorization: actionTrace[1].act.authorization,
-                        data
-                    }
-                };
-
-                await this.handleAction(db, block, trace, tx);
+                await this.handleAction(dataHandlers, db, block, trace, tx);
             }
 
-            return this.isContractInScope(actionTrace[1].act.account);
+            return this.getTableHandlers(actionTrace[1].act.account).length > 0;
         }
 
         await db.abort();
@@ -188,7 +192,7 @@ export default class StateReceiver {
     }
 
     private async handleAction(
-        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction
+        handlers: ContractHandler[], db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction
     ): Promise<void> {
         if (trace.act.account === 'eosio') {
             if (trace.act.name === 'setcode') {
@@ -197,8 +201,6 @@ export default class StateReceiver {
                 await this.handleAbiUpdate(db, block, trace.act);
             }
         }
-
-        const handlers = this.getActionHandlers(trace.act.account, trace.act.name);
 
         for (const handler of handlers) {
             await handler.onAction(db, block, trace, tx);
@@ -213,7 +215,7 @@ export default class StateReceiver {
                 const rows = delta[1].rows.map((row) => {
                     return {
                         present: row.present,
-                        data: this.ship.deserialize(delta[1].name, row.data, this.ship.types)
+                        data: this.ship.deserialize(delta[1].name, row.data)
                     };
                 });
 
@@ -236,30 +238,32 @@ export default class StateReceiver {
         db: ContractDBTransaction, block: ShipBlock, contractRow: ShipContractRow, present: boolean
     ): Promise<void> {
         if (contractRow[0] === 'contract_row_v0') {
-            if (!this.isContractInScope(contractRow[1].code)) {
+            if (this.isTableBlacklisted(contractRow[1].code, contractRow[1].table)) {
                 return;
             }
 
-            const types = await this.fetchContractTypes(contractRow[1].code, block.block_num);
-            const type = await this.getTableType(contractRow[1].code, contractRow[1].table, block.block_num);
+            const tableDelta = { ...contractRow[1], present, value: binToHex(contractRow[1].value) };
 
-            let data;
-
-            if (type === null || types === null) {
-                data = binToHex(contractRow[1].value);
-            } else {
-                try {
-                    data = this.ship.deserialize(type, contractRow[1].value, types);
-                } catch (e) {
-                    logger.warn(e);
-
-                    data = binToHex(contractRow[1].value);
-                }
+            const rawHandlers = this.getTableHandlers(contractRow[1].code, contractRow[1].table, false);
+            if (rawHandlers.length > 0) {
+                await this.handleTableDelta(rawHandlers, db, block, tableDelta);
             }
 
-            const tableDelta = { ...contractRow[1], present, value: data };
+            const dataHandlers = this.getTableHandlers(contractRow[1].code, contractRow[1].table, true);
+            if (dataHandlers.length > 0) {
+                const types = await this.fetchContractTypes(contractRow[1].code, block.block_num);
+                const type = await this.getTableType(contractRow[1].code, contractRow[1].table, block.block_num);
 
-            await this.handleTableDelta(db, block, tableDelta);
+                if (type !== null && types !== null) {
+                    try {
+                        tableDelta.value = this.ship.deserialize(type, contractRow[1].value, types);
+                    } catch (e) {
+                        logger.warn(e);
+                    }
+                }
+
+                await this.handleTableDelta(dataHandlers, db, block, tableDelta);
+            }
 
             return;
         }
@@ -269,9 +273,9 @@ export default class StateReceiver {
         throw new Error('Unsupported contract row response received: ' + contractRow[0]);
     }
 
-    private async handleTableDelta(db: ContractDBTransaction, block: ShipBlock, row: EosioTableRow): Promise<void> {
-        const handlers = this.getActionHandlers(row.code);
-
+    private async handleTableDelta(
+        handlers: ContractHandler[], db: ContractDBTransaction, block: ShipBlock, row: EosioTableRow
+    ): Promise<void> {
         for (const handler of handlers) {
             await handler.onTableChange(db, block, row);
         }
@@ -289,7 +293,7 @@ export default class StateReceiver {
                 [serializeEosioName(action.data.account), block.block_num]
             );
 
-            if (query.rows.length > 0) {
+            if (query.rows.length === 0) {
                 await db.insert('contract_abis', {
                     account: serializeEosioName(action.data.account),
                     abi: action.data.abi,
@@ -313,7 +317,7 @@ export default class StateReceiver {
                 [serializeEosioName(action.data.account), block.block_num]
             );
 
-            if (query.rows.length > 0) {
+            if (query.rows.length === 0) {
                 await db.insert('contract_codes', {
                     account: serializeEosioName(action.data.account),
                     block_num: block.block_num,
@@ -410,24 +414,43 @@ export default class StateReceiver {
         return null;
     }
 
-    private isActionInScope(contract: string, action: string): boolean {
-        const blacklist = ['eosio.null:*', 'eosio:onblock', 'eosio:onerror'];
-        let whitelist = ['eosio:setcode', 'eosio:setabi'];
+    private getTableHandlers(contract: string, table?: string, deserialize: boolean | null = null): ContractHandler[] {
+        return this.getHandlers('tables', contract, table, deserialize);
+    }
 
-        for (const config of this.config.contracts) {
-            whitelist = whitelist.concat(config.scope);
-        }
+    private getActionHandlers(contract: string, action?: string, deserialize: boolean | null = null): ContractHandler[] {
+        return this.getHandlers('actions', contract, action, deserialize);
+    }
 
-        for (const scope of blacklist) {
-            if (!StateReceiver.matchActionScope(scope, contract, action)) {
+    private getHandlers(group: string, contract: string, name: string, deserialize: boolean | null = null): ContractHandler[] {
+        const handlers = [];
+
+        for (const handler of this.handlers) {
+            if (!Array.isArray(handler.scope[group])) {
                 continue;
             }
 
-            return false;
+            for (const config of handler.scope[group]) {
+                if (deserialize !== null && config.deserialize !== deserialize) {
+                    continue;
+                }
+
+                if (!StateReceiver.matchFilter(config.filter, contract, name)) {
+                    continue;
+                }
+
+                handlers.push(handler);
+            }
         }
 
-        for (const scope of whitelist) {
-            if (!StateReceiver.matchActionScope(scope, contract, action)) {
+        return handlers;
+    }
+
+    private isActionBlacklisted(contract: string, action: string): boolean {
+        const blacklist = ['eosio.null:*', 'eosio:onblock', 'eosio:onerror'];
+
+        for (const filter of blacklist) {
+            if (!StateReceiver.matchFilter(filter, contract, action)) {
                 continue;
             }
 
@@ -437,47 +460,43 @@ export default class StateReceiver {
         return false;
     }
 
-    private isContractInScope(contract: string): boolean {
-        for (const config of this.config.contracts) {
-            for (const scope of config.scope) {
-                if (!StateReceiver.matchActionScope(scope, contract)) {
-                    continue;
-                }
+    private isTableBlacklisted(contract: string, table: string): boolean {
+        const blacklist: string[] = [];
 
-                return true;
+        for (const filter of blacklist) {
+            if (!StateReceiver.matchFilter(filter, contract, table)) {
+                continue;
             }
+
+            return true;
         }
 
         return false;
     }
 
-    private getActionHandlers(contract: string, action?: string): ContractHandler[] {
-        const handlers = [];
+    private isActionWhitelisted(contract: string, action: string): boolean {
+        const whitelist = ['eosio:setcode', 'eosio:setabi'];
 
-        for (let i = 0; i < this.config.contracts.length; i++) {
-            for (const scope of this.config.contracts[i].scope) {
-                if (!StateReceiver.matchActionScope(scope, contract, action)) {
-                    continue;
-                }
-
-                handlers.push(this.handlers[i]);
-
-                break;
+        for (const filter of whitelist) {
+            if (!StateReceiver.matchFilter(filter, contract, action)) {
+                continue;
             }
+
+            return true;
         }
 
-        return handlers;
+        return false;
     }
 
-    private static matchActionScope(scope: string, contract: string, action?: string): boolean {
-        const split = scope.split(':');
+    private static matchFilter(filter: string, contract: string, name?: string): boolean {
+        const split = filter.split(':');
 
         if (split[0] === contract || split[0] === '*') {
-            if (split[1] === '*' || !action) {
+            if (split[1] === '*' || !name) {
                 return true;
             }
 
-            if (split[1] === action) {
+            if (split[1] === name) {
                 return true;
             }
         }
