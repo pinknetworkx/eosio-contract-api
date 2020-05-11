@@ -8,9 +8,17 @@ import { ShipBlock } from '../../../types/ship';
 import { EosioActionTrace, EosioTableRow, EosioTransaction } from '../../../types/eosio';
 import { ContractDBTransaction } from '../../database';
 import logger from '../../../utils/winston';
+import AtomicAssetsTableHandler from './tables';
+import ConnectionManager from '../../../connections/manager';
+import { PromiseEventHandler } from '../../../utils/event';
+import AtomicAssetsActionHandler from './actions';
 
 export enum OfferState {
-    PENDING = 0
+    PENDING = 0,
+    INVALID = 1,
+    ACCEPTED = 3,
+    DECLINED = 4,
+    CANCELLED = 5
 }
 
 export type AtomicAssetsArgs = {
@@ -19,12 +27,23 @@ export type AtomicAssetsArgs = {
 
 export default class AtomicAssetsHandler extends ContractHandler {
     static handlerName = 'atomicassets';
-    protected readonly args: AtomicAssetsArgs;
 
-    private config: {
+    readonly args: AtomicAssetsArgs;
+
+    config: {
         version: string,
         collection_format: ISchema
     };
+
+    tableHandler: AtomicAssetsTableHandler;
+    actionHandler: AtomicAssetsActionHandler;
+
+    constructor(connection: ConnectionManager, events: PromiseEventHandler, args: {[key: string]: any}) {
+        super(connection, events, args);
+
+        this.tableHandler = new AtomicAssetsTableHandler(this);
+        this.actionHandler = new AtomicAssetsActionHandler(this);
+    }
 
     async init(): Promise<void> {
         let query = null;
@@ -90,10 +109,10 @@ export default class AtomicAssetsHandler extends ContractHandler {
     }
 
     async onAction(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
-
+        await this.actionHandler.handleTrace(db, block, trace, tx);
     }
 
     async onTableChange(db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow): Promise<void> {
-
+        await this.tableHandler.handleUpdate(db, block, delta);
     }
 }

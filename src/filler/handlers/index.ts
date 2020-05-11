@@ -12,9 +12,9 @@ export abstract class ContractHandler {
     static handlerName = '';
 
     constructor(
-        protected readonly connection: ConnectionManager,
-        protected readonly events: PromiseEventHandler,
-        protected readonly args: {[key: string]: any}
+        readonly connection: ConnectionManager,
+        readonly events: PromiseEventHandler,
+        readonly args: {[key: string]: any}
     ) { }
 
     abstract async init(): Promise<void>;

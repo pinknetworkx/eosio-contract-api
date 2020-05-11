@@ -10,7 +10,8 @@ export type AtomicMarketArgs = {
 
 export default class AtomicAssetsHandler extends ContractHandler {
     static handlerName = 'atomicmarket';
-    protected readonly args: AtomicMarketArgs;
+
+    readonly args: AtomicMarketArgs;
 
     async init(): Promise<void> {
 
