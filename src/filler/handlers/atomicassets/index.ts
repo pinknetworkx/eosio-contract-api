@@ -17,9 +17,15 @@ import { serializeEosioName } from '../../../utils/eosio';
 export enum OfferState {
     PENDING = 0,
     INVALID = 1,
+    UNKNOWN = 2,
     ACCEPTED = 3,
     DECLINED = 4,
     CANCELLED = 5
+}
+
+export enum OfferAssetState {
+    NORMAL = 0,
+    MISSING = 1
 }
 
 export type AtomicAssetsArgs = {

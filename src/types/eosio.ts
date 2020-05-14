@@ -23,5 +23,6 @@ export type EosioTableRow = {
     table: string,
     primary_key: string,
     payer: string,
+    present: boolean,
     value: {[key: string]: any} | string
 };

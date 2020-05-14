@@ -35,6 +35,7 @@ export interface IReaderConfig {
 
     start_block: number;
     stop_block: number;
+    irreversible_only: boolean;
     start_from_snapshot: boolean;
 
     ship_prefetch_blocks: number;

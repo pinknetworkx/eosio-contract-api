@@ -54,8 +54,8 @@ CREATE TABLE atomicassets_collections (
     notify_accounts bigint[] NOT NULL,
     market_fee double precision NOT NULL,
     data text,
-    updated_at_block bigint NOT NULL,
-    updated_at_time bigint NOT NULL
+    created_at_block bigint NOT NULL,
+    created_at_time bigint NOT NULL
 );
 
 CREATE TABLE atomicassets_config (
@@ -124,14 +124,16 @@ CREATE TABLE atomicassets_presets_data (
     contract bigint NOT NULL,
     preset_id bigint NOT NULL,
     "key" character varying(64) NOT NULL,
-    "value" bytea NOT NULL
+    "value" json NOT NULL
 );
 
 CREATE TABLE atomicassets_schemes (
     contract bigint NOT NULL,
     collection_name bigint NOT NULL,
     scheme_name bigint NOT NULL,
-    format json NOT NULL
+    format json NOT NULL,
+    created_at_block bigint NOT NULL,
+    created_at_time bigint NOT NULL
 );
 
 CREATE TABLE atomicassets_token_symbols (
@@ -179,7 +181,7 @@ ALTER TABLE ONLY atomicassets_assets_backed_tokens
     ADD CONSTRAINT atomicassets_assets_backed_tokens_pkey PRIMARY KEY (contract, asset_id, token_symbol);
 
 ALTER TABLE ONLY atomicassets_assets_data
-    ADD CONSTRAINT atomicassets_assets_data_pkey PRIMARY KEY (contract, asset_id, key);
+    ADD CONSTRAINT atomicassets_assets_data_pkey PRIMARY KEY (contract, asset_id, "key", mutable);
 
 ALTER TABLE ONLY atomicassets_assets
     ADD CONSTRAINT atomicassets_assets_pkey PRIMARY KEY (contract, asset_id);
@@ -246,7 +248,7 @@ CREATE INDEX atomicassets_balances_updated_at_block ON atomicassets_balances USI
 
 CREATE INDEX atomicassets_collections_readable_name ON atomicassets_collections USING btree (readable_name);
 CREATE INDEX atomicassets_collections_author ON atomicassets_collections USING btree (author);
-CREATE INDEX atomicassets_collections_updated_at_block ON atomicassets_collections USING btree (updated_at_block);
+CREATE INDEX atomicassets_collections_created_at_block ON atomicassets_collections USING btree (created_at_block);
 
 CREATE INDEX atomicassets_logs_name ON atomicassets_logs USING btree (name);
 CREATE INDEX atomicassets_logs_relation_name ON atomicassets_logs USING btree (relation_name);
@@ -271,6 +273,7 @@ CREATE INDEX atomicassets_presets_data_preset_id ON atomicassets_presets_data US
 CREATE INDEX atomicassets_presets_data_key ON atomicassets_presets_data USING btree ("key");
 
 CREATE INDEX atomicassets_schemes_collection_name ON atomicassets_schemes USING btree (contract, collection_name);
+CREATE INDEX atomicassets_schemes_created_at_block ON atomicassets_schemes USING btree (created_at_block);
 
 CREATE INDEX atomicassets_token_symbols_contract ON atomicassets_token_symbols USING btree (contract);
 

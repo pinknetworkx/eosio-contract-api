@@ -59,6 +59,7 @@ export default class StateReceiver {
         this.ship.startProcessing({
             start_block_num: startBlock,
             max_messages_in_flight: this.config.ship_prefetch_blocks || 10,
+            irreversible_only: this.config.irreversible_only || false,
             fetch_block: true,
             fetch_traces: true,
             fetch_deltas: true
@@ -124,8 +125,6 @@ export default class StateReceiver {
                     continue;
                 }
 
-                logger.debug('Transaction for handler received', transactionTrace);
-
                 processDeltas = true;
             }
 
@@ -143,7 +142,7 @@ export default class StateReceiver {
         if (actionTrace[0] === 'action_trace_v0') {
             // ignore if its a notification
             if (actionTrace[1].receiver !== actionTrace[1].act.account) {
-                return false;
+                return this.isTableContract(actionTrace[1].receiver);
             }
 
             if (this.isActionBlacklisted(actionTrace[1].act.account, actionTrace[1].act.name)) {
@@ -183,7 +182,7 @@ export default class StateReceiver {
                 await this.handleAction(dataHandlers, db, block, trace, tx);
             }
 
-            return this.getTableHandlers(actionTrace[1].act.account).length > 0;
+            return this.isTableContract(actionTrace[1].act.account);
         }
 
         await db.abort();
@@ -201,6 +200,8 @@ export default class StateReceiver {
                 await this.handleAbiUpdate(db, block, trace.act);
             }
         }
+
+        logger.debug('Action for reader ' + this.config.name + ' received', {trace, tx});
 
         for (const handler of handlers) {
             await handler.onAction(db, block, trace, tx);
@@ -274,10 +275,12 @@ export default class StateReceiver {
     }
 
     private async handleTableDelta(
-        handlers: ContractHandler[], db: ContractDBTransaction, block: ShipBlock, row: EosioTableRow
+        handlers: ContractHandler[], db: ContractDBTransaction, block: ShipBlock, tableData: EosioTableRow
     ): Promise<void> {
+        logger.debug('Table delta for reader ' + this.config.name + ' received', tableData);
+
         for (const handler of handlers) {
-            await handler.onTableChange(db, block, row);
+            await handler.onTableChange(db, block, tableData);
         }
     }
 
@@ -446,6 +449,22 @@ export default class StateReceiver {
         return handlers;
     }
 
+    private isTableContract(account: string): boolean {
+        for (const handler of this.handlers) {
+            if (!Array.isArray(handler.scope.tables)) {
+                continue;
+            }
+
+            for (const config of handler.scope.tables) {
+                if (config.filter.split(':')[0] === account) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private isActionBlacklisted(contract: string, action: string): boolean {
         const blacklist = ['eosio.null:*', 'eosio:onblock', 'eosio:onerror'];
 
@@ -460,17 +479,7 @@ export default class StateReceiver {
         return false;
     }
 
-    private isTableBlacklisted(contract: string, table: string): boolean {
-        const blacklist: string[] = [];
-
-        for (const filter of blacklist) {
-            if (!StateReceiver.matchFilter(filter, contract, table)) {
-                continue;
-            }
-
-            return true;
-        }
-
+    private isTableBlacklisted(_1: string, _2: string): boolean {
         return false;
     }
 

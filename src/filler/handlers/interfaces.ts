@@ -11,7 +11,7 @@ export abstract class ContractHandler {
 
     scope: ContractHandlerScope = {};
 
-    constructor(
+    protected constructor(
         readonly connection: ConnectionManager,
         readonly events: PromiseEventHandler,
         readonly args: {[key: string]: any}
