@@ -252,13 +252,11 @@ export default class AtomicAssetsTableHandler {
     async handleBalancesUpdate(
         db: ContractDBTransaction, block: ShipBlock, data: BalancesTableRow, _: boolean
     ): Promise<void> {
+        const symbols = data.quantities.map((quantity) => serializeEosioName(quantity.split(' ')[1].toLowerCase()));
+
         await db.delete('atomicassets_balances', {
-            str: 'contract = $1 AND owner = $2 AND token_symbol NOT IN ($3)',
-            values: [
-                this.contractName,
-                serializeEosioName(data.owner),
-                data.quantities.map((quantity) => serializeEosioName(quantity.split(' ')[1].toLowerCase()))
-            ]
+            str: 'contract = $1 AND owner = $2 AND token_symbol NOT IN (' + symbols.join(', ') + ')',
+            values: [this.contractName, serializeEosioName(data.owner)]
         });
 
         for (const quantity of data.quantities) {
@@ -321,14 +319,9 @@ export default class AtomicAssetsTableHandler {
             }
 
             const missingAssetsQuery = await db.query(
-                'SELECT asset_id FROM atomicassets_assets WHERE contract = $1 AND ((owner = $2 AND asset_id IN ($3)) OR (owner = $4 AND asset_id IN ($5)))',
-                [
-                    this.contractName,
-                    serializeEosioName(data.offer_sender),
-                    data.sender_asset_ids,
-                    serializeEosioName(data.offer_recipient),
-                    data.recipient_asset_ids
-                ]
+                'SELECT asset_id FROM atomicassets_assets ' +
+                'WHERE contract = $1 AND ((owner = $2 AND asset_id IN (' + data.sender_asset_ids.join(', ') + ')) OR (owner = $3 AND asset_id IN (' + data.recipient_asset_ids.join(', ') + ')))',
+                [this.contractName, serializeEosioName(data.offer_sender), serializeEosioName(data.offer_recipient)]
             );
             const missingAssets = missingAssetsQuery.rows.map((row) => row.asset_id);
 

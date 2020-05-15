@@ -53,7 +53,7 @@ CREATE TABLE atomicassets_collections (
     authorized_accounts bigint[] NOT NULL,
     notify_accounts bigint[] NOT NULL,
     market_fee double precision NOT NULL,
-    data text,
+    data json,
     created_at_block bigint NOT NULL,
     created_at_time bigint NOT NULL
 );
@@ -91,7 +91,7 @@ CREATE TABLE atomicassets_offers (
     offer_id bigint NOT NULL,
     sender bigint NOT NULL,
     recipient bigint NOT NULL,
-    memo character varying(255) NOT NULL,
+    memo character varying(256) NOT NULL,
     state smallint NOT NULL,
     updated_at_time bigint NOT NULL,
     updated_at_block bigint NOT NULL,
@@ -148,7 +148,7 @@ CREATE TABLE atomicassets_transfers (
     contract bigint NOT NULL,
     "sender" bigint NOT NULL,
     "recipient" bigint NOT NULL,
-    memo character varying(255) NOT NULL,
+    memo character varying(256) NOT NULL,
     txid bytea NOT NULL,
     created_at_block bigint NOT NULL,
     created_at_time bigint NOT NULL
