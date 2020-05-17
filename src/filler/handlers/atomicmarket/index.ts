@@ -57,4 +57,8 @@ export default class AtomicAssetsHandler extends ContractHandler {
     async onTableChange(_db: ContractDBTransaction, _block: ShipBlock, _delta: EosioTableRow): Promise<void> {
 
     }
+
+    async onBlockComplete(_db: ContractDBTransaction, _block: ShipBlock): Promise<void> {
+
+    }
 }

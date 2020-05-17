@@ -75,6 +75,8 @@ export default class StateReceiver {
         const db = await this.database.startTransaction(header.this_block.block_num, header.last_irreversible.block_num);
 
         if (header.this_block.block_num <= this.currentBlock) {
+            logger.info('Chain fork detected. Reverse all blocks which were affected');
+
             await db.rollbackReversibleBlocks(header.this_block.block_num);
         }
 
@@ -93,6 +95,10 @@ export default class StateReceiver {
             await db.clearForkDatabase();
         } else if (header.this_block.block_num >= header.last_irreversible.block_num || header.this_block.block_num % 100 === 0) {
             await db.updateReaderPosition(block);
+        }
+
+        for (const handler of this.handlers) {
+            await handler.onBlockComplete(db, block);
         }
 
         this.currentBlock = header.this_block.block_num;
@@ -119,13 +125,8 @@ export default class StateReceiver {
             };
 
             let processDeltas = false;
-
             for (const actionTrace of transactionTrace[1].action_traces) {
-                if (!await this.handleActionTrace(db, block, actionTrace, transaction)) {
-                    continue;
-                }
-
-                processDeltas = true;
+                processDeltas = await this.handleActionTrace(db, block, actionTrace, transaction) || processDeltas;
             }
 
             return processDeltas;
@@ -201,7 +202,9 @@ export default class StateReceiver {
             }
         }
 
-        logger.debug('Action for reader ' + this.config.name + ' received', {trace, tx});
+        logger.debug('Action for reader ' + this.config.name + ' received', {
+            account: trace.act.account, name: trace.act.name, txid: tx.id
+        });
 
         for (const handler of handlers) {
             await handler.onAction(db, block, trace, tx);
@@ -277,7 +280,9 @@ export default class StateReceiver {
     private async handleTableDelta(
         handlers: ContractHandler[], db: ContractDBTransaction, block: ShipBlock, tableData: EosioTableRow
     ): Promise<void> {
-        logger.debug('Table delta for reader ' + this.config.name + ' received', tableData);
+        logger.debug('Table delta for reader ' + this.config.name + ' received', {
+            contract: tableData.code, table: tableData.table, scope: tableData.scope
+        });
 
         for (const handler of handlers) {
             await handler.onTableChange(db, block, tableData);

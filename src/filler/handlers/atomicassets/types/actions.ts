@@ -19,26 +19,27 @@ export type LogMintAssetActionData = {
 };
 
 export type LogBurnAssetActionData = {
-    owner: string,
+    asset_owner: string,
     asset_id: string,
     collection_name: string,
     scheme_name: string,
     preset_id: number,
     backed_tokens: string[],
-    immutable_serialized_data: number[],
-    mutable_serialized_data: number[]
+    asset_ram_payer: string,
+    old_immutable_data: AttributeMap,
+    old_mutable_data: AttributeMap
 };
 
 export type LogBackAssetActionData = {
-    owner: string,
+    asset_owner: string,
     asset_id: string,
-    back_quantity: string
+    backed_token: string
 };
 
-export type LogSetActionData = {
-    owner: string,
+export type LogSetDataActionData = {
+    asset_owner: string,
     asset_id: string,
-    old_serialized_data: number[],
+    old_data: AttributeMap,
     new_data: AttributeMap
 };
 
@@ -121,4 +122,13 @@ export type DeclineOfferActionData = {
 
 export type CancelOfferActionData = {
     offer_id: string
+};
+
+export type LogNewOfferActionData = {
+    offer_id: string,
+    sender: string,
+    recipient: string,
+    sender_asset_ids: string[],
+    recipient_asset_ids: string[],
+    memo: string
 };

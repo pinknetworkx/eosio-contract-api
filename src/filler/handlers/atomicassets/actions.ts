@@ -1,7 +1,7 @@
 import { ContractDBTransaction } from '../../database';
 import { ShipBlock } from '../../../types/ship';
 import { EosioActionTrace, EosioTransaction } from '../../../types/eosio';
-import AtomicAssetsHandler, { OfferAssetState, OfferState } from './index';
+import AtomicAssetsHandler, { JobPriority, OfferAssetState, OfferState } from './index';
 import logger from '../../../utils/winston';
 import { deserializeEosioName, eosioTimestampToDate, serializeEosioName } from '../../../utils/eosio';
 import {
@@ -14,15 +14,16 @@ import {
     ForbidNotifyActionData,
     LogBackAssetActionData,
     LogBurnAssetActionData,
-    LogMintAssetActionData,
+    LogMintAssetActionData, LogNewOfferActionData,
     LogNewPresetActionData,
-    LogSetActionData,
+    LogSetDataActionData,
     LogTransferActionData,
     RemColAuthActionData,
     RemNotifyAccActionData,
     SetColDataActionData,
     SetMarketFeeActionData
 } from './types/actions';
+import { convertAttributeMapToObject, saveAssetTableRow, saveOfferTableRow } from './helper';
 
 export default class AtomicAssetsActionHandler {
     private readonly contractName: string;
@@ -40,25 +41,86 @@ export default class AtomicAssetsActionHandler {
             throw new Error('Data of atomicassets action could not be deserialized: ' + trace.act.name);
         }
 
-        if (['acceptoffer', 'declineoffer', 'canceloffer'].indexOf(trace.act.name) >= 0) {
-            await this.handleOfferTrace(db, block, trace, tx);
+        if (['lognewoffer'].indexOf(trace.act.name) >= 0) {
+            this.core.addJob(async () => {
+                logger.debug('AtomicAssets Action', trace.act);
+
+                await this.handleOfferCreateTrace(db, block, trace, tx);
+            }, JobPriority.ACTION_CREATE_OFFER);
+        } else if (['acceptoffer', 'declineoffer', 'canceloffer'].indexOf(trace.act.name) >= 0) {
+            this.core.addJob(async () => {
+                logger.debug('AtomicAssets Action', trace.act);
+
+                await this.handleOfferUpdateTrace(db, block, trace, tx);
+            }, JobPriority.ACTION_UPDATE_OFFER);
         } else if (['logtransfer'].indexOf(trace.act.name) >= 0) {
-            await this.handleTransferTrace(db, block, trace, tx);
+            this.core.addJob(async () => {
+                logger.debug('AtomicAssets Action', trace.act);
+
+                await this.handleTransferTrace(db, block, trace, tx);
+            }, JobPriority.ACTION_TRANSFER_ASSET);
+        } else if (['logburnasset'].indexOf(trace.act.name) >= 0) {
+            this.core.addJob(async () => {
+                logger.debug('AtomicAssets Action', trace.act);
+
+                await this.handleAssetBurnTrace(db, block, trace, tx);
+            }, JobPriority.ACTION_BURN_ASSET);
         } else if (['logmint', 'logburnasset', 'logbackasset', 'logsetdata'].indexOf(trace.act.name) >= 0) {
-            await this.handleAssetTrace(db, block, trace, tx);
+            this.core.addJob(async () => {
+                logger.debug('AtomicAssets Action', trace.act);
+
+                await this.handleAssetUpdateTrace(db, block, trace, tx);
+            }, JobPriority.INDEPENDENT);
         } else if (['lognewpreset'].indexOf(trace.act.name) >= 0) {
-            await this.handlePresetTrace(db, block, trace, tx);
+            this.core.addJob(async () => {
+                logger.debug('AtomicAssets Action', trace.act);
+
+                await this.handlePresetTrace(db, block, trace, tx);
+            }, JobPriority.INDEPENDENT);
         } else if ([
             'addcolauth', 'addnotifyacc', 'createcol', 'forbidnotify',
             'remcolauth', 'remnotifyacc', 'setmarketfee', 'setcoldata'
         ].indexOf(trace.act.name) >= 0) {
-            await this.handleCollectionTrace(db, block, trace, tx);
+            this.core.addJob(async () => {
+                logger.debug('AtomicAssets Action', trace.act);
+
+                await this.handleCollectionTrace(db, block, trace, tx);
+            }, JobPriority.INDEPENDENT);
         } else if (['createscheme', 'extendscheme'].indexOf(trace.act.name) >= 0) {
-            await this.handleSchemeTrace(db, block, trace, tx);
+            this.core.addJob(async () => {
+                logger.debug('AtomicAssets Action', trace.act);
+
+                await this.handleSchemeTrace(db, block, trace, tx);
+            }, JobPriority.INDEPENDENT);
         }
     }
 
-    async handleOfferTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
+    async handleOfferCreateTrace(
+        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, _: EosioTransaction
+    ): Promise<void> {
+        // @ts-ignore
+        const data: LogNewOfferActionData = trace.act.data;
+
+        const query = await db.query(
+            'SELECT offer_id FROM atomicassets_offers WHERE contract = $1 AND offer_id = $2',
+            [this.contractName, data.offer_id]
+        );
+
+        if (query.rowCount === 0) {
+            await saveOfferTableRow(db, block, this.contractName, {
+                offer_id: data.offer_id,
+                sender: data.sender,
+                recipient: data.recipient,
+                sender_asset_ids: data.sender_asset_ids,
+                recipient_asset_ids: data.recipient_asset_ids,
+                memo: data.memo
+            }, false);
+        }
+    }
+
+    async handleOfferUpdateTrace(
+        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction
+    ): Promise<void> {
         let offerChange = null;
 
         if (trace.act.name === 'acceptoffer') {
@@ -101,10 +163,10 @@ export default class AtomicAssetsActionHandler {
         const data: LogTransferActionData = trace.act.data;
 
         const query = await db.insert('atomicassets_transfers', {
-            contact: this.contractName,
+            contract: this.contractName,
             sender: serializeEosioName(data['from']),
             recipient: serializeEosioName(data.to),
-            memo: data.memo,
+            memo: String(data.memo).substr(0, 256),
             txid: Buffer.from(tx.id, 'hex'),
             created_at_block: block.block_num,
             created_at_time: eosioTimestampToDate(block.timestamp).getTime()
@@ -116,15 +178,15 @@ export default class AtomicAssetsActionHandler {
 
         await db.insert('atomicassets_transfers_assets', data.asset_ids.map((assetID) => ({
             transfer_id: query.rows[0].transfer_id,
-            contact: this.contractName,
+            contract: this.contractName,
             asset_id: assetID
         })), ['transfer_id', 'contract', 'asset_id']);
 
         // check offers whether they have become invalid
         const assetQuery = await db.query(
-            'SELECT offer_id, owner, asset_id, state ' +
+            'SELECT assets.offer_id, assets.owner, assets.asset_id, assets.state ' +
             'FROM atomicassets_offers offers, atomicassets_offers_assets assets ' +
-            'WHERE offers.contract = assets.contract AND offers.offer_id = assets.offerID AND ' +
+            'WHERE offers.contract = assets.contract AND offers.offer_id = assets.offer_id AND ' +
                 'offers.state IN (' + [OfferState.PENDING.valueOf(), OfferState.INVALID.valueOf()].join(', ') + ') AND ' +
                 'assets.contract = ' + this.contractName + ' AND assets.asset_id IN (' + data.asset_ids.join(', ') + ')'
         );
@@ -158,44 +220,70 @@ export default class AtomicAssetsActionHandler {
             }
         }
 
-        const offerQuery = await db.query(
-            'SELECT offers.offer_id, offers.state' +
-            'FROM atomicassets_offers offers, atomicassets_offers_assets assets' +
-            'WHERE offers.contract = assets.contract AND offers.offer_id = assets.offerID AND ' +
-                'offers.offer_id IN (' + changedOffers.join(',') + ') AND contract = ' + this.contractName + ' AND' +
-                'offers.state IN (' + [OfferState.PENDING.valueOf(), OfferState.INVALID.valueOf()].join(', ') + ') AND ' +
-                'assets.state = ' + OfferAssetState.MISSING.valueOf() + '' +
-            'GROUP BY offers.offer_id, offers.state'
-        );
+        if (changedOffers.length > 0) {
+            const offerQuery = await db.query(
+                'SELECT offers.offer_id, offers.state ' +
+                'FROM atomicassets_offers offers, atomicassets_offers_assets assets ' +
+                'WHERE offers.contract = assets.contract AND offers.offer_id = assets.offer_id AND ' +
+                    'offers.offer_id IN (' + changedOffers.join(',') + ') AND offers.contract = ' + this.contractName + ' AND ' +
+                    'offers.state IN (' + [OfferState.PENDING.valueOf(), OfferState.INVALID.valueOf()].join(', ') + ') AND ' +
+                    'assets.state = ' + OfferAssetState.MISSING.valueOf() + ' ' +
+                'GROUP BY offers.offer_id, offers.state'
+            );
 
-        for (const offer of offerQuery.rows) {
-            if (offer.state === OfferState.PENDING.valueOf()) {
+            for (const offer of offerQuery.rows) {
+                if (offer.state === OfferState.PENDING.valueOf()) {
+                    await db.update('atomicassets_offers', {
+                        state: OfferState.INVALID.valueOf()
+                    }, {
+                        str: 'contract = $1 AND offer_id = $2',
+                        values: [this.contractName, offer.offer_id]
+                    }, ['contract', 'offer_id']);
+                }
+
+                const index = changedOffers.indexOf(offer.offer_id);
+
+                if (index >= 0) {
+                    changedOffers.splice(index, 1);
+                }
+            }
+
+            for (const offerID of changedOffers) {
                 await db.update('atomicassets_offers', {
-                    state: OfferState.INVALID.valueOf()
+                    state: OfferState.PENDING.valueOf()
                 }, {
                     str: 'contract = $1 AND offer_id = $2',
-                    values: [this.contractName, offer.offer_id]
+                    values: [this.contractName, offerID]
                 }, ['contract', 'offer_id']);
             }
-
-            const index = changedOffers.indexOf(offer.offer_id);
-
-            if (index >= 0) {
-                changedOffers.splice(index, 1);
-            }
-        }
-
-        for (const offerID of changedOffers) {
-            await db.update('atomicassets_offers', {
-                state: OfferState.PENDING.valueOf()
-            }, {
-                str: 'contract = $1 AND offer_id = $2',
-                values: [this.contractName, offerID]
-            }, ['contract', 'offer_id']);
         }
     }
 
-    async handleAssetTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
+    async handleAssetBurnTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
+        if (trace.act.name === 'logburnasset') {
+            // @ts-ignore
+            const data: LogBurnAssetActionData = trace.act.data;
+
+            await saveAssetTableRow(db, block, this.contractName, data.asset_owner, {
+                asset_id: data.asset_id,
+                collection_name: data.collection_name,
+                scheme_name: data.scheme_name,
+                preset_id: data.preset_id,
+                ram_payer: '.',
+                backed_tokens: data.backed_tokens,
+                immutable_serialized_data: null,
+                mutable_serialized_data: null
+            }, true, data.old_immutable_data, data.old_mutable_data);
+
+            await this.createLogMessage(db, block, tx, 'burn', 'asset', data.asset_id, {
+                backed_tokens: data.backed_tokens
+            });
+        }
+    }
+
+    async handleAssetUpdateTrace(
+        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction
+    ): Promise<void> {
         if (trace.act.name === 'logmint') {
             // @ts-ignore
             const data: LogMintAssetActionData = trace.act.data;
@@ -204,64 +292,50 @@ export default class AtomicAssetsActionHandler {
                 minter: data.minter,
                 new_owner: data.new_owner
             });
-        } else if (trace.act.name === 'logburnasset') {
-            // @ts-ignore
-            const data: LogBurnAssetActionData = trace.act.data;
-
-            await this.createLogMessage(db, block, tx, 'burn', 'asset', data.asset_id, {
-                backed_tokens: data.backed_tokens
-            });
         } else if (trace.act.name === 'logbackasset') {
             // @ts-ignore
             const data: LogBackAssetActionData = trace.act.data;
 
             await this.createLogMessage(db, block, tx, 'back', 'asset', data.asset_id, {
-                back_quantity: data.back_quantity
+                back_quantity: data.backed_token
             });
         } if (trace.act.name === 'logsetdata') {
             // @ts-ignore
-            const data: LogSetActionData = trace.act.data;
+            const data: LogSetDataActionData = trace.act.data;
             const delta = [];
 
             // update data
-            const localData: {[key: string]: string} = {};
-            for (const row of data.new_data) {
-                localData[row.key] = JSON.stringify(row.value[1]);
-            }
+            const newData: {[key: string]: string} = convertAttributeMapToObject(data.new_data);
+            const oldData: {[key: string]: string} = convertAttributeMapToObject(data.old_data);
 
-            const dbDataQuery = (await db.query(
-                'SELECT "key", "value", mutable FROM atomicassets_assets_data WHERE contract = $1 and asset_id = $2 AND mutable = $3',
-                [this.contractName, data.asset_id, true]
-            ));
-
-            for (const dbData of dbDataQuery.rows) {
-                if (typeof localData[dbData.key] === 'undefined') {
+            for (const key of Object.keys(oldData)) {
+                if (typeof newData[key] === 'undefined') {
                     delta.push({
                         action: 'remove',
-                        key: dbData.key,
-                        before: dbData.value,
+                        key: key,
+                        before: oldData[key],
                         after: null
                     });
                 } else {
-                    if (JSON.stringify(dbData.value) !== localData[dbData.key]) {
+                    if (JSON.stringify(oldData[key]) !== JSON.stringify(newData[key])) {
                         delta.push({
                             action: 'update',
-                            key: dbData.key,
-                            before: dbData.value,
-                            after: JSON.parse(localData[dbData.key])
+                            key: key,
+                            before: oldData[key],
+                            after: newData[key]
                         });
                     }
 
-                    delete localData[dbData.key];
+                    delete newData[key];
                 }
             }
 
-            for (const key of Object.keys(localData)) {
+            for (const key of Object.keys(newData)) {
                 delta.push({
                     action: 'create',
                     key: key,
                     before: null,
-                    after: localData[key]
+                    after: newData[key]
                 });
             }
 
@@ -362,9 +436,9 @@ export default class AtomicAssetsActionHandler {
     ): Promise<void> {
         await db.insert('atomicassets_logs', {
             contract: this.contractName,
-            name: name,
-            relation_name: relationName,
-            relation_id: relationId,
+            name: String(name).substr(0, 64),
+            relation_name: String(relationName).substr(0, 64),
+            relation_id: String(relationId).substr(0, 256),
             data: JSON.stringify(data),
             txid: Buffer.from(tx.id, 'hex'),
             created_at_block: block.block_num,

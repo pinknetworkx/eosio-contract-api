@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import PQueue from 'p-queue';
 
 import { ObjectSchema } from 'atomicassets';
 import { ISchema } from 'atomicassets/build/Schema';
@@ -28,6 +29,22 @@ export enum OfferAssetState {
     MISSING = 1
 }
 
+export enum JobPriority {
+    INDEPENDENT = 100,
+    TABLE_BALANCES = 90,
+    TABLE_CONFIG = 90,
+    TABLE_TOKENCONFIGS = 90,
+    TABLE_COLLECTIONS = 80,
+    TABLE_SCHEMES = 80,
+    TABLE_PRESETS = 50,
+    TABLE_ASSETS = 50,
+    ACTION_BURN_ASSET = 40,
+    ACTION_TRANSFER_ASSET = 30,
+    TABLE_OFFERS = 20,
+    ACTION_CREATE_OFFER = 10,
+    ACTION_UPDATE_OFFER = 0
+}
+
 export type AtomicAssetsArgs = {
     atomicassets_account: string
 };
@@ -42,15 +59,21 @@ export default class AtomicAssetsHandler extends ContractHandler {
         collection_format?: ISchema
     };
 
+    queue: PQueue;
+    jobs: any[] = [];
+
     tableHandler: AtomicAssetsTableHandler;
     actionHandler: AtomicAssetsActionHandler;
 
     constructor(connection: ConnectionManager, events: PromiseEventHandler, args: {[key: string]: any}) {
+        super(connection, events, args);
+
         if (typeof args.atomicassets_account !== 'string') {
             throw new Error('Argument missing in atomicassets handler: atomicassets_account');
         }
 
-        super(connection, events, args);
+        this.queue = new PQueue({concurrency: 1, autoStart: false});
+        this.queue.pause();
 
         this.scope = {
             actions: [
@@ -114,6 +137,9 @@ export default class AtomicAssetsHandler extends ContractHandler {
                         configTable.rows[0].collection_format.map((element: any) => JSON.stringify(element))
                     ]
                 );
+
+                this.config.collection_format = ObjectSchema(configTable.rows[0].collection_format);
+                this.config.version = tokenTable.rows[0].version;
             } else {
                 throw new Error('Unable to fetch atomicassets version');
             }
@@ -154,5 +180,16 @@ export default class AtomicAssetsHandler extends ContractHandler {
 
     async onTableChange(db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow): Promise<void> {
         await this.tableHandler.handleUpdate(db, block, delta);
+    }
+
+    async onBlockComplete(): Promise<void> {
+        this.queue.start();
+        await Promise.all(this.jobs);
+        this.queue.pause();
+        this.jobs = [];
+    }
+
+    addJob(fn: () => any, priority: number): void {
+        this.jobs.push(this.queue.add(fn, {priority}));
     }
 }

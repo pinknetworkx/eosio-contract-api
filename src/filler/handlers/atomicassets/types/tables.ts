@@ -28,13 +28,13 @@ export type ConfigTableRow = {
     asset_counter: number,
     offer_counter: number,
     collection_format: Array<{ name: string, type: string }>,
-    token_symbols: Array<{ token_contract: string, token_symbol: string } >
+    supported_tokens: Array<{ token_contract: string, token_symbol: string } >
 };
 
 export type OffersTableRow = {
     offer_id: string,
-    offer_sender: string,
-    offer_recipient: string,
+    sender: string,
+    recipient: string,
     sender_asset_ids: string[],
     recipient_asset_ids: string[],
     memo: string
@@ -42,7 +42,6 @@ export type OffersTableRow = {
 
 export type PresetsTableRow = {
     preset_id: string,
-    collection_name: string,
     scheme_name: string,
     transferable: boolean,
     burnable: boolean,
