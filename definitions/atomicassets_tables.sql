@@ -3,8 +3,8 @@ CREATE TABLE atomicassets_assets (
     contract bigint NOT NULL,
     asset_id bigint NOT NULL,
     collection_name bigint NOT NULL,
-    scheme_name bigint NOT NULL,
-    preset_id bigint,
+    schema_name bigint NOT NULL,
+    template_id bigint,
     owner bigint NOT NULL,
     readable_name character varying(64),
     ram_payer bigint NOT NULL,
@@ -107,11 +107,11 @@ CREATE TABLE atomicassets_offers_assets (
     state smallint NOT NULL
 );
 
-CREATE TABLE atomicassets_presets (
+CREATE TABLE atomicassets_templates (
     contract bigint NOT NULL,
-    preset_id bigint NOT NULL,
+    template_id bigint NOT NULL,
     collection_name bigint NOT NULL,
-    scheme_name bigint NOT NULL,
+    schema_name bigint NOT NULL,
     readable_name character varying(64),
     transferable boolean NOT NULL,
     burnable boolean NOT NULL,
@@ -121,17 +121,17 @@ CREATE TABLE atomicassets_presets (
     created_at_block bigint NOT NULL
 );
 
-CREATE TABLE atomicassets_presets_data (
+CREATE TABLE atomicassets_templates_data (
     contract bigint NOT NULL,
-    preset_id bigint NOT NULL,
+    template_id bigint NOT NULL,
     "key" character varying(64) NOT NULL,
     "value" json NOT NULL
 );
 
-CREATE TABLE atomicassets_schemes (
+CREATE TABLE atomicassets_schemas (
     contract bigint NOT NULL,
     collection_name bigint NOT NULL,
-    scheme_name bigint NOT NULL,
+    schema_name bigint NOT NULL,
     format json[] NOT NULL,
     created_at_block bigint NOT NULL,
     created_at_time bigint NOT NULL
@@ -205,14 +205,14 @@ ALTER TABLE ONLY atomicassets_offers_assets
 ALTER TABLE ONLY atomicassets_offers
     ADD CONSTRAINT atomicassets_offers_pkey PRIMARY KEY (contract, offer_id);
 
-ALTER TABLE ONLY atomicassets_presets_data
-    ADD CONSTRAINT atomicassets_presets_data_pkey PRIMARY KEY (contract, preset_id, "key");
+ALTER TABLE ONLY atomicassets_templates_data
+    ADD CONSTRAINT atomicassets_templates_data_pkey PRIMARY KEY (contract, template_id, "key");
 
-ALTER TABLE ONLY atomicassets_presets
-    ADD CONSTRAINT atomicassets_presets_pkey PRIMARY KEY (contract, preset_id);
+ALTER TABLE ONLY atomicassets_templates
+    ADD CONSTRAINT atomicassets_templates_pkey PRIMARY KEY (contract, template_id);
 
-ALTER TABLE ONLY atomicassets_schemes
-    ADD CONSTRAINT atomicassets_schemes_pkey PRIMARY KEY (contract, collection_name, scheme_name);
+ALTER TABLE ONLY atomicassets_schemas
+    ADD CONSTRAINT atomicassets_schemas_pkey PRIMARY KEY (contract, collection_name, schema_name);
 
 ALTER TABLE ONLY atomicassets_token_symbols
     ADD CONSTRAINT atomicassets_token_symbols_pkey PRIMARY KEY (contract, token_symbol);
@@ -226,8 +226,8 @@ ALTER TABLE ONLY atomicassets_transfers
 -- INDEXES --
 CREATE INDEX atomicassets_assets_contract ON atomicassets_assets USING btree (contract);
 CREATE INDEX atomicassets_assets_collection_name ON atomicassets_assets USING btree (contract, collection_name);
-CREATE INDEX atomicassets_assets_preset_id ON atomicassets_assets USING btree (contract, preset_id);
-CREATE INDEX atomicassets_assets_scheme_name ON atomicassets_assets USING btree (contract, scheme_name);
+CREATE INDEX atomicassets_assets_template_id ON atomicassets_assets USING btree (contract, template_id);
+CREATE INDEX atomicassets_assets_schema_name ON atomicassets_assets USING btree (contract, schema_name);
 CREATE INDEX atomicassets_assets_owner ON atomicassets_assets USING btree (contract, owner);
 CREATE INDEX atomicassets_assets_readable_name ON atomicassets_assets USING btree (contract, readable_name);
 CREATE INDEX atomicassets_assets_burned_at_block ON atomicassets_assets USING btree (contract, burned_at_block);
@@ -268,18 +268,18 @@ CREATE INDEX atomicassets_offers_assets_offer_id ON atomicassets_offers_assets U
 CREATE INDEX atomicassets_offers_assets_owner ON atomicassets_offers_assets USING btree (contract, owner);
 CREATE INDEX atomicassets_offers_assets_state ON atomicassets_offers_assets USING btree (contract, state);
 
-CREATE INDEX atomicassets_presets_contract ON atomicassets_presets USING btree (contract);
-CREATE INDEX atomicassets_presets_collection_name ON atomicassets_presets USING btree (contract, collection_name);
-CREATE INDEX atomicassets_presets_scheme_name ON atomicassets_presets USING btree (contract, scheme_name);
-CREATE INDEX atomicassets_presets_readable_name ON atomicassets_presets USING btree (contract, readable_name);
-CREATE INDEX atomicassets_presets_created_at_block ON atomicassets_presets USING btree (contract, created_at_block);
+CREATE INDEX atomicassets_templates_contract ON atomicassets_templates USING btree (contract);
+CREATE INDEX atomicassets_templates_collection_name ON atomicassets_templates USING btree (contract, collection_name);
+CREATE INDEX atomicassets_templates_schema_name ON atomicassets_templates USING btree (contract, schema_name);
+CREATE INDEX atomicassets_templates_readable_name ON atomicassets_templates USING btree (contract, readable_name);
+CREATE INDEX atomicassets_templates_created_at_block ON atomicassets_templates USING btree (contract, created_at_block);
 
-CREATE INDEX atomicassets_presets_data_preset_id ON atomicassets_presets_data USING btree (contract, preset_id);
-CREATE INDEX atomicassets_presets_data_key ON atomicassets_presets_data USING btree (contract, "key");
+CREATE INDEX atomicassets_templates_data_template_id ON atomicassets_templates_data USING btree (contract, template_id);
+CREATE INDEX atomicassets_templates_data_key ON atomicassets_templates_data USING btree (contract, "key");
 
-CREATE INDEX atomicassets_schemes_contract ON atomicassets_schemes USING btree (contract);
-CREATE INDEX atomicassets_schemes_collection_name ON atomicassets_schemes USING btree (contract, collection_name);
-CREATE INDEX atomicassets_schemes_created_at_block ON atomicassets_schemes USING btree (contract, created_at_block);
+CREATE INDEX atomicassets_schemas_contract ON atomicassets_schemas USING btree (contract);
+CREATE INDEX atomicassets_schemas_collection_name ON atomicassets_schemas USING btree (contract, collection_name);
+CREATE INDEX atomicassets_schemas_created_at_block ON atomicassets_schemas USING btree (contract, created_at_block);
 
 CREATE INDEX atomicassets_token_symbols_contract ON atomicassets_token_symbols USING btree (contract);
 
@@ -302,10 +302,10 @@ ALTER TABLE ONLY atomicassets_assets_data
     ADD CONSTRAINT atomicassets_assets_data_assets FOREIGN KEY (asset_id, contract) REFERENCES atomicassets_assets(asset_id, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_assets
-    ADD CONSTRAINT atomicassets_assets_presets FOREIGN KEY (preset_id, contract) REFERENCES atomicassets_presets(preset_id, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT atomicassets_assets_templates FOREIGN KEY (template_id, contract) REFERENCES atomicassets_templates(template_id, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_assets
-    ADD CONSTRAINT atomicassets_assets_schemes FOREIGN KEY (collection_name, scheme_name, contract) REFERENCES atomicassets_schemes(collection_name, scheme_name, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT atomicassets_assets_schemas FOREIGN KEY (collection_name, schema_name, contract) REFERENCES atomicassets_schemas(collection_name, schema_name, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_balances
     ADD CONSTRAINT atomicassets_balances_symbols FOREIGN KEY (token_symbol, contract) REFERENCES atomicassets_token_symbols(token_symbol, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
@@ -316,17 +316,17 @@ ALTER TABLE ONLY atomicassets_offers_assets
 ALTER TABLE ONLY atomicassets_offers_assets
     ADD CONSTRAINT atomicassets_offers_assets_offers FOREIGN KEY (offer_id, contract) REFERENCES atomicassets_offers(offer_id, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
-ALTER TABLE ONLY atomicassets_presets
-    ADD CONSTRAINT atomicassets_presets_collections FOREIGN KEY (collection_name, contract) REFERENCES atomicassets_collections(collection_name, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+ALTER TABLE ONLY atomicassets_templates
+    ADD CONSTRAINT atomicassets_templates_collections FOREIGN KEY (collection_name, contract) REFERENCES atomicassets_collections(collection_name, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
-ALTER TABLE ONLY atomicassets_presets_data
-    ADD CONSTRAINT atomicassets_presets_data_presets FOREIGN KEY (preset_id, contract) REFERENCES atomicassets_presets(preset_id, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+ALTER TABLE ONLY atomicassets_templates_data
+    ADD CONSTRAINT atomicassets_templates_data_templates FOREIGN KEY (template_id, contract) REFERENCES atomicassets_templates(template_id, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
-ALTER TABLE ONLY atomicassets_presets
-    ADD CONSTRAINT atomicassets_presets_schemes FOREIGN KEY (collection_name, scheme_name, contract) REFERENCES atomicassets_schemes(collection_name, scheme_name, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+ALTER TABLE ONLY atomicassets_templates
+    ADD CONSTRAINT atomicassets_templates_schemas FOREIGN KEY (collection_name, schema_name, contract) REFERENCES atomicassets_schemas(collection_name, schema_name, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
-ALTER TABLE ONLY atomicassets_schemes
-    ADD CONSTRAINT atomicassets_schemes_collection FOREIGN KEY (collection_name, contract) REFERENCES atomicassets_collections(collection_name, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+ALTER TABLE ONLY atomicassets_schemas
+    ADD CONSTRAINT atomicassets_schemas_collection FOREIGN KEY (collection_name, contract) REFERENCES atomicassets_collections(collection_name, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_transfers_assets
     ADD CONSTRAINT atomicassets_transfers_assets_assets FOREIGN KEY (asset_id, contract) REFERENCES atomicassets_assets(asset_id, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;

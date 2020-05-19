@@ -157,7 +157,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
                 'atomicassets_assets', 'atomicassets_assets_backed_tokens', 'atomicassets_assets_data',
                 'atomicassets_balances', 'atomicassets_collections', 'atomicassets_config',
                 'atomicassets_logs', 'atomicassets_offers', 'atomicassets_offers_assets',
-                'atomicassets_presets', 'atomicassets_presets_data', 'atomicassets_schemes',
+                'atomicassets_templates', 'atomicassets_templates_data', 'atomicassets_schemas',
                 'atomicassets_token_symbols', 'atomicassets_transfers', 'atomicassets_transfers_assets'
             ];
 

@@ -11,34 +11,34 @@ export async function saveAssetTableRow(
     db: ContractDBTransaction, block: ShipBlock, contractName: string, scope: string, data: AssetsTableRow,
     deleted: boolean, mutableDataMap?: AttributeMap, immutableDataMap?: AttributeMap
 ): Promise<void> {
-    const schemeQuery = await db.query(
-        'SELECT format FROM atomicassets_schemes WHERE contract = $1 AND collection_name = $2 AND scheme_name = $3',
+    const schemaQuery = await db.query(
+        'SELECT format FROM atomicassets_schemas WHERE contract = $1 AND collection_name = $2 AND schema_name = $3',
         [
             contractName,
             serializeEosioName(data.collection_name),
-            serializeEosioName(data.scheme_name)
+            serializeEosioName(data.schema_name)
         ]
     );
 
-    if (schemeQuery.rowCount === 0) {
-        throw new Error('Scheme for asset not found');
+    if (schemaQuery.rowCount === 0) {
+        throw new Error('Schema for asset not found');
     }
 
-    const scheme = ObjectSchema(schemeQuery.rows[0].format);
+    const schema = ObjectSchema(schemaQuery.rows[0].format);
 
     const mutableData = mutableDataMap
         ? convertAttributeMapToObject(mutableDataMap)
-        : deserialize(new Uint8Array(data.mutable_serialized_data), scheme);
+        : deserialize(new Uint8Array(data.mutable_serialized_data), schema);
     const immutableData = immutableDataMap
         ? convertAttributeMapToObject(immutableDataMap)
-        : deserialize(new Uint8Array(data.immutable_serialized_data), scheme);
+        : deserialize(new Uint8Array(data.immutable_serialized_data), schema);
 
     await db.replace('atomicassets_assets', {
         contract: contractName,
         asset_id: data.asset_id,
         collection_name: serializeEosioName(data.collection_name),
-        scheme_name: serializeEosioName(data.scheme_name),
-        preset_id: data.preset_id === -1 ? null : data.preset_id,
+        schema_name: serializeEosioName(data.schema_name),
+        template_id: data.template_id === -1 ? null : data.template_id,
         owner: serializeEosioName(scope),
         readable_name:
             (immutableData.name ? String(immutableData.name).substr(0, 64) : null) ||

@@ -9,8 +9,8 @@ import {
     CollectionsTableRow,
     ConfigTableRow,
     OffersTableRow,
-    PresetsTableRow,
-    SchemesTableRow,
+    TemplatesTableRow,
+    SchemasTableRow,
     TokenConfigsTableRow
 } from './types/tables';
 import AtomicAssetsHandler, { JobPriority } from './index';
@@ -58,17 +58,17 @@ export default class AtomicAssetsTableHandler {
                 // @ts-ignore
                 await this.handleOffersUpdate(db, block, delta.value, !delta.present);
             }, JobPriority.TABLE_OFFERS);
-        } else if (delta.table === 'presets') {
+        } else if (delta.table === 'templates') {
             this.core.addJob(async () => {
                 logger.debug('AtomicAssets Delta', delta);
                 // @ts-ignore
-                await this.handlePresetsUpdate(db, block, delta.scope, delta.value, !delta.present);
+                await this.handleTemplatesUpdate(db, block, delta.scope, delta.value, !delta.present);
             }, JobPriority.TABLE_PRESETS);
-        } else if (delta.table === 'schemes') {
+        } else if (delta.table === 'schemas') {
             this.core.addJob(async () => {
                 logger.debug('AtomicAssets Delta', delta);
                 // @ts-ignore
-                await this.handleSchemesUpdate(db, block, delta.scope, delta.value, !delta.present);
+                await this.handleSchemasUpdate(db, block, delta.scope, delta.value, !delta.present);
             }, JobPriority.TABLE_SCHEMES);
         } else if (delta.table === 'config' && delta.scope === this.core.args.atomicassets_account) {
             this.core.addJob(async () => {
@@ -179,29 +179,29 @@ export default class AtomicAssetsTableHandler {
         await saveOfferTableRow(db, block, this.contractName, data, deleted);
     }
 
-    async handlePresetsUpdate(
-        db: ContractDBTransaction, block: ShipBlock, scope: string, data: PresetsTableRow, deleted: boolean
+    async handleTemplatesUpdate(
+        db: ContractDBTransaction, block: ShipBlock, scope: string, data: TemplatesTableRow, deleted: boolean
     ): Promise<void> {
         if (deleted) {
-            throw new Error('A preset was deleted. Should not be possible by contract');
+            throw new Error('A template was deleted. Should not be possible by contract');
         }
 
-        const schemeQuery = await db.query(
-            'SELECT format FROM atomicassets_schemes WHERE contract = $1 AND collection_name = $2 AND scheme_name = $3',
-            [this.contractName, serializeEosioName(scope), serializeEosioName(data.scheme_name)]
+        const schemaQuery = await db.query(
+            'SELECT format FROM atomicassets_schemas WHERE contract = $1 AND collection_name = $2 AND schema_name = $3',
+            [this.contractName, serializeEosioName(scope), serializeEosioName(data.schema_name)]
         );
 
-        if (schemeQuery.rowCount === 0) {
-            throw new Error('Scheme of preset not found. Should not be possible by contract');
+        if (schemaQuery.rowCount === 0) {
+            throw new Error('Schema of template not found. Should not be possible by contract');
         }
 
-        const immutableData = deserialize(new Uint8Array(data.immutable_serialized_data), ObjectSchema(schemeQuery.rows[0].format));
+        const immutableData = deserialize(new Uint8Array(data.immutable_serialized_data), ObjectSchema(schemaQuery.rows[0].format));
 
-        await db.replace('atomicassets_presets', {
+        await db.replace('atomicassets_templates', {
             contract: this.contractName,
-            preset_id: data.preset_id,
+            template_id: data.template_id,
             collection_name: serializeEosioName(scope),
-            scheme_name: serializeEosioName(data.scheme_name),
+            schema_name: serializeEosioName(data.schema_name),
             readable_name: immutableData.name ? String(immutableData.name).substr(0, 64) : null,
             transferable: data.transferable,
             burnable: data.burnable,
@@ -209,11 +209,11 @@ export default class AtomicAssetsTableHandler {
             issued_supply: data.issued_supply,
             created_at_block: block.block_num,
             created_at_time: eosioTimestampToDate(block.timestamp).getTime()
-        }, ['contract', 'preset_id'], ['created_at_block', 'created_at_time']);
+        }, ['contract', 'template_id'], ['created_at_block', 'created_at_time']);
 
         await db.query(
-            'DELETE FROM atomicassets_presets_data WHERE contract = $1 AND preset_id = $2',
-            [this.contractName, data.preset_id]
+            'DELETE FROM atomicassets_templates_data WHERE contract = $1 AND template_id = $2',
+            [this.contractName, data.template_id]
         );
 
         const keys = Object.keys(immutableData);
@@ -222,28 +222,28 @@ export default class AtomicAssetsTableHandler {
         for (const key of keys) {
             values.push({
                 contract: this.contractName,
-                preset_id: data.preset_id,
+                template_id: data.template_id,
                 key, value: JSON.stringify(immutableData[key])
             });
         }
 
-        await db.insert('atomicassets_presets_data', values, ['contract', 'preset_id', 'key']);
+        await db.insert('atomicassets_templates_data', values, ['contract', 'template_id', 'key']);
     }
 
-    async handleSchemesUpdate(
-        db: ContractDBTransaction, block: ShipBlock, scope: string, data: SchemesTableRow, deleted: boolean
+    async handleSchemasUpdate(
+        db: ContractDBTransaction, block: ShipBlock, scope: string, data: SchemasTableRow, deleted: boolean
     ): Promise<void> {
         if (deleted) {
-            throw new Error('A scheme was deleted. Should not be possible by contract');
+            throw new Error('A schema was deleted. Should not be possible by contract');
         }
 
-        await db.replace('atomicassets_schemes', {
+        await db.replace('atomicassets_schemas', {
             contract: this.contractName,
             collection_name: serializeEosioName(scope),
-            scheme_name: serializeEosioName(data.scheme_name),
+            schema_name: serializeEosioName(data.schema_name),
             format: data.format.map((element: any) => JSON.stringify(element)),
             created_at_block: block.block_num,
             created_at_time: eosioTimestampToDate(block.timestamp).getTime()
-        }, ['contract', 'collection_name', 'scheme_name'], ['created_at_block', 'created_at_time']);
+        }, ['contract', 'collection_name', 'schema_name'], ['created_at_block', 'created_at_time']);
     }
 }

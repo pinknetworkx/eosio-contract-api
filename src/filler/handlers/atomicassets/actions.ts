@@ -9,13 +9,13 @@ import {
     AddColAuthActionData,
     AddNotifyAccActionData, CancelOfferActionData,
     CreateColActionData,
-    CreateSchemeActionData, DeclineOfferActionData,
-    ExtendSchemeActionData,
+    CreateSchemaActionData, DeclineOfferActionData,
+    ExtendSchemaActionData,
     ForbidNotifyActionData,
     LogBackAssetActionData,
     LogBurnAssetActionData,
     LogMintAssetActionData, LogNewOfferActionData,
-    LogNewPresetActionData,
+    LogNewTemplateActionData,
     LogSetDataActionData,
     LogTransferActionData,
     RemColAuthActionData,
@@ -71,11 +71,11 @@ export default class AtomicAssetsActionHandler {
 
                 await this.handleAssetUpdateTrace(db, block, trace, tx);
             }, JobPriority.INDEPENDENT);
-        } else if (['lognewpreset'].indexOf(trace.act.name) >= 0) {
+        } else if (['lognewtempl'].indexOf(trace.act.name) >= 0) {
             this.core.addJob(async () => {
                 logger.debug('AtomicAssets Action', trace.act);
 
-                await this.handlePresetTrace(db, block, trace, tx);
+                await this.handleTemplateTrace(db, block, trace, tx);
             }, JobPriority.INDEPENDENT);
         } else if ([
             'addcolauth', 'addnotifyacc', 'createcol', 'forbidnotify',
@@ -86,11 +86,11 @@ export default class AtomicAssetsActionHandler {
 
                 await this.handleCollectionTrace(db, block, trace, tx);
             }, JobPriority.INDEPENDENT);
-        } else if (['createscheme', 'extendscheme'].indexOf(trace.act.name) >= 0) {
+        } else if (['createschema', 'extendschema'].indexOf(trace.act.name) >= 0) {
             this.core.addJob(async () => {
                 logger.debug('AtomicAssets Action', trace.act);
 
-                await this.handleSchemeTrace(db, block, trace, tx);
+                await this.handleSchemaTrace(db, block, trace, tx);
             }, JobPriority.INDEPENDENT);
         }
     }
@@ -267,8 +267,8 @@ export default class AtomicAssetsActionHandler {
             await saveAssetTableRow(db, block, this.contractName, data.asset_owner, {
                 asset_id: data.asset_id,
                 collection_name: data.collection_name,
-                scheme_name: data.scheme_name,
-                preset_id: data.preset_id,
+                schema_name: data.schema_name,
+                template_id: data.template_id,
                 ram_payer: '.',
                 backed_tokens: data.backed_tokens,
                 immutable_serialized_data: null,
@@ -399,33 +399,33 @@ export default class AtomicAssetsActionHandler {
         }
     }
 
-    async handlePresetTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
-        if (trace.act.name === 'lognewpreset') {
+    async handleTemplateTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
+        if (trace.act.name === 'lognewtempl') {
             // @ts-ignore
-            const data: LogNewPresetActionData = trace.act.data;
+            const data: LogNewTemplateActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, 'create', 'preset', data.collection_name + ':' + data.preset_id, {
+            await this.createLogMessage(db, block, tx, 'create', 'template', data.collection_name + ':' + data.template_id, {
                 creator: data.authorized_creator
             });
         }
     }
 
-    async handleSchemeTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
-        if (trace.act.name === 'createscheme') {
+    async handleSchemaTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
+        if (trace.act.name === 'createschema') {
             // @ts-ignore
-            const data: CreateSchemeActionData = trace.act.data;
+            const data: CreateSchemaActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, 'create', 'scheme', data.collection_name + ':' + data.scheme_name, {
+            await this.createLogMessage(db, block, tx, 'create', 'schema', data.collection_name + ':' + data.schema_name, {
                 authorized_creator: data.authorized_creator,
-                scheme_format: data.scheme_format
+                schema_format: data.schema_format
             });
-        } else if (trace.act.name === 'extendscheme') {
+        } else if (trace.act.name === 'extendschema') {
             // @ts-ignore
-            const data: ExtendSchemeActionData = trace.act.data;
+            const data: ExtendSchemaActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, 'extend', 'scheme', data.collection_name + ':' + data.scheme_name, {
+            await this.createLogMessage(db, block, tx, 'extend', 'schema', data.collection_name + ':' + data.schema_name, {
                 authorized_editor: data.authorized_editor,
-                scheme_format_extension: data.scheme_format_extension
+                schema_format_extension: data.schema_format_extension
             });
         }
     }

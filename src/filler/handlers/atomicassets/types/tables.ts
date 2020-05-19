@@ -1,8 +1,8 @@
 export type AssetsTableRow = {
     asset_id: string,
     collection_name: string,
-    scheme_name: string,
-    preset_id: number,
+    schema_name: string,
+    template_id: number,
     ram_payer: string,
     backed_tokens: string[],
     immutable_serialized_data: number[],
@@ -40,9 +40,9 @@ export type OffersTableRow = {
     memo: string
 };
 
-export type PresetsTableRow = {
-    preset_id: string,
-    scheme_name: string,
+export type TemplatesTableRow = {
+    template_id: string,
+    schema_name: string,
     transferable: boolean,
     burnable: boolean,
     max_supply: string,
@@ -50,8 +50,8 @@ export type PresetsTableRow = {
     immutable_serialized_data: number[]
 };
 
-export type SchemesTableRow = {
-    scheme_name: string,
+export type SchemasTableRow = {
+    schema_name: string,
     format: Array<{ name: string, type: string }>
 };
 

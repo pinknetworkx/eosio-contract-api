@@ -13,8 +13,8 @@ export type LogMintAssetActionData = {
     minter: string,
     asset_id: string,
     collection_name: string,
-    scheme_name: string,
-    preset_id: number,
+    schema_name: string,
+    template_id: number,
     new_owner: string
 };
 
@@ -22,8 +22,8 @@ export type LogBurnAssetActionData = {
     asset_owner: string,
     asset_id: string,
     collection_name: string,
-    scheme_name: string,
-    preset_id: number,
+    schema_name: string,
+    template_id: number,
     backed_tokens: string[],
     asset_ram_payer: string,
     old_immutable_data: AttributeMap,
@@ -87,10 +87,10 @@ export type SetColDataActionData = {
     data: AttributeMap
 };
 
-export type LogNewPresetActionData = {
-    preset_id: number,
+export type LogNewTemplateActionData = {
+    template_id: number,
     authorized_creator: string,
-    scheme_name: string,
+    schema_name: string,
     collection_name: string,
     transferable: boolean,
     burnable: boolean,
@@ -98,18 +98,18 @@ export type LogNewPresetActionData = {
     immuntable_data: AttributeMap
 };
 
-export type CreateSchemeActionData = {
+export type CreateSchemaActionData = {
     authorized_creator: string,
     collection_name: string,
-    scheme_name: string,
-    scheme_format: Format[]
+    schema_name: string,
+    schema_format: Format[]
 };
 
-export type ExtendSchemeActionData = {
+export type ExtendSchemaActionData = {
     authorized_editor: string,
     collection_name: string,
-    scheme_name: string,
-    scheme_format_extension: Format[]
+    schema_name: string,
+    schema_format_extension: Format[]
 };
 
 export type AcceptOfferActionData = {
