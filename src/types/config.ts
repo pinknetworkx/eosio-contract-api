@@ -18,7 +18,7 @@ export interface IConnectionsConfig {
     };
 }
 
-export interface IAPIConfig {
+export interface IServerConfig {
     provider_name: string;
     provider_url: string;
 
@@ -26,8 +26,17 @@ export interface IAPIConfig {
     server_name: string;
     server_port: number;
 
-    processes: number;
     cache_life_ms: number;
+
+    socket_prefix: string;
+
+    namespaces: INamespaceConfig[];
+}
+
+export interface INamespaceConfig {
+    name: string;
+    path: string;
+    args: {[key: string]: any};
 }
 
 export interface IReaderConfig {

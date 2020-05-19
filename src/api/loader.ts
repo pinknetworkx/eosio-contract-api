@@ -1,40 +1,24 @@
-import * as bodyParser from 'body-parser';
-import * as express from 'express';
+import { ApiNamespace } from './routes/interfaces';
+import { HTTPServer } from './server';
+import { IServerConfig } from '../types/config';
+import ConnectionManager from '../connections/manager';
+import { getNamespaces } from './routes';
 
-// Creates and configures an ExpressJS web server.
-class App {
-    // ref to Express instance
-    express: express.Application;
+export default class ApiLoader {
+    private readonly namespaces: ApiNamespace[];
+    private readonly server: HTTPServer;
 
-    // Run configuration methods on the Express instance.
-    constructor() {
-        // test
-        this.express = express();
-        this.middleware();
-        this.routes();
+    constructor(private readonly config: IServerConfig, private readonly connection: ConnectionManager) {
+        this.namespaces = getNamespaces(config.namespaces, connection);
+        this.server = new HTTPServer(config, connection);
     }
 
-    // Configure Express middleware.
-    private middleware(): void {
-        this.express.use(bodyParser.json());
-        this.express.use(bodyParser.urlencoded({ extended: false }));
-    }
+    async listen(): Promise<void> {
+        for (const namespace of this.namespaces) {
+            this.server.web.express.use(namespace.path, await namespace.router(this.server.web));
+            await namespace.socket(this.server.socket);
+        }
 
-    // Configure API endpoints.
-    private routes(): void {
-        /* This is just to get up and running, and to make sure what we've got is
-         * working so far. This function will change when we start to add more
-         * API endpoints */
-        const router = express.Router();
-        // placeholder route handler
-        router.get('/', (_: express.Request, res: express.Response) => {
-            res.json({
-                message: 'Hello World!'
-            });
-        });
-        this.express.use('/', router);
+        this.server.listen();
     }
-
 }
-
-export default new App().express;

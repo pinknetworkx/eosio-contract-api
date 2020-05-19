@@ -24,6 +24,8 @@
     "express": "^4.17.1",
     "express-rate-limit": "^5.1.3",
     "rate-limit-redis": "^1.7.0",
+    "cors": "^2.8.5",
+    "cookie-parser": "^1.4.5",
     "socket.io": "^2.3.0",
     "socket.io-redis": "^5.2.0",
     "socket.io-emitter": "^3.1.1",
@@ -37,7 +39,7 @@
     "await-lock": "^2.0.1",
     "ws": "^7.2.5",
 
-    "atomicassets": "^0.4.0"
+    "atomicassets": "^0.6.0"
   },
   "devDependencies": {
     "@types/body-parser": "^1.19.0",
@@ -50,6 +52,10 @@
     "@types/ws": "^7.2.4",
     "@types/text-encoding": "^0.0.35",
     "@types/node-fetch": "^2.5.7",
+    "@types/cors": "^2.8.6",
+    "@types/cookie-parser": "^1.4.2",
+    "@types/socket.io": "^2.1.6",
+    "@types/socket.io-redis": "^1.0.26",
     "chai": "^4.2.0",
     "mocha": "^7.1.2",
     "ts-node": "^8.10.1",
