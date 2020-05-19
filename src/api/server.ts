@@ -93,7 +93,7 @@ export class SocketServer {
 
     private adapter(): void {
         this.io.adapter(redisAdapter({
-            key: 'test unique prefix',
+            key: this.server.connections.chain.name + ':' + this.server.config.socket_prefix,
             pubClient: this.server.connections.redis.conn,
             subClient: this.server.connections.redis.conn
         }));

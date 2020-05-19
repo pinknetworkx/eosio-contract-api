@@ -7,7 +7,7 @@ export default class ChainApi {
     readonly rpc: JsonRpc;
     readonly api: Api;
 
-    constructor(endpoint: string) {
+    constructor(readonly endpoint: string, readonly name: string) {
         // @ts-ignore
         this.rpc = new JsonRpc(endpoint, { fetch });
         this.api = new Api({ rpc: this.rpc, signatureProvider: new JsSignatureProvider([]) });

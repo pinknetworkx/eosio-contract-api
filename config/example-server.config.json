@@ -6,15 +6,16 @@
   "server_name": "wax.atomicassets.io",
   "server_port": 3000,
 
-  "processes": 1,
   "cache_life_ms": 500,
 
-  "handlers": [
+  "socket_prefix": "atomicassets",
+
+  "namespaces": [
     {
       "name": "atomicassets",
-      "reader": "atomic",
+      "path": "/atomicassets/",
       "args": {
-        "contracts": ["atomicassets"]
+        "default_contract": "atomicassets"
       }
     }
   ]

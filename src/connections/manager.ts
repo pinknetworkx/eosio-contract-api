@@ -11,7 +11,7 @@ export default class ConnectionManager {
     readonly database: PostgresConnection;
 
     constructor(private readonly config: IConnectionsConfig) {
-        this.chain = new ChainApi(config.chain.http);
+        this.chain = new ChainApi(config.chain.http, config.chain.name);
 
         this.redis = new RedisConnection(
             config.redis.host,
