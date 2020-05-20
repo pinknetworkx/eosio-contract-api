@@ -39,7 +39,7 @@
     "await-lock": "^2.0.1",
     "ws": "^7.2.5",
 
-    "atomicassets": "^0.6.0"
+    "atomicassets": "^0.7.1"
   },
   "devDependencies": {
     "@types/body-parser": "^1.19.0",

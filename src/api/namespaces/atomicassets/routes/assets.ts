@@ -39,12 +39,12 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, web: WebServer, rou
             }
 
             if (args.collection_name) {
-                queryString += 'AND (collection->>\'collection_name\')::bigint = $' + ++varCounter + ' ';
+                queryString += 'AND collection->>\'collection_name\' = $' + ++varCounter + ' ';
                 queryValues.push(serializeEosioName(args.collection_name));
             }
 
             if (args.schema_name) {
-                queryString += 'AND (schema->>\'schema_name\')::bigint = $' + ++varCounter + ' ';
+                queryString += 'AND schema->>\'schema_name\' = $' + ++varCounter + ' ';
                 queryValues.push(serializeEosioName(args.schema_name));
             }
 
