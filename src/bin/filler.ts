@@ -21,7 +21,7 @@ if (cluster.isMaster) {
         } catch (e) {
             logger.info('Could not find base tables. Create them now...');
 
-            await connection.database.query(fs.readFileSync('./definitions/base_tables.sql', {
+            await connection.database.query(fs.readFileSync('./definitions/tables/base_tables.sql', {
                 encoding: 'utf8'
             }));
 

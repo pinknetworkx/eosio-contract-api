@@ -45,14 +45,14 @@ export enum JobPriority {
     ACTION_UPDATE_OFFER = 0
 }
 
-export type AtomicAssetsArgs = {
+export type AtomicAssetsReaderArgs = {
     atomicassets_account: string
 };
 
 export default class AtomicAssetsHandler extends ContractHandler {
     static handlerName = 'atomicassets';
 
-    readonly args: AtomicAssetsArgs;
+    readonly args: AtomicAssetsReaderArgs;
 
     config: {
         version: string,
@@ -110,7 +110,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
         } catch (e) {
             logger.info('Could not find AtomicAssets tables. Create them now...');
 
-            await this.connection.database.query(fs.readFileSync('./definitions/atomicassets_tables.sql', {
+            await this.connection.database.query(fs.readFileSync('./definitions/tables/atomicassets_tables.sql', {
                 encoding: 'utf8'
             }));
 

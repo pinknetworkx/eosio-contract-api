@@ -12,6 +12,7 @@ export abstract class ApiNamespace {
         readonly args: {[key: string]: any}
     ) { }
 
+    abstract async init(): Promise<void>;
     abstract async router(express: WebServer): Promise<express.Router>;
     abstract async socket(socket: SocketServer): Promise<void>;
 }

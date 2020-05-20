@@ -1,4 +1,5 @@
 import * as express from 'express';
+import * as fs from 'fs';
 
 import { ApiNamespace } from '../interfaces';
 import { SocketServer, WebServer } from '../../server';
@@ -8,9 +9,22 @@ import { configEndpoints } from './routes/config';
 import { offersEndpoints } from './routes/offers';
 import { schemasEndpoints } from './routes/schemas';
 import { templatesEndpoints } from './routes/templates';
+import { transfersEndpoints } from './routes/transfers';
+
+export type AtomicAssetsNamespaceArgs = {
+    contract: string
+};
 
 export class AtomicAssetsNamespace extends ApiNamespace {
     static namespaceName = 'atomicassets';
+
+    args: AtomicAssetsNamespaceArgs;
+
+    async init(): Promise<void> {
+        await this.connection.database.query(fs.readFileSync('./definitions/views/atomicassets_assets_master.sql', {
+            encoding: 'utf8'
+        }));
+    }
 
     async router(web: WebServer): Promise<express.Router> {
         const router = express.Router();
@@ -21,6 +35,7 @@ export class AtomicAssetsNamespace extends ApiNamespace {
         offersEndpoints(this, web, router);
         schemasEndpoints(this, web, router);
         templatesEndpoints(this, web, router);
+        transfersEndpoints(this, web, router);
 
         return router;
     }
