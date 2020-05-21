@@ -15,7 +15,5 @@ CREATE OR REPLACE VIEW atomicassets_schemas_master AS
         ) collection,
         schema_a.created_at_time, schema_a.created_at_block
     FROM
-        atomicassets_schemas schema_a,
-        atomicassets_collections collection_a
-    WHERE
-        collection_a.contract = schema_a.contract AND collection_a.collection_name = schema_a.collection_name
+        atomicassets_schemas schema_a
+        JOIN atomicassets_collections collection_a ON (collection_a.contract = schema_a.contract AND collection_a.collection_name = schema_a.collection_name)

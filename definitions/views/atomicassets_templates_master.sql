@@ -24,9 +24,6 @@ CREATE OR REPLACE VIEW atomicassets_templates_master AS
         (SELECT json_object_agg("key", "value") FROM atomicassets_templates_data WHERE contract = template_a.contract AND template_id = template_a.template_id) AS immutable_data,
         template_a.created_at_time, template_a.created_at_block
     FROM
-        atomicassets_templates template_a,
-        atomicassets_collections collection_a,
-        atomicassets_schemas schema_a
-    WHERE
-        collection_a.contract = template_a.contract AND collection_a.collection_name = template_a.collection_name AND
-        schema_a.contract = template_a.contract AND schema_a.schema_name = template_a.schema_name AND schema_a.contract = collection_a.contract
+        atomicassets_templates template_a
+        JOIN atomicassets_collections collection_a ON (collection_a.contract = template_a.contract AND collection_a.collection_name = template_a.collection_name)
+        JOIN atomicassets_schemas schema_a ON (schema_a.contract = template_a.contract AND schema_a.schema_name = template_a.schema_name)
