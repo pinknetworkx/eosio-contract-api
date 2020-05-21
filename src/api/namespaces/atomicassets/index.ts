@@ -21,9 +21,24 @@ export class AtomicAssetsNamespace extends ApiNamespace {
     args: AtomicAssetsNamespaceArgs;
 
     async init(): Promise<void> {
-        await this.connection.database.query(fs.readFileSync('./definitions/views/atomicassets_assets_master.sql', {
-            encoding: 'utf8'
-        }));
+        await this.connection.database.query(
+            fs.readFileSync('./definitions/views/atomicassets_assets_master.sql', {encoding: 'utf8'})
+        );
+        await this.connection.database.query(
+            fs.readFileSync('./definitions/views/atomicassets_templates_master.sql', {encoding: 'utf8'})
+        );
+        await this.connection.database.query(
+            fs.readFileSync('./definitions/views/atomicassets_schemas_master.sql', {encoding: 'utf8'})
+        );
+        await this.connection.database.query(
+            fs.readFileSync('./definitions/views/atomicassets_collections_master.sql', {encoding: 'utf8'})
+        );
+        await this.connection.database.query(
+            fs.readFileSync('./definitions/views/atomicassets_offers_master.sql', {encoding: 'utf8'})
+        );
+        await this.connection.database.query(
+            fs.readFileSync('./definitions/views/atomicassets_transfers_master.sql', {encoding: 'utf8'})
+        );
     }
 
     async router(web: WebServer): Promise<express.Router> {

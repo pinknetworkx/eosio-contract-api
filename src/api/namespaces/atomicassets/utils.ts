@@ -13,3 +13,42 @@ export async function getLogs(
 
     return query.rows;
 }
+
+export function buildDataConditions(args: any, varCounter: number = 0): {conditions: string[], values: any[]} {
+    const keys = Object.keys(args);
+    const dataConditions = [];
+    const queryValues = [];
+
+    for (const key of keys) {
+        if (key.startsWith('data.')) {
+            const conditionKeys = key.substring(5).split('.');
+
+            let condition = '(data."key" = $' + ++varCounter + ' AND ';
+            queryValues.push(conditionKeys[0]);
+
+            let column;
+            if (conditionKeys.length > 1 && !isNaN(parseInt(conditionKeys[1], 10))) {
+                column = 'data."value"->>' + parseInt(conditionKeys[1], 10);
+            } else {
+                column = 'data."value"::text';
+            }
+
+            const possibleValues = [column + ' = $' + ++varCounter];
+            queryValues.push(JSON.stringify(args[key]));
+
+            if (!isNaN(parseFloat(String(args[key])))) {
+                possibleValues.push(column + ' = $' + ++varCounter);
+                queryValues.push(String(parseFloat(String(args[key]))));
+            }
+
+            condition += '(' + possibleValues.join(' OR ') + '))';
+
+            dataConditions.push(condition);
+        }
+    }
+
+    return {
+        conditions: dataConditions,
+        values: queryValues
+    };
+}

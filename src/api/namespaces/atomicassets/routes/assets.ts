@@ -2,13 +2,13 @@ import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
 import { WebServer } from '../../../server';
-import { getLogs } from '../utils';
+import { buildDataConditions, getLogs } from '../utils';
 import { filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { serializeEosioName } from '../../../../utils/eosio';
 import { formatAsset } from '../format';
 
-export function assetsEndpoints(core: AtomicAssetsNamespace, web: WebServer, router: express.Router): void {
+export function assetsEndpoints(core: AtomicAssetsNamespace, _: WebServer, router: express.Router): void {
     router.get('/v1/assets', (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
@@ -20,13 +20,40 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, web: WebServer, rou
                 owner: {type: 'string', min: 1, max: 12},
                 template_id: {type: 'int', min: 0},
                 collection_name: {type: 'string', min: 1, max: 12},
-                schema_name: {type: 'string', min: 1, max: 12}
+                schema_name: {type: 'string', min: 1, max: 12},
+
+                authorized_account: {type: 'string', min: 1, max: 12},
+                match: {type: 'string', min: 1}
             });
 
-            const queryValues: any[] = [serializeEosioName(core.args.contract)];
-
-            let queryString = 'SELECT * FROM atomicassets_assets_master WHERE contract = $1 ';
             let varCounter = 1;
+            let queryString = 'SELECT * FROM atomicassets_assets_master asset WHERE contract = $1 ';
+            let queryValues: any[] = [serializeEosioName(core.args.contract)];
+
+            if (args.collection_name && args.schema_name) {
+                const data = buildDataConditions(req.query, varCounter);
+
+                if (data.conditions.length > 0) {
+                    queryString += 'AND (' +
+                        'EXISTS (' +
+                            'SELECT "key" ' +
+                            'FROM atomicassets_assets_data data ' +
+                            'WHERE data.contract = asset.contract AND data.asset_id = asset.asset_id AND ' +
+                            '(' + data.conditions.join(' OR ') + ')' +
+                        ') ';
+
+                    queryString += 'OR ' +
+                        'EXISTS (' +
+                            'SELECT "key" ' +
+                            'FROM atomicassets_templates_data data ' +
+                            'WHERE data.contract = asset.contract AND data.template_id = asset.template_id AND ' +
+                            '(' + data.conditions.join(' OR ') + ')' +
+                        ')) ';
+
+                    queryValues = queryValues.concat(data.values);
+                    varCounter += data.values.length;
+                }
+            }
 
             if (args.owner) {
                 queryString += 'AND owner = $' + ++varCounter + ' ';
@@ -34,18 +61,28 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, web: WebServer, rou
             }
 
             if (args.template_id) {
-                queryString += 'AND template->\'template_id\' = $' + ++varCounter + ' ';
+                queryString += 'AND template_id = $' + ++varCounter + ' ';
                 queryValues.push(args.template_id);
             }
 
             if (args.collection_name) {
-                queryString += 'AND collection->>\'collection_name\' = $' + ++varCounter + ' ';
+                queryString += 'AND collection_name = $' + ++varCounter + ' ';
                 queryValues.push(serializeEosioName(args.collection_name));
             }
 
             if (args.schema_name) {
-                queryString += 'AND schema->>\'schema_name\' = $' + ++varCounter + ' ';
+                queryString += 'AND schema_name = $' + ++varCounter + ' ';
                 queryValues.push(serializeEosioName(args.schema_name));
+            }
+
+            if (args.match) {
+                queryString += 'AND name LIKE $' + ++varCounter + ' ';
+                queryValues.push('%' + args.match + '%');
+            }
+
+            if (args.authorized_account) {
+                queryString += 'AND $' + ++varCounter + ' = ANY(authorized_accounts) ';
+                queryValues.push(serializeEosioName(args.authorized_account));
             }
 
             const sortColumnMapping = {
@@ -64,11 +101,12 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, web: WebServer, rou
 
             const query = await core.connection.database.query(queryString, queryValues);
 
-            res.json({success: true, data: query.rows.map((row) => formatAsset(row))});
+            return res.json({success: true, data: query.rows.map((row) => formatAsset(row))});
         } catch (e) {
             logger.error(e);
 
-            res.json({success: false});
+            res.status(500);
+            return res.json({success: false, message: 'Internal Server Error'});
         }
     }));
 
@@ -80,14 +118,17 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, web: WebServer, rou
             );
 
             if (query.rowCount === 0) {
-                res.json({success: false});
-            } else {
-                res.json({success: true, data: formatAsset(query.rows[0])});
+                res.status(500);
+
+                return res.json({success: false, message: 'Asset not found'});
             }
+
+            return res.json({success: true, data: formatAsset(query.rows[0])});
         } catch (e) {
             logger.error(e);
 
-            res.json({success: false});
+            res.status(500);
+            return res.json({success: false, message: 'Internal Server Error'});
         }
     }));
 
@@ -108,7 +149,8 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, web: WebServer, rou
         } catch (e) {
             logger.error(e);
 
-            res.json({'success': false});
+            res.status(500);
+            return res.json({success: false, message: 'Internal Server Error'});
         }
     }));
 }
