@@ -5,7 +5,6 @@ import { WebServer } from '../../../server';
 import { buildDataConditions, getLogs } from '../utils';
 import { filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
-import { serializeEosioName } from '../../../../utils/eosio';
 import { formatAsset } from '../format';
 
 export function assetsEndpoints(core: AtomicAssetsNamespace, _: WebServer, router: express.Router): void {
@@ -28,7 +27,7 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, _: WebServer, route
 
             let varCounter = 1;
             let queryString = 'SELECT * FROM atomicassets_assets_master asset WHERE contract = $1 ';
-            let queryValues: any[] = [serializeEosioName(core.args.contract)];
+            let queryValues: any[] = [core.args.contract];
 
             if (args.collection_name && args.schema_name) {
                 const data = buildDataConditions(req.query, varCounter);
@@ -57,7 +56,7 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, _: WebServer, route
 
             if (args.owner) {
                 queryString += 'AND owner = $' + ++varCounter + ' ';
-                queryValues.push(serializeEosioName(args.owner));
+                queryValues.push(args.owner);
             }
 
             if (args.template_id) {
@@ -67,12 +66,12 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, _: WebServer, route
 
             if (args.collection_name) {
                 queryString += 'AND collection_name = $' + ++varCounter + ' ';
-                queryValues.push(serializeEosioName(args.collection_name));
+                queryValues.push(args.collection_name);
             }
 
             if (args.schema_name) {
                 queryString += 'AND schema_name = $' + ++varCounter + ' ';
-                queryValues.push(serializeEosioName(args.schema_name));
+                queryValues.push(args.schema_name);
             }
 
             if (args.match) {
@@ -82,7 +81,7 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, _: WebServer, route
 
             if (args.authorized_account) {
                 queryString += 'AND $' + ++varCounter + ' = ANY(authorized_accounts) ';
-                queryValues.push(serializeEosioName(args.authorized_account));
+                queryValues.push(args.authorized_account);
             }
 
             const sortColumnMapping = {
@@ -114,7 +113,7 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, _: WebServer, route
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_assets_master WHERE contract = $1 AND asset_id = $2',
-                [serializeEosioName(core.args.contract), req.params.asset_id]
+                [core.args.contract, req.params.asset_id]
             );
 
             if (query.rowCount === 0) {

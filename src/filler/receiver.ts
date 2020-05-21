@@ -10,7 +10,7 @@ import { EosioAction, EosioActionTrace, EosioTableRow, EosioTransaction } from '
 import { ContractDB, ContractDBTransaction } from './database';
 import { ContractHandler } from './handlers/interfaces';
 import { binToHex } from '../utils/binary';
-import { eosioTimestampToDate, serializeEosioName } from '../utils/eosio';
+import { eosioTimestampToDate } from '../utils/eosio';
 import { PromiseEventHandler } from '../utils/event';
 
 type AbiCache = {
@@ -298,12 +298,12 @@ export default class StateReceiver {
 
             const query = await db.client.query(
                 'SELECT account FROM contract_abis WHERE account = $1 AND block_num = $2',
-                [serializeEosioName(action.data.account), block.block_num]
+                [action.data.account, block.block_num]
             );
 
             if (query.rows.length === 0) {
                 await db.insert('contract_abis', {
-                    account: serializeEosioName(action.data.account),
+                    account: action.data.account,
                     abi: action.data.abi,
                     block_num: block.block_num,
                     block_time: eosioTimestampToDate(block.timestamp).getTime()
@@ -322,12 +322,12 @@ export default class StateReceiver {
         if (typeof action.data !== 'string') {
             const query = await db.client.query(
                 'SELECT account FROM contract_codes WHERE account = $1 AND block_num = $2',
-                [serializeEosioName(action.data.account), block.block_num]
+                [action.data.account, block.block_num]
             );
 
             if (query.rows.length === 0) {
                 await db.insert('contract_codes', {
-                    account: serializeEosioName(action.data.account),
+                    account: action.data.account,
                     block_num: block.block_num,
                     block_time: eosioTimestampToDate(block.timestamp).getTime()
                 }, ['account', 'block_num']);

@@ -6,22 +6,22 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
         CASE WHEN template_a.template_id IS NULL THEN true ELSE template_a.burnable END AS is_burnable,
         collection_a.collection_name, collection_a.authorized_accounts,
         json_build_object(
-            'collection_name', collection_a.collection_name::text,
+            'collection_name', collection_a.collection_name,
             'name', collection_a.readable_name,
-            'author', collection_a.author::text,
+            'author', collection_a.author,
             'allow_notify', collection_a.allow_notify,
-            'authorized_accounts', collection_a.authorized_accounts::text[],
-            'notify_accounts', collection_a.notify_accounts::text[],
+            'authorized_accounts', collection_a.authorized_accounts,
+            'notify_accounts', collection_a.notify_accounts,
             'market_fee', collection_a.market_fee,
-            'created_at_block', collection_a.created_at_block::text,
-            'created_at_time', collection_a.created_at_time::text
+            'created_at_block', collection_a.created_at_block,
+            'created_at_time', collection_a.created_at_time
         ) collection,
         schema_a.schema_name,
         json_build_object(
-            'schema_name', schema_a.schema_name::text,
+            'schema_name', schema_a.schema_name,
             'format', schema_a.format,
-            'created_at_block', schema_a.created_at_block::text,
-            'created_at_time', schema_a.created_at_time::text
+            'created_at_block', schema_a.created_at_block,
+            'created_at_time', schema_a.created_at_time
         ) "schema",
         template_a.template_id,
         CASE WHEN template_a.template_id IS NULL THEN null ELSE
@@ -32,8 +32,8 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
             'is_burnable', template_a.burnable,
             'issued_supply', template_a.issued_supply,
             'immutable_data', (SELECT json_object_agg("key", "value") FROM atomicassets_templates_data WHERE contract = asset_a.contract AND template_id = asset_a.template_id),
-            'created_at_time', template_a.created_at_time::text,
-            'created_at_block', template_a.created_at_block::text
+            'created_at_time', template_a.created_at_time,
+            'created_at_block', template_a.created_at_block
         ) END AS"template",
         (SELECT json_object_agg("key", "value") FROM atomicassets_assets_data WHERE contract = asset_a.contract AND asset_id = asset_a.asset_id AND mutable IS true) mutable_data,
         (SELECT json_object_agg("key", "value") FROM atomicassets_assets_data WHERE contract = asset_a.contract AND asset_id = asset_a.asset_id AND mutable IS false) immutable_data,
@@ -41,7 +41,7 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
             SELECT DISTINCT ON (backed_b.contract, backed_b.asset_id, backed_b.token_symbol)
                 json_build_object(
                     'token_contract', symbols_b.token_contract,
-                    'token_symbol', symbols_b.token_symbol::text,
+                    'token_symbol', symbols_b.token_symbol,
                     'token_precision', symbols_b.token_precision,
                     'amount', backed_b.amount
                 )

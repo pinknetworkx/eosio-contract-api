@@ -5,7 +5,6 @@ import { WebServer } from '../../../server';
 import { filterQueryArgs } from '../../utils';
 import { getLogs } from '../utils';
 import logger from '../../../../utils/winston';
-import { serializeEosioName } from '../../../../utils/eosio';
 import { formatCollection, formatSchema } from '../format';
 
 export function collectionsEndpoints(core: AtomicAssetsNamespace, web: WebServer, router: express.Router): void {
@@ -27,21 +26,21 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, web: WebServer
             let varCounter = 1;
             let queryString = 'SELECT * FROM atomicassets_collections_master WHERE contract = $1 ';
 
-            const queryValues: any[] = [serializeEosioName(core.args.contract)];
+            const queryValues: any[] = [core.args.contract];
 
             if (args.author) {
                 queryString += 'AND author = $' + ++varCounter + ' ';
-                queryValues.push(serializeEosioName(args.author));
+                queryValues.push(args.author);
             }
 
             if (args.authorized_account) {
                 queryString += 'AND $' + ++varCounter + ' = ANY(authorized_accounts) ';
-                queryValues.push(serializeEosioName(args.authorized_account));
+                queryValues.push(args.authorized_account);
             }
 
             if (args.notify_account) {
                 queryString += 'AND $' + ++varCounter + ' = ANY(notify_accounts) ';
-                queryValues.push(serializeEosioName(args.notify_account));
+                queryValues.push(args.notify_account);
             }
 
             const sortColumnMapping = {
@@ -71,7 +70,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, web: WebServer
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_collections_master WHERE contract = $1 AND collection_name = $2',
-                [serializeEosioName(core.args.contract), req.params.collection_name]
+                [core.args.contract, req.params.collection_name]
             );
 
             if (query.rowCount === 0) {

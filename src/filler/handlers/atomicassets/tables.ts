@@ -15,14 +15,14 @@ import {
 } from './types/tables';
 import AtomicAssetsHandler, { JobPriority } from './index';
 import logger from '../../../utils/winston';
-import { eosioTimestampToDate, serializeEosioName } from '../../../utils/eosio';
+import { eosioTimestampToDate } from '../../../utils/eosio';
 import { saveAssetTableRow, saveOfferTableRow } from './helper';
 
 export default class AtomicAssetsTableHandler {
     private readonly contractName: string;
     
     constructor(readonly core: AtomicAssetsHandler) { 
-        this.contractName = serializeEosioName(this.core.args.atomicassets_account);
+        this.contractName = this.core.args.atomicassets_account;
     }
 
     async handleUpdate(db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow): Promise<void> {
@@ -85,8 +85,8 @@ export default class AtomicAssetsTableHandler {
                     for (const token of data.supported_tokens) {
                         await db.replace('atomicassets_token_symbols', {
                             contract: this.contractName,
-                            token_symbol: serializeEosioName(token.token_symbol.split(',')[1].toLowerCase()),
-                            token_contract: serializeEosioName(token.token_contract),
+                            token_symbol: token.token_symbol.split(',')[1].toLowerCase(),
+                            token_contract: token.token_contract,
                             token_precision: token.token_symbol.split(',')[0]
                         }, ['contract', 'token_symbol']);
                     }
@@ -130,18 +130,18 @@ export default class AtomicAssetsTableHandler {
     async handleBalancesUpdate(
         db: ContractDBTransaction, block: ShipBlock, data: BalancesTableRow, _: boolean
     ): Promise<void> {
-        const symbols = data.quantities.map((quantity) => serializeEosioName(quantity.split(' ')[1].toLowerCase()));
+        const symbols = data.quantities.map((quantity) => (quantity.split(' ')[1].toLowerCase()));
 
         await db.delete('atomicassets_balances', {
-            str: 'contract = $1 AND owner = $2 AND token_symbol NOT IN (' + symbols.join(', ') + ')',
-            values: [this.contractName, serializeEosioName(data.owner)]
+            str: 'contract = $1 AND owner = $2 AND token_symbol NOT IN (' + symbols.map((symbol) => '\'' + symbol + '\'').join(', ') + ')',
+            values: [this.contractName, data.owner]
         });
 
         for (const quantity of data.quantities) {
             await db.replace('atomicassets_balances', {
                 contract: this.contractName,
-                owner: serializeEosioName(data.owner),
-                token_symbol: serializeEosioName(quantity.split(' ')[1].toLowerCase()),
+                owner: data.owner,
+                token_symbol: quantity.split(' ')[1].toLowerCase(),
                 amount: quantity.split(' ')[0].replace('.', ''),
                 updated_at_block: block.block_num,
                 updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
@@ -160,12 +160,12 @@ export default class AtomicAssetsTableHandler {
 
         await db.replace('atomicassets_collections', {
             contract: this.contractName,
-            collection_name: serializeEosioName(data.collection_name),
+            collection_name: data.collection_name,
             readable_name: deserializedData.name ? String(deserializedData.name).substr(0, 64) : null,
-            author: serializeEosioName(data.author),
+            author: data.author,
             allow_notify: data.allow_notify,
-            authorized_accounts: data.authorized_accounts.map((account) => serializeEosioName(account)),
-            notify_accounts: data.notify_accounts.map((account) => serializeEosioName(account)),
+            authorized_accounts: data.authorized_accounts,
+            notify_accounts: data.notify_accounts,
             market_fee: data.market_fee,
             data: JSON.stringify(deserializedData),
             created_at_block: block.block_num,
@@ -188,7 +188,7 @@ export default class AtomicAssetsTableHandler {
 
         const schemaQuery = await db.query(
             'SELECT format FROM atomicassets_schemas WHERE contract = $1 AND collection_name = $2 AND schema_name = $3',
-            [this.contractName, serializeEosioName(scope), serializeEosioName(data.schema_name)]
+            [this.contractName, scope, data.schema_name]
         );
 
         if (schemaQuery.rowCount === 0) {
@@ -200,8 +200,8 @@ export default class AtomicAssetsTableHandler {
         await db.replace('atomicassets_templates', {
             contract: this.contractName,
             template_id: data.template_id,
-            collection_name: serializeEosioName(scope),
-            schema_name: serializeEosioName(data.schema_name),
+            collection_name: scope,
+            schema_name: data.schema_name,
             readable_name: immutableData.name ? String(immutableData.name).substr(0, 64) : null,
             transferable: data.transferable,
             burnable: data.burnable,
@@ -239,8 +239,8 @@ export default class AtomicAssetsTableHandler {
 
         await db.replace('atomicassets_schemas', {
             contract: this.contractName,
-            collection_name: serializeEosioName(scope),
-            schema_name: serializeEosioName(data.schema_name),
+            collection_name: scope,
+            schema_name: data.schema_name,
             format: data.format.map((element: any) => JSON.stringify(element)),
             created_at_block: block.block_num,
             created_at_time: eosioTimestampToDate(block.timestamp).getTime()

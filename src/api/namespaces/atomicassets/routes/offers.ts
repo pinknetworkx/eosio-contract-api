@@ -3,9 +3,8 @@ import * as express from 'express';
 import { AtomicAssetsNamespace } from '../index';
 import { WebServer } from '../../../server';
 import logger from '../../../../utils/winston';
-import { serializeEosioName } from '../../../../utils/eosio';
 import { filterQueryArgs } from '../../utils';
-import { formatAsset, formatOffer } from '../format';
+import { formatOffer } from '../format';
 
 export function offersEndpoints(core: AtomicAssetsNamespace, web: WebServer, router: express.Router): void {
     router.get('/v1/offers', (async (req, res) => {
@@ -24,21 +23,21 @@ export function offersEndpoints(core: AtomicAssetsNamespace, web: WebServer, rou
             let varCounter = 1;
             let queryString = 'SELECT * FROM atomicassets_offers_master WHERE contract = $1 ';
 
-            const queryValues: any[] = [serializeEosioName(core.args.contract)];
+            const queryValues: any[] = [core.args.contract];
 
             if (args.account) {
                 queryString += 'AND (sender_name = $' + ++varCounter + ' OR recipient_name = $' + varCounter + ') ';
-                queryValues.push(serializeEosioName(args.account));
+                queryValues.push(args.account);
             }
 
             if (args.sender) {
                 queryString += 'AND sender_name = $' + ++varCounter + ' ';
-                queryValues.push(serializeEosioName(args.sender));
+                queryValues.push(args.sender);
             }
 
             if (args.recipient) {
                 queryString += 'AND recipient_name = $' + ++varCounter + ' ';
-                queryValues.push(serializeEosioName(args.recipient));
+                queryValues.push(args.recipient);
             }
 
             const sortColumnMapping = {
@@ -68,7 +67,7 @@ export function offersEndpoints(core: AtomicAssetsNamespace, web: WebServer, rou
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_offers_master WHERE contract = $1 AND offer_id = $2',
-                [serializeEosioName(core.args.contract), req.params.offer_id]
+                [core.args.contract, req.params.offer_id]
             );
 
             if (query.rowCount === 0) {

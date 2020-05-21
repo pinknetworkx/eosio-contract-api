@@ -5,7 +5,6 @@ import { WebServer } from '../../../server';
 import { buildDataConditions, getLogs } from '../utils';
 import { filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
-import { serializeEosioName } from '../../../../utils/eosio';
 import { formatTemplate } from '../format';
 
 export function templatesEndpoints(core: AtomicAssetsNamespace, _: WebServer, router: express.Router): void {
@@ -28,7 +27,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, _: WebServer, ro
 
             let varCounter = 1;
             let queryString = 'SELECT * FROM atomicassets_templates_master template WHERE contract = $1 ';
-            let queryValues: any[] = [serializeEosioName(core.args.contract)];
+            let queryValues: any[] = [core.args.contract];
 
             if (args.collection_name) {
                 const data = buildDataConditions(req.query, varCounter);
@@ -48,17 +47,17 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, _: WebServer, ro
 
             if (args.collection_name) {
                 queryString += 'AND collection_name = $' + ++varCounter + ' ';
-                queryValues.push(serializeEosioName(args.collection_name));
+                queryValues.push(args.collection_name);
             }
 
             if (args.schema_name) {
                 queryString += 'AND schema_name = $' + ++varCounter + ' ';
-                queryValues.push(serializeEosioName(args.schema_name));
+                queryValues.push(args.schema_name);
             }
 
             if (args.authorized_account) {
                 queryString += 'AND $' + ++varCounter + ' = ANY(authorized_accounts) ';
-                queryValues.push(serializeEosioName(args.authorized_account));
+                queryValues.push(args.authorized_account);
             }
 
             const sortColumnMapping = {
@@ -91,7 +90,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, _: WebServer, ro
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND collection_name = $2 AND template_id = $3',
-                [serializeEosioName(core.args.contract), serializeEosioName(req.params.collection_name), req.params.template_id]
+                [core.args.contract, req.params.collection_name, req.params.template_id]
             );
 
             if (query.rowCount === 0) {

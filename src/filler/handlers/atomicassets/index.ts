@@ -13,7 +13,7 @@ import AtomicAssetsTableHandler from './tables';
 import ConnectionManager from '../../../connections/manager';
 import { PromiseEventHandler } from '../../../utils/event';
 import AtomicAssetsActionHandler from './actions';
-import { serializeEosioName } from '../../../utils/eosio';
+import { getStackTrace } from '../../../utils';
 
 export enum OfferState {
     PENDING = 0,
@@ -105,7 +105,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
         try {
             query = await this.connection.database.query(
                 'SELECT * FROM atomicassets_config WHERE contract = $1',
-                [serializeEosioName(this.args.atomicassets_account)]
+                [this.args.atomicassets_account]
             );
         } catch (e) {
             logger.info('Could not find AtomicAssets tables. Create them now...');
@@ -132,7 +132,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
                 await this.connection.database.query(
                     'INSERT INTO atomicassets_config (contract, version, collection_format) VALUES ($1, $2, $3)',
                     [
-                        serializeEosioName(this.args.atomicassets_account),
+                        this.args.atomicassets_account,
                         tokenTable.rows[0].version,
                         configTable.rows[0].collection_format.map((element: any) => JSON.stringify(element))
                     ]
@@ -190,6 +190,14 @@ export default class AtomicAssetsHandler extends ContractHandler {
     }
 
     addJob(fn: () => any, priority: number): void {
-        this.jobs.push(this.queue.add(fn, {priority}));
+        const trace = getStackTrace();
+
+        this.jobs.push(this.queue.add(async () => {
+            try {
+                await fn();
+            } catch (e) {
+                logger.error(trace);
+            }
+        }, {priority}));
     }
 }

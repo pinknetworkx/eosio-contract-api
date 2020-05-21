@@ -1,9 +1,7 @@
 import 'mocha';
-import { expect } from 'chai';
 
 import ConnectionManager from '../src/connections/manager';
 import { ContractDB } from '../src/filler/database';
-import { serializeEosioName } from '../src/utils/eosio';
 
 const config = require('../config/connections.config.json');
 
@@ -15,7 +13,7 @@ describe('database tests', () => {
         const transaction = await contract.startTransaction(1, 0);
 
         await transaction.insert('contract_abis', {
-            account: serializeEosioName('pinknetworkx'),
+            account: 'pinknetworkx',
             abi: new Uint8Array([0, 0, 2, 128]),
             block_num: 1,
             block_time: 0
@@ -28,14 +26,14 @@ describe('database tests', () => {
         const transaction = await contract.startTransaction(2, 0);
 
         await transaction.replace('contract_abis', {
-            account: serializeEosioName('pink.gg'),
+            account: 'pink.gg',
             abi: new Uint8Array([0, 0, 128]),
             block_num: 2,
             block_time: 1
         }, ['account', 'block_num']);
 
         await transaction.replace('contract_abis', {
-            account: serializeEosioName('pink.gg'),
+            account: 'pink.gg',
             abi: new Uint8Array([0, 0, 128]),
             block_num: 2,
             block_time: 2
@@ -48,13 +46,13 @@ describe('database tests', () => {
         const transaction = await contract.startTransaction(3, 0);
 
         await transaction.update('contract_abis', {
-            account: serializeEosioName('pink.gg'),
+            account: 'pink.gg',
             abi: new Uint8Array([0, 0, 128]),
             block_num: 2,
             block_time: 3
         }, {
             str: 'account = $1',
-            values: [serializeEosioName('pink.gg')]
+            values: ['pink.gg']
         }, ['account', 'block_num']);
 
         await transaction.commit();
@@ -65,7 +63,7 @@ describe('database tests', () => {
 
         await transaction.delete('contract_abis', {
             str: 'account = $1',
-            values: [serializeEosioName('pink.gg')]
+            values: ['pink.gg']
         });
 
         await transaction.commit();

@@ -3,7 +3,6 @@ import * as express from 'express';
 import { AtomicAssetsNamespace } from '../index';
 import { WebServer } from '../../../server';
 import { filterQueryArgs } from '../../utils';
-import { serializeEosioName } from '../../../../utils/eosio';
 import logger from '../../../../utils/winston';
 import { formatTransfer } from '../format';
 
@@ -24,21 +23,21 @@ export function transfersEndpoints(core: AtomicAssetsNamespace, web: WebServer, 
             let varCounter = 1;
             let queryString = 'SELECT * FROM atomicassets_transfers_master WHERE contract = $1 ';
 
-            const queryValues: any[] = [serializeEosioName(core.args.contract)];
+            const queryValues: any[] = [core.args.contract];
 
             if (args.account) {
                 queryString += 'AND (sender_name = $' + ++varCounter + ' OR recipient_name = $' + varCounter + ') ';
-                queryValues.push(serializeEosioName(args.account));
+                queryValues.push(args.account);
             }
 
             if (args.sender) {
                 queryString += 'AND sender_name = $' + ++varCounter + ' ';
-                queryValues.push(serializeEosioName(args.sender));
+                queryValues.push(args.sender);
             }
 
             if (args.recipient) {
                 queryString += 'AND recipient_name = $' + ++varCounter + ' ';
-                queryValues.push(serializeEosioName(args.recipient));
+                queryValues.push(args.recipient);
             }
 
             const sortColumnMapping = {

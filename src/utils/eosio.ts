@@ -4,7 +4,7 @@ import { SerialBuffer } from 'eosjs/dist/eosjs-serialize';
 import { deserializeUInt, serializeUInt } from './binary';
 
 export function serializeEosioName(name: string): string {
-    const buffer = new SerialBuffer({textEncoder: new TextEncoder, textDecoder: new TextDecoder});
+    /*const buffer = new SerialBuffer({textEncoder: new TextEncoder, textDecoder: new TextDecoder});
 
     buffer.pushName(name);
 
@@ -15,11 +15,13 @@ export function serializeEosioName(name: string): string {
         n = (n << BigInt(8)) + BigInt(byte);
     }
 
-    return serializeUInt(n).toString();
+    return serializeUInt(n).toString();*/
+
+    return name;
 }
 
 export function deserializeEosioName(data: string): string {
-    const bytes = new Uint8Array(8);
+    /*const bytes = new Uint8Array(8);
     let n = deserializeUInt(data);
 
     for (let i = 0; i < 8; i ++) {
@@ -29,7 +31,9 @@ export function deserializeEosioName(data: string): string {
 
     const buffer = new SerialBuffer({textEncoder: new TextEncoder, textDecoder: new TextDecoder, array: bytes});
 
-    return buffer.getName();
+    return buffer.getName();*/
+
+    return data;
 }
 
 export function eosioTimestampToDate(timestamp: string): Date {

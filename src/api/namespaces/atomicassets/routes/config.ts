@@ -2,7 +2,6 @@ import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
 import { WebServer } from '../../../server';
-import { serializeEosioName } from '../../../../utils/eosio';
 import logger from '../../../../utils/winston';
 
 export function configEndpoints(core: AtomicAssetsNamespace, web: WebServer, router: express.Router): void {
@@ -10,7 +9,7 @@ export function configEndpoints(core: AtomicAssetsNamespace, web: WebServer, rou
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_config WHERE contract = $1',
-                [serializeEosioName(core.args.contract)]
+                [core.args.contract]
             );
 
             if (query.rowCount === 0) {

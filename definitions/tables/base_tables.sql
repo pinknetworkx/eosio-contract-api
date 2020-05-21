@@ -1,12 +1,12 @@
 CREATE TABLE contract_abis (
-    account bigint NOT NULL,
+    account character varying(12) NOT NULL,
     abi bytea NOT NULL,
     block_num bigint NOT NULL,
     block_time bigint NOT NULL
 );
 
 CREATE TABLE contract_codes (
-    account bigint NOT NULL,
+    account character varying(12) NOT NULL,
     block_num bigint NOT NULL,
     block_time bigint NOT NULL
 );

@@ -3,7 +3,7 @@ import { ShipBlock } from '../../../types/ship';
 import { EosioActionTrace, EosioTransaction } from '../../../types/eosio';
 import AtomicAssetsHandler, { JobPriority, OfferAssetState, OfferState } from './index';
 import logger from '../../../utils/winston';
-import { deserializeEosioName, eosioTimestampToDate, serializeEosioName } from '../../../utils/eosio';
+import { eosioTimestampToDate } from '../../../utils/eosio';
 import {
     AcceptOfferActionData,
     AddColAuthActionData,
@@ -29,7 +29,7 @@ export default class AtomicAssetsActionHandler {
     private readonly contractName: string;
 
     constructor(readonly core: AtomicAssetsHandler) {
-        this.contractName = serializeEosioName(this.core.args.atomicassets_account);
+        this.contractName = this.core.args.atomicassets_account;
     }
 
     async handleTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
@@ -164,8 +164,8 @@ export default class AtomicAssetsActionHandler {
 
         const query = await db.insert('atomicassets_transfers', {
             contract: this.contractName,
-            sender: serializeEosioName(data['from']),
-            recipient: serializeEosioName(data.to),
+            sender: data['from'],
+            recipient: data.to,
             memo: String(data.memo).substr(0, 256),
             txid: Buffer.from(tx.id, 'hex'),
             created_at_block: block.block_num,
@@ -188,14 +188,12 @@ export default class AtomicAssetsActionHandler {
             'FROM atomicassets_offers offers, atomicassets_offers_assets assets ' +
             'WHERE offers.contract = assets.contract AND offers.offer_id = assets.offer_id AND ' +
                 'offers.state IN (' + [OfferState.PENDING.valueOf(), OfferState.INVALID.valueOf()].join(', ') + ') AND ' +
-                'assets.contract = ' + this.contractName + ' AND assets.asset_id IN (' + data.asset_ids.join(', ') + ')'
+                'assets.contract = \'' + this.contractName + '\' AND assets.asset_id IN (' + data.asset_ids.join(', ') + ')'
         );
         const changedOffers = [];
 
         for (const asset of assetQuery.rows) {
-            const owner = deserializeEosioName(asset.owner);
-
-            if (owner === data.to && asset.state === OfferAssetState.MISSING.valueOf()) {
+            if (asset.owner === data.to && asset.state === OfferAssetState.MISSING.valueOf()) {
                 if (changedOffers.indexOf(asset.offer_id) === -1) {
                     changedOffers.push(asset.offer_id);
                 }
@@ -206,7 +204,7 @@ export default class AtomicAssetsActionHandler {
                     str: 'contract = $1 AND offer_id = $2 AND asset_id = $3',
                     values: [this.contractName, asset.offer_id, asset.asset_id]
                 }, ['contract', 'offer_id', 'asset_id']);
-            } else if (owner !== data.to && asset.state !== OfferAssetState.MISSING.valueOf()) {
+            } else if (asset.owner !== data.to && asset.state !== OfferAssetState.MISSING.valueOf()) {
                 if (changedOffers.indexOf(asset.offer_id) === -1) {
                     changedOffers.push(asset.offer_id);
                 }
@@ -225,7 +223,7 @@ export default class AtomicAssetsActionHandler {
                 'SELECT offers.offer_id, offers.state ' +
                 'FROM atomicassets_offers offers, atomicassets_offers_assets assets ' +
                 'WHERE offers.contract = assets.contract AND offers.offer_id = assets.offer_id AND ' +
-                    'offers.offer_id IN (' + changedOffers.join(',') + ') AND offers.contract = ' + this.contractName + ' AND ' +
+                    'offers.offer_id IN (' + changedOffers.join(',') + ') AND offers.contract = \'' + this.contractName + '\' AND ' +
                     'offers.state IN (' + [OfferState.PENDING.valueOf(), OfferState.INVALID.valueOf()].join(', ') + ') AND ' +
                     'assets.state = ' + OfferAssetState.MISSING.valueOf() + ' ' +
                 'GROUP BY offers.offer_id, offers.state'

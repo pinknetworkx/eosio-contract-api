@@ -1,5 +1,4 @@
 import PostgresConnection from '../../../connections/postgres';
-import { serializeEosioName } from '../../../utils/eosio';
 
 export async function getLogs(
     db: PostgresConnection, contract: string, relation_name: string, relation_id: string, offset: number = 0, limit: number = 100
@@ -9,7 +8,7 @@ export async function getLogs(
         'WHERE contract = $1 AND relation_name = $2 AND relation_id = $3 ' +
         'ORDER BY created_at_block, log_id ASC LIMIT $4 OFFSET $5';
 
-    const query = await db.query(queryStr, [serializeEosioName(contract), relation_name, relation_id, limit, offset]);
+    const query = await db.query(queryStr, [contract, relation_name, relation_id, limit, offset]);
 
     return query.rows;
 }

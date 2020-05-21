@@ -1,13 +1,13 @@
 -- CREATE TABLES --
 CREATE TABLE atomicassets_assets (
-    contract bigint NOT NULL,
+    contract character varying(12) NOT NULL,
     asset_id bigint NOT NULL,
-    collection_name bigint NOT NULL,
-    schema_name bigint NOT NULL,
+    collection_name character varying(12) NOT NULL,
+    schema_name character varying(12) NOT NULL,
     template_id bigint,
-    owner bigint NOT NULL,
+    owner character varying(12) NOT NULL,
     readable_name character varying(64),
-    ram_payer bigint NOT NULL,
+    ram_payer character varying(12) NOT NULL,
     burned_at_block bigint,
     burned_at_time bigint,
     updated_at_block bigint NOT NULL,
@@ -17,16 +17,16 @@ CREATE TABLE atomicassets_assets (
 );
 
 CREATE TABLE atomicassets_assets_backed_tokens (
-    contract bigint NOT NULL,
+    contract character varying(12) NOT NULL,
     asset_id bigint NOT NULL,
-    token_symbol bigint NOT NULL,
+    token_symbol character varying(12) NOT NULL,
     amount bigint NOT NULL,
     updated_at_block bigint NOT NULL,
     updated_at_time bigint NOT NULL
 );
 
 CREATE TABLE atomicassets_assets_data (
-    contract bigint NOT NULL,
+    contract character varying(12) NOT NULL,
     asset_id bigint NOT NULL,
     "key" character varying(64) NOT NULL,
     "value" json NOT NULL,
@@ -36,22 +36,22 @@ CREATE TABLE atomicassets_assets_data (
 );
 
 CREATE TABLE atomicassets_balances (
-    contract bigint NOT NULL,
-    owner bigint NOT NULL,
-    token_symbol bigint NOT NULL,
+    contract character varying(12) NOT NULL,
+    owner character varying(12) NOT NULL,
+    token_symbol character varying(12) NOT NULL,
     amount bigint NOT NULL,
     updated_at_block bigint NOT NULL,
     updated_at_time bigint NOT NULL
 );
 
 CREATE TABLE atomicassets_collections (
-    contract bigint NOT NULL,
-    collection_name bigint NOT NULL,
+    contract character varying(12) NOT NULL,
+    collection_name character varying(12) NOT NULL,
     readable_name character varying(64),
-    author bigint NOT NULL,
+    author character varying(12) NOT NULL,
     allow_notify boolean NOT NULL,
-    authorized_accounts bigint[] NOT NULL,
-    notify_accounts bigint[] NOT NULL,
+    authorized_accounts character varying(12)[] NOT NULL,
+    notify_accounts character varying(12)[] NOT NULL,
     market_fee double precision NOT NULL,
     data json,
     created_at_block bigint NOT NULL,
@@ -59,14 +59,14 @@ CREATE TABLE atomicassets_collections (
 );
 
 CREATE TABLE atomicassets_config (
-    contract bigint NOT NULL,
+    contract character varying(12) NOT NULL,
     version character varying(64) NOT NULL,
     collection_format json[] NOT NULL
 );
 
 CREATE TABLE atomicassets_logs (
     log_id integer NOT NULL,
-    contract bigint NOT NULL,
+    contract character varying(12) NOT NULL,
     name character varying(64) NOT NULL,
     relation_name character varying(64) NOT NULL,
     relation_id character varying(256) NOT NULL,
@@ -87,10 +87,10 @@ CREATE SEQUENCE atomicassets_logs_log_id_seq
 ALTER SEQUENCE atomicassets_logs_log_id_seq OWNED BY atomicassets_logs.log_id;
 
 CREATE TABLE atomicassets_offers (
-    contract bigint NOT NULL,
+    contract character varying(12) NOT NULL,
     offer_id bigint NOT NULL,
-    sender bigint NOT NULL,
-    recipient bigint NOT NULL,
+    sender character varying(12) NOT NULL,
+    recipient character varying(12) NOT NULL,
     memo character varying(256) NOT NULL,
     state smallint NOT NULL,
     updated_at_time bigint NOT NULL,
@@ -100,18 +100,18 @@ CREATE TABLE atomicassets_offers (
 );
 
 CREATE TABLE atomicassets_offers_assets (
-    contract bigint NOT NULL,
+    contract character varying(12) NOT NULL,
     offer_id bigint NOT NULL,
-    owner bigint NOT NULL,
+    owner character varying(12) NOT NULL,
     asset_id bigint NOT NULL,
     state smallint NOT NULL
 );
 
 CREATE TABLE atomicassets_templates (
-    contract bigint NOT NULL,
+    contract character varying(12) NOT NULL,
     template_id bigint NOT NULL,
-    collection_name bigint NOT NULL,
-    schema_name bigint NOT NULL,
+    collection_name character varying(12) NOT NULL,
+    schema_name character varying(12) NOT NULL,
     readable_name character varying(64),
     transferable boolean NOT NULL,
     burnable boolean NOT NULL,
@@ -122,33 +122,33 @@ CREATE TABLE atomicassets_templates (
 );
 
 CREATE TABLE atomicassets_templates_data (
-    contract bigint NOT NULL,
+    contract character varying(12) NOT NULL,
     template_id bigint NOT NULL,
     "key" character varying(64) NOT NULL,
     "value" json NOT NULL
 );
 
 CREATE TABLE atomicassets_schemas (
-    contract bigint NOT NULL,
-    collection_name bigint NOT NULL,
-    schema_name bigint NOT NULL,
+    contract character varying(12) NOT NULL,
+    collection_name character varying(12) NOT NULL,
+    schema_name character varying(12) NOT NULL,
     format json[] NOT NULL,
     created_at_block bigint NOT NULL,
     created_at_time bigint NOT NULL
 );
 
 CREATE TABLE atomicassets_token_symbols (
-    contract bigint NOT NULL,
-    token_symbol bigint NOT NULL,
-    token_contract bigint NOT NULL,
+    contract character varying(12) NOT NULL,
+    token_symbol character varying(12) NOT NULL,
+    token_contract character varying(12) NOT NULL,
     token_precision integer NOT NULL
 );
 
 CREATE TABLE atomicassets_transfers (
     transfer_id integer NOT NULL,
-    contract bigint NOT NULL,
-    "sender" bigint NOT NULL,
-    "recipient" bigint NOT NULL,
+    contract character varying(12) NOT NULL,
+    "sender" character varying(12) NOT NULL,
+    "recipient" character varying(12) NOT NULL,
     memo character varying(256) NOT NULL,
     txid bytea NOT NULL,
     created_at_block bigint NOT NULL,
@@ -157,7 +157,7 @@ CREATE TABLE atomicassets_transfers (
 
 CREATE TABLE atomicassets_transfers_assets (
     transfer_id integer NOT NULL,
-    contract bigint NOT NULL,
+    contract character varying(12) NOT NULL,
     asset_id bigint NOT NULL
 );
 

@@ -5,7 +5,6 @@ import { WebServer } from '../../../server';
 import { filterQueryArgs } from '../../utils';
 import { getLogs } from '../utils';
 import logger from '../../../../utils/winston';
-import { serializeEosioName } from '../../../../utils/eosio';
 import { formatSchema } from '../format';
 
 export function schemasEndpoints(core: AtomicAssetsNamespace, _: WebServer, router: express.Router): void {
@@ -28,16 +27,16 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, _: WebServer, rout
             let varCounter = 1;
             let queryString = 'SELECT * FROM atomicassets_schemas_master WHERE contract = $1 ';
 
-            const queryValues: any[] = [serializeEosioName(core.args.contract)];
+            const queryValues: any[] = [core.args.contract];
 
             if (args.collection_name) {
                 queryString += 'AND collection_name = $' + ++varCounter + ' ';
-                queryValues.push(serializeEosioName(args.collection_name));
+                queryValues.push(args.collection_name);
             }
 
             if (args.authorized_account) {
                 queryString += 'AND $' + ++varCounter + ' = ANY(authorized_accounts) ';
-                queryValues.push(serializeEosioName(args.authorized_account));
+                queryValues.push(args.authorized_account);
             }
 
             const sortColumnMapping = {
@@ -70,11 +69,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, _: WebServer, rout
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_schemas_master WHERE contract = $1 AND collection_name = $2 AND schema_name = $3',
-                [
-                    serializeEosioName(core.args.contract),
-                    serializeEosioName(req.params.collection_name),
-                    serializeEosioName(req.params.schema_name)
-                ]
+                [core.args.contract, req.params.collection_name, req.params.schema_name]
             );
 
             if (query.rowCount === 0) {

@@ -15,8 +15,8 @@
     "start:api": "node ./build/bin/api.js",
     "start:filler": "node ./build/bin/filler.js",
 
-    "dev:api": "tsc && node ./build/bin/api.js",
-    "dev:filler": "tsc && node ./build/bin/filler.js"
+    "dev:api": "tsc && node --trace-warnings ./build/bin/api.js",
+    "dev:filler": "tsc && node --trace-warnings ./build/bin/filler.js"
   },
   "dependencies": {
     "winston": "^3.2.1",

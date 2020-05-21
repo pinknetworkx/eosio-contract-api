@@ -3,7 +3,7 @@ import AwaitLock from 'await-lock';
 
 import ConnectionManager from '../connections/manager';
 import { ShipBlock } from '../types/ship';
-import { eosioTimestampToDate, serializeEosioName } from '../utils/eosio';
+import { eosioTimestampToDate } from '../utils/eosio';
 import { arraysEqual } from '../utils';
 
 export type Condition = {
@@ -28,7 +28,7 @@ export class ContractDB {
     async fetchAbi(contract: string, blockNum: number): Promise<{data: Uint8Array, block_num: number} | null> {
         const query = await this.connection.database.query(
             'SELECT block_num, abi FROM contract_abis WHERE account = $1 AND block_num <= $2 ORDER BY block_num DESC LIMIT 1',
-            [serializeEosioName(contract), blockNum]
+            [contract, blockNum]
         );
 
         if (query.rows.length === 0) {
@@ -44,7 +44,7 @@ export class ContractDB {
     async fetchNextAbi(contract: string, blockNum: number): Promise<{data: Uint8Array, block_num: number} | null> {
         const query = await this.connection.database.query(
             'SELECT block_num, abi FROM contract_abis WHERE account = $1 AND block_num > $2 ORDER BY block_num ASC LIMIT 1',
-            [serializeEosioName(contract), blockNum]
+            [contract, blockNum]
         );
 
         if (query.rows.length === 0) {

@@ -3,7 +3,7 @@ import { deserialize, ObjectSchema } from 'atomicassets';
 import { ContractDBTransaction } from '../../database';
 import { ShipBlock } from '../../../types/ship';
 import { AssetsTableRow, OffersTableRow } from './types/tables';
-import { deserializeEosioName, eosioTimestampToDate, serializeEosioName } from '../../../utils/eosio';
+import { eosioTimestampToDate } from '../../../utils/eosio';
 import { OfferAssetState, OfferState } from './index';
 import { AttributeMap } from './types/actions';
 
@@ -13,11 +13,7 @@ export async function saveAssetTableRow(
 ): Promise<void> {
     const schemaQuery = await db.query(
         'SELECT format FROM atomicassets_schemas WHERE contract = $1 AND collection_name = $2 AND schema_name = $3',
-        [
-            contractName,
-            serializeEosioName(data.collection_name),
-            serializeEosioName(data.schema_name)
-        ]
+        [contractName, data.collection_name, data.schema_name]
     );
 
     if (schemaQuery.rowCount === 0) {
@@ -36,14 +32,14 @@ export async function saveAssetTableRow(
     await db.replace('atomicassets_assets', {
         contract: contractName,
         asset_id: data.asset_id,
-        collection_name: serializeEosioName(data.collection_name),
-        schema_name: serializeEosioName(data.schema_name),
+        collection_name: data.collection_name,
+        schema_name: data.schema_name,
         template_id: data.template_id === -1 ? null : data.template_id,
-        owner: serializeEosioName(scope),
+        owner: scope,
         readable_name:
             (immutableData.name ? String(immutableData.name).substr(0, 64) : null) ||
             (mutableData.name ? String(mutableData.name).substr(0, 64) : null),
-        ram_payer: serializeEosioName(data.ram_payer),
+        ram_payer: data.ram_payer,
         burned_at_block: deleted ? block.block_num : null,
         burned_at_time: deleted ? eosioTimestampToDate(block.timestamp).getTime() : null,
         updated_at_block: block.block_num,
@@ -59,7 +55,7 @@ export async function saveAssetTableRow(
 
         localBackedTokens[split[1].toLowerCase()] = {
             amount: split[0].replace('.', ''),
-            token_symbol: serializeEosioName(split[1].toLowerCase())
+            token_symbol: split[1].toLowerCase()
         };
     }
 
@@ -69,7 +65,7 @@ export async function saveAssetTableRow(
     );
 
     for (const dbBackedToken of backedTokensQuery.rows) {
-        const symbol = deserializeEosioName(dbBackedToken.token_symbol);
+        const symbol = dbBackedToken.token_symbol;
 
         if (typeof localBackedTokens[symbol] === 'undefined') {
             await db.delete('atomicassets_assets_backed_tokens', {
@@ -187,14 +183,14 @@ export async function saveOfferTableRow(
 
         if (data.sender_asset_ids.length > 0) {
             missingAssetsConditions.push(
-                '((owner != ' + serializeEosioName(data.sender) + ' OR burned_at_block IS NOT NULL) AND ' +
+                '((owner != \'' + data.sender + '\' OR burned_at_block IS NOT NULL) AND ' +
                 'asset_id IN (' + data.sender_asset_ids.join(', ') + '))'
             );
         }
 
         if (data.recipient_asset_ids.length > 0) {
             missingAssetsConditions.push(
-                '((owner != ' + serializeEosioName(data.recipient) + ' OR burned_at_block IS NOT NULL) AND ' +
+                '((owner != \'' + data.recipient + '\' OR burned_at_block IS NOT NULL) AND ' +
                 'asset_id IN (' + data.recipient_asset_ids.join(', ') + '))'
             );
         }
@@ -209,8 +205,8 @@ export async function saveOfferTableRow(
         await db.insert('atomicassets_offers', {
             contract: contractName,
             offer_id: data.offer_id,
-            sender: serializeEosioName(data.sender),
-            recipient: serializeEosioName(data.recipient),
+            sender: data.sender,
+            recipient: data.recipient,
             memo: String(data.memo).substring(0, 256),
             state: missingAssets.length > 0 ? OfferState.INVALID.valueOf() : OfferState.PENDING.valueOf(),
             updated_at_block: block.block_num,
@@ -225,7 +221,7 @@ export async function saveOfferTableRow(
             values.push({
                 contract: contractName,
                 offer_id: data.offer_id,
-                owner: serializeEosioName(data.recipient),
+                owner: data.recipient,
                 asset_id: assetID,
                 state: missingAssets.indexOf(assetID) >= 0 ? OfferAssetState.MISSING.valueOf() : OfferAssetState.NORMAL.valueOf()
             });
@@ -235,7 +231,7 @@ export async function saveOfferTableRow(
             values.push({
                 contract: contractName,
                 offer_id: data.offer_id,
-                owner: serializeEosioName(data.sender),
+                owner: data.sender,
                 asset_id: assetID,
                 state: missingAssets.indexOf(assetID) >= 0 ? OfferAssetState.MISSING.valueOf() : OfferAssetState.NORMAL.valueOf()
             });
