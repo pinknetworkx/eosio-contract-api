@@ -22,7 +22,7 @@ COPY --from=build-stage /root/app/build ./build
 
 COPY package.json .
 COPY yarn.lock .
-COPY definitions .
+COPY definitions ./definitions
 
 RUN yarn install --production
 
