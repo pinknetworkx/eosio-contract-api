@@ -217,8 +217,8 @@ export const definitions = {
 
             is_sender_contract: {type: 'boolean'},
             is_recipient_contract: {type: 'boolean'},
-            sender_assets: {type: 'array'},
-            recipient_assets: {type: 'array'},
+            sender_assets: {type: 'array', items: {'$ref': '#/definitions/Asset'}},
+            recipient_assets: {type: 'array', items: {'$ref': '#/definitions/Asset'}},
 
             updated_at_block: {type: 'integer'},
             updated_at_time: {type: 'integer'},
@@ -233,8 +233,7 @@ export const definitions = {
             recipient_name: {type: 'string'},
             memo: {type: 'string'},
 
-            sender_assets: {type: 'array'},
-            recipient_assets: {type: 'array'},
+            assets: {type: 'array', items: {'$ref': '#/definitions/Asset'}},
 
             created_at_block: {type: 'integer'},
             created_at_time: {type: 'integer'}

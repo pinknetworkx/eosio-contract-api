@@ -196,3 +196,43 @@ export function offersEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, rout
         definitions: {}
     };
 }
+
+export type SocketOfferSubscriptionArgs = {
+    offer_ids: string[],
+    accounts: string[],
+    new_offers: boolean
+};
+
+export function offersSockets(core: AtomicAssetsNamespace, server: HTTPServer): void {
+    const namespace = server.socket.io.of(core.path + '/v1/offers');
+
+    namespace.on('connection', (socket) => {
+        logger.debug('socket offer client connected');
+
+        socket.on('subscribe', (options: SocketOfferSubscriptionArgs) => {
+            logger.debug('offer subscription', options);
+
+            if (Array.isArray(options.offer_ids)) {
+                for (const offerId of options.offer_ids) {
+                    if (typeof offerId === 'string') {
+                        socket.join('offers:offer_id:' + offerId);
+                    }
+                }
+            }
+
+            if (Array.isArray(options.accounts)) {
+                for (const account of options.accounts) {
+                    if (typeof account === 'string') {
+                        socket.join('offers:account:' + account);
+                    }
+                }
+            }
+
+            if (options.new_offers) {
+                socket.join('offers:new_offers');
+            } else {
+                socket.leave('offers:new_offers');
+            }
+        });
+    });
+}

@@ -136,3 +136,32 @@ export function transfersEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, r
         definitions: {}
     };
 }
+
+export type SocketTransferSubscriptionArgs = {
+    accounts: string[],
+    new_transfers: boolean
+};
+
+export function transfersSockets(core: AtomicAssetsNamespace, server: HTTPServer): void {
+    const namespace = server.socket.io.of(core.path + '/v1/transfers');
+
+    namespace.on('connection', (socket) => {
+        logger.debug('socket transfer client connected');
+
+        socket.on('subscribe', (options: SocketTransferSubscriptionArgs) => {
+            if (Array.isArray(options.accounts)) {
+                for (const account of options.accounts) {
+                    if (typeof account === 'string') {
+                        socket.join('transfers:account:' + account);
+                    }
+                }
+            }
+
+            if (options.new_transfers) {
+                socket.join('transfers:new_transfers');
+            } else {
+                socket.leave('transfers:new_transfers');
+            }
+        });
+    });
+}

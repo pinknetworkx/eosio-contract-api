@@ -3,13 +3,13 @@ import * as swagger from 'swagger-ui-express';
 
 import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
-import { assetsEndpoints } from './routes/assets';
+import { assetsEndpoints, assetsSockets } from './routes/assets';
 import { collectionsEndpoints } from './routes/collections';
 import { configEndpoints } from './routes/config';
-import { offersEndpoints } from './routes/offers';
+import { offersEndpoints, offersSockets } from './routes/offers';
 import { schemasEndpoints } from './routes/schemas';
 import { templatesEndpoints } from './routes/templates';
-import { transfersEndpoints } from './routes/transfers';
+import { transfersEndpoints, transfersSockets } from './routes/transfers';
 import logger from '../../../utils/winston';
 import { definitions } from './swagger';
 
@@ -33,9 +33,16 @@ export class AtomicAssetsNamespace extends ApiNamespace {
             swagger: '2.0',
             info: {
                 description: 'API for AtomicAssets NFT standard',
-                version: '1.0.0',
+                version: '1.0.0-beta',
                 title: 'AtomicAssets',
-                contact: ['business@pink.gg']
+                contact: {
+                    name: server.config.provider_name,
+                    url: server.config.provider_url
+                },
+                externalDocs: {
+                    description: 'NPM Module',
+                    url: 'https://www.npmjs.com/package/atomicassets'
+                }
             },
             host: server.config.server_name,
             basePath: this.path,
@@ -67,13 +74,16 @@ export class AtomicAssetsNamespace extends ApiNamespace {
         logger.debug(JSON.stringify(documentation));
 
         server.web.express.use(this.path + '/docs', swagger.serve, swagger.setup(documentation, {
-            customCss: '.topbar { display: none; }'
+            customCss: '.topbar { display: none; }',
+            customCssUrl: 'https://cdn.jsdelivr.net/npm/swagger-ui-themes@3.0.0/themes/3.x/theme-flattop.min.css'
         }));
 
         return router;
     }
 
     async socket(server: HTTPServer): Promise<void> {
-
+        assetsSockets(this, server);
+        transfersSockets(this, server);
+        offersSockets(this, server);
     }
 }

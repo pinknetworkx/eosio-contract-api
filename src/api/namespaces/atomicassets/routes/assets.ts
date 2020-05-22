@@ -323,3 +323,39 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, rout
         definitions: {}
     };
 }
+
+export type SocketAssetSubscriptionArgs = {
+    asset_ids: string[],
+    new_assets: boolean
+    updates: boolean
+};
+
+export function assetsSockets(core: AtomicAssetsNamespace, server: HTTPServer): void {
+    const namespace = server.socket.io.of(core.path + '/v1/assets');
+
+    namespace.on('connection', (socket) => {
+        logger.debug('socket asset client connected');
+
+        socket.on('subscribe', (options: SocketAssetSubscriptionArgs) => {
+            if (Array.isArray(options.asset_ids)) {
+                for (const assetId of options.asset_ids) {
+                    if (typeof assetId === 'string') {
+                        socket.join('assets:asset_id:' + assetId);
+                    }
+                }
+            }
+
+            if (options.new_assets) {
+                socket.join('assets:new_assets');
+            } else {
+                socket.leave('assets:new_assets');
+            }
+
+            if (options.updates) {
+                socket.join('assets:updates');
+            } else {
+                socket.leave('assets:updates');
+            }
+        });
+    });
+}
