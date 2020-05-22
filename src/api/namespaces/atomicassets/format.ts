@@ -3,6 +3,15 @@ export function formatAsset(row: any): any {
 
     data.collection = formatCollection(data.collection);
 
+    data['data'] = {};
+
+    Object.assign(data['data'], data.mutable_data);
+    Object.assign(data['data'], data.immutable_data);
+
+    if (data.template) {
+        Object.assign(data['data'], data.template.immutable_data);
+    }
+
     delete data['template_id'];
     delete data['schema_name'];
     delete data['collection_name'];

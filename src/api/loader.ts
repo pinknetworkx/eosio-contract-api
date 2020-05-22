@@ -1,3 +1,5 @@
+import * as swagger from 'swagger-ui-express';
+
 import { ApiNamespace } from './namespaces/interfaces';
 import { HTTPServer } from './server';
 import { IServerConfig } from '../types/config';
@@ -16,8 +18,8 @@ export default class ApiLoader {
     async listen(): Promise<void> {
         for (const namespace of this.namespaces) {
             await namespace.init();
-            this.server.web.express.use(namespace.path, await namespace.router(this.server.web));
-            await namespace.socket(this.server.socket);
+            this.server.web.express.use(namespace.path, await namespace.router(this.server));
+            await namespace.socket(this.server);
         }
 
         this.server.listen();

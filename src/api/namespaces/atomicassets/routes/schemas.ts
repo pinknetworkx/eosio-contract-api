@@ -1,13 +1,14 @@
 import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
-import { WebServer } from '../../../server';
+import { HTTPServer } from '../../../server';
 import { filterQueryArgs } from '../../utils';
 import { getLogs } from '../utils';
 import logger from '../../../../utils/winston';
 import { formatSchema } from '../format';
+import { standardArrayFilter } from '../swagger';
 
-export function schemasEndpoints(core: AtomicAssetsNamespace, _: WebServer, router: express.Router): void {
+export function schemasEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, router: express.Router): any {
     async function schemaRequestHandler(req: express.Request, res: express.Response): Promise<any> {
         try {
             const args = filterQueryArgs(req, {
@@ -17,7 +18,9 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, _: WebServer, rout
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
                 authorized_account: {type: 'string', min: 1, max: 12},
-                collection_name: {type: 'string', min: 1, max: 12}
+                collection_name: {type: 'string', min: 1, max: 12},
+
+                match: {type: 'string', min: 1, max: 12}
             });
 
             if (typeof req.params.collection_name === 'string' && req.params.collection_name.length > 0) {
@@ -37,6 +40,11 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, _: WebServer, rout
             if (args.authorized_account) {
                 queryString += 'AND $' + ++varCounter + ' = ANY(authorized_accounts) ';
                 queryValues.push(args.authorized_account);
+            }
+
+            if (args.match) {
+                queryString += 'AND schema_name LIKE $' + ++varCounter + ' ';
+                queryValues.push('%' + args.match + '%');
             }
 
             const sortColumnMapping = {
@@ -108,4 +116,166 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, _: WebServer, rout
             return res.json({success: false, message: 'Internal Server Error'});
         }
     }));
+
+    return {
+        tag: {
+            name: 'schemas',
+            description: 'Schemas'
+        },
+        paths: {
+            '/v1/schemas': {
+                get: {
+                    tags: ['schemas'],
+                    summary: 'Fetch schemas',
+                    produces: ['application/json'],
+                    parameters: [
+                        {
+                            name: 'collection_name',
+                            in: 'query',
+                            description: 'Get all schemas within the collection',
+                            required: false,
+                            type: 'string'
+                        },
+                        {
+                            name: 'authorized_account',
+                            in: 'query',
+                            description: 'Filter for schemas the provided account can edit',
+                            required: false,
+                            type: 'string'
+                        },
+                        {
+                            name: 'match',
+                            in: 'query',
+                            description: 'Search for input in schema name',
+                            required: false,
+                            type: 'string'
+                        },
+                        ...standardArrayFilter,
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            type: 'string',
+                            enum: ['created'],
+                            default: 'created'
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: true},
+                                    data: {type: 'array', items: {'$ref': '#/definitions/Schema'}}
+                                }
+                            }
+                        },
+                        '500': {
+                            description: 'Internal Server Error',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: false},
+                                    message: {type: 'string'}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/v1/schemas/{collection_name}/{schema_name}': {
+                get: {
+                    tags: ['schemas'],
+                    summary: 'Find schema by schema_name',
+                    produces: ['application/json'],
+                    parameters: [
+                        {
+                            name: 'collection_name',
+                            in: 'path',
+                            description: 'Collection name of schema',
+                            required: true,
+                            type: 'string'
+                        },
+                        {
+                            name: 'schema_name',
+                            in: 'path',
+                            description: 'Name of schema',
+                            required: true,
+                            type: 'string'
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: true},
+                                    data: {'$ref': '#/definitions/Schema'}
+                                }
+                            }
+                        },
+                        '500': {
+                            description: 'Internal Server Error',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: false},
+                                    message: {type: 'string'}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/v1/schemas/{collection_name}/{schema_name}/logs': {
+                get: {
+                    tags: ['schemas'],
+                    summary: 'Fetch schema logs',
+                    produces: ['application/json'],
+                    parameters: [
+                        {
+                            name: 'collection_name',
+                            in: 'path',
+                            description: 'Collection name of schema',
+                            required: true,
+                            type: 'string'
+                        },
+                        {
+                            name: 'schema_name',
+                            in: 'path',
+                            description: 'Name of schema',
+                            required: true,
+                            type: 'string'
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: true},
+                                    data: {'$ref': '#/definitions/Log'}
+                                }
+                            }
+                        },
+                        '500': {
+                            description: 'Internal Server Error',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: false},
+                                    message: {type: 'string'}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        definitions: {}
+    };
 }

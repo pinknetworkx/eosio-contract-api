@@ -1,12 +1,13 @@
 import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
-import { WebServer } from '../../../server';
+import { HTTPServer } from '../../../server';
 import { filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { formatTransfer } from '../format';
+import { standardArrayFilter } from '../swagger';
 
-export function transfersEndpoints(core: AtomicAssetsNamespace, web: WebServer, router: express.Router): void {
+export function transfersEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, router: express.Router): any {
     router.get('/v1/transfers', (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
@@ -62,4 +63,76 @@ export function transfersEndpoints(core: AtomicAssetsNamespace, web: WebServer, 
             res.json({success: false, message: 'Internal Server Error'});
         }
     }));
+
+    return {
+        tag: {
+            name: 'transfers',
+            description: 'Transfers'
+        },
+        paths: {
+            '/v1/transfers': {
+                get: {
+                    tags: ['transfers'],
+                    summary: 'Fetch transfers',
+                    produces: ['application/json'],
+                    parameters: [
+                        {
+                            name: 'account',
+                            in: 'query',
+                            description: 'Notified account (can be sender or recipient)',
+                            required: false,
+                            type: 'string'
+                        },
+                        {
+                            name: 'sender',
+                            in: 'query',
+                            description: 'Transfer sender',
+                            required: false,
+                            type: 'string'
+                        },
+                        {
+                            name: 'recipient',
+                            in: 'query',
+                            description: 'Transfer recipient',
+                            required: false,
+                            type: 'string'
+                        },
+                        ...standardArrayFilter,
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            type: 'string',
+                            enum: ['created'],
+                            default: 'created'
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: true},
+                                    data: {type: 'array', items: {'$ref': '#/definitions/Transfer'}}
+                                }
+                            }
+                        },
+                        '500': {
+                            description: 'Internal Server Error',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: false},
+                                    message: {type: 'string'}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        definitions: {}
+    };
 }

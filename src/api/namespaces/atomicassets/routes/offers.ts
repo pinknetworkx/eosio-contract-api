@@ -1,12 +1,13 @@
 import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
-import { WebServer } from '../../../server';
+import { HTTPServer } from '../../../server';
 import logger from '../../../../utils/winston';
 import { filterQueryArgs } from '../../utils';
 import { formatOffer } from '../format';
+import { standardArrayFilter } from '../swagger';
 
-export function offersEndpoints(core: AtomicAssetsNamespace, web: WebServer, router: express.Router): void {
+export function offersEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, router: express.Router): any {
     router.get('/v1/offers', (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
@@ -84,4 +85,114 @@ export function offersEndpoints(core: AtomicAssetsNamespace, web: WebServer, rou
             return res.json({success: false, message: 'Internal Server Error'});
         }
     }));
+
+    return {
+        tag: {
+            name: 'offers',
+            description: 'Offers'
+        },
+        paths: {
+            '/v1/offers': {
+                get: {
+                    tags: ['offers'],
+                    summary: 'Fetch offers',
+                    produces: ['application/json'],
+                    parameters: [
+                        {
+                            name: 'account',
+                            in: 'query',
+                            description: 'Notified account (can be sender or recipient)',
+                            required: false,
+                            type: 'string'
+                        },
+                        {
+                            name: 'sender',
+                            in: 'query',
+                            description: 'Offer sender',
+                            required: false,
+                            type: 'string'
+                        },
+                        {
+                            name: 'recipient',
+                            in: 'query',
+                            description: 'Offer recipient',
+                            required: false,
+                            type: 'string'
+                        },
+                        ...standardArrayFilter,
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            type: 'string',
+                            enum: ['created'],
+                            default: 'created'
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: true},
+                                    data: {type: 'array', items: {'$ref': '#/definitions/Offer'}}
+                                }
+                            }
+                        },
+                        '500': {
+                            description: 'Internal Server Error',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: false},
+                                    message: {type: 'string'}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/v1/offers/{offer_id}': {
+                get: {
+                    tags: ['offers'],
+                    summary: 'Find offer by id',
+                    produces: ['application/json'],
+                    parameters: [
+                        {
+                            name: 'offer_id',
+                            in: 'path',
+                            description: 'ID of offer',
+                            required: true,
+                            type: 'integer'
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: true},
+                                    data: {'$ref': '#/definitions/Offer'}
+                                }
+                            }
+                        },
+                        '500': {
+                            description: 'Internal Server Error',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: false},
+                                    message: {type: 'string'}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        definitions: {}
+    };
 }

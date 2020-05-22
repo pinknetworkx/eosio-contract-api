@@ -1,19 +1,20 @@
 import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
-import { WebServer } from '../../../server';
+import { HTTPServer } from '../../../server';
 import { buildDataConditions, getLogs } from '../utils';
 import { filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { formatAsset } from '../format';
+import { standardArrayFilter } from '../swagger';
 
-export function assetsEndpoints(core: AtomicAssetsNamespace, _: WebServer, router: express.Router): void {
+export function assetsEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, router: express.Router): any {
     router.get('/v1/assets', (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100},
-                sort: {type: 'string', values: ['asset_id', 'updated', 'minted'], default: 'minted'},
+                sort: {type: 'string', values: ['asset_id', 'updated', 'minted'], default: 'asset_id'},
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
                 owner: {type: 'string', min: 1, max: 12},
@@ -152,4 +153,173 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, _: WebServer, route
             return res.json({success: false, message: 'Internal Server Error'});
         }
     }));
+
+    return {
+        tag: {
+            name: 'assets',
+            description: 'Assets'
+        },
+        paths: {
+            '/v1/assets': {
+                get: {
+                    tags: ['assets'],
+                    summary: 'Fetch assets',
+                    produces: ['application/json'],
+                    parameters: [
+                        {
+                            name: 'owner',
+                            in: 'query',
+                            description: 'Get assets owned by the account',
+                            required: false,
+                            type: 'string'
+                        },
+                        {
+                            name: 'collection_name',
+                            in: 'query',
+                            description: 'Get all assets within the collection',
+                            required: false,
+                            type: 'string'
+                        },
+                        {
+                            name: 'schema_name',
+                            in: 'query',
+                            description: 'Get all assets which use that schema',
+                            required: false,
+                            type: 'string'
+                        },
+                        {
+                            name: 'template_id',
+                            in: 'query',
+                            description: 'Get all assets implement the template',
+                            required: false,
+                            type: 'integer'
+                        },
+                        {
+                            name: 'match',
+                            in: 'query',
+                            description: 'Search for input in asset name',
+                            required: false,
+                            type: 'string'
+                        },
+                        {
+                            name: 'authorized_account',
+                            in: 'query',
+                            description: 'Filter for assets the provided account can edit',
+                            required: false,
+                            type: 'string'
+                        },
+                        ...standardArrayFilter,
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            type: 'string',
+                            enum: ['asset_id', 'minted', 'updated'],
+                            default: 'asset_id'
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: true},
+                                    data: {type: 'array', items: {'$ref': '#/definitions/Asset'}}
+                                }
+                            }
+                        },
+                        '500': {
+                            description: 'Internal Server Error',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: false},
+                                    message: {type: 'string'}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/v1/assets/{asset_id}': {
+                get: {
+                    tags: ['assets'],
+                    summary: 'Fetch asset by id',
+                    produces: ['application/json'],
+                    parameters: [
+                        {
+                            name: 'asset_id',
+                            in: 'path',
+                            description: 'ID of asset',
+                            required: true,
+                            type: 'string'
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: true},
+                                    data: {'$ref': '#/definitions/Asset'}
+                                }
+                            }
+                        },
+                        '500': {
+                            description: 'Internal Server Error',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: false},
+                                    message: {type: 'string'}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/v1/assets/{asset_id}/logs': {
+                get: {
+                    tags: ['assets'],
+                    summary: 'Fetch asset logs',
+                    produces: ['application/json'],
+                    parameters: [
+                        {
+                            name: 'asset_id',
+                            in: 'path',
+                            description: 'ID of asset',
+                            required: true,
+                            type: 'integer'
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: true},
+                                    data: {'$ref': '#/definitions/Log'}
+                                }
+                            }
+                        },
+                        '500': {
+                            description: 'Internal Server Error',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: false},
+                                    message: {type: 'string'}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        definitions: {}
+    };
 }

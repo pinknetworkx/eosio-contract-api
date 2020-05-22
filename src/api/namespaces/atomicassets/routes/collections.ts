@@ -1,13 +1,14 @@
 import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
-import { WebServer } from '../../../server';
+import { HTTPServer } from '../../../server';
 import { filterQueryArgs } from '../../utils';
 import { getLogs } from '../utils';
 import logger from '../../../../utils/winston';
-import { formatCollection, formatSchema } from '../format';
+import { formatCollection } from '../format';
+import { standardArrayFilter } from '../swagger';
 
-export function collectionsEndpoints(core: AtomicAssetsNamespace, web: WebServer, router: express.Router): void {
+export function collectionsEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, router: express.Router): any {
     router.get('/v1/collections', (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
@@ -41,6 +42,11 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, web: WebServer
             if (args.notify_account) {
                 queryString += 'AND $' + ++varCounter + ' = ANY(notify_accounts) ';
                 queryValues.push(args.notify_account);
+            }
+
+            if (args.match) {
+                queryString += 'AND (name LIKE $' + ++varCounter + ' OR collection_name LIKE $' + varCounter + ')';
+                queryValues.push('%' + args.match + '%');
             }
 
             const sortColumnMapping = {
@@ -109,4 +115,159 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, web: WebServer
             return res.json({success: false, message: 'Internal Server Error'});
         }
     }));
+
+    return {
+        tag: {
+            name: 'collections',
+            description: 'Collections'
+        },
+        paths: {
+            '/v1/collections': {
+                get: {
+                    tags: ['collections'],
+                    summary: 'Fetch collections',
+                    produces: ['application/json'],
+                    parameters: [
+                        {
+                            name: 'author',
+                            in: 'query',
+                            description: 'Get collections by author',
+                            required: false,
+                            type: 'string'
+                        },
+                        {
+                            name: 'match',
+                            in: 'query',
+                            description: 'Search for input in collection name',
+                            required: false,
+                            type: 'string'
+                        },
+                        {
+                            name: 'authorized_account',
+                            in: 'query',
+                            description: 'Filter for collections which the provided account can use to create assets',
+                            required: false,
+                            type: 'string'
+                        },
+                        {
+                            name: 'notify_account',
+                            in: 'query',
+                            description: 'Filter for collections where the provided account is notified',
+                            required: false,
+                            type: 'string'
+                        },
+                        ...standardArrayFilter,
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            type: 'string',
+                            enum: ['created'],
+                            default: 'created'
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: true},
+                                    data: {type: 'array', items: {'$ref': '#/definitions/Collection'}}
+                                }
+                            }
+                        },
+                        '500': {
+                            description: 'Internal Server Error',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: false},
+                                    message: {type: 'string'}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/v1/collections/{collection_name}': {
+                get: {
+                    tags: ['collections'],
+                    summary: 'Find collection by its name',
+                    produces: ['application/json'],
+                    parameters: [
+                        {
+                            name: 'collection_name',
+                            in: 'path',
+                            description: 'Name of collection',
+                            required: true,
+                            type: 'string'
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: true},
+                                    data: {'$ref': '#/definitions/Collection'}
+                                }
+                            }
+                        },
+                        '500': {
+                            description: 'Internal Server Error',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: false},
+                                    message: {type: 'string'}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/v1/collections/{collection_name}/logs': {
+                get: {
+                    tags: ['collections'],
+                    summary: 'Fetch collection logs',
+                    produces: ['application/json'],
+                    parameters: [
+                        {
+                            name: 'collection_name',
+                            in: 'path',
+                            description: 'Name of collection',
+                            required: true,
+                            type: 'string'
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: true},
+                                    data: {'$ref': '#/definitions/Log'}
+                                }
+                            }
+                        },
+                        '500': {
+                            description: 'Internal Server Error',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: false},
+                                    message: {type: 'string'}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        definitions: {}
+    };
 }

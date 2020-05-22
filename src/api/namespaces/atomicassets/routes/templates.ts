@@ -1,13 +1,14 @@
 import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
-import { WebServer } from '../../../server';
+import { HTTPServer } from '../../../server';
 import { buildDataConditions, getLogs } from '../utils';
 import { filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { formatTemplate } from '../format';
+import { standardArrayFilter } from '../swagger';
 
-export function templatesEndpoints(core: AtomicAssetsNamespace, _: WebServer, router: express.Router): void {
+export function templatesEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, router: express.Router): any {
     async function templateRequestHandler(req: express.Request, res: express.Response): Promise<any> {
         try {
             const args = filterQueryArgs(req, {
@@ -129,4 +130,166 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, _: WebServer, ro
             return res.json({success: false, message: 'Internal Server Error'});
         }
     }));
+
+    return {
+        tag: {
+            name: 'templates',
+            description: 'Templates'
+        },
+        paths: {
+            '/v1/templates': {
+                get: {
+                    tags: ['templates'],
+                    summary: 'Fetch templates',
+                    produces: ['application/json'],
+                    parameters: [
+                        {
+                            name: 'collection_name',
+                            in: 'query',
+                            description: 'Get all templates within the collection',
+                            required: false,
+                            type: 'string'
+                        },
+                        {
+                            name: 'schema_name',
+                            in: 'query',
+                            description: 'Get all templates which implement that schema',
+                            required: false,
+                            type: 'string'
+                        },
+                        {
+                            name: 'authorized_account',
+                            in: 'query',
+                            description: 'Filter for templates the provided account can use',
+                            required: false,
+                            type: 'string'
+                        },
+                        ...standardArrayFilter,
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            type: 'string',
+                            enum: ['created'],
+                            default: 'created'
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: true},
+                                    data: {type: 'array', items: {'$ref': '#/definitions/Template'}}
+                                }
+                            }
+                        },
+                        '500': {
+                            description: 'Internal Server Error',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: false},
+                                    message: {type: 'string'}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/v1/templates/{collection_name}/{template_id}': {
+                get: {
+                    tags: ['templates'],
+                    summary: 'Find template by id',
+                    produces: ['application/json'],
+                    parameters: [
+                        {
+                            name: 'collection_name',
+                            in: 'path',
+                            description: 'Name of collection',
+                            required: true,
+                            type: 'string'
+                        },
+                        {
+                            name: 'template_id',
+                            in: 'path',
+                            description: 'ID of template',
+                            required: true,
+                            type: 'integer'
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: true},
+                                    data: {'$ref': '#/definitions/Template'}
+                                }
+                            }
+                        },
+                        '500': {
+                            description: 'Internal Server Error',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: false},
+                                    message: {type: 'string'}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/v1/templates/{collection_name}/{template_id}/logs': {
+                get: {
+                    tags: ['templates'],
+                    summary: 'Fetch template logs',
+                    produces: ['application/json'],
+                    parameters: [
+                        {
+                            name: 'collection_name',
+                            in: 'path',
+                            description: 'Name of collection',
+                            required: true,
+                            type: 'string'
+                        },
+                        {
+                            name: 'template_id',
+                            in: 'path',
+                            description: 'ID of template',
+                            required: true,
+                            type: 'integer'
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: true},
+                                    data: {'$ref': '#/definitions/Log'}
+                                }
+                            }
+                        },
+                        '500': {
+                            description: 'Internal Server Error',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: false},
+                                    message: {type: 'string'}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        definitions: {}
+    };
 }

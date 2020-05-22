@@ -1,7 +1,7 @@
 import * as express from 'express';
 
 import ConnectionManager from '../../connections/manager';
-import { SocketServer, WebServer } from '../server';
+import { HTTPServer } from '../server';
 
 export abstract class ApiNamespace {
     static namespaceName = '';
@@ -13,6 +13,6 @@ export abstract class ApiNamespace {
     ) { }
 
     abstract async init(): Promise<void>;
-    abstract async router(express: WebServer): Promise<express.Router>;
-    abstract async socket(socket: SocketServer): Promise<void>;
+    abstract async router(server: HTTPServer): Promise<express.Router>;
+    abstract async socket(server: HTTPServer): Promise<void>;
 }

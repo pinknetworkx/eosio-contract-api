@@ -1,10 +1,11 @@
 import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
-import { WebServer } from '../../../server';
+import { HTTPServer } from '../../../server';
 import logger from '../../../../utils/winston';
+import { standardArrayFilter } from '../swagger';
 
-export function configEndpoints(core: AtomicAssetsNamespace, web: WebServer, router: express.Router): void {
+export function configEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, router: express.Router): any {
     router.get('/v1/config', (async (req, res) => {
         try {
             const query = await core.connection.database.query(
@@ -30,4 +31,59 @@ export function configEndpoints(core: AtomicAssetsNamespace, web: WebServer, rou
             return res.json({success: false, message: 'Internal Server Error'});
         }
     }));
+
+    return {
+        tag: {
+            name: 'config',
+            description: 'Config'
+        },
+        paths: {
+            '/v1/config': {
+                get: {
+                    tags: ['config'],
+                    summary: 'Get general information about the API and the connected contract',
+                    produces: ['application/json'],
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: true},
+                                    data: {
+                                        type: 'object',
+                                        properties: {
+                                            contract: {type: 'string'},
+                                            version: {type: 'string'},
+                                            collection_format: {
+                                                type: 'array',
+                                                items: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        name: {type: 'string'},
+                                                        type: {type: 'string'}
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        '500': {
+                            description: 'Internal Server Error',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: false},
+                                    message: {type: 'string'}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        definitions: {}
+    };
 }
