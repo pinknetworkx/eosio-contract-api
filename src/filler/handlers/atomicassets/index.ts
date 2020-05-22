@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import PQueue from 'p-queue';
+import * as IoEmitter from 'socket.io-emitter';
 
 import { ObjectSchema } from 'atomicassets';
 import { ISchema } from 'atomicassets/build/Schema';
@@ -46,7 +47,8 @@ export enum JobPriority {
 }
 
 export type AtomicAssetsReaderArgs = {
-    atomicassets_account: string
+    atomicassets_account: string,
+    socket_api_prefix: string
 };
 
 export default class AtomicAssetsHandler extends ContractHandler {
@@ -65,12 +67,18 @@ export default class AtomicAssetsHandler extends ContractHandler {
     tableHandler: AtomicAssetsTableHandler;
     actionHandler: AtomicAssetsActionHandler;
 
+    io: IoEmitter.SocketIOEmitter;
+
     constructor(connection: ConnectionManager, events: PromiseEventHandler, args: {[key: string]: any}) {
         super(connection, events, args);
 
         if (typeof args.atomicassets_account !== 'string') {
             throw new Error('Argument missing in atomicassets handler: atomicassets_account');
         }
+
+        this.io = IoEmitter(this.connection.redis.conn, {
+            key: this.connection.chain.name + ':' + this.args.socket_api_prefix
+        });
 
         this.queue = new PQueue({concurrency: 1, autoStart: false});
         this.queue.pause();

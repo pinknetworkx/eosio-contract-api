@@ -15,10 +15,10 @@ RUN yarn build
 # application docker
 FROM node:14.1-alpine
 
-RUN mkdir -p /root/app/
+RUN mkdir -p /root/app/build
 WORKDIR /root/app/
 
-COPY --from=build-stage /root/app/build .
+COPY --from=build-stage /root/app/build ./build
 
 COPY package.json .
 COPY yarn.lock .
