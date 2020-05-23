@@ -149,6 +149,8 @@ export function transfersSockets(core: AtomicAssetsNamespace, server: HTTPServer
         logger.debug('socket transfer client connected');
 
         socket.on('subscribe', (options: SocketTransferSubscriptionArgs) => {
+            logger.debug('transfer socket subscription', options);
+
             if (Array.isArray(options.accounts)) {
                 for (const account of options.accounts) {
                     if (typeof account === 'string') {
@@ -161,6 +163,48 @@ export function transfersSockets(core: AtomicAssetsNamespace, server: HTTPServer
                 socket.join('transfers:new_transfers');
             } else {
                 socket.leave('transfers:new_transfers');
+            }
+
+            logger.debug('socket rooms updated', server.socket.io.sockets.adapter.sids[socket.id]);
+        });
+    });
+
+    const channelName = ['eosio-contract-api', core.connection.chain.name, core.args.socket_api_prefix, 'transfers'].join(':');
+
+    core.connection.redis.conn.subscribe(channelName, () => {
+        core.connection.redis.conn.on('message', async (channel, message) => {
+            if (channel !== channelName) {
+                return;
+            }
+
+            const msg = JSON.parse(message);
+
+            const query = await core.connection.database.query(
+                'SELECT * FROM atomicassets_transfers_master WHERE contract = $1 AND transfer_id = $2',
+                [core.args.atomicassets_account, msg.data.transfer_id]
+            );
+
+            if (query.rowCount === 0) {
+                logger.error('Received transfer notification but did not find transfer in database');
+
+                return;
+            }
+
+            const transfer = query.rows[0];
+
+            const rooms = [
+                'transfers:account:' + transfer.sender_name, 'transfers:account:' + transfer.recipient_name
+            ];
+
+            if (msg.action === 'create') {
+                rooms.push('transfers:new_transfers');
+
+                rooms.reduce((previousValue, currentValue) => previousValue.to(currentValue), namespace)
+                    .emit('new_transfer', {
+                        transaction: msg.transaction,
+                        block: msg.block,
+                        transfer: formatTransfer(transfer)
+                    });
             }
         });
     });

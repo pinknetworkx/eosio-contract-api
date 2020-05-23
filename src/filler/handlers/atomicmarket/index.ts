@@ -61,4 +61,8 @@ export default class AtomicAssetsHandler extends ContractHandler {
     async onBlockComplete(_db: ContractDBTransaction, _block: ShipBlock): Promise<void> {
 
     }
+
+    async onCommit(): Promise<void> {
+
+    }
 }

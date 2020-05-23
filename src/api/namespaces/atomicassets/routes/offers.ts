@@ -210,7 +210,7 @@ export function offersSockets(core: AtomicAssetsNamespace, server: HTTPServer): 
         logger.debug('socket offer client connected');
 
         socket.on('subscribe', (options: SocketOfferSubscriptionArgs) => {
-            logger.debug('offer subscription', options);
+            logger.debug('offer socket subscription', options);
 
             if (Array.isArray(options.offer_ids)) {
                 for (const offerId of options.offer_ids) {
@@ -233,20 +233,57 @@ export function offersSockets(core: AtomicAssetsNamespace, server: HTTPServer): 
             } else {
                 socket.leave('offers:new_offers');
             }
+
+            logger.debug('socket rooms updated', socket.rooms);
         });
     });
 
     const channelName = ['eosio-contract-api', core.connection.chain.name, core.args.socket_api_prefix, 'offers'].join(':');
 
     core.connection.redis.conn.subscribe(channelName, () => {
-        core.connection.redis.conn.on('message', (channel, message) => {
+        core.connection.redis.conn.on('message', async (channel, message) => {
             if (channel !== channelName) {
                 return;
             }
 
-            const data = JSON.parse(message);
+            const msg = JSON.parse(message);
 
-            logger.debug('offer data received', data);
+            const query = await core.connection.database.query(
+                'SELECT * FROM atomicassets_offers_master WHERE contract = $1 AND offer_id = $2',
+                [core.args.atomicassets_account, msg.data.offer_id]
+            );
+
+            if (query.rowCount === 0) {
+                logger.error('Received offer notification but did not find offer in database');
+
+                return;
+            }
+
+            const offer = query.rows[0];
+
+            const rooms = [
+                'offers:offer_id:' + offer.offer_id, 'offers:account:' + offer.sender_name, 'offers:account:' + offer.recipient_name
+            ];
+
+            if (msg.action === 'create') {
+                rooms.push('offers:new_offers');
+
+                rooms.reduce((previousValue, currentValue) => previousValue.to(currentValue), namespace)
+                    .emit('new_offer', {
+                        transaction: msg.transaction,
+                        block: msg.block,
+                        offer: formatOffer(offer)
+                    });
+            } else if (msg.action === 'state_change') {
+                offer.state = msg.data.state;
+
+                rooms.reduce((previousValue, currentValue) => previousValue.to(currentValue), namespace)
+                    .emit('state_change', {
+                        transaction: msg.transaction,
+                        block: msg.block,
+                        offer: formatOffer(offer)
+                    });
+            }
         });
     });
 }

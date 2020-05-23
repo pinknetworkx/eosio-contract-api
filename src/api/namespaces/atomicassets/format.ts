@@ -61,5 +61,7 @@ export function formatTransfer(row: any): any {
 
     data.assets = data.assets.map((asset: any) => formatAsset(asset));
 
+    delete data['transfer_id'];
+
     return data;
 }

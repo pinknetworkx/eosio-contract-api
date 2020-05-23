@@ -1,6 +1,7 @@
 CREATE OR REPLACE VIEW atomicassets_transfers_master AS
     SELECT
-        transfer_a.contract, transfer_a.sender sender_name, transfer_a.recipient recipient_name, transfer_a.memo,
+        transfer_a.transfer_id, transfer_a.contract,
+        transfer_a.sender sender_name, transfer_a.recipient recipient_name, transfer_a.memo,
         encode(transfer_a.txid::bytea, 'hex') txid,
         ARRAY(
             SELECT row_to_json(asset_a)

@@ -36,13 +36,13 @@ export enum JobPriority {
     TABLE_TOKENCONFIGS = 90,
     TABLE_COLLECTIONS = 80,
     TABLE_SCHEMES = 80,
-    TABLE_PRESETS = 50,
-    TABLE_ASSETS = 50,
-    ACTION_BURN_ASSET = 40,
-    ACTION_TRANSFER_ASSET = 30,
-    TABLE_OFFERS = 20,
-    ACTION_CREATE_OFFER = 10,
-    ACTION_UPDATE_OFFER = 0
+    TABLE_PRESETS = 60,
+    TABLE_ASSETS = 60,
+    ACTION_BURN_ASSET = 50,
+    ACTION_TRANSFER_ASSET = 40,
+    TABLE_OFFERS = 30,
+    ACTION_CREATE_OFFER = 20,
+    ACTION_UPDATE_OFFER = 10
 }
 
 export type AtomicAssetsReaderArgs = {
@@ -60,8 +60,11 @@ export default class AtomicAssetsHandler extends ContractHandler {
         collection_format?: ISchema
     };
 
-    queue: PQueue;
-    jobs: any[] = [];
+    updateQueue: PQueue;
+    updateJobs: any[] = [];
+
+    notifyQueue: PQueue;
+    notifyJobs: any[] = [];
 
     tableHandler: AtomicAssetsTableHandler;
     actionHandler: AtomicAssetsActionHandler;
@@ -73,8 +76,11 @@ export default class AtomicAssetsHandler extends ContractHandler {
             throw new Error('Argument missing in atomicassets handler: atomicassets_account');
         }
 
-        this.queue = new PQueue({concurrency: 1, autoStart: false});
-        this.queue.pause();
+        this.updateQueue = new PQueue({concurrency: 1, autoStart: false});
+        this.updateQueue.pause();
+
+        this.notifyQueue = new PQueue({concurrency: 1, autoStart: false});
+        this.notifyQueue.pause();
 
         this.scope = {
             actions: [
@@ -203,21 +209,40 @@ export default class AtomicAssetsHandler extends ContractHandler {
     }
 
     async onBlockComplete(): Promise<void> {
-        this.queue.start();
-        await Promise.all(this.jobs);
-        this.queue.pause();
-        this.jobs = [];
+        this.updateQueue.start();
+        await Promise.all(this.updateJobs);
+        this.updateQueue.pause();
+        this.updateJobs = [];
     }
 
-    addJob(fn: () => any, priority: number): void {
+    async onCommit(): Promise<void> {
+        this.notifyQueue.start();
+        await Promise.all(this.notifyJobs);
+        this.notifyQueue.pause();
+        this.notifyJobs = [];
+    }
+
+    addUpdateJob(fn: () => any, priority: number): void {
         const trace = getStackTrace();
 
-        this.jobs.push(this.queue.add(async () => {
+        this.updateJobs.push(this.updateQueue.add(async () => {
             try {
                 await fn();
             } catch (e) {
                 logger.error(trace);
             }
         }, {priority}));
+    }
+
+    addNotifyJob(fn: () => any): void {
+        const trace = getStackTrace();
+
+        this.notifyJobs.push(this.notifyQueue.add(async () => {
+            try {
+                await fn();
+            } catch (e) {
+                logger.error(trace);
+            }
+        }));
     }
 }

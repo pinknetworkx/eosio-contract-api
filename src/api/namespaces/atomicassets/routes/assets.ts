@@ -327,7 +327,8 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, rout
 
 export type SocketAssetSubscriptionArgs = {
     asset_ids: string[],
-    new_assets: boolean
+    owners: string[],
+    new_assets: boolean,
     updates: boolean
 };
 
@@ -338,10 +339,20 @@ export function assetsSockets(core: AtomicAssetsNamespace, server: HTTPServer): 
         logger.debug('socket asset client connected');
 
         socket.on('subscribe', (options: SocketAssetSubscriptionArgs) => {
+            logger.debug('asset socket subscription', options);
+
             if (Array.isArray(options.asset_ids)) {
                 for (const assetId of options.asset_ids) {
                     if (typeof assetId === 'string') {
                         socket.join('assets:asset_id:' + assetId);
+                    }
+                }
+            }
+
+            if (Array.isArray(options.owners)) {
+                for (const owner of options.owners) {
+                    if (typeof owner === 'string') {
+                        socket.join('assets:owner:' + owner);
                     }
                 }
             }
@@ -356,6 +367,77 @@ export function assetsSockets(core: AtomicAssetsNamespace, server: HTTPServer): 
                 socket.join('assets:updates');
             } else {
                 socket.leave('assets:updates');
+            }
+
+            logger.debug('socket rooms updated', socket.adapter.rooms);
+        });
+    });
+
+    const channelName = ['eosio-contract-api', core.connection.chain.name, core.args.socket_api_prefix, 'assets'].join(':');
+
+    core.connection.redis.conn.subscribe(channelName, () => {
+        core.connection.redis.conn.on('message', async (channel, message) => {
+            if (channel !== channelName) {
+                return;
+            }
+
+            const msg = JSON.parse(message);
+
+            const query = await core.connection.database.query(
+                'SELECT * FROM atomicassets_assets_master WHERE contract = $1 AND asset_id = $2',
+                [core.args.atomicassets_account, msg.data.asset_id]
+            );
+
+            if (query.rowCount === 0) {
+                logger.error('Received asset notification but did not find it in database');
+
+                return;
+            }
+
+            const asset = query.rows[0];
+
+            const rooms = [
+                'assets:owner:' + asset.owner, 'assets:asset_id:' + asset.asset_id
+            ];
+
+            if (msg.action === 'mint') {
+                rooms.push('assets:new_assets');
+
+                rooms.reduce((previousValue, currentValue) => previousValue.to(currentValue), namespace)
+                    .emit('new_asset', {
+                        transaction: msg.transaction,
+                        block: msg.block,
+                        asset: formatAsset(asset)
+                    });
+            } else if (msg.action === 'burn') {
+                rooms.push('assets:updates');
+
+                rooms.reduce((previousValue, currentValue) => previousValue.to(currentValue), namespace)
+                    .emit('burn', {
+                        transaction: msg.transaction,
+                        block: msg.block,
+                        asset: formatAsset(asset)
+                    });
+            } else if (msg.action === 'back') {
+                rooms.push('assets:updates');
+
+                rooms.reduce((previousValue, currentValue) => previousValue.to(currentValue), namespace)
+                    .emit('back', {
+                        transaction: msg.transaction,
+                        block: msg.block,
+                        asset: formatAsset(asset),
+                        trace: msg.data.trace
+                    });
+            } else if (msg.action === 'update') {
+                rooms.push('assets:updates');
+
+                rooms.reduce((previousValue, currentValue) => previousValue.to(currentValue), namespace)
+                    .emit('update', {
+                        transaction: msg.transaction,
+                        block: msg.block,
+                        asset: formatAsset(asset),
+                        delta: msg.data.delta
+                    });
             }
         });
     });

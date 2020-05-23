@@ -42,37 +42,37 @@ export default class AtomicAssetsActionHandler {
         }
 
         if (['lognewoffer'].indexOf(trace.act.name) >= 0) {
-            this.core.addJob(async () => {
+            this.core.addUpdateJob(async () => {
                 logger.debug('AtomicAssets Action', trace.act);
 
                 await this.handleOfferCreateTrace(db, block, trace, tx);
             }, JobPriority.ACTION_CREATE_OFFER);
         } else if (['acceptoffer', 'declineoffer', 'canceloffer'].indexOf(trace.act.name) >= 0) {
-            this.core.addJob(async () => {
+            this.core.addUpdateJob(async () => {
                 logger.debug('AtomicAssets Action', trace.act);
 
                 await this.handleOfferUpdateTrace(db, block, trace, tx);
             }, JobPriority.ACTION_UPDATE_OFFER);
         } else if (['logtransfer'].indexOf(trace.act.name) >= 0) {
-            this.core.addJob(async () => {
+            this.core.addUpdateJob(async () => {
                 logger.debug('AtomicAssets Action', trace.act);
 
                 await this.handleTransferTrace(db, block, trace, tx);
             }, JobPriority.ACTION_TRANSFER_ASSET);
         } else if (['logburnasset'].indexOf(trace.act.name) >= 0) {
-            this.core.addJob(async () => {
+            this.core.addUpdateJob(async () => {
                 logger.debug('AtomicAssets Action', trace.act);
 
                 await this.handleAssetBurnTrace(db, block, trace, tx);
             }, JobPriority.ACTION_BURN_ASSET);
         } else if (['logmint', 'logburnasset', 'logbackasset', 'logsetdata'].indexOf(trace.act.name) >= 0) {
-            this.core.addJob(async () => {
+            this.core.addUpdateJob(async () => {
                 logger.debug('AtomicAssets Action', trace.act);
 
                 await this.handleAssetUpdateTrace(db, block, trace, tx);
             }, JobPriority.INDEPENDENT);
         } else if (['lognewtempl'].indexOf(trace.act.name) >= 0) {
-            this.core.addJob(async () => {
+            this.core.addUpdateJob(async () => {
                 logger.debug('AtomicAssets Action', trace.act);
 
                 await this.handleTemplateTrace(db, block, trace, tx);
@@ -81,13 +81,13 @@ export default class AtomicAssetsActionHandler {
             'addcolauth', 'addnotifyacc', 'createcol', 'forbidnotify',
             'remcolauth', 'remnotifyacc', 'setmarketfee', 'setcoldata'
         ].indexOf(trace.act.name) >= 0) {
-            this.core.addJob(async () => {
+            this.core.addUpdateJob(async () => {
                 logger.debug('AtomicAssets Action', trace.act);
 
                 await this.handleCollectionTrace(db, block, trace, tx);
             }, JobPriority.INDEPENDENT);
         } else if (['createschema', 'extendschema'].indexOf(trace.act.name) >= 0) {
-            this.core.addJob(async () => {
+            this.core.addUpdateJob(async () => {
                 logger.debug('AtomicAssets Action', trace.act);
 
                 await this.handleSchemaTrace(db, block, trace, tx);
@@ -96,7 +96,7 @@ export default class AtomicAssetsActionHandler {
     }
 
     async handleOfferCreateTrace(
-        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, _: EosioTransaction
+        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction
     ): Promise<void> {
         // @ts-ignore
         const data: LogNewOfferActionData = trace.act.data;
@@ -115,6 +115,11 @@ export default class AtomicAssetsActionHandler {
                 recipient_asset_ids: data.recipient_asset_ids,
                 memo: data.memo
             }, false);
+
+            this.pushNotificiation(block, tx, 'offers', 'create', {
+                offer_id: data.offer_id,
+                trace: data
+            });
         }
     }
 
@@ -155,6 +160,11 @@ export default class AtomicAssetsActionHandler {
                 str: 'contract = $1 AND offer_id = $2',
                 values: [this.contractName, offerChange.offer_id]
             }, ['contract', 'offer_id']);
+
+            this.pushNotificiation(block, tx, 'offers', 'state_change', {
+                offer_id: offerChange.offer_id,
+                state: offerChange.state
+            });
         }
     }
 
@@ -181,6 +191,11 @@ export default class AtomicAssetsActionHandler {
             contract: this.contractName,
             asset_id: assetID
         })), ['transfer_id', 'contract', 'asset_id']);
+
+        this.pushNotificiation(block, tx, 'transfers', 'create', {
+            transfer_id: query.rows[0].transfer_id,
+            trace: data
+        });
 
         // check offers whether they have become invalid
         const assetQuery = await db.query(
@@ -237,6 +252,11 @@ export default class AtomicAssetsActionHandler {
                         str: 'contract = $1 AND offer_id = $2',
                         values: [this.contractName, offer.offer_id]
                     }, ['contract', 'offer_id']);
+
+                    this.pushNotificiation(block, tx, 'offers', 'state_change', {
+                        offer_id: offer.offer_id,
+                        state: OfferState.INVALID.valueOf()
+                    });
                 }
 
                 const index = changedOffers.indexOf(offer.offer_id);
@@ -253,6 +273,11 @@ export default class AtomicAssetsActionHandler {
                     str: 'contract = $1 AND offer_id = $2',
                     values: [this.contractName, offerID]
                 }, ['contract', 'offer_id']);
+
+                this.pushNotificiation(block, tx, 'offers', 'state_change', {
+                    offer_id: offerID,
+                    state: OfferState.PENDING.valueOf()
+                });
             }
         }
     }
@@ -276,6 +301,11 @@ export default class AtomicAssetsActionHandler {
             await this.createLogMessage(db, block, tx, 'burn', 'asset', data.asset_id, {
                 backed_tokens: data.backed_tokens
             });
+
+            this.pushNotificiation(block, tx, 'assets', 'burn', {
+                asset_id: data.asset_id,
+                trace: data
+            });
         }
     }
 
@@ -290,12 +320,22 @@ export default class AtomicAssetsActionHandler {
                 minter: data.minter,
                 new_owner: data.new_owner
             });
+
+            this.pushNotificiation(block, tx, 'assets', 'mint', {
+                asset_id: data.asset_id,
+                trace: data
+            });
         } else if (trace.act.name === 'logbackasset') {
             // @ts-ignore
             const data: LogBackAssetActionData = trace.act.data;
 
             await this.createLogMessage(db, block, tx, 'back', 'asset', data.asset_id, {
                 back_quantity: data.backed_token
+            });
+
+            this.pushNotificiation(block, tx, 'assets', 'back', {
+                asset_id: data.asset_id,
+                trace: data
             });
         } if (trace.act.name === 'logsetdata') {
             // @ts-ignore
@@ -338,6 +378,12 @@ export default class AtomicAssetsActionHandler {
             }
 
             await this.createLogMessage(db, block, tx, 'update', 'asset', data.asset_id, delta);
+
+            this.pushNotificiation(block, tx, 'assets', 'update', {
+                asset_id: data.asset_id,
+                trace: data,
+                delta: delta
+            });
         }
     }
 
@@ -442,5 +488,17 @@ export default class AtomicAssetsActionHandler {
             created_at_block: block.block_num,
             created_at_time: eosioTimestampToDate(block.timestamp).getTime()
         }, ['log_id']);
+    }
+
+    private pushNotificiation(block: ShipBlock, tx: EosioTransaction, prefix: string, name: string, data: any): void {
+        this.core.addNotifyJob(async () => {
+            const channelName = ['eosio-contract-api', this.core.connection.chain.name, this.core.args.socket_api_prefix, prefix].join(':');
+
+            await this.core.connection.redis.conn.publish(channelName, JSON.stringify({
+                transaction: tx,
+                block: {block_num: block.block_num, block_id: block.block_id},
+                action: name, data
+            }));
+        });
     }
 }

@@ -106,6 +106,10 @@ export default class StateReceiver {
         this.lastIrreversibleBlock = header.last_irreversible.block_num;
 
         await db.commit();
+
+        for (const handler of this.handlers) {
+            await handler.onCommit();
+        }
     }
 
     private async handleTransactionTrace(
