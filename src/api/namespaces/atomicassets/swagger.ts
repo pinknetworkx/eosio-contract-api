@@ -190,7 +190,7 @@ export const definitions = {
                         }
                     },
                     created_at_block: {type: 'integer'},
-                    created_at_time: {type: 'integer'},
+                    created_at_time: {type: 'integer'}
                 }
             },
             collection: {

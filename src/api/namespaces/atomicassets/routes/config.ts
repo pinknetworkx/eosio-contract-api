@@ -3,10 +3,9 @@ import * as express from 'express';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import logger from '../../../../utils/winston';
-import { standardArrayFilter } from '../swagger';
 
-export function configEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, router: express.Router): any {
-    router.get('/v1/config', (async (req, res) => {
+export function configEndpoints(core: AtomicAssetsNamespace, _a: HTTPServer, router: express.Router): any {
+    router.get('/v1/config', (async (_b, res) => {
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_config WHERE contract = $1',

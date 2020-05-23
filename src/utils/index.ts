@@ -12,7 +12,7 @@ export function arraysEqual(arr1: any[], arr2: any[]): boolean {
     return true;
 }
 
-export function getStackTrace() {
+export function getStackTrace(): any {
     const obj: any = {};
     Error.captureStackTrace(obj, getStackTrace);
 

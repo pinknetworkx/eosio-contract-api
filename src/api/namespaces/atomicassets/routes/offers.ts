@@ -244,7 +244,9 @@ export function offersSockets(core: AtomicAssetsNamespace, server: HTTPServer): 
                 return;
             }
 
-            // const data = JSON.parse(message);
+            const data = JSON.parse(message);
+
+            logger.debug('offer data received', data);
         });
     });
 }

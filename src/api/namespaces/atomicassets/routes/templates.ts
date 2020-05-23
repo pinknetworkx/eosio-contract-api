@@ -19,7 +19,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, r
 
                 collection_name: {type: 'string', min: 1, max: 12},
                 schema_name: {type: 'string', min: 1, max: 12},
-                authorized_account: {type: 'string', min: 1, max: 12},
+                authorized_account: {type: 'string', min: 1, max: 12}
             });
 
             if (typeof req.params.collection_name === 'string' && req.params.collection_name.length > 0) {
