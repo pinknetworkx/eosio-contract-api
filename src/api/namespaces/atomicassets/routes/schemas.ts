@@ -6,7 +6,7 @@ import { filterQueryArgs } from '../../utils';
 import { getLogs } from '../utils';
 import logger from '../../../../utils/winston';
 import { formatSchema } from '../format';
-import { standardArrayFilter } from '../swagger';
+import { paginationFilter, standardArrayFilter } from '../swagger';
 
 export function schemasEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, router: express.Router): any {
     async function schemaRequestHandler(req: express.Request, res: express.Response): Promise<any> {
@@ -30,7 +30,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, rou
             let varCounter = 1;
             let queryString = 'SELECT * FROM atomicassets_schemas_master WHERE contract = $1 ';
 
-            const queryValues: any[] = [core.args.contract];
+            const queryValues: any[] = [core.args.atomicassets_account];
 
             if (args.collection_name) {
                 queryString += 'AND collection_name = $' + ++varCounter + ' ';
@@ -77,7 +77,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, rou
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_schemas_master WHERE contract = $1 AND collection_name = $2 AND schema_name = $3',
-                [core.args.contract, req.params.collection_name, req.params.schema_name]
+                [core.args.atomicassets_account, req.params.collection_name, req.params.schema_name]
             );
 
             if (query.rowCount === 0) {
@@ -104,7 +104,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, rou
             res.json({
                 success: true,
                 data: await getLogs(
-                    core.connection.database, core.args.contract, 'schema',
+                    core.connection.database, core.args.atomicassets_account, 'schema',
                     req.params.collection_name + ':' + req.params.schema_name,
                     (args.page - 1) * args.limit, args.limit
                 )
@@ -249,7 +249,8 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, rou
                             description: 'Name of schema',
                             required: true,
                             type: 'string'
-                        }
+                        },
+                        ...paginationFilter
                     ],
                     responses: {
                         '200': {

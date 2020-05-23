@@ -6,7 +6,7 @@ import { filterQueryArgs } from '../../utils';
 import { getLogs } from '../utils';
 import logger from '../../../../utils/winston';
 import { formatCollection } from '../format';
-import { standardArrayFilter } from '../swagger';
+import { paginationFilter, standardArrayFilter } from '../swagger';
 
 export function collectionsEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, router: express.Router): any {
     router.get('/v1/collections', (async (req, res) => {
@@ -27,7 +27,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, _: HTTPServer,
             let varCounter = 1;
             let queryString = 'SELECT * FROM atomicassets_collections_master WHERE contract = $1 ';
 
-            const queryValues: any[] = [core.args.contract];
+            const queryValues: any[] = [core.args.atomicassets_account];
 
             if (args.author) {
                 queryString += 'AND author = $' + ++varCounter + ' ';
@@ -76,7 +76,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, _: HTTPServer,
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_collections_master WHERE contract = $1 AND collection_name = $2',
-                [core.args.contract, req.params.collection_name]
+                [core.args.atomicassets_account, req.params.collection_name]
             );
 
             if (query.rowCount === 0) {
@@ -104,7 +104,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, _: HTTPServer,
             res.json({
                 success: true,
                 data: await getLogs(
-                    core.connection.database, core.args.contract, 'collection', req.params.collection_name,
+                    core.connection.database, core.args.atomicassets_account, 'collection', req.params.collection_name,
                     (args.page - 1) * args.limit, args.limit
                 )
             });
@@ -241,7 +241,8 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, _: HTTPServer,
                             description: 'Name of collection',
                             required: true,
                             type: 'string'
-                        }
+                        },
+                        ...paginationFilter
                     ],
                     responses: {
                         '200': {

@@ -1,4 +1,4 @@
-export const standardArrayFilter = [
+export const paginationFilter = [
     {
         name: 'page',
         in: 'query',
@@ -14,7 +14,11 @@ export const standardArrayFilter = [
         required: false,
         type: 'integer',
         default: 100
-    },
+    }
+];
+
+export const standardArrayFilter = [
+    ...paginationFilter,
     {
         name: 'order',
         in: 'query',
@@ -116,9 +120,9 @@ export const definitions = {
             allow_notify: {type: 'boolean'},
             authorized_accounts: {type: 'array', items: {type: 'string'}},
             notify_accounts: {type: 'array', items: {type: 'string'}},
-            market_fee: {type: 'boolean'},
+            market_fee: {type: 'double'},
 
-            data: {type: 'boolean'},
+            data: {type: 'object'},
 
             created_at_block: {type: 'integer'},
             created_at_time: {type: 'integer'}

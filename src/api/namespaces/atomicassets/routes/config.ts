@@ -10,7 +10,7 @@ export function configEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, rout
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_config WHERE contract = $1',
-                [core.args.contract]
+                [core.args.atomicassets_account]
             );
 
             if (query.rowCount === 0) {
@@ -20,7 +20,7 @@ export function configEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, rout
             }
 
             return res.json({success: true, data: {
-                contract: core.args.contract,
+                contract: core.args.atomicassets_account,
                 version: query.rows[0].version,
                 collection_format: query.rows[0].collection_format
             }});

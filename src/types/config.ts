@@ -28,8 +28,6 @@ export interface IServerConfig {
 
     cache_life_ms: number;
 
-    socket_prefix: string;
-
     namespaces: INamespaceConfig[];
 }
 

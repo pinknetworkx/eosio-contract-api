@@ -6,7 +6,7 @@ import { buildDataConditions, getLogs } from '../utils';
 import { filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { formatTemplate } from '../format';
-import { standardArrayFilter } from '../swagger';
+import { paginationFilter, standardArrayFilter } from '../swagger';
 
 export function templatesEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, router: express.Router): any {
     async function templateRequestHandler(req: express.Request, res: express.Response): Promise<any> {
@@ -28,7 +28,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, r
 
             let varCounter = 1;
             let queryString = 'SELECT * FROM atomicassets_templates_master template WHERE contract = $1 ';
-            let queryValues: any[] = [core.args.contract];
+            let queryValues: any[] = [core.args.atomicassets_account];
 
             if (args.collection_name) {
                 const data = buildDataConditions(req.query, varCounter);
@@ -91,7 +91,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, r
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND collection_name = $2 AND template_id = $3',
-                [core.args.contract, req.params.collection_name, req.params.template_id]
+                [core.args.atomicassets_account, req.params.collection_name, req.params.template_id]
             );
 
             if (query.rowCount === 0) {
@@ -118,7 +118,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, r
             res.json({
                 success: true,
                 data: await getLogs(
-                    core.connection.database, core.args.contract, 'template',
+                    core.connection.database, core.args.atomicassets_account, 'template',
                     req.params.collection_name + ':' + req.params.template_id,
                     (args.page - 1) * args.limit, args.limit
                 )
@@ -263,7 +263,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, r
                             description: 'ID of template',
                             required: true,
                             type: 'integer'
-                        }
+                        },
+                        ...paginationFilter
                     ],
                     responses: {
                         '200': {

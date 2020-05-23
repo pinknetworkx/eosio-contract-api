@@ -24,7 +24,7 @@ export function transfersEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, r
             let varCounter = 1;
             let queryString = 'SELECT * FROM atomicassets_transfers_master WHERE contract = $1 ';
 
-            const queryValues: any[] = [core.args.contract];
+            const queryValues: any[] = [core.args.atomicassets_account];
 
             if (args.account) {
                 queryString += 'AND (sender_name = $' + ++varCounter + ' OR recipient_name = $' + varCounter + ') ';

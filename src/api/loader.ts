@@ -1,4 +1,4 @@
-import * as swagger from 'swagger-ui-express';
+import * as express from 'express';
 
 import { ApiNamespace } from './namespaces/interfaces';
 import { HTTPServer } from './server';
@@ -21,6 +21,13 @@ export default class ApiLoader {
             this.server.web.express.use(namespace.path, await namespace.router(this.server));
             await namespace.socket(this.server);
         }
+
+        this.server.web.express.use('*', (_: express.Request, res: express.Response) => {
+            res.status(500);
+            res.json({
+                success: false, message: 'Endpoint not found'
+            });
+        });
 
         this.server.listen();
     }

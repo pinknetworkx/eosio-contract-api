@@ -14,7 +14,8 @@ import logger from '../../../utils/winston';
 import { definitions } from './swagger';
 
 export type AtomicAssetsNamespaceArgs = {
-    contract: string
+    atomicassets_account: string,
+    socket_api_prefix: string
 };
 
 export class AtomicAssetsNamespace extends ApiNamespace {
@@ -56,11 +57,12 @@ export class AtomicAssetsNamespace extends ApiNamespace {
 
         endpointsDocs.push(assetsEndpoints(this, server, router));
         endpointsDocs.push(collectionsEndpoints(this, server, router));
-        endpointsDocs.push(configEndpoints(this, server, router));
-        endpointsDocs.push(offersEndpoints(this, server, router));
         endpointsDocs.push(schemasEndpoints(this, server, router));
         endpointsDocs.push(templatesEndpoints(this, server, router));
+
+        endpointsDocs.push(offersEndpoints(this, server, router));
         endpointsDocs.push(transfersEndpoints(this, server, router));
+        endpointsDocs.push(configEndpoints(this, server, router));
 
         for (const doc of endpointsDocs) {
             if (doc.tag) {

@@ -8,14 +8,13 @@
 
   "cache_life_ms": 500,
 
-  "socket_prefix": "atomicassets",
-
   "namespaces": [
     {
       "name": "atomicassets",
       "path": "/atomicassets/",
       "args": {
-        "contract": "atomicassets"
+        "contract": "atomicassets",
+        "socket_api_prefix": "atomicassets"
       }
     }
   ]

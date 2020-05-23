@@ -5,11 +5,12 @@ import * as http from 'http';
 import * as bodyParser from 'body-parser';
 import * as cors from 'cors';
 import * as cookieParser from 'cookie-parser';
-import * as redisAdapter from 'socket.io-redis';
 
 import ConnectionManager from '../connections/manager';
 import { IServerConfig } from '../types/config';
 import logger from '../utils/winston';
+
+const packageJson: any = require('../../package.json');
 
 export class HTTPServer {
     readonly httpServer: http.Server;
@@ -69,9 +70,46 @@ export class WebServer {
     private routes(): void {
         const router = express.Router();
 
-        router.get('/health', (_: express.Request, res: express.Response) => {
+        router.get('/health', async (_: express.Request, res: express.Response) => {
+            let databaseStatus = 'INVALID';
+
+            try {
+                const query = await this.server.connections.database.query('SELECT * FROM contract_readers');
+
+                if (query.rowCount > 0) {
+                    databaseStatus = 'OK';
+                }
+            } catch (e) {
+                databaseStatus = 'ERROR';
+            }
+
+            let chainStatus = 'NO_CONNECTION';
+
+            try {
+                const info = await this.server.connections.chain.rpc.get_info();
+
+                if (Date.now() - 20 * 1000 < new Date(info.head_block_time + '+0000').getTime()) {
+                    chainStatus = 'OK';
+                } else {
+                    chainStatus = 'NODE_BEHIND';
+                }
+            } catch (e) {
+                chainStatus = 'ERROR';
+            }
+
             res.json({
-                success: true, data: {db: 'true'}
+                success: true, data: {
+                    version: packageJson.version,
+                    postgres: {
+                        status: databaseStatus
+                    },
+                    redis: {
+                        status: this.server.connections.redis.conn.status === 'ready' ? 'OK' : 'ERROR'
+                    },
+                    chain: {
+                        status: chainStatus
+                    }
+                }
             });
         });
 
@@ -91,13 +129,7 @@ export class SocketServer {
         this.routes();
     }
 
-    private adapter(): void {
-        this.io.adapter(redisAdapter({
-            key: this.server.connections.chain.name + ':' + this.server.config.socket_prefix,
-            pubClient: this.server.connections.redis.conn,
-            subClient: this.server.connections.redis.conn
-        }));
-    }
+    private adapter(): void { }
 
     private routes(): void { }
 }

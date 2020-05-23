@@ -24,7 +24,7 @@ export function offersEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, rout
             let varCounter = 1;
             let queryString = 'SELECT * FROM atomicassets_offers_master WHERE contract = $1 ';
 
-            const queryValues: any[] = [core.args.contract];
+            const queryValues: any[] = [core.args.atomicassets_account];
 
             if (args.account) {
                 queryString += 'AND (sender_name = $' + ++varCounter + ' OR recipient_name = $' + varCounter + ') ';
@@ -68,7 +68,7 @@ export function offersEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, rout
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_offers_master WHERE contract = $1 AND offer_id = $2',
-                [core.args.contract, req.params.offer_id]
+                [core.args.atomicassets_account, req.params.offer_id]
             );
 
             if (query.rowCount === 0) {
@@ -233,6 +233,18 @@ export function offersSockets(core: AtomicAssetsNamespace, server: HTTPServer): 
             } else {
                 socket.leave('offers:new_offers');
             }
+        });
+    });
+
+    const channelName = ['eosio-contract-api', core.connection.chain.name, core.args.socket_api_prefix, 'offers'].join(':');
+
+    core.connection.redis.conn.subscribe(channelName, () => {
+        core.connection.redis.conn.on('message', (channel, message) => {
+            if (channel !== channelName) {
+                return;
+            }
+
+            // const data = JSON.parse(message);
         });
     });
 }

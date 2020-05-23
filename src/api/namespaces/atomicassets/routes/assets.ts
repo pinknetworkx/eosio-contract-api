@@ -6,7 +6,7 @@ import { buildDataConditions, getLogs } from '../utils';
 import { filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { formatAsset } from '../format';
-import { standardArrayFilter } from '../swagger';
+import { paginationFilter, standardArrayFilter } from '../swagger';
 
 export function assetsEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, router: express.Router): any {
     router.get('/v1/assets', (async (req, res) => {
@@ -28,7 +28,7 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, rout
 
             let varCounter = 1;
             let queryString = 'SELECT * FROM atomicassets_assets_master asset WHERE contract = $1 ';
-            let queryValues: any[] = [core.args.contract];
+            let queryValues: any[] = [core.args.atomicassets_account];
 
             if (args.collection_name && args.schema_name) {
                 const data = buildDataConditions(req.query, varCounter);
@@ -114,7 +114,7 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, rout
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_assets_master WHERE contract = $1 AND asset_id = $2',
-                [core.args.contract, req.params.asset_id]
+                [core.args.atomicassets_account, req.params.asset_id]
             );
 
             if (query.rowCount === 0) {
@@ -142,7 +142,7 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, rout
             res.json({
                 success: true,
                 data: await getLogs(
-                    core.connection.database, core.args.contract, 'asset', req.params.asset_id,
+                    core.connection.database, core.args.atomicassets_account, 'asset', req.params.asset_id,
                     (args.page - 1) * args.limit, args.limit
                 )
             });
@@ -293,7 +293,8 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, rout
                             description: 'ID of asset',
                             required: true,
                             type: 'integer'
-                        }
+                        },
+                        ...paginationFilter
                     ],
                     responses: {
                         '200': {
