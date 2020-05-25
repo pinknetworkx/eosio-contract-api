@@ -404,7 +404,7 @@ export class ContractDBTransaction {
 
             await this.client.query(
                 'UPDATE contract_readers SET block_num = $1 WHERE name = $2;',
-                [blockNum, this.name]
+                [blockNum - 1, this.name]
             );
         } finally {
             this.releaseLock(lock);

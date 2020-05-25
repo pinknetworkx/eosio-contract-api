@@ -93,8 +93,9 @@ export default class StateReceiver {
             }
 
             await db.updateReaderPosition(block);
-            await db.clearForkDatabase();
-        } else if (header.this_block.block_num > header.last_irreversible.block_num) {
+        }
+
+        if (header.this_block.block_num > header.last_irreversible.block_num) {
             await db.updateReaderPosition(block);
 
             await db.insert('reversible_blocks', {

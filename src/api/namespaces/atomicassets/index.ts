@@ -1,6 +1,5 @@
 import * as express from 'express';
 import * as swagger from 'swagger-ui-express';
-import * as rateLimit from 'express-rate-limit';
 
 import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
