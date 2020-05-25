@@ -60,6 +60,7 @@ export default class StateReceiver {
             start_block_num: startBlock,
             max_messages_in_flight: this.config.ship_prefetch_blocks || 10,
             irreversible_only: this.config.irreversible_only || false,
+            have_positions: await this.database.getLastReaderBlocks(),
             fetch_block: true,
             fetch_traces: true,
             fetch_deltas: true
@@ -93,7 +94,17 @@ export default class StateReceiver {
 
             await db.updateReaderPosition(block);
             await db.clearForkDatabase();
-        } else if (header.this_block.block_num >= header.last_irreversible.block_num || header.this_block.block_num % 100 === 0) {
+        } else if (header.this_block.block_num > header.last_irreversible.block_num) {
+            await db.updateReaderPosition(block);
+
+            await db.insert('reversible_blocks', {
+                reader: this.config.name,
+                block_id: Buffer.from(header.this_block.block_id, 'hex'),
+                block_num: header.this_block.block_num
+            }, ['reader', 'block_num']);
+
+            await db.clearForkDatabase();
+        } else if (header.this_block.block_num % 100 === 0) {
             await db.updateReaderPosition(block);
         }
 

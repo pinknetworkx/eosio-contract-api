@@ -66,6 +66,15 @@ export class ContractDB {
 
         return parseInt(query.rows[0].block_num, 10);
     }
+
+    async getLastReaderBlocks(): Promise<Array<{block_num: number, block_id: string}>> {
+        const query = await this.connection.database.query(
+            'SELECT block_num, encode(block_id::bytea, \'hex\') block_id FROM reversible_blocks WHERE reader = $1 ORDER BY block_num ASC',
+            [this.name]
+        );
+
+        return query.rows;
+    }
 }
 
 export class ContractDBTransaction {
@@ -351,8 +360,8 @@ export class ContractDBTransaction {
             );
 
             for (const row of query.rows) {
-                const values = JSON.parse(row.values);
-                const condition: Condition | null = JSON.parse(row.condition);
+                const values = row.values;
+                const condition: Condition | null = row.condition;
 
                 if (condition) {
                     condition.values = condition.values.map((value) => this.deserializeValue(value));
@@ -387,6 +396,16 @@ export class ContractDBTransaction {
                 'DELETE FROM reversible_queries WHERE block_num >= $1 AND reader = $2;',
                 [blockNum, this.name]
             );
+
+            await this.client.query(
+                'DELETE FROM reversible_blocks WHERE block_num >= $1 AND reader = $2;',
+                [blockNum, this.name]
+            );
+
+            await this.client.query(
+                'UPDATE contract_readers SET block_num = $1 WHERE name = $2;',
+                [blockNum, this.name]
+            );
         } finally {
             this.releaseLock(lock);
         }
@@ -400,6 +419,11 @@ export class ContractDBTransaction {
 
             await this.client.query(
                 'DELETE FROM reversible_queries WHERE block_num <= $1 AND reader = $2',
+                [this.lastIrreversibleBlock, this.name]
+            );
+
+            await this.client.query(
+                'DELETE FROM reversible_blocks WHERE block_num <= $1 AND reader = $2',
                 [this.lastIrreversibleBlock, this.name]
             );
         } finally {

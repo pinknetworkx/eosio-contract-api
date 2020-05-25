@@ -30,10 +30,18 @@ CREATE TABLE reversible_queries
     block_num bigint NOT NULL
 );
 
+CREATE TABLE reversible_blocks
+(
+    reader character varying(64) NOT NULL,
+    block_id bytea NOT NULL,
+    block_num bigint NOT NULL
+);
+
 ALTER TABLE ONLY contract_abis ADD CONSTRAINT contract_abis_pkey PRIMARY KEY (account, block_num);
 ALTER TABLE ONLY contract_codes ADD CONSTRAINT contract_codes_pkey PRIMARY KEY (account, block_num);
 ALTER TABLE ONLY contract_readers ADD CONSTRAINT contract_readers_pkey PRIMARY KEY (name);
 ALTER TABLE ONLY reversible_queries ADD CONSTRAINT reversible_queries_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY reversible_blocks ADD CONSTRAINT reversible_blocks_pkey PRIMARY KEY (reader, block_num);
 
 CREATE INDEX contract_abis_account ON contract_abis USING btree (account);
 CREATE INDEX contract_abis_block_num ON contract_abis USING btree (block_num);
