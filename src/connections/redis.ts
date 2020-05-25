@@ -1,9 +1,12 @@
-import * as Redis from 'ioredis';
+import * as IORedis from 'ioredis';
+import * as NodeRedis from 'redis';
 
 export default class RedisConnection {
-    readonly conn: Redis.Redis;
+    readonly ioRedis: IORedis.Redis;
+    readonly nodeRedis: NodeRedis.RedisClient;
 
     constructor(host: string, port: number) {
-        this.conn = new Redis({ host, port });
+        this.ioRedis = new IORedis({ host, port });
+        this.nodeRedis = NodeRedis.createClient({ host, port });
     }
 }

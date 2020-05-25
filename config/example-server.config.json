@@ -6,7 +6,11 @@
   "server_name": "wax.atomicassets.io",
   "server_port": 3000,
 
-  "cache_life_ms": 500,
+  "cache_life": 1,
+  "rate_limit": {
+    "interval": 60,
+    "requests": 100
+  },
 
   "namespaces": [
     {

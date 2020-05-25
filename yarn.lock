@@ -90,6 +90,13 @@
   dependencies:
     "@types/node" "*"
 
+"@types/express-rate-limit@^5.0.0":
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/@types/express-rate-limit/-/express-rate-limit-5.0.0.tgz#46b0dbae748a53347a5e1c3bdbb5a54e3f5c34f9"
+  integrity sha512-tVRtvshGIYTNiUET3XJaONn1Li0V9mhi9Tb23Kf3rJ19hsgbCywkZBOf5Xhd9OXBO0Ssw7B+qAHL77xe/TiqUw==
+  dependencies:
+    "@types/express" "*"
+
 "@types/express-serve-static-core@*":
   version "4.17.5"
   resolved "https://registry.yarnpkg.com/@types/express-serve-static-core/-/express-serve-static-core-4.17.5.tgz#a00ac7dadd746ae82477443e4d480a6a93ea083c"
@@ -107,6 +114,13 @@
     "@types/express-serve-static-core" "*"
     "@types/qs" "*"
     "@types/serve-static" "*"
+
+"@types/ioredis@*":
+  version "4.16.2"
+  resolved "https://registry.yarnpkg.com/@types/ioredis/-/ioredis-4.16.2.tgz#192c487a003463a6881dbc29faaa168902ef851a"
+  integrity sha512-b1wSWCLx5ygzDZ2d1BYBzsTzUcPEOcJH8d5O6AJGGJXjE6C+HrlA61sw5GQNqtqTPVo2Hpc4rPA30lI0T6QSLQ==
+  dependencies:
+    "@types/node" "*"
 
 "@types/ioredis@^4.16.0":
   version "4.16.0"
@@ -165,6 +179,22 @@
   version "1.2.3"
   resolved "https://registry.yarnpkg.com/@types/range-parser/-/range-parser-1.2.3.tgz#7ee330ba7caafb98090bece86a5ee44115904c2c"
   integrity sha512-ewFXqrQHlFsgc09MK5jP5iR7vumV/BYayNC6PgJO2LPe8vrnNFyjQjSppfEngITi0qvfKtzFvgKymGheFM9UOA==
+
+"@types/rate-limit-redis@^1.7.1":
+  version "1.7.1"
+  resolved "https://registry.yarnpkg.com/@types/rate-limit-redis/-/rate-limit-redis-1.7.1.tgz#ac5bd5772de41baba3edb41e2ac93ac3e803d99b"
+  integrity sha512-WceqhiLiZSYDbSIZg0i6qvB/W+rMgnyq0UNgr+YsBsK3LQPzBFUZrwxBGbfB/Gml+uvYaWXxlNVgL+1UErT+og==
+  dependencies:
+    "@types/ioredis" "*"
+    "@types/redis" "*"
+    express-rate-limit ">=3.4.0"
+
+"@types/redis@*", "@types/redis@^2.8.21":
+  version "2.8.21"
+  resolved "https://registry.yarnpkg.com/@types/redis/-/redis-2.8.21.tgz#4bd4a56747ee57156e50a4389ece0f79f1dfeac6"
+  integrity sha512-EcqWrhXnzlo2z7AwZG3jEuwGcs/QZoab1lBbOHRfV/ezzVrczpkFrCoQorWp3dvp7pfOJtAryxBFou0zQFYpDQ==
+  dependencies:
+    "@types/node" "*"
 
 "@types/serve-static@*":
   version "1.13.3"
@@ -760,7 +790,7 @@ delayed-stream@~1.0.0:
   resolved "https://registry.yarnpkg.com/delayed-stream/-/delayed-stream-1.0.0.tgz#df3ae199acadfb7d440aaae0b29e2272b24ec619"
   integrity sha1-3zrhmayt+31ECqrgsp4icrJOxhk=
 
-denque@^1.1.0:
+denque@^1.1.0, denque@^1.4.1:
   version "1.4.1"
   resolved "https://registry.yarnpkg.com/denque/-/denque-1.4.1.tgz#6744ff7641c148c3f8a69c307e51235c1f4a37cf"
   integrity sha512-OfzPuSZKGcgr96rf1oODnfjqBFmr1DVoc/TrItj3Ohe0Ah1C5WX5Baquw/9U9KovnQ88EqmJbD66rKYUQYN1tQ==
@@ -801,11 +831,6 @@ doctrine@0.7.2:
   dependencies:
     esutils "^1.1.6"
     isarray "0.0.1"
-
-double-ended-queue@^2.1.0-0:
-  version "2.1.0-0"
-  resolved "https://registry.yarnpkg.com/double-ended-queue/-/double-ended-queue-2.1.0-0.tgz#103d3527fd31528f40188130c841efdd78264e5c"
-  integrity sha1-ED01J/0xUo9AGIEwyEHv3XgmTlw=
 
 ecurve@1.0.5:
   version "1.0.5"
@@ -990,7 +1015,7 @@ evp_bytestokey@^1.0.0:
     md5.js "^1.3.4"
     safe-buffer "^5.1.1"
 
-express-rate-limit@^5.1.3:
+express-rate-limit@>=3.4.0, express-rate-limit@^5.1.3:
   version "5.1.3"
   resolved "https://registry.yarnpkg.com/express-rate-limit/-/express-rate-limit-5.1.3.tgz#656bacce3f093034976346958a0f0199902c9174"
   integrity sha512-TINcxve5510pXj4n9/1AMupkj3iWxl3JuZaWhCdYDlZeoCPqweGZrxbrlqTCFb1CT5wli7s8e2SH/Qz2c9GorA==
@@ -1863,13 +1888,13 @@ range-parser@~1.2.1:
   resolved "https://registry.yarnpkg.com/range-parser/-/range-parser-1.2.1.tgz#3cf37023d199e1c24d1a55b84800c2f3e6468031"
   integrity sha512-Hrgsx+orqoygnmhFbKaHE6c296J+HTAQXoxEF6gNupROmmGJRoyzfG3ccAveqCBrwr/2yxQ5BVd/GTl5agOwSg==
 
-rate-limit-redis@^1.7.0:
-  version "1.7.0"
-  resolved "https://registry.yarnpkg.com/rate-limit-redis/-/rate-limit-redis-1.7.0.tgz#7bf9d9b502d26b2ceb55ecb2801d6bc82ee99765"
-  integrity sha512-GwqpbMt0riTvra+NiFfX8BKuTdcX7xt0KpU0IahBopjRMzno0niqEKKNaQeNewOzkIz0fOO/R2CSWwfIZdf6oA==
+rate-limit-redis@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/rate-limit-redis/-/rate-limit-redis-2.0.0.tgz#a5953a9e502805a6bc84a597cf00fd7ef7344119"
+  integrity sha512-06EwXCcJYSKhKDyNPVgnAhwGk0uKxd0mpKdLpdJhnZGRoRzrxHWmponQn8Eq3hMLgbwPVvqdkgun3ZFWKKpuXg==
   dependencies:
     defaults "^1.0.3"
-    redis "^2.8.0"
+    redis "^3.0.2"
 
 raw-body@2.4.0:
   version "2.4.0"
@@ -1910,7 +1935,7 @@ readdirp@~3.2.0:
   dependencies:
     picomatch "^2.0.4"
 
-redis-commands@1.5.0, redis-commands@^1.2.0:
+redis-commands@1.5.0, redis-commands@^1.5.0:
   version "1.5.0"
   resolved "https://registry.yarnpkg.com/redis-commands/-/redis-commands-1.5.0.tgz#80d2e20698fe688f227127ff9e5164a7dd17e785"
   integrity sha512-6KxamqpZ468MeQC3bkWmCB1fp56XL64D4Kf0zJSwDZbVLLm7KFkoIcHrgRvQ+sk8dnhySs7+yBg94yIkAK7aJg==
@@ -1920,11 +1945,6 @@ redis-errors@^1.0.0, redis-errors@^1.2.0:
   resolved "https://registry.yarnpkg.com/redis-errors/-/redis-errors-1.2.0.tgz#eb62d2adb15e4eaf4610c04afe1529384250abad"
   integrity sha1-62LSrbFeTq9GEMBK/hUpOEJQq60=
 
-redis-parser@^2.6.0:
-  version "2.6.0"
-  resolved "https://registry.yarnpkg.com/redis-parser/-/redis-parser-2.6.0.tgz#52ed09dacac108f1a631c07e9b69941e7a19504b"
-  integrity sha1-Uu0J2srBCPGmMcB+m2mUHnoZUEs=
-
 redis-parser@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/redis-parser/-/redis-parser-3.0.0.tgz#b66d828cdcafe6b4b8a428a7def4c6bcac31c8b4"
@@ -1932,14 +1952,15 @@ redis-parser@^3.0.0:
   dependencies:
     redis-errors "^1.0.0"
 
-redis@^2.8.0:
-  version "2.8.0"
-  resolved "https://registry.yarnpkg.com/redis/-/redis-2.8.0.tgz#202288e3f58c49f6079d97af7a10e1303ae14b02"
-  integrity sha512-M1OkonEQwtRmZv4tEWF2VgpG0JWJ8Fv1PhlgT5+B+uNq2cA3Rt1Yt/ryoR+vQNOQcIEgdCdfH0jr3bDpihAw1A==
+redis@^3.0.2:
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/redis/-/redis-3.0.2.tgz#bd47067b8a4a3e6a2e556e57f71cc82c7360150a"
+  integrity sha512-PNhLCrjU6vKVuMOyFu7oSP296mwBkcE6lrAjruBYG5LgdSqtRBoVQIylrMyVZD/lkF24RSNNatzvYag6HRBHjQ==
   dependencies:
-    double-ended-queue "^2.1.0-0"
-    redis-commands "^1.2.0"
-    redis-parser "^2.6.0"
+    denque "^1.4.1"
+    redis-commands "^1.5.0"
+    redis-errors "^1.2.0"
+    redis-parser "^3.0.0"
 
 reflect-metadata@^0.1.12:
   version "0.1.13"

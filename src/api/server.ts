@@ -2,6 +2,9 @@ import * as express from 'express';
 import * as socketio from 'socket.io';
 import * as http from 'http';
 
+import * as expressRateLimit from 'express-rate-limit';
+import * as expressRedisStore from 'rate-limit-redis';
+
 import * as bodyParser from 'body-parser';
 import * as cors from 'cors';
 import * as cookieParser from 'cookie-parser';
@@ -9,6 +12,7 @@ import * as cookieParser from 'cookie-parser';
 import ConnectionManager from '../connections/manager';
 import { IServerConfig } from '../types/config';
 import logger from '../utils/winston';
+import { expressRedisCache, ExpressRedisCacheHandler } from '../utils/cache';
 
 const packageJson: any = require('../../package.json');
 
@@ -47,8 +51,33 @@ export class HTTPServer {
 export class WebServer {
     readonly express: express.Application;
 
+    readonly limiter: expressRateLimit.RateLimit;
+    readonly caching: ExpressRedisCacheHandler;
+
     constructor(readonly server: HTTPServer) {
         this.express = express();
+
+        this.express.set('trust proxy', 1);
+        this.express.disable('x-powered-by');
+
+        this.limiter = expressRateLimit({
+            windowMs: this.server.config.rate_limit.interval * 1000,
+            max: this.server.config.rate_limit.requests,
+            handler: (_: express.Request, res: express.Response): any => {
+                res.json({success: false, message: 'Rate limit'});
+            },
+            store: new expressRedisStore({
+                client: this.server.connections.redis.nodeRedis,
+                prefix: 'eosio-contract-api:' + server.connections.chain.name + ':rate-limit:',
+                expiry: this.server.config.rate_limit.interval
+            })
+        });
+
+        this.caching = expressRedisCache(
+            this.server.connections.redis.nodeRedis,
+            'eosio-contract-api:' + this.server.connections.chain.name + ':express-cache:',
+            this.server.config.cache_life
+        );
 
         this.middleware();
         this.routes();
@@ -70,7 +99,7 @@ export class WebServer {
     private routes(): void {
         const router = express.Router();
 
-        router.get('/health', async (_: express.Request, res: express.Response) => {
+        router.get('/health', this.caching({ contentType: 'text/json' }), async (_: express.Request, res: express.Response) => {
             let databaseStatus = 'INVALID';
 
             try {
@@ -83,7 +112,7 @@ export class WebServer {
                 databaseStatus = 'ERROR';
             }
 
-            let chainStatus = 'NO_CONNECTION';
+            let chainStatus;
 
             try {
                 const info = await this.server.connections.chain.rpc.get_info();
@@ -104,7 +133,7 @@ export class WebServer {
                         status: databaseStatus
                     },
                     redis: {
-                        status: this.server.connections.redis.conn.status === 'ready' ? 'OK' : 'ERROR'
+                        status: this.server.connections.redis.ioRedis.status === 'ready' ? 'OK' : 'ERROR'
                     },
                     chain: {
                         status: chainStatus

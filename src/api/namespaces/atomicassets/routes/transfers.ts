@@ -7,8 +7,8 @@ import logger from '../../../../utils/winston';
 import { formatTransfer } from '../format';
 import { standardArrayFilter } from '../swagger';
 
-export function transfersEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, router: express.Router): any {
-    router.get('/v1/transfers', (async (req, res) => {
+export function transfersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
+    router.get('/v1/transfers', server.web.caching({ contentType: 'text/json' }), (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
@@ -171,8 +171,8 @@ export function transfersSockets(core: AtomicAssetsNamespace, server: HTTPServer
 
     const channelName = ['eosio-contract-api', core.connection.chain.name, core.args.socket_api_prefix, 'transfers'].join(':');
 
-    core.connection.redis.conn.subscribe(channelName, () => {
-        core.connection.redis.conn.on('message', async (channel, message) => {
+    core.connection.redis.ioRedis.subscribe(channelName, () => {
+        core.connection.redis.ioRedis.on('message', async (channel, message) => {
             if (channel !== channelName) {
                 return;
             }

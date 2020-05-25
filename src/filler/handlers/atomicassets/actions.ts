@@ -494,7 +494,7 @@ export default class AtomicAssetsActionHandler {
         this.core.addNotifyJob(async () => {
             const channelName = ['eosio-contract-api', this.core.connection.chain.name, this.core.args.socket_api_prefix, prefix].join(':');
 
-            await this.core.connection.redis.conn.publish(channelName, JSON.stringify({
+            await this.core.connection.redis.ioRedis.publish(channelName, JSON.stringify({
                 transaction: tx,
                 block: {block_num: block.block_num, block_id: block.block_id},
                 action: name, data

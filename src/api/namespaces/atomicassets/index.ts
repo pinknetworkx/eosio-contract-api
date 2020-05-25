@@ -1,5 +1,6 @@
 import * as express from 'express';
 import * as swagger from 'swagger-ui-express';
+import * as rateLimit from 'express-rate-limit';
 
 import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
@@ -53,6 +54,8 @@ export class AtomicAssetsNamespace extends ApiNamespace {
             definitions: definitions
         };
 
+        server.web.express.use(this.path + '/v1', server.web.limiter);
+
         const endpointsDocs: any[] = [];
 
         endpointsDocs.push(assetsEndpoints(this, server, router));
@@ -73,7 +76,7 @@ export class AtomicAssetsNamespace extends ApiNamespace {
             Object.assign(documentation.definitions, doc.definitions);
         }
 
-        logger.debug(JSON.stringify(documentation));
+        logger.debug('swagger docs', documentation);
 
         server.web.express.use(this.path + '/docs', swagger.serve, swagger.setup(documentation, {
             customCss: '.topbar { display: none; }',

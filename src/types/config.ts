@@ -26,7 +26,11 @@ export interface IServerConfig {
     server_name: string;
     server_port: number;
 
-    cache_life_ms: number;
+    cache_life: number;
+    rate_limit: {
+        interval: number,
+        requests: number
+    };
 
     namespaces: INamespaceConfig[];
 }

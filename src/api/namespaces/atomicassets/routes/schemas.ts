@@ -8,7 +8,7 @@ import logger from '../../../../utils/winston';
 import { formatSchema } from '../format';
 import { paginationFilter, standardArrayFilter } from '../swagger';
 
-export function schemasEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, router: express.Router): any {
+export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     async function schemaRequestHandler(req: express.Request, res: express.Response): Promise<any> {
         try {
             const args = filterQueryArgs(req, {
@@ -70,10 +70,10 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, rou
         }
     }
 
-    router.get('/v1/schemas', schemaRequestHandler);
-    router.get('/v1/schemas/:collection_name', schemaRequestHandler);
+    router.get('/v1/schemas', server.web.caching({ contentType: 'text/json' }), schemaRequestHandler);
+    router.get('/v1/schemas/:collection_name', server.web.caching({ contentType: 'text/json' }), schemaRequestHandler);
 
-    router.get('/v1/schemas/:collection_name/:schema_name', (async (req, res) => {
+    router.get('/v1/schemas/:collection_name/:schema_name', server.web.caching({ contentType: 'text/json' }), (async (req, res) => {
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_schemas_master WHERE contract = $1 AND collection_name = $2 AND schema_name = $3',
@@ -94,7 +94,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, _: HTTPServer, rou
         }
     }));
 
-    router.get('/v1/schemas/:collection_name/:schema_name/logs', (async (req, res) => {
+    router.get('/v1/schemas/:collection_name/:schema_name/logs', server.web.caching({ contentType: 'text/json' }), (async (req, res) => {
         const args = filterQueryArgs(req, {
             page: {type: 'int', min: 1, default: 1},
             limit: {type: 'int', min: 1, max: 100, default: 100}
