@@ -27,9 +27,16 @@ export interface IServerConfig {
     server_port: number;
 
     cache_life: number;
+    trust_proxy: boolean;
+
     rate_limit: {
         interval: number,
         requests: number
+    };
+
+    socket_limit: {
+        connections_per_ip: number,
+        subscriptions_per_connection: number
     };
 
     namespaces: INamespaceConfig[];

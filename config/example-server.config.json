@@ -3,13 +3,20 @@
   "provider_url": "https://pink.network",
 
   "server_addr": "0.0.0.0",
-  "server_name": "wax.atomicassets.io",
+  "server_name": "wax.api.atomicassets.io",
   "server_port": 9000,
 
   "cache_life": 1,
+  "trust_proxy": true,
+
   "rate_limit": {
     "interval": 60,
     "requests": 100
+  },
+
+  "socket_limit": {
+    "connections_per_ip": 25,
+    "subscriptions_per_connection": 200
   },
 
   "namespaces": [

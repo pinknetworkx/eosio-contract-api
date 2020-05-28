@@ -54,10 +54,15 @@ export default class StateReceiver {
 
         startBlock = Math.max(startBlock, this.config.start_block);
 
+        if (startBlock > this.config.stop_block) {
+            throw new Error('Reader end block cannot be lower than the starting block');
+        }
+
         logger.info('Reader ' + this.config.name + ' starting on block #' + startBlock);
 
         this.ship.startProcessing({
             start_block_num: startBlock,
+            end_block_num: this.config.stop_block || 0xffffffff,
             max_messages_in_flight: this.config.ship_prefetch_blocks || 10,
             irreversible_only: this.config.irreversible_only || false,
             have_positions: await this.database.getLastReaderBlocks(),
@@ -79,6 +84,11 @@ export default class StateReceiver {
             logger.info('Chain fork detected. Reverse all blocks which were affected');
 
             await db.rollbackReversibleBlocks(header.this_block.block_num);
+
+            const channelName = ['eosio-contract-api', this.connection.chain.name, 'chain'].join(':');
+            await this.connection.redis.ioRedis.publish(channelName, JSON.stringify({
+                action: 'fork', block_num: header.this_block.block_num
+            }));
         }
 
         for (const transactionTrace of traces) {

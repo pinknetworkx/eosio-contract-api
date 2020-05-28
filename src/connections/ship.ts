@@ -114,8 +114,6 @@ export default class StateHistoryBlockReader {
     }
 
     send(request: [string, any]): void {
-        // logger.debug('Send request to ship', request);
-
         this.ws.send(this.serialize('request', request, this.types));
     }
 
@@ -141,8 +139,6 @@ export default class StateHistoryBlockReader {
                 }
             } else {
                 const [type, response] = this.deserialize('result', data, this.types);
-
-                // logger.debug('Message received from ship', {type});
 
                 if (type === 'get_blocks_result_v0') {
                     this.blocksQueue.add(async () => {
@@ -237,7 +233,11 @@ export default class StateHistoryBlockReader {
 
     async processBlock(response: any): Promise<void> {
         if (!response.this_block) {
-            if (this.currentArgs.start_block_num % 10000 === 0) {
+            if (this.currentArgs.start_block_num >= this.currentArgs.end_block_num) {
+                logger.warn(
+                    'Empty block #' + this.currentArgs.start_block_num + ' received. Reader finished reading.'
+                );
+            } else if (this.currentArgs.start_block_num % 10000 === 0) {
                 logger.warn(
                     'Empty block #' + this.currentArgs.start_block_num + ' received. ' +
                     'Node was likely started with a snapshot and you tried to process a blocks range ' +
@@ -247,8 +247,6 @@ export default class StateHistoryBlockReader {
 
             return;
         }
-
-        // logger.debug('Received block', {block_num: response.this_block.block_num});
 
         const {head, last_irreversible, this_block, prev_block} = response;
 

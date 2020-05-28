@@ -335,16 +335,39 @@ export type SocketAssetSubscriptionArgs = {
 export function assetsSockets(core: AtomicAssetsNamespace, server: HTTPServer): void {
     const namespace = server.socket.io.of(core.path + '/v1/assets');
 
-    namespace.on('connection', (socket) => {
+    namespace.on('connection', async (socket) => {
         logger.debug('socket asset client connected');
 
+        let verifiedConnection = false;
+        if (!(await server.socket.reserveConnection(socket))) {
+            socket.disconnect(true);
+        } else {
+            verifiedConnection = true;
+        }
+
         socket.on('subscribe', (options: SocketAssetSubscriptionArgs) => {
+            if (typeof options !== 'object') {
+                return;
+            }
+
             logger.debug('asset socket subscription', options);
+
+            socket.leaveAll();
+
+            const subscribeLimit = server.config.socket_limit.subscriptions_per_connection;
+            let subscribeCounter = 0;
 
             if (Array.isArray(options.asset_ids)) {
                 for (const assetId of options.asset_ids) {
                     if (typeof assetId === 'string') {
+                        if (subscribeCounter > subscribeLimit) {
+                            socket.emit('subscribe_limit', {max_subscriptions: subscribeLimit});
+
+                            return;
+                        }
+
                         socket.join('assets:asset_id:' + assetId);
+                        subscribeCounter++;
                     }
                 }
             }
@@ -352,32 +375,54 @@ export function assetsSockets(core: AtomicAssetsNamespace, server: HTTPServer): 
             if (Array.isArray(options.owners)) {
                 for (const owner of options.owners) {
                     if (typeof owner === 'string') {
+                        if (subscribeCounter > subscribeLimit) {
+                            socket.emit('subscribe_limit', {max_subscriptions: subscribeLimit});
+
+                            return;
+                        }
+
                         socket.join('assets:owner:' + owner);
+                        subscribeCounter++;
                     }
                 }
             }
 
             if (options.new_assets) {
+                if (subscribeCounter > subscribeLimit) {
+                    socket.emit('subscribe_limit', {max_subscriptions: subscribeLimit});
+
+                    return;
+                }
+
                 socket.join('assets:new_assets');
-            } else {
-                socket.leave('assets:new_assets');
+                subscribeCounter++;
             }
 
             if (options.updates) {
+                if (subscribeCounter > subscribeLimit) {
+                    socket.emit('subscribe_limit', {max_subscriptions: subscribeLimit});
+
+                    return;
+                }
+
                 socket.join('assets:updates');
-            } else {
-                socket.leave('assets:updates');
+                subscribeCounter++;
             }
 
             logger.debug('socket rooms updated', socket.adapter.rooms);
         });
+
+        socket.on('disconnect', async () => {
+            if (verifiedConnection) {
+                await server.socket.releaseConnection(socket);
+            }
+        });
     });
 
-    const channelName = ['eosio-contract-api', core.connection.chain.name, core.args.socket_api_prefix, 'assets'].join(':');
-
-    core.connection.redis.ioRedis.subscribe(channelName, () => {
+    const assetChannelName = ['eosio-contract-api', core.connection.chain.name, core.args.socket_api_prefix, 'assets'].join(':');
+    core.connection.redis.ioRedis.subscribe(assetChannelName, () => {
         core.connection.redis.ioRedis.on('message', async (channel, message) => {
-            if (channel !== channelName) {
+            if (channel !== assetChannelName) {
                 return;
             }
 
@@ -438,6 +483,23 @@ export function assetsSockets(core: AtomicAssetsNamespace, server: HTTPServer): 
                         asset: formatAsset(asset),
                         delta: msg.data.delta
                     });
+            }
+        });
+    });
+
+    const chainChannelName = ['eosio-contract-api', core.connection.chain.name, 'chain'].join(':');
+    core.connection.redis.ioRedis.subscribe(chainChannelName, () => {
+        core.connection.redis.ioRedis.on('message', async (channel, message) => {
+            if (channel !== chainChannelName) {
+                return;
+            }
+
+            const msg = JSON.parse(message);
+
+            if (msg.action === 'fork') {
+                namespace.emit('fork', {
+                    block_num: msg.block_num
+                });
             }
         });
     });

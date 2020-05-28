@@ -10,8 +10,10 @@
     "lint": "tslint -c tslint.json 'src/**/*.ts'",
     "build": "yarn clean && yarn lint && tsc",
     "test": "mocha -r ts-node/register test/**/*.test.ts",
+
     "start:api": "node ./build/bin/api.js",
     "start:filler": "node ./build/bin/filler.js",
+
     "dev:api": "tsc && node --trace-warnings ./build/bin/api.js",
     "dev:filler": "tsc && node --trace-warnings ./build/bin/filler.js"
   },

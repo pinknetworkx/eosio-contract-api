@@ -1,6 +1,7 @@
 import * as express from 'express';
 import * as socketio from 'socket.io';
 import * as http from 'http';
+import * as path from 'path';
 
 import * as expressRateLimit from 'express-rate-limit';
 import * as expressRedisStore from 'rate-limit-redis';
@@ -57,7 +58,10 @@ export class WebServer {
     constructor(readonly server: HTTPServer) {
         this.express = express();
 
-        this.express.set('trust proxy', 1);
+        if (this.server.config.trust_proxy) {
+            this.express.set('trust proxy', 1);
+        }
+
         this.express.disable('x-powered-by');
 
         this.limiter = expressRateLimit({
@@ -65,6 +69,17 @@ export class WebServer {
             max: this.server.config.rate_limit.requests,
             handler: (_: express.Request, res: express.Response): any => {
                 res.json({success: false, message: 'Rate limit'});
+            },
+            keyGenerator(req: express.Request): string {
+                let ip: string = req.connection.remoteAddress;
+
+                if (server.config.trust_proxy && req.headers['x-forwarded-for']) {
+                    ip = String(req.headers['x-forwarded-for']);
+                }
+
+                logger.debug('Rate limit increase for', ip);
+
+                return ip;
             },
             store: new expressRedisStore({
                 client: this.server.connections.redis.nodeRedis,
@@ -142,6 +157,8 @@ export class WebServer {
             });
         });
 
+        router.use('/docs/assets', express.static(path.resolve(__dirname, '../../docs/assets')));
+
         this.express.use(router);
     }
 }
@@ -154,11 +171,54 @@ export class SocketServer {
             origins: '*:*'
         });
 
-        this.adapter();
-        this.routes();
+        this.init().then();
     }
 
-    private adapter(): void { }
+    async init(): Promise<void> {
+        const pattern = ['eosio-contract-api', this.server.connections.chain.name, 'socket-connections', '*'].join(':');
+        const keys = await this.server.connections.redis.ioRedis.keys(pattern);
 
-    private routes(): void { }
+        const pipeline = this.server.connections.redis.ioRedis.pipeline();
+
+        for (const key of keys) {
+            pipeline.del(key);
+        }
+
+        await pipeline.exec();
+    }
+
+    async reserveConnection(socket: socketio.Socket): Promise<boolean> {
+        let ip;
+        if (this.server.config.trust_proxy) {
+            ip = socket.handshake.headers['x-forwarded-for'].split(',')[0];
+        } else {
+            ip = socket.conn.remoteAddress;
+        }
+
+        logger.debug('reserve socket connection', ip);
+
+        const key = ['eosio-contract-api', this.server.connections.chain.name, 'socket-connections', ip].join(':');
+        const connections = parseInt(await this.server.connections.redis.ioRedis.get(key), 10);
+
+        if (isNaN(connections) || connections < this.server.config.socket_limit.connections_per_ip) {
+            await this.server.connections.redis.ioRedis.incr(key);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    async releaseConnection(socket: socketio.Socket): Promise<void> {
+        let ip;
+        if (this.server.config.trust_proxy) {
+            ip = socket.handshake.headers['x-forwarded-for'].split(',')[0];
+        } else {
+            ip = socket.conn.remoteAddress;
+        }
+
+        const key = ['eosio-contract-api', this.server.connections.chain.name, 'socket-connections', ip].join(':');
+
+        await this.server.connections.redis.ioRedis.decr(key);
+    }
 }

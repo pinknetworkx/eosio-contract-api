@@ -1,5 +1,6 @@
 import * as express from 'express';
 import * as swagger from 'swagger-ui-express';
+import * as path from "path";
 
 import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
@@ -33,13 +34,9 @@ export class AtomicAssetsNamespace extends ApiNamespace {
         const documentation: any = {
             swagger: '2.0',
             info: {
-                description: 'API for AtomicAssets NFT standard',
-                version: '1.0.0-beta',
-                title: 'AtomicAssets',
-                contact: {
-                    name: server.config.provider_name,
-                    url: server.config.provider_url
-                },
+                description: this.buildDescription(server),
+                version: '1.0.0',
+                title: 'AtomicAssets API',
                 externalDocs: {
                     description: 'NPM Module',
                     url: 'https://www.npmjs.com/package/atomicassets'
@@ -48,6 +45,8 @@ export class AtomicAssetsNamespace extends ApiNamespace {
             host: server.config.server_name,
             basePath: this.path,
             schemes: ['https', 'http'],
+            consumes: ['application/json'],
+            produces: ['application/json'],
             tags: [],
             paths: {},
             definitions: definitions
@@ -77,7 +76,9 @@ export class AtomicAssetsNamespace extends ApiNamespace {
 
         logger.debug('swagger docs', documentation);
 
-        server.web.express.use(this.path + '/docs', swagger.serve, swagger.setup(documentation, {
+        server.web.express.use(this.path + '/docs', express.static(path.resolve(__dirname, '../../../../docs/atomicassets')));
+
+        server.web.express.use(this.path + '/docs/swagger', swagger.serve, swagger.setup(documentation, {
             customCss: '.topbar { display: none; }',
             customCssUrl: 'https://cdn.jsdelivr.net/npm/swagger-ui-themes@3.0.0/themes/3.x/theme-flattop.min.css'
         }));
@@ -89,5 +90,12 @@ export class AtomicAssetsNamespace extends ApiNamespace {
         assetsSockets(this, server);
         transfersSockets(this, server);
         offersSockets(this, server);
+    }
+
+    private buildDescription(server: HTTPServer): string {
+        return '### EOSIO Contract API\n' +
+            '*Made with ♥️ by [pink.network](https://pink.network/)*\n' +
+            '#### Current Chain: ' + server.connections.chain.name + '\n' +
+            `#### Provided by: [${server.config.provider_name}](${server.config.provider_url})`;
     }
 }

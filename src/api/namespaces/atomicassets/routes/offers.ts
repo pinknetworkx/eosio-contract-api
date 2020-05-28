@@ -206,16 +206,39 @@ export type SocketOfferSubscriptionArgs = {
 export function offersSockets(core: AtomicAssetsNamespace, server: HTTPServer): void {
     const namespace = server.socket.io.of(core.path + '/v1/offers');
 
-    namespace.on('connection', (socket) => {
+    namespace.on('connection', async (socket) => {
         logger.debug('socket offer client connected');
 
+        let verifiedConnection = false;
+        if (!(await server.socket.reserveConnection(socket))) {
+            socket.disconnect(true);
+        } else {
+            verifiedConnection = true;
+        }
+
         socket.on('subscribe', (options: SocketOfferSubscriptionArgs) => {
+            if (typeof options !== 'object') {
+                return;
+            }
+
             logger.debug('offer socket subscription', options);
+
+            socket.leaveAll();
+
+            const subscribeLimit = server.config.socket_limit.subscriptions_per_connection;
+            let subscribeCounter = 0;
 
             if (Array.isArray(options.offer_ids)) {
                 for (const offerId of options.offer_ids) {
                     if (typeof offerId === 'string') {
+                        if (subscribeCounter > subscribeLimit) {
+                            socket.emit('subscribe_limit', {max_subscriptions: subscribeLimit});
+
+                            return;
+                        }
+
                         socket.join('offers:offer_id:' + offerId);
+                        subscribeCounter++;
                     }
                 }
             }
@@ -223,26 +246,43 @@ export function offersSockets(core: AtomicAssetsNamespace, server: HTTPServer): 
             if (Array.isArray(options.accounts)) {
                 for (const account of options.accounts) {
                     if (typeof account === 'string') {
+                        if (subscribeCounter > subscribeLimit) {
+                            socket.emit('subscribe_limit', {max_subscriptions: subscribeLimit});
+
+                            return;
+                        }
+
                         socket.join('offers:account:' + account);
+                        subscribeCounter++;
                     }
                 }
             }
 
             if (options.new_offers) {
+                if (subscribeCounter > subscribeLimit) {
+                    socket.emit('subscribe_limit', {max_subscriptions: subscribeLimit});
+
+                    return;
+                }
+
                 socket.join('offers:new_offers');
-            } else {
-                socket.leave('offers:new_offers');
+                subscribeCounter++;
             }
 
             logger.debug('socket rooms updated', socket.rooms);
         });
+
+        socket.on('disconnect', async () => {
+            if (verifiedConnection) {
+                await server.socket.releaseConnection(socket);
+            }
+        });
     });
 
-    const channelName = ['eosio-contract-api', core.connection.chain.name, core.args.socket_api_prefix, 'offers'].join(':');
-
-    core.connection.redis.ioRedis.subscribe(channelName, () => {
+    const offerChannelName = ['eosio-contract-api', core.connection.chain.name, core.args.socket_api_prefix, 'offers'].join(':');
+    core.connection.redis.ioRedis.subscribe(offerChannelName, () => {
         core.connection.redis.ioRedis.on('message', async (channel, message) => {
-            if (channel !== channelName) {
+            if (channel !== offerChannelName) {
                 return;
             }
 
@@ -283,6 +323,23 @@ export function offersSockets(core: AtomicAssetsNamespace, server: HTTPServer): 
                         block: msg.block,
                         offer: formatOffer(offer)
                     });
+            }
+        });
+    });
+
+    const chainChannelName = ['eosio-contract-api', core.connection.chain.name, 'chain'].join(':');
+    core.connection.redis.ioRedis.subscribe(chainChannelName, () => {
+        core.connection.redis.ioRedis.on('message', async (channel, message) => {
+            if (channel !== chainChannelName) {
+                return;
+            }
+
+            const msg = JSON.parse(message);
+
+            if (msg.action === 'fork') {
+                namespace.emit('fork', {
+                    block_num: msg.block_num
+                });
             }
         });
     });

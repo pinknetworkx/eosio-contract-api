@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Socket API | AtomicAssets API Documentation</title>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism-okaidia.min.css">
+
+    <link type="text/css" rel="stylesheet" href="/docs/assets/css/styles.css">
+</head>
+
+<body class="body-pink">
+<div class="page-wrapper">
+    <div class="doc-wrapper">
+        <div class="container">
+            <div id="doc-header" class="doc-header text-center">
+                <h1 class="doc-title">Socket API</h1>
+            </div>
+            <div class="doc-body row">
+                <div class="doc-content col-md-9 col-12 order-1">
+                    <div class="content-inner">
+                        <section id="section-requirements" class="doc-section">
+                            <h2 class="section-title">Requirements</h2>
+                            <div class="section-block">
+                                <p>
+                                    This API uses the library <a href="https://socket.io/">socket.io</a> >= 2.0.0 for the websocket connection which
+                                    is not compatible with standardized websocket clients but allows more flexibility. Socket.io can be used in browser or node environments.
+                                </p>
+                                <p>
+                                    The socket API is used to subscribe to actions on the blockchain and receive realtime notifications.
+                                </p>
+                            </div>
+                        </section>
+                        <section id="section-usage" class="doc-section">
+                            <h2 class="section-title">Usage</h2>
+                            <div class="section-block">
+                                <h3 class="block-title">Connect</h3>
+
+                                <pre><code class="language-javascript">const socket = io('&lt;SOCKET ENDPOINT&gt;');</code></pre>
+                            </div>
+                            <div class="section-block">
+                                <h3 class="block-title">Subscribe Event</h3>
+                                <pre><code class="language-javascript">socket.on('event', (data) => { });</code></pre>
+                            </div><!--//section-block-->
+                            <div class="section-block">
+                                <h3 class="block-title">Publish Event</h3>
+                                <pre><code class="language-javascript">socket.emit('event', data);</code></pre>
+                            </div>
+                        </section>
+                        <section id="section-objects" class="doc-section">
+                            <h2 class="section-title">Standard Objects</h2>
+                            <div id="section-objects-transaction" class="section-block">
+                                <h3 class="block-title">Transaction</h3>
+                                <pre><code class="language-javascript">{
+    "id": string,
+    "cpu_usage_us": number,
+    "net_usage_words": number
+}</code></pre>
+                            </div>
+                            <div id="section-objects-block" class="section-block">
+                                <h3 class="block-title">Block</h3>
+                                <pre><code class="language-javascript">{
+    "block_id": string,
+    "block_num": number
+}</code></pre>
+                            </div>
+                            <div id="section-objects-asset" class="section-block">
+                                <h3 class="block-title">Asset</h3>
+                                <pre><code class="language-javascript">{
+    "contract": string",
+    "asset_id": number,
+    "owner": string,
+    "name": string,
+    "is_transferable": boolean,
+    "is_burnable": boolean,
+    "collection": {
+        "collection_name": string,
+        "name": string,
+        "author": string,
+        "allow_notify": boolean,
+        "authorized_accounts": string[],
+        "notify_accounts": string[],
+        "market_fee": boolean,
+        "created_at_block": number,
+        "created_at_time": number
+    },
+    "schema": {
+        "schema_name": string",
+        "format": Array<{ "name": string", "type": "string" }>,
+        "created_at_block": number,
+        "created_at_time": number
+    },
+    "template": {
+        "template_id": number,
+        "max_supply": number,
+        "issued_supply": number,
+        "is_transferable": boolean,
+        "is_burnable": bolean,
+        "immutable_data": {[key: string]: any},
+        "created_at_time": number,
+        "created_at_block": number
+    } | null,
+    "backed_tokens": Array<
+        {
+            "token_contract": string,
+            "token_symbol": string,
+            "token_precision": number,
+            "amount": number
+        }
+    >,
+    "immutable_data": {[key: string]: any},
+    "mutable_data": {[key: string]: any},
+    "data": {[key: string]: any},
+    "burned_at_block": number,
+    "burned_at_time": number,
+    "updated_at_block": number,
+    "updated_at_time": number,
+    "minted_at_block": number,
+    "minted_at_time": number
+}</code></pre>
+                            </div>
+                            <div id="section-objects-offer" class="section-block">
+                                <h3 class="block-title">Offer</h3>
+                                <pre><code class="language-javascript">{
+    "contract": string,
+    "offer_id": string,
+    "sender_name": string,
+    "recipient_name": string,
+    "memo": string,
+    "state": number,
+    "is_sender_contract": boolean,
+    "is_recipient_contract": boolean,
+    "sender_assets": Asset[],
+    "recipient_assets": Asset[],
+    "updated_at_block": number,
+    "updated_at_time": number,
+    "created_at_block": number,
+    "created_at_time": number
+}</code></pre>
+                            </div>
+                            <div id="section-objects-transfer" class="section-block">
+                                <h3 class="block-title">Transfer</h3>
+                                <pre><code class="language-javascript">{
+    "contract": string,
+    "sender_name": string,
+    "recipient_name": string,
+    "memo": string,
+    "assets": Asset[],
+    "created_at_block": number,
+    "created_at_time": number
+}</code></pre>
+                            </div>
+                        </section>
+                        <section id="section-endpoint-assets" class="doc-section">
+                            <h2 class="section-title">v1/assets</h2>
+                            <div class="section-block">
+                                <p>
+                                    Endpoint: <strong><span class="api-base-path"></span>/v1/assets</strong>
+                                </p>
+                            </div>
+                            <div id="section-endpoint-assets-publish" class="section-block">
+                                <h3 class="block-title">Publish Events</h3>
+                                <h6>Event: subscribe</h6>
+                                <pre><code class="language-javascript">{
+    "asset_ids": string[], // Get notifications for updates of certain asset ids
+    "owners": string[], // Get notifications for updates of all assets which are in the inventory of an account in the list
+    "new_assets": boolean, // Get a notification for each newly created asset
+    "updates": boolean // Get a notifications for each update / burn / back event
+}</code></pre>
+                            </div>
+                            <div id="section-endpoint-assets-subscribe" class="section-block">
+                                <h3 class="block-title">Subscribe Events</h3>
+                                <h6>Event: new_asset</h6>
+                                <i>Fired when a new asset is created which passes the subscription conditions</i>
+                                <pre><code class="language-javascript">{
+    "transaction": Transaction,
+    "block": Block,
+    "asset": Asset
+}</code></pre>
+                                <hr />
+                                <h6>Event: burn</h6>
+                                <i>Fired when a asset is burned</i>
+                                <pre><code class="language-javascript">{
+    "transaction": Transaction,
+    "block": Block,
+    "asset": Asset
+}</code></pre>
+                                <hr />
+                                <h6>Event: back</h6>
+                                <i>Fired when the asset is backed by a token</i>
+                                <pre><code class="language-javascript">{
+    "transaction": Transaction,
+    "block": Block,
+    "asset": Asset,
+    "trace": EosioTrace
+}</code></pre>
+                                <hr />
+                                <h6>Event: update</h6>
+                                <i>Fired when the asset data is updated</i>
+                                <pre><code class="language-javascript">{
+    "transaction": Transaction,
+    "block": Block,
+    "asset": Asset,
+    "delta": Array<{
+        "action": string,
+        "key": string,
+        "before": any,
+        "after": any
+    }>
+}</code></pre>
+                                <h6>Event: fork</h6>
+                                <i>Fired when a fork is detected on the blockchain</i>
+                                <pre><code class="language-javascript">{
+    "block_num": number
+}</code></pre>
+                                <hr />
+                                <h6>Event: subscribe_limit</h6>
+                                <i>Fired when the subscribe event has too much options</i>
+                                <pre><code class="language-javascript">{
+    "max_subscriptions": number
+}</code></pre>
+                            </div>
+                        </section>
+                        <section id="section-endpoint-offers" class="doc-section">
+                            <h2 class="section-title">v1/offers</h2>
+                            <div class="section-block">
+                                <p>
+                                    Endpoint: <strong><span class="api-base-path"></span>/v1/offers</strong>
+                                </p>
+                            </div>
+                            <div id="section-endpoint-offers-publish" class="section-block">
+                                <h3 class="block-title">Publish Events</h3>
+                                <h6>Event: subscribe</h6>
+                                <pre><code class="language-javascript">{
+    "offer_ids": string[], // Get notifications for updates of certain offer ids
+    "accounts": string[], // Get notifications for all offers where the sender or recipient is in this list
+    "new_offers": boolean // Get a notification for each newly created offer
+}</code></pre>
+                            </div>
+                            <div id="section-endpoint-offers-subscribe" class="section-block">
+                                <h3 class="block-title">Subscribe Events</h3>
+                                <h6>Event: new_offer</h6>
+                                <i>Fired when a new offer is created which passes the subscription conditions</i>
+                                <pre><code class="language-javascript">{
+    "transaction": Transaction,
+    "block": Block,
+    "offer": Offer
+}</code></pre>
+                                <hr />
+                                <h6>Event: state_change</h6>
+                                <i>Offers can change the state when they become invalid or are accepted / canceled or declined</i>
+                                <pre><code class="language-javascript">{
+    "transaction": Transaction,
+    "block": Block,
+    "offer": Offer
+}</code></pre>
+                                <hr />
+                                <h6>Event: fork</h6>
+                                <i>Fired when a fork is detected on the blockchain</i>
+                                <pre><code class="language-javascript">{
+    "block_num": number
+}</code></pre>
+                                <hr />
+                                <h6>Event: subscribe_limit</h6>
+                                <i>Fired when the subscribe event has too much options</i>
+                                <pre><code class="language-javascript">{
+    "max_subscriptions": number
+}</code></pre>
+                            </div>
+                        </section>
+                        <section id="section-endpoint-transfers" class="doc-section">
+                            <h2 class="section-title">v1/transfers</h2>
+                            <div class="section-block">
+                                <p>
+                                    Endpoint: <strong><span class="api-base-path"></span>/v1/offers</strong>
+                                </p>
+                            </div>
+                            <div id="section-endpoint-transfers-publish" class="section-block">
+                                <h3 class="block-title">Publish Events</h3>
+                                <h6>Event: subscribe</h6>
+                                <pre><code class="language-javascript">{
+    "accounts": string[], // Get notifications for all transfers where the sender or recipient is in this list
+    "new_transfers": boolean // Get a notification for each newly created transfer
+}</code></pre>
+                            </div>
+                            <div  id="section-endpoint-transfers-subscribe" class="section-block">
+                                <h3 class="block-title">Subscribe Events</h3>
+                                <h6>Event: new_transfer</h6>
+                                <i>Fired each time a new transfer is received and it passes the conditions in the subscription</i>
+                                <pre><code class="language-javascript">{
+    "transaction": Transaction,
+    "block": Block,
+    "transfer": Transfer
+}</code></pre>
+                                <hr />
+                                <h6>Event: fork</h6>
+                                <i>Fired when a fork is detected on the blockchain</i>
+                                <pre><code class="language-javascript">{
+    "block_num": number
+}</code></pre>
+                                <hr />
+                                <h6>Event: subscribe_limit</h6>
+                                <i>Fired when the subscribe event has too much options</i>
+                                <pre><code class="language-javascript">{
+    "max_subscriptions": number
+}</code></pre>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+                <div class="doc-sidebar col-md-3 col-12 order-0 d-none d-md-flex">
+                    <div id="doc-nav" class="doc-nav">
+
+                        <nav id="doc-menu" class="nav doc-menu flex-column sticky">
+                            <a class="nav-link scrollto" href="#section-requirements">Requirements</a>
+                            <a class="nav-link scrollto" href="#section-usage">Usage</a>
+                            <a class="nav-link scrollto" href="#section-objects">Standard Objects</a>
+                            <nav class="doc-sub-menu nav flex-column">
+                                <a class="nav-link scrollto" href="#section-objects-transaction">Transaction</a>
+                                <a class="nav-link scrollto" href="#section-objects-block">Block</a>
+                                <a class="nav-link scrollto" href="#section-objects-asset">Asset</a>
+                                <a class="nav-link scrollto" href="#section-objects-offer">Offer</a>
+                                <a class="nav-link scrollto" href="#section-objects-transfer">Transfer</a>
+                            </nav>
+                            <a class="nav-link scrollto" href="#section-endpoint-assets">v1/assets</a>
+                            <nav class="doc-sub-menu nav flex-column">
+                                <a class="nav-link scrollto" href="#section-endpoint-assets-publish">Publish Events</a>
+                                <a class="nav-link scrollto" href="#section-endpoint-assets-subscribe">Subscribe Events</a>
+                            </nav>
+                            <a class="nav-link scrollto" href="#section-endpoint-offers">v1/offers</a>
+                            <nav class="doc-sub-menu nav flex-column">
+                                <a class="nav-link scrollto" href="#section-endpoint-offers-publish">Publish Events</a>
+                                <a class="nav-link scrollto" href="#section-endpoint-offers-subscribe">Subscribe Events</a>
+                            </nav>
+                            <a class="nav-link scrollto" href="#section-endpoint-transfers">v1/transfers</a>
+                            <nav class="doc-sub-menu nav flex-column">
+                                <a class="nav-link scrollto" href="#section-endpoint-transfers-publish">Publish Events</a>
+                                <a class="nav-link scrollto" href="#section-endpoint-transfers-subscribe">Subscribe Events</a>
+                            </nav>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/jquery-scrollTo/2.1.2/jquery.scrollTo.min.js"></script>
+<script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.0/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/stickyfill/2.1.0/stickyfill.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/prism.min.js"></script>
+<script type="text/javascript" src="/docs/assets/jscript/main.js"></script>
+</body>
+</html>
+
