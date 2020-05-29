@@ -54,7 +54,7 @@ export default class StateReceiver {
 
         startBlock = Math.max(startBlock, this.config.start_block);
 
-        if (startBlock > this.config.stop_block) {
+        if (this.config.stop_block > 0 && startBlock > this.config.stop_block) {
             throw new Error('Reader end block cannot be lower than the starting block');
         }
 
