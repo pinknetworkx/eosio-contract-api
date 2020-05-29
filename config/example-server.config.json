@@ -11,13 +11,15 @@
 
   "rate_limit": {
     "interval": 60,
-    "requests": 100
+    "requests": 240
   },
 
   "socket_limit": {
     "connections_per_ip": 25,
     "subscriptions_per_connection": 200
   },
+
+  "ip_whitelist": [],
 
   "namespaces": [
     {

@@ -39,6 +39,8 @@ export interface IServerConfig {
         subscriptions_per_connection: number
     };
 
+    ip_whitelist: string[];
+
     namespaces: INamespaceConfig[];
 }
 

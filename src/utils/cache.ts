@@ -3,13 +3,21 @@ import * as NodeRedis from 'redis';
 
 import logger from './winston';
 
-export type ExpressRedisCacheOptions = { contentType?: string };
+export type ExpressRedisCacheOptions = { contentType?: string, whitelistedIPs?: string[] };
 export type ExpressRedisCacheHandler = (options: ExpressRedisCacheOptions) => express.RequestHandler;
 
-export function expressRedisCache(redis: NodeRedis.RedisClient, prefix: string, expire: number): ExpressRedisCacheHandler {
+export function expressRedisCache(redis: NodeRedis.RedisClient, prefix: string, expire: number, whitelistedIPs?: string[]): ExpressRedisCacheHandler {
     return (options: ExpressRedisCacheOptions = { }) => {
         return (req: express.Request, res: express.Response, next: express.NextFunction) => {
             if (expire === 0) {
+                return next();
+            }
+
+            if (options.whitelistedIPs && options.whitelistedIPs.indexOf(req.ip) >= 0) {
+                return next();
+            }
+
+            if (whitelistedIPs && whitelistedIPs.indexOf(req.ip) >= 0) {
                 return next();
             }
 

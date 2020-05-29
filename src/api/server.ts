@@ -67,19 +67,17 @@ export class WebServer {
         this.limiter = expressRateLimit({
             windowMs: this.server.config.rate_limit.interval * 1000,
             max: this.server.config.rate_limit.requests,
-            handler: (_: express.Request, res: express.Response): any => {
+            handler: (req: express.Request, res: express.Response, next: express.NextFunction): any => {
+                if (this.server.config.ip_whitelist.indexOf(req.ip) >= 0) {
+                    return next();
+                }
+
                 res.json({success: false, message: 'Rate limit'});
             },
             keyGenerator(req: express.Request): string {
-                let ip: string = req.connection.remoteAddress;
+                logger.debug('Rate limit increase for ' + req.ip);
 
-                if (server.config.trust_proxy && req.headers['x-forwarded-for']) {
-                    ip = String(req.headers['x-forwarded-for']);
-                }
-
-                logger.debug('Rate limit increase for ' + ip);
-
-                return ip;
+                return req.ip;
             },
             store: new expressRedisStore({
                 client: this.server.connections.redis.nodeRedis,
@@ -91,7 +89,8 @@ export class WebServer {
         this.caching = expressRedisCache(
             this.server.connections.redis.nodeRedis,
             'eosio-contract-api:' + this.server.connections.chain.name + ':express-cache:',
-            this.server.config.cache_life
+            this.server.config.cache_life || 0,
+            this.server.config.ip_whitelist || []
         );
 
         this.middleware();
