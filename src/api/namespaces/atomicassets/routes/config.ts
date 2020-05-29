@@ -22,7 +22,7 @@ export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                 contract: core.args.atomicassets_account,
                 version: query.rows[0].version,
                 collection_format: query.rows[0].collection_format
-            }});
+            }, query_time: Date.now()});
         } catch (e) {
             logger.error(e);
 
@@ -65,7 +65,8 @@ export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                                                 }
                                             }
                                         }
-                                    }
+                                    },
+                                    query_time: {type: 'number'}
                                 }
                             }
                         },

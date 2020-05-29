@@ -43,7 +43,7 @@ export function expressRedisCache(redis: NodeRedis.RedisClient, prefix: string, 
                         res.contentType(options.contentType);
                     }
 
-                    res.status(304).send(buffer.toString('utf8'));
+                    res.status(200).send(buffer.toString('utf8'));
                 }
             });
         };

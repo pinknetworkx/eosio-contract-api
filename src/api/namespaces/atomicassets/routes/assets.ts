@@ -101,7 +101,7 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
 
             const query = await core.connection.database.query(queryString, queryValues);
 
-            return res.json({success: true, data: query.rows.map((row) => formatAsset(row))});
+            return res.json({success: true, data: query.rows.map((row) => formatAsset(row)), query_time: Date.now()});
         } catch (e) {
             logger.error(e);
 
@@ -123,7 +123,7 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                 return res.json({success: false, message: 'Asset not found'});
             }
 
-            return res.json({success: true, data: formatAsset(query.rows[0])});
+            return res.json({success: true, data: formatAsset(query.rows[0]), query_time: Date.now()});
         } catch (e) {
             logger.error(e);
 
@@ -144,7 +144,7 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                 data: await getLogs(
                     core.connection.database, core.args.atomicassets_account, 'asset', req.params.asset_id,
                     (args.page - 1) * args.limit, args.limit
-                )
+                ), query_time: Date.now()
             });
         } catch (e) {
             logger.error(e);
@@ -226,7 +226,8 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                                 type: 'object',
                                 properties: {
                                     success: {type: 'boolean', default: true},
-                                    data: {type: 'array', items: {'$ref': '#/definitions/Asset'}}
+                                    data: {type: 'array', items: {'$ref': '#/definitions/Asset'}},
+                                    query_time: {type: 'number'}
                                 }
                             }
                         },
@@ -264,7 +265,8 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                                 type: 'object',
                                 properties: {
                                     success: {type: 'boolean', default: true},
-                                    data: {'$ref': '#/definitions/Asset'}
+                                    data: {'$ref': '#/definitions/Asset'},
+                                    query_time: {type: 'number'}
                                 }
                             }
                         },
@@ -303,7 +305,8 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                                 type: 'object',
                                 properties: {
                                     success: {type: 'boolean', default: true},
-                                    data: {'$ref': '#/definitions/Log'}
+                                    data: {'$ref': '#/definitions/Log'},
+                                    query_time: {type: 'number'}
                                 }
                             }
                         },

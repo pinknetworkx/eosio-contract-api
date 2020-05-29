@@ -63,7 +63,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
 
             const query = await core.connection.database.query(queryString, queryValues);
 
-            return res.json({success: true, data: query.rows.map((row) => formatCollection(row))});
+            return res.json({success: true, data: query.rows.map((row) => formatCollection(row)), query_time: Date.now()});
         } catch (e) {
             logger.error(e);
 
@@ -85,7 +85,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
                 return res.json({success: false, message: 'Collection not found'});
             }
 
-            return res.json({success: true, data: formatCollection(query.rows[0])});
+            return res.json({success: true, data: formatCollection(query.rows[0]), query_time: Date.now()});
         } catch (e) {
             logger.error(e);
 
@@ -106,7 +106,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
                 data: await getLogs(
                     core.connection.database, core.args.atomicassets_account, 'collection', req.params.collection_name,
                     (args.page - 1) * args.limit, args.limit
-                )
+                ), query_time: Date.now()
             });
         } catch (e) {
             logger.error(e);
@@ -174,7 +174,8 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
                                 type: 'object',
                                 properties: {
                                     success: {type: 'boolean', default: true},
-                                    data: {type: 'array', items: {'$ref': '#/definitions/Collection'}}
+                                    data: {type: 'array', items: {'$ref': '#/definitions/Collection'}},
+                                    query_time: {type: 'number'}
                                 }
                             }
                         },
@@ -212,7 +213,8 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
                                 type: 'object',
                                 properties: {
                                     success: {type: 'boolean', default: true},
-                                    data: {'$ref': '#/definitions/Collection'}
+                                    data: {'$ref': '#/definitions/Collection'},
+                                    query_time: {type: 'number'}
                                 }
                             }
                         },
@@ -251,7 +253,8 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
                                 type: 'object',
                                 properties: {
                                     success: {type: 'boolean', default: true},
-                                    data: {'$ref': '#/definitions/Log'}
+                                    data: {'$ref': '#/definitions/Log'},
+                                    query_time: {type: 'number'}
                                 }
                             }
                         },

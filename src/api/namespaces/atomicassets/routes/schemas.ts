@@ -61,7 +61,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
 
             const query = await core.connection.database.query(queryString, queryValues);
 
-            return res.json({success: true, data: query.rows.map((row) => formatSchema(row))});
+            return res.json({success: true, data: query.rows.map((row) => formatSchema(row)), query_time: Date.now()});
         } catch (e) {
             logger.error(e);
 
@@ -107,7 +107,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                     core.connection.database, core.args.atomicassets_account, 'schema',
                     req.params.collection_name + ':' + req.params.schema_name,
                     (args.page - 1) * args.limit, args.limit
-                )
+                ), query_time: Date.now()
             });
         } catch (e) {
             logger.error(e);
@@ -168,7 +168,8 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                                 type: 'object',
                                 properties: {
                                     success: {type: 'boolean', default: true},
-                                    data: {type: 'array', items: {'$ref': '#/definitions/Schema'}}
+                                    data: {type: 'array', items: {'$ref': '#/definitions/Schema'}},
+                                    query_time: {type: 'number'}
                                 }
                             }
                         },
@@ -213,7 +214,8 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                                 type: 'object',
                                 properties: {
                                     success: {type: 'boolean', default: true},
-                                    data: {'$ref': '#/definitions/Schema'}
+                                    data: {'$ref': '#/definitions/Schema'},
+                                    query_time: {type: 'number'}
                                 }
                             }
                         },
@@ -259,7 +261,8 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                                 type: 'object',
                                 properties: {
                                     success: {type: 'boolean', default: true},
-                                    data: {'$ref': '#/definitions/Log'}
+                                    data: {'$ref': '#/definitions/Log'},
+                                    query_time: {type: 'number'}
                                 }
                             }
                         },

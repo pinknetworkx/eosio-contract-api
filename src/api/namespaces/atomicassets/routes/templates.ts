@@ -75,7 +75,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
 
             const query = await core.connection.database.query(queryString, queryValues);
 
-            return res.json({success: true, data: query.rows.map((row) => formatTemplate(row))});
+            return res.json({success: true, data: query.rows.map((row) => formatTemplate(row)), query_time: Date.now()});
         } catch (e) {
             logger.error(e);
 
@@ -99,7 +99,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                 return res.json({success: false, message: 'Template not found'});
             }
 
-            return res.json({success: true, data: formatTemplate(query.rows[0])});
+            return res.json({success: true, data: formatTemplate(query.rows[0]), query_time: Date.now()});
         } catch (e) {
             logger.error(e);
 
@@ -121,7 +121,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                     core.connection.database, core.args.atomicassets_account, 'template',
                     req.params.collection_name + ':' + req.params.template_id,
                     (args.page - 1) * args.limit, args.limit
-                )
+                ), query_time: Date.now()
             });
         } catch (e) {
             logger.error(e);
@@ -182,7 +182,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                                 type: 'object',
                                 properties: {
                                     success: {type: 'boolean', default: true},
-                                    data: {type: 'array', items: {'$ref': '#/definitions/Template'}}
+                                    data: {type: 'array', items: {'$ref': '#/definitions/Template'}},
+                                    query_time: {type: 'number'}
                                 }
                             }
                         },
@@ -227,7 +228,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                                 type: 'object',
                                 properties: {
                                     success: {type: 'boolean', default: true},
-                                    data: {'$ref': '#/definitions/Template'}
+                                    data: {'$ref': '#/definitions/Template'},
+                                    query_time: {type: 'number'}
                                 }
                             }
                         },
@@ -273,7 +275,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                                 type: 'object',
                                 properties: {
                                     success: {type: 'boolean', default: true},
-                                    data: {'$ref': '#/definitions/Log'}
+                                    data: {'$ref': '#/definitions/Log'},
+                                    query_time: {type: 'number'}
                                 }
                             }
                         },

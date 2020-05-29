@@ -55,7 +55,7 @@ export function offersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
 
             const query = await core.connection.database.query(queryString, queryValues);
 
-            return res.json({success: true, data: query.rows.map((row) => formatOffer(row))});
+            return res.json({success: true, data: query.rows.map((row) => formatOffer(row)), query_time: Date.now()});
         } catch (e) {
             logger.error(e);
 
@@ -77,7 +77,7 @@ export function offersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                 return res.json({success: false, message: 'Offer not found'});
             }
 
-            return res.json({success: true, data: formatOffer(query.rows[0])});
+            return res.json({success: true, data: formatOffer(query.rows[0]), query_time: Date.now()});
         } catch (e) {
             logger.error(e);
 
@@ -137,7 +137,8 @@ export function offersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                                 type: 'object',
                                 properties: {
                                     success: {type: 'boolean', default: true},
-                                    data: {type: 'array', items: {'$ref': '#/definitions/Offer'}}
+                                    data: {type: 'array', items: {'$ref': '#/definitions/Offer'}},
+                                    query_time: {type: 'number'}
                                 }
                             }
                         },
@@ -175,7 +176,8 @@ export function offersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                                 type: 'object',
                                 properties: {
                                     success: {type: 'boolean', default: true},
-                                    data: {'$ref': '#/definitions/Offer'}
+                                    data: {'$ref': '#/definitions/Offer'},
+                                    query_time: {type: 'number'}
                                 }
                             }
                         },

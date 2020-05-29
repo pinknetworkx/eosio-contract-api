@@ -55,7 +55,7 @@ export function transfersEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
 
             const query = await core.connection.database.query(queryString, queryValues);
 
-            return res.json({success: true, data: query.rows.map((row) => formatTransfer(row))});
+            return res.json({success: true, data: query.rows.map((row) => formatTransfer(row)), query_time: Date.now()});
         } catch (e) {
             logger.error(e);
 
@@ -115,7 +115,8 @@ export function transfersEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                                 type: 'object',
                                 properties: {
                                     success: {type: 'boolean', default: true},
-                                    data: {type: 'array', items: {'$ref': '#/definitions/Transfer'}}
+                                    data: {type: 'array', items: {'$ref': '#/definitions/Transfer'}},
+                                    query_time: {type: 'number'}
                                 }
                             }
                         },
