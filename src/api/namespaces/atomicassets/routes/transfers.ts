@@ -204,8 +204,8 @@ export function transfersSockets(core: AtomicAssetsNamespace, server: HTTPServer
     });
 
     const transferChannelName = ['eosio-contract-api', core.connection.chain.name, core.args.socket_api_prefix, 'transfers'].join(':');
-    core.connection.redis.ioRedis.subscribe(transferChannelName, () => {
-        core.connection.redis.ioRedis.on('message', async (channel, message) => {
+    core.connection.redis.ioRedisSub.subscribe(transferChannelName, () => {
+        core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
             if (channel !== transferChannelName) {
                 return;
             }
@@ -243,8 +243,8 @@ export function transfersSockets(core: AtomicAssetsNamespace, server: HTTPServer
     });
 
     const chainChannelName = ['eosio-contract-api', core.connection.chain.name, 'chain'].join(':');
-    core.connection.redis.ioRedis.subscribe(chainChannelName, () => {
-        core.connection.redis.ioRedis.on('message', async (channel, message) => {
+    core.connection.redis.ioRedisSub.subscribe(chainChannelName, () => {
+        core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
             if (channel !== chainChannelName) {
                 return;
             }

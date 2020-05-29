@@ -280,8 +280,8 @@ export function offersSockets(core: AtomicAssetsNamespace, server: HTTPServer): 
     });
 
     const offerChannelName = ['eosio-contract-api', core.connection.chain.name, core.args.socket_api_prefix, 'offers'].join(':');
-    core.connection.redis.ioRedis.subscribe(offerChannelName, () => {
-        core.connection.redis.ioRedis.on('message', async (channel, message) => {
+    core.connection.redis.ioRedisSub.subscribe(offerChannelName, () => {
+        core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
             if (channel !== offerChannelName) {
                 return;
             }
@@ -328,8 +328,8 @@ export function offersSockets(core: AtomicAssetsNamespace, server: HTTPServer): 
     });
 
     const chainChannelName = ['eosio-contract-api', core.connection.chain.name, 'chain'].join(':');
-    core.connection.redis.ioRedis.subscribe(chainChannelName, () => {
-        core.connection.redis.ioRedis.on('message', async (channel, message) => {
+    core.connection.redis.ioRedisSub.subscribe(chainChannelName, () => {
+        core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
             if (channel !== chainChannelName) {
                 return;
             }

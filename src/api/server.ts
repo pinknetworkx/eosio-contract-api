@@ -77,7 +77,7 @@ export class WebServer {
                     ip = String(req.headers['x-forwarded-for']);
                 }
 
-                logger.debug('Rate limit increase for', ip);
+                logger.debug('Rate limit increase for ' + ip);
 
                 return ip;
             },
@@ -195,7 +195,7 @@ export class SocketServer {
             ip = socket.conn.remoteAddress;
         }
 
-        logger.debug('reserve socket connection', ip);
+        logger.debug('reserve socket connection for ' + ip);
 
         const key = ['eosio-contract-api', this.server.connections.chain.name, 'socket-connections', ip].join(':');
         const connections = parseInt(await this.server.connections.redis.ioRedis.get(key), 10);

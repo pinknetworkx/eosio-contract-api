@@ -1,6 +1,6 @@
 import * as express from 'express';
 import * as swagger from 'swagger-ui-express';
-import * as path from "path";
+import * as path from 'path';
 
 import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
