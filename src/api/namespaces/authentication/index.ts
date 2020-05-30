@@ -1,24 +1,36 @@
 import * as express from 'express';
 import * as swagger from 'swagger-ui-express';
-import * as path from 'path';
+import * as fs from 'fs';
 
 import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
 import logger from '../../../utils/winston';
 import { authenticationEndpoints } from './routes';
 
-export type AtomicAssetsNamespaceArgs = {
-    atomicassets_account: string,
-    socket_api_prefix: string
+export type AuthenticationNamespaceArgs = {
+    action: {
+        account: string,
+        name: string
+    }
 };
 
 export class AuthenticationNamespace extends ApiNamespace {
     static namespaceName = 'atomicassets';
 
-    args: AtomicAssetsNamespaceArgs;
+    args: AuthenticationNamespaceArgs;
 
     async init(): Promise<void> {
+        try {
+            await this.connection.database.query('SELECT * FROM auth_tokens LIMIT 1');
+        } catch (e) {
+            logger.info('Could not find Authentication tables. Create them now...');
 
+            await this.connection.database.query(fs.readFileSync('./definitions/tables/authentication_tables.sql', {
+                encoding: 'utf8'
+            }));
+
+            logger.info('AtomicAssets tables successfully created');
+        }
     }
 
     async router(server: HTTPServer): Promise<express.Router> {
