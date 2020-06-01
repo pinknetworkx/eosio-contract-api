@@ -9,5 +9,4 @@ CREATE TABLE auth_tokens
     CONSTRAINT auth_tokens_nonce UNIQUE (nonce)
 );
 
-CREATE INDEX auth_tokens_signature ON auth_tokens USING btree (signature);
 CREATE INDEX auth_tokens_account ON auth_tokens USING btree (account);

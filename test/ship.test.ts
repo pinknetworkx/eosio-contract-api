@@ -13,18 +13,34 @@ describe('Ship Test', () => {
                 min_block_confirmation: 1
             });
 
-            ship.consume(() => {
+            ship.consume( (
+                /*header: any,
+                block: Uint8Array,
+                traces: Uint8Array,
+                rawDeltas: Uint8Array*/
+            ) => {
+                /*const deltas = ship.deserialize('table_delta[]', rawDeltas);
+
+                console.log('Deltas: ' + JSON.stringify(deltas.map((delta: any) => {
+                    return {...delta[1] , rows: delta[1].rows.map((row: any) => {
+                        return {
+                            present: row.present,
+                            data: ship.deserialize(delta[1].name, row.data)
+                        };
+                    })};
+                })));*/
+
                 ship.stopProcessing();
                 resolve();
             });
 
             ship.startProcessing({
-                start_block_num: (await connection.chain.rpc.get_info()).head_block_num,
+                start_block_num: 30505742,
                 max_messages_in_flight: 1,
                 fetch_block: true,
                 fetch_traces: true,
                 fetch_deltas: true
             });
         }));
-    }).timeout(2000);
+    }).timeout(20000);
 });

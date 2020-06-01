@@ -23,7 +23,7 @@ export class HTTPServer {
     readonly web: WebServer;
     readonly socket: SocketServer;
 
-    constructor(readonly config: IServerConfig, readonly connections: ConnectionManager) {
+    constructor(readonly config: IServerConfig, readonly connection: ConnectionManager) {
         this.web = new WebServer(this);
 
         this.httpServer = http.createServer(this.web.express);
@@ -80,15 +80,15 @@ export class WebServer {
                 return req.ip;
             },
             store: new expressRedisStore({
-                client: this.server.connections.redis.nodeRedis,
-                prefix: 'eosio-contract-api:' + server.connections.chain.name + ':rate-limit:',
+                client: this.server.connection.redis.nodeRedis,
+                prefix: 'eosio-contract-api:' + server.connection.chain.name + ':rate-limit:',
                 expiry: this.server.config.rate_limit.interval
             })
         });
 
         this.caching = expressRedisCache(
-            this.server.connections.redis.nodeRedis,
-            'eosio-contract-api:' + this.server.connections.chain.name + ':express-cache:',
+            this.server.connection.redis.nodeRedis,
+            'eosio-contract-api:' + this.server.connection.chain.name + ':express-cache:',
             this.server.config.cache_life || 0,
             this.server.config.ip_whitelist || []
         );
@@ -117,7 +117,7 @@ export class WebServer {
             let databaseStatus = 'INVALID';
 
             try {
-                const query = await this.server.connections.database.query('SELECT * FROM contract_readers');
+                const query = await this.server.connection.database.query('SELECT * FROM contract_readers');
 
                 if (query.rowCount > 0) {
                     databaseStatus = 'OK';
@@ -129,7 +129,7 @@ export class WebServer {
             let chainStatus;
 
             try {
-                const info = await this.server.connections.chain.rpc.get_info();
+                const info = await this.server.connection.chain.rpc.get_info();
 
                 if (Date.now() - 20 * 1000 < new Date(info.head_block_time + '+0000').getTime()) {
                     chainStatus = 'OK';
@@ -147,7 +147,7 @@ export class WebServer {
                         status: databaseStatus
                     },
                     redis: {
-                        status: this.server.connections.redis.ioRedis.status === 'ready' ? 'OK' : 'ERROR'
+                        status: this.server.connection.redis.ioRedis.status === 'ready' ? 'OK' : 'ERROR'
                     },
                     chain: {
                         status: chainStatus
@@ -174,10 +174,10 @@ export class SocketServer {
     }
 
     async init(): Promise<void> {
-        const pattern = ['eosio-contract-api', this.server.connections.chain.name, 'socket-connections', '*'].join(':');
-        const keys = await this.server.connections.redis.ioRedis.keys(pattern);
+        const pattern = ['eosio-contract-api', this.server.connection.chain.name, 'socket-connections', '*'].join(':');
+        const keys = await this.server.connection.redis.ioRedis.keys(pattern);
 
-        const pipeline = this.server.connections.redis.ioRedis.pipeline();
+        const pipeline = this.server.connection.redis.ioRedis.pipeline();
 
         for (const key of keys) {
             pipeline.del(key);
@@ -196,11 +196,11 @@ export class SocketServer {
 
         logger.debug('reserve socket connection for ' + ip);
 
-        const key = ['eosio-contract-api', this.server.connections.chain.name, 'socket-connections', ip].join(':');
-        const connections = parseInt(await this.server.connections.redis.ioRedis.get(key), 10);
+        const key = ['eosio-contract-api', this.server.connection.chain.name, 'socket-connections', ip].join(':');
+        const connections = parseInt(await this.server.connection.redis.ioRedis.get(key), 10);
 
         if (isNaN(connections) || connections < this.server.config.socket_limit.connections_per_ip) {
-            await this.server.connections.redis.ioRedis.incr(key);
+            await this.server.connection.redis.ioRedis.incr(key);
 
             return true;
         }
@@ -216,8 +216,8 @@ export class SocketServer {
             ip = socket.conn.remoteAddress;
         }
 
-        const key = ['eosio-contract-api', this.server.connections.chain.name, 'socket-connections', ip].join(':');
+        const key = ['eosio-contract-api', this.server.connection.chain.name, 'socket-connections', ip].join(':');
 
-        await this.server.connections.redis.ioRedis.decr(key);
+        await this.server.connection.redis.ioRedis.decr(key);
     }
 }

@@ -61,7 +61,7 @@ export default class StateHistoryBlockReader {
 
             this.connecting = true;
 
-            this.ws = new WebSocket(this.endpoint, { perMessageDeflate: false });
+            this.ws = new WebSocket(this.endpoint, { perMessageDeflate: false, maxPayload: 512 * 1024 * 1024 * 1024 });
 
             this.ws.on('open', () => this.onConnect());
             this.ws.on('message', (data: any) => this.onMessage(data));

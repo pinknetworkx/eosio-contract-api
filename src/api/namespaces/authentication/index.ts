@@ -15,7 +15,7 @@ export type AuthenticationNamespaceArgs = {
 };
 
 export class AuthenticationNamespace extends ApiNamespace {
-    static namespaceName = 'atomicassets';
+    static namespaceName = 'authentication';
 
     args: AuthenticationNamespaceArgs;
 
@@ -41,15 +41,18 @@ export class AuthenticationNamespace extends ApiNamespace {
             info: {
                 description: this.buildDescription(server),
                 version: '1.0.0',
-                title: 'Authentication API',
-                externalDocs: {
-                    description: 'NPM Module',
-                    url: 'https://www.npmjs.com/package/atomicassets'
-                }
+                title: 'Authentication API'
             },
             host: server.config.server_name,
             basePath: this.path,
-            schemes: ['https', 'http'],
+            schemes: ['https'],
+            securityDefinitions: {
+                bearerAuth: {
+                    type: 'apiKey',
+                    name: 'Authorization',
+                    in: 'header'
+                }
+            },
             consumes: ['application/json'],
             produces: ['application/json'],
             tags: [],
@@ -81,7 +84,7 @@ export class AuthenticationNamespace extends ApiNamespace {
     private buildDescription(server: HTTPServer): string {
         return '### EOSIO Contract API\n' +
             '*Made with ♥️ by [pink.network](https://pink.network/)*\n' +
-            '#### Current Chain: ' + server.connections.chain.name + '\n' +
+            '#### Current Chain: ' + server.connection.chain.name + '\n' +
             `#### Provided by: [${server.config.provider_name}](${server.config.provider_url})`;
     }
 }

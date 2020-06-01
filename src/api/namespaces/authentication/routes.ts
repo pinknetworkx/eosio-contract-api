@@ -1,34 +1,35 @@
 import * as express from 'express';
 // @ts-ignore
-import ecc from 'eosjs-ecc';
+import * as ecc from 'eosjs-ecc';
 import * as crypto from 'crypto';
 
 import { AuthenticationNamespace } from './index';
 import { HTTPServer } from '../../server';
 import logger from '../../../utils/winston';
+import { bearerToken } from './middleware';
 
 export function authenticationEndpoints(core: AuthenticationNamespace, server: HTTPServer, router: express.Router): any {
     router.post('/v1/token', (async (req, res) => {
         const blockNum: number = parseInt(req.body.block_num, 10);
 
         if (isNaN(blockNum) || blockNum <= 0) {
-            return res.json({success: false, message: 'Invalid block num received'});
+            return res.status(500).json({success: false, message: 'Invalid block num received'});
         }
 
         if (typeof req.body.nonce !== 'string' || req.body.nonce.length > 64) {
-            return res.json({success: false, message: 'Invalid nonce provided'});
+            return res.status(500).json({success: false, message: 'Invalid nonce provided'});
         }
 
         if (typeof req.body.account !== 'string' || req.body.nonce.account > 12) {
-            return res.json({success: false, message: 'Invalid account name provided'});
+            return res.status(500).json({success: false, message: 'Invalid account name provided'});
         }
 
         if (typeof req.body.permission !== 'string' || req.body.nonce.permission > 12) {
-            return res.json({success: false, message: 'Invalid permission name provided'});
+            return res.status(500).json({success: false, message: 'Invalid permission name provided'});
         }
 
         if (!Array.isArray(req.body.signatures)) {
-            return res.json({success: false, message: 'Invalid signatures provided'});
+            return res.status(500).json({success: false, message: 'Invalid signatures provided'});
         }
 
         const nonce: string = String(req.body.nonce);
@@ -37,19 +38,19 @@ export function authenticationEndpoints(core: AuthenticationNamespace, server: H
         const signatures: string[] = req.body.signatures.map((signature: any) => String(signature));
 
         try {
-            const nonceQuery = await server.connections.database.query(
+            const nonceQuery = await server.connection.database.query(
                 'SELECT nonce FROM auth_tokens WHERE nonce = $1',
                 [Buffer.from(nonce, 'utf8')]
             );
 
             if (nonceQuery.rowCount > 0) {
-                return res.json({success: false, message: 'Nonce already used'});
+                return res.status(500).json({success: false, message: 'Nonce already used'});
             }
 
-            const block = await server.connections.chain.rpc.get_block(blockNum);
+            const block = await server.connection.chain.rpc.get_block(blockNum);
 
             if (Date.now() - new Date(block.timestamp + '+0000').getTime() > 3600 * 24 * 1000) {
-                return res.json({success: false, message: 'Reference block older than a day'});
+                return res.status(500).json({success: false, message: 'Reference block older than a day'});
             }
 
             const transaction = {
@@ -82,13 +83,13 @@ export function authenticationEndpoints(core: AuthenticationNamespace, server: H
                 availableKeys.push(ecc.recover(signature, plaintext));
             }
 
-            const resp = await server.connections.chain.post('/v1/chain/get_required_keys', {transaction, available_keys: availableKeys});
+            const resp = await server.connection.chain.post('/v1/chain/get_required_keys', {transaction, available_keys: availableKeys});
 
             if (resp.error && resp.error.code) {
                 return res.json({success: false, message: 'Authentication failed'});
             }
 
-            const token = crypto.randomBytes(256);
+            const token = crypto.randomBytes(32);
             const expire = Date.now() + 24 * 3600 * 30 * 1000;
 
             const hash = crypto.createHash('sha256').update(token).digest();
@@ -108,20 +109,106 @@ export function authenticationEndpoints(core: AuthenticationNamespace, server: H
         } catch (e) {
             logger.error(e);
 
-            return res.json({success: false, message: 'Internal Server Error'});
+            return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));
 
-    router.delete('/v1/token', (async (_, res) => {
+    router.delete('/v1/token', bearerToken(server.connection), async (req, res) => {
+        await core.connection.database.query(
+            'UPDATE auth_tokens SET expire = $1 WHERE token = $2',
+            [Date.now() - 1000, crypto.createHash('sha256').update(Buffer.from(req.bearerToken, 'hex')).digest()]
+        );
 
-    }));
+        res.json({success: true, data: null});
+    });
 
     return {
         tag: {
             name: 'authentication',
             description: 'Authentication'
         },
-        paths: { },
+        paths: {
+            '/v1/token': {
+                post: {
+                    tags: ['authentication'],
+                    summary: 'Create Bearer Tokens for authentication',
+                    parameters: [
+                        {
+                            name: 'body',
+                            in: 'body',
+                            description: '',
+                            required: true,
+                            type: 'string',
+                            schema: {
+                                properties: {
+                                    account: {type: 'string', default: 'account name'},
+                                    block_num: {type: 'number', default: 'block number which is used as reference'},
+                                    nonce: {type: 'string', default: 'Nonce should be randomly generated and can only be used once'},
+                                    permission: {type: 'string', default: 'Permission which is used to authenticate (usually active)'},
+                                    signatures: {type: 'array', items: {type: 'string'}}
+                                }
+                            }
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: true},
+                                    data: {
+                                        type: 'object',
+                                        properties: {
+                                            token: {type: 'string'},
+                                            expire: {type: 'number'}
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        '500': {
+                            description: 'Internal Server Error',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: false},
+                                    message: {type: 'string'}
+                                }
+                            }
+                        }
+                    }
+                },
+                delete: {
+                    tags: ['authentication'],
+                    security: [
+                        {bearerAuth: []}
+                    ],
+                    summary: 'Revoke existing token',
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: true},
+                                }
+                            }
+                        },
+                        '500': {
+                            description: 'Internal Server Error',
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    success: {type: 'boolean', default: false},
+                                    message: {type: 'string'}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         definitions: {}
     };
 }

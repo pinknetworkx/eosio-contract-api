@@ -36,11 +36,7 @@ export class AtomicAssetsNamespace extends ApiNamespace {
             info: {
                 description: this.buildDescription(server),
                 version: '1.0.0',
-                title: 'AtomicAssets API',
-                externalDocs: {
-                    description: 'NPM Module',
-                    url: 'https://www.npmjs.com/package/atomicassets'
-                }
+                title: 'AtomicAssets API'
             },
             host: server.config.server_name,
             basePath: this.path,
@@ -95,7 +91,7 @@ export class AtomicAssetsNamespace extends ApiNamespace {
     private buildDescription(server: HTTPServer): string {
         return '### EOSIO Contract API\n' +
             '*Made with ♥️ by [pink.network](https://pink.network/)*\n' +
-            '#### Current Chain: ' + server.connections.chain.name + '\n' +
+            '#### Current Chain: ' + server.connection.chain.name + '\n' +
             `#### Provided by: [${server.config.provider_name}](${server.config.provider_url})`;
     }
 }
