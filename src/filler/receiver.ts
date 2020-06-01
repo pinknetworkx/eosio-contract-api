@@ -91,8 +91,10 @@ export default class StateReceiver {
             }));
         }
 
-        for (const transactionTrace of traces) {
-            processDeltas = await this.handleTransactionTrace(db, block, transactionTrace) || processDeltas;
+        const actionTraces = this.extractTransactionTraces(traces);
+
+        for (const row of actionTraces) {
+            processDeltas = await this.handleActionTrace(db, block, row.trace, row.tx) || processDeltas;
         }
 
         if (processDeltas) {
@@ -134,33 +136,45 @@ export default class StateReceiver {
         }
     }
 
-    private async handleTransactionTrace(
-        db: ContractDBTransaction, block: ShipBlock, transactionTrace: ShipTransactionTrace
-    ): Promise<boolean> {
-        if (transactionTrace[0] === 'transaction_trace_v0') {
-            if (transactionTrace[1].status !== 0) {
-                logger.warn('Failed transaction ' + transactionTrace[1].id + ' received from ship');
+    private extractTransactionTraces(transactions: ShipTransactionTrace[]): Array<{trace: ShipActionTrace, tx: EosioTransaction}> {
+        const traces: Array<{trace: ShipActionTrace, tx: EosioTransaction}> = [];
 
-                return false;
+        for (const transaction of transactions) {
+            if (transaction[0] === 'transaction_trace_v0') {
+                if (transaction[1].status !== 0) {
+                    logger.warn('Failed transaction ' + transaction[1].id + ' received from ship');
+
+                    continue;
+                }
+
+                const tx: EosioTransaction = {
+                    id: transaction[1].id,
+                    cpu_usage_us: transaction[1].cpu_usage_us,
+                    net_usage_words: transaction[1].net_usage_words
+                };
+
+                traces.push(...transaction[1].action_traces.map((trace) => {
+                    return {trace, tx};
+                }));
+            } else {
+                throw new Error('unsupported transaction response received: ' + transaction[0]);
             }
-
-            const transaction: EosioTransaction = {
-                id: transactionTrace[1].id,
-                cpu_usage_us: transactionTrace[1].cpu_usage_us,
-                net_usage_words: transactionTrace[1].net_usage_words
-            };
-
-            let processDeltas = false;
-            for (const actionTrace of transactionTrace[1].action_traces) {
-                processDeltas = await this.handleActionTrace(db, block, actionTrace, transaction) || processDeltas;
-            }
-
-            return processDeltas;
         }
 
-        await db.abort();
+        // sort by global_sequence because inline actions do not have the correct order
+        traces.sort((a, b) => {
+            if (a.trace[0] === 'action_trace_v0' && b.trace[0] === 'action_trace_v0') {
+                if (a.trace[1].receipt[0] === 'action_receipt_v0' && b.trace[1].receipt[0] === 'action_receipt_v0') {
+                    return parseInt(a.trace[1].receipt[1].global_sequence, 10) - parseInt(b.trace[1].receipt[1].global_sequence, 10);
+                }
 
-        throw new Error('unsupported transaction response received: ' + transactionTrace[0]);
+                throw new Error('unsupported trace receipt response received: ' + a.trace[0] + ' ' + b.trace[0]);
+            }
+
+            throw new Error('unsupported trace response received: ' + a.trace[0] + ' ' + b.trace[0]);
+        });
+
+        return traces;
     }
 
     private async handleActionTrace(

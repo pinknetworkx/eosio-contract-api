@@ -37,27 +37,25 @@ export class AuthenticationNamespace extends ApiNamespace {
         const router = express.Router();
 
         const documentation: any = {
-            swagger: '2.0',
+            openapi: '3.0.0',
             info: {
                 description: this.buildDescription(server),
                 version: '1.0.0',
                 title: 'Authentication API'
             },
-            host: server.config.server_name,
-            basePath: this.path,
-            schemes: ['https'],
-            securityDefinitions: {
-                bearerAuth: {
-                    type: 'apiKey',
-                    name: 'Authorization',
-                    in: 'header'
-                }
-            },
-            consumes: ['application/json'],
-            produces: ['application/json'],
+            servers: [
+                {url: 'https://' + server.config.server_name + this.path}
+            ],
             tags: [],
             paths: {},
-            definitions: {}
+            components: {
+                securitySchemes: {
+                    bearerAuth: {
+                        type: 'http',
+                        scheme: 'bearer'
+                    }
+                }
+            }
         };
 
         server.web.express.use(this.path + '/v1', server.web.limiter);
@@ -65,7 +63,10 @@ export class AuthenticationNamespace extends ApiNamespace {
         const doc = authenticationEndpoints(this, server, router);
 
         Object.assign(documentation.paths, doc.paths);
-        Object.assign(documentation.definitions, doc.definitions);
+
+        if (doc.tag) {
+            documentation.tags.push(doc.tag);
+        }
 
         logger.debug('authentication swagger docs', documentation);
 

@@ -1,6 +1,7 @@
 import 'mocha';
 
 import ConnectionManager from '../src/connections/manager';
+import { ShipTransactionTrace } from '../src/types/ship';
 
 const config = require('../config/connections.config.json');
 
@@ -14,12 +15,16 @@ describe('Ship Test', () => {
             });
 
             ship.consume( (
-                /*header: any,
+                header: any,
                 block: Uint8Array,
-                traces: Uint8Array,
-                rawDeltas: Uint8Array*/
+                rawTraces: Uint8Array,
+                rawDeltas: Uint8Array
             ) => {
-                /*const deltas = ship.deserialize('table_delta[]', rawDeltas);
+                const traces: ShipTransactionTrace[] = ship.deserialize('transaction_trace[]', rawTraces);
+
+                console.log('Traces' + JSON.stringify(traces));
+
+                const deltas = ship.deserialize('table_delta[]', rawDeltas);
 
                 console.log('Deltas: ' + JSON.stringify(deltas.map((delta: any) => {
                     return {...delta[1] , rows: delta[1].rows.map((row: any) => {
@@ -28,7 +33,7 @@ describe('Ship Test', () => {
                             data: ship.deserialize(delta[1].name, row.data)
                         };
                     })};
-                })));*/
+                })));
 
                 ship.stopProcessing();
                 resolve();

@@ -132,36 +132,45 @@ export function authenticationEndpoints(core: AuthenticationNamespace, server: H
                 post: {
                     tags: ['authentication'],
                     summary: 'Create Bearer Tokens for authentication',
-                    parameters: [
-                        {
-                            name: 'body',
-                            in: 'body',
-                            description: '',
-                            required: true,
-                            type: 'string',
-                            schema: {
-                                properties: {
-                                    account: {type: 'string', default: 'account name'},
-                                    block_num: {type: 'number', default: 'block number which is used as reference'},
-                                    nonce: {type: 'string', default: 'Nonce should be randomly generated and can only be used once'},
-                                    permission: {type: 'string', default: 'Permission which is used to authenticate (usually active)'},
-                                    signatures: {type: 'array', items: {type: 'string'}}
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        account: {type: 'string'},
+                                        block_num: {type: 'number'},
+                                        nonce: {type: 'string'},
+                                        permission: {type: 'string'},
+                                        signatures: {type: 'array', items: {type: 'string'}}
+                                    }
+                                },
+                                example: {
+                                    account: 'account',
+                                    block_num: 'number',
+                                    nonce: 'string',
+                                    permission: 'string',
+                                    signatures: ['signature']
                                 }
                             }
                         }
-                    ],
+                    },
                     responses: {
                         '200': {
                             description: 'OK',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: true},
-                                    data: {
+                            content: {
+                                'application/json': {
+                                    schema: {
                                         type: 'object',
                                         properties: {
-                                            token: {type: 'string'},
-                                            expire: {type: 'number'}
+                                            success: {type: 'boolean', default: true},
+                                            data: {
+                                                type: 'object',
+                                                properties: {
+                                                    token: {type: 'string'},
+                                                    expire: {type: 'number'}
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -169,11 +178,15 @@ export function authenticationEndpoints(core: AuthenticationNamespace, server: H
                         },
                         '500': {
                             description: 'Internal Server Error',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: false},
-                                    message: {type: 'string'}
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            success: {type: 'boolean', default: false},
+                                            message: {type: 'string'}
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -188,27 +201,48 @@ export function authenticationEndpoints(core: AuthenticationNamespace, server: H
                     responses: {
                         '200': {
                             description: 'OK',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: true},
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            success: {type: 'boolean', default: true}
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        '401': {
+                            description: 'Unauthorized',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            success: {type: 'boolean', default: false},
+                                            message: {type: 'string'}
+                                        }
+                                    }
                                 }
                             }
                         },
                         '500': {
                             description: 'Internal Server Error',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: false},
-                                    message: {type: 'string'}
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            success: {type: 'boolean', default: false},
+                                            message: {type: 'string'}
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        },
-        definitions: {}
+        }
     };
 }
