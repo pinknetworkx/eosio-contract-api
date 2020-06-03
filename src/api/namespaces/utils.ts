@@ -10,12 +10,13 @@ export type FilterDefinition = {
     }
 };
 
-export function filterQueryArgs(req: express.Request, filter: FilterDefinition): {[key: string]: any} {
+export function filterQueryArgs(req: express.Request, filter: FilterDefinition, keyType: string = 'query'): {[key: string]: any} {
     const keys = Object.keys(filter);
     const result: {[key: string]: any} = {};
 
     for (const key of keys) {
-        const data = req.query[key];
+        // @ts-ignore
+        const data = req[keyType] ? req[keyType][key] : undefined;
 
         if (typeof data !== 'string') {
             result[key] = filter[key].default;

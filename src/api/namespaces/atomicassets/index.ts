@@ -13,6 +13,7 @@ import { templatesEndpoints } from './routes/templates';
 import { transfersEndpoints, transfersSockets } from './routes/transfers';
 import logger from '../../../utils/winston';
 import { definitions } from './swagger';
+import { getOpenApiDescription } from '../../openapi';
 
 export type AtomicAssetsNamespaceArgs = {
     atomicassets_account: string,
@@ -34,7 +35,7 @@ export class AtomicAssetsNamespace extends ApiNamespace {
         const documentation: any = {
             swagger: '2.0',
             info: {
-                description: this.buildDescription(server),
+                description: getOpenApiDescription(server),
                 version: '1.0.0',
                 title: 'AtomicAssets API'
             },
@@ -86,12 +87,5 @@ export class AtomicAssetsNamespace extends ApiNamespace {
         assetsSockets(this, server);
         transfersSockets(this, server);
         offersSockets(this, server);
-    }
-
-    private buildDescription(server: HTTPServer): string {
-        return '### EOSIO Contract API\n' +
-            '*Made with ♥️ by [pink.network](https://pink.network/)*\n' +
-            '#### Current Chain: ' + server.connection.chain.name + '\n' +
-            `#### Provided by: [${server.config.provider_name}](${server.config.provider_url})`;
     }
 }

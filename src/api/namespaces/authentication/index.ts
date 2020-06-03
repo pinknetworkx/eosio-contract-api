@@ -6,6 +6,7 @@ import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
 import logger from '../../../utils/winston';
 import { authenticationEndpoints } from './routes';
+import { getOpenApiDescription } from '../../openapi';
 
 export type AuthenticationNamespaceArgs = {
     action: {
@@ -29,7 +30,7 @@ export class AuthenticationNamespace extends ApiNamespace {
                 encoding: 'utf8'
             }));
 
-            logger.info('AtomicAssets tables successfully created');
+            logger.info('Authentication tables successfully created');
         }
     }
 
@@ -39,7 +40,7 @@ export class AuthenticationNamespace extends ApiNamespace {
         const documentation: any = {
             openapi: '3.0.0',
             info: {
-                description: this.buildDescription(server),
+                description: getOpenApiDescription(server),
                 version: '1.0.0',
                 title: 'Authentication API'
             },
@@ -80,12 +81,5 @@ export class AuthenticationNamespace extends ApiNamespace {
 
     async socket(server: HTTPServer): Promise<void> {
 
-    }
-
-    private buildDescription(server: HTTPServer): string {
-        return '### EOSIO Contract API\n' +
-            '*Made with ♥️ by [pink.network](https://pink.network/)*\n' +
-            '#### Current Chain: ' + server.connection.chain.name + '\n' +
-            `#### Provided by: [${server.config.provider_name}](${server.config.provider_url})`;
     }
 }

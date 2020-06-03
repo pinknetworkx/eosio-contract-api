@@ -4,8 +4,9 @@ import { ContractDBTransaction } from '../../database';
 import { ShipBlock } from '../../../types/ship';
 import { AssetsTableRow, OffersTableRow } from './types/tables';
 import { eosioTimestampToDate } from '../../../utils/eosio';
-import { OfferAssetState, OfferState } from './index';
+import { OfferState } from './index';
 import { AttributeMap } from './types/actions';
+import logger from '../../../utils/winston';
 
 export async function saveAssetTableRow(
     db: ContractDBTransaction, block: ShipBlock, contractName: string, scope: string, data: AssetsTableRow,
@@ -35,7 +36,7 @@ export async function saveAssetTableRow(
         collection_name: data.collection_name,
         schema_name: data.schema_name,
         template_id: data.template_id === -1 ? null : data.template_id,
-        owner: scope,
+        owner: deleted ? null : scope,
         readable_name:
             (immutableData.name ? String(immutableData.name).substr(0, 64) : null) ||
             (mutableData.name ? String(mutableData.name).substr(0, 64) : null),
@@ -175,32 +176,10 @@ export async function saveOfferTableRow(
             [contractName, data.offer_id]
         );
 
+        // should not be possible to change offer data
         if (offerQuery.rowCount > 0) {
-            throw new Error('Offer row was updated. Should not be possible by contract');
+            return;
         }
-
-        const missingAssetsConditions = [];
-
-        if (data.sender_asset_ids.length > 0) {
-            missingAssetsConditions.push(
-                '((owner != \'' + data.sender + '\' OR burned_at_block IS NOT NULL) AND ' +
-                'asset_id IN (' + data.sender_asset_ids.join(', ') + '))'
-            );
-        }
-
-        if (data.recipient_asset_ids.length > 0) {
-            missingAssetsConditions.push(
-                '((owner != \'' + data.recipient + '\' OR burned_at_block IS NOT NULL) AND ' +
-                'asset_id IN (' + data.recipient_asset_ids.join(', ') + '))'
-            );
-        }
-
-        const missingAssetsQuery = await db.query(
-            'SELECT asset_id FROM atomicassets_assets ' +
-            'WHERE contract = $1 AND (' + missingAssetsConditions.join(' OR ') + ')',
-            [contractName]
-        );
-        const missingAssets = missingAssetsQuery.rows.map((row) => row.asset_id);
 
         await db.insert('atomicassets_offers', {
             contract: contractName,
@@ -208,7 +187,7 @@ export async function saveOfferTableRow(
             sender: data.sender,
             recipient: data.recipient,
             memo: String(data.memo).substring(0, 256),
-            state: missingAssets.length > 0 ? OfferState.INVALID.valueOf() : OfferState.PENDING.valueOf(),
+            state: OfferState.PENDING.valueOf(),
             updated_at_block: block.block_num,
             updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
             created_at_block: block.block_num,
@@ -222,8 +201,7 @@ export async function saveOfferTableRow(
                 contract: contractName,
                 offer_id: data.offer_id,
                 owner: data.recipient,
-                asset_id: assetID,
-                state: missingAssets.indexOf(assetID) >= 0 ? OfferAssetState.MISSING.valueOf() : OfferAssetState.NORMAL.valueOf()
+                asset_id: assetID
             });
         }
 
@@ -232,8 +210,7 @@ export async function saveOfferTableRow(
                 contract: contractName,
                 offer_id: data.offer_id,
                 owner: data.sender,
-                asset_id: assetID,
-                state: missingAssets.indexOf(assetID) >= 0 ? OfferAssetState.MISSING.valueOf() : OfferAssetState.NORMAL.valueOf()
+                asset_id: assetID
             });
         }
 

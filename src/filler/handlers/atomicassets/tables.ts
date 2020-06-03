@@ -125,6 +125,8 @@ export default class AtomicAssetsTableHandler {
         db: ContractDBTransaction, block: ShipBlock, scope: string, data: AssetsTableRow, deleted: boolean
     ): Promise<void> {
         await saveAssetTableRow(db, block, this.contractName, scope, data, deleted);
+
+        this.core.checkOfferState([], [data.asset_id]);
     }
 
     async handleBalancesUpdate(
@@ -177,6 +179,8 @@ export default class AtomicAssetsTableHandler {
         db: ContractDBTransaction, block: ShipBlock, data: OffersTableRow, deleted: boolean
     ): Promise<void> {
         await saveOfferTableRow(db, block, this.contractName, data, deleted);
+
+        this.core.checkOfferState([data.offer_id], []);
     }
 
     async handleTemplatesUpdate(

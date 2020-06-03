@@ -1,7 +1,7 @@
 import { ContractDBTransaction } from '../../database';
 import { ShipBlock } from '../../../types/ship';
 import { EosioActionTrace, EosioTransaction } from '../../../types/eosio';
-import AtomicAssetsHandler, { JobPriority, OfferAssetState, OfferState } from './index';
+import AtomicAssetsHandler, { JobPriority, OfferState } from './index';
 import logger from '../../../utils/winston';
 import { eosioTimestampToDate } from '../../../utils/eosio';
 import {
@@ -116,7 +116,7 @@ export default class AtomicAssetsActionHandler {
                 memo: data.memo
             }, false);
 
-            this.pushNotificiation(block, tx, 'offers', 'create', {
+            this.core.pushNotificiation(block, tx, 'offers', 'create', {
                 offer_id: data.offer_id,
                 trace: data
             });
@@ -161,7 +161,7 @@ export default class AtomicAssetsActionHandler {
                 values: [this.contractName, offerChange.offer_id]
             }, ['contract', 'offer_id']);
 
-            this.pushNotificiation(block, tx, 'offers', 'state_change', {
+            this.core.pushNotificiation(block, tx, 'offers', 'state_change', {
                 offer_id: offerChange.offer_id,
                 state: offerChange.state
             });
@@ -192,94 +192,10 @@ export default class AtomicAssetsActionHandler {
             asset_id: assetID
         })), ['transfer_id', 'contract', 'asset_id']);
 
-        this.pushNotificiation(block, tx, 'transfers', 'create', {
+        this.core.pushNotificiation(block, tx, 'transfers', 'create', {
             transfer_id: query.rows[0].transfer_id,
             trace: data
         });
-
-        // check offers whether they have become invalid
-        const assetQuery = await db.query(
-            'SELECT assets.offer_id, assets.owner, assets.asset_id, assets.state ' +
-            'FROM atomicassets_offers offers, atomicassets_offers_assets assets ' +
-            'WHERE offers.contract = assets.contract AND offers.offer_id = assets.offer_id AND ' +
-                'offers.state IN (' + [OfferState.PENDING.valueOf(), OfferState.INVALID.valueOf()].join(', ') + ') AND ' +
-                'assets.contract = \'' + this.contractName + '\' AND assets.asset_id IN (' + data.asset_ids.join(', ') + ')'
-        );
-        const changedOffers = [];
-
-        for (const asset of assetQuery.rows) {
-            if (asset.owner === data.to && asset.state === OfferAssetState.MISSING.valueOf()) {
-                if (changedOffers.indexOf(asset.offer_id) === -1) {
-                    changedOffers.push(asset.offer_id);
-                }
-
-                await db.update('atomicassets_offers_assets', {
-                    state: OfferAssetState.NORMAL.valueOf()
-                }, {
-                    str: 'contract = $1 AND offer_id = $2 AND asset_id = $3',
-                    values: [this.contractName, asset.offer_id, asset.asset_id]
-                }, ['contract', 'offer_id', 'asset_id']);
-            } else if (asset.owner !== data.to && asset.state !== OfferAssetState.MISSING.valueOf()) {
-                if (changedOffers.indexOf(asset.offer_id) === -1) {
-                    changedOffers.push(asset.offer_id);
-                }
-
-                await db.update('atomicassets_offers_assets', {
-                    state: OfferAssetState.MISSING.valueOf()
-                }, {
-                    str: 'contract = $1 AND offer_id = $2 AND asset_id = $3',
-                    values: [this.contractName, asset.offer_id, asset.asset_id]
-                }, ['contract', 'offer_id', 'asset_id']);
-            }
-        }
-
-        if (changedOffers.length > 0) {
-            const offerQuery = await db.query(
-                'SELECT offers.offer_id, offers.state ' +
-                'FROM atomicassets_offers offers, atomicassets_offers_assets assets ' +
-                'WHERE offers.contract = assets.contract AND offers.offer_id = assets.offer_id AND ' +
-                    'offers.offer_id IN (' + changedOffers.join(',') + ') AND offers.contract = \'' + this.contractName + '\' AND ' +
-                    'offers.state IN (' + [OfferState.PENDING.valueOf(), OfferState.INVALID.valueOf()].join(', ') + ') AND ' +
-                    'assets.state = ' + OfferAssetState.MISSING.valueOf() + ' ' +
-                'GROUP BY offers.offer_id, offers.state'
-            );
-
-            for (const offer of offerQuery.rows) {
-                if (offer.state === OfferState.PENDING.valueOf()) {
-                    await db.update('atomicassets_offers', {
-                        state: OfferState.INVALID.valueOf()
-                    }, {
-                        str: 'contract = $1 AND offer_id = $2',
-                        values: [this.contractName, offer.offer_id]
-                    }, ['contract', 'offer_id']);
-
-                    this.pushNotificiation(block, tx, 'offers', 'state_change', {
-                        offer_id: offer.offer_id,
-                        state: OfferState.INVALID.valueOf()
-                    });
-                }
-
-                const index = changedOffers.indexOf(offer.offer_id);
-
-                if (index >= 0) {
-                    changedOffers.splice(index, 1);
-                }
-            }
-
-            for (const offerID of changedOffers) {
-                await db.update('atomicassets_offers', {
-                    state: OfferState.PENDING.valueOf()
-                }, {
-                    str: 'contract = $1 AND offer_id = $2',
-                    values: [this.contractName, offerID]
-                }, ['contract', 'offer_id']);
-
-                this.pushNotificiation(block, tx, 'offers', 'state_change', {
-                    offer_id: offerID,
-                    state: OfferState.PENDING.valueOf()
-                });
-            }
-        }
     }
 
     async handleAssetBurnTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
@@ -302,7 +218,7 @@ export default class AtomicAssetsActionHandler {
                 backed_tokens: data.backed_tokens
             });
 
-            this.pushNotificiation(block, tx, 'assets', 'burn', {
+            this.core.pushNotificiation(block, tx, 'assets', 'burn', {
                 asset_id: data.asset_id,
                 trace: data
             });
@@ -321,7 +237,7 @@ export default class AtomicAssetsActionHandler {
                 new_owner: data.new_owner
             });
 
-            this.pushNotificiation(block, tx, 'assets', 'mint', {
+            this.core.pushNotificiation(block, tx, 'assets', 'mint', {
                 asset_id: data.asset_id,
                 trace: data
             });
@@ -333,7 +249,7 @@ export default class AtomicAssetsActionHandler {
                 back_quantity: data.backed_token
             });
 
-            this.pushNotificiation(block, tx, 'assets', 'back', {
+            this.core.pushNotificiation(block, tx, 'assets', 'back', {
                 asset_id: data.asset_id,
                 trace: data
             });
@@ -379,7 +295,7 @@ export default class AtomicAssetsActionHandler {
 
             await this.createLogMessage(db, block, tx, 'update', 'asset', data.asset_id, delta);
 
-            this.pushNotificiation(block, tx, 'assets', 'update', {
+            this.core.pushNotificiation(block, tx, 'assets', 'update', {
                 asset_id: data.asset_id,
                 trace: data,
                 delta: delta
@@ -488,17 +404,5 @@ export default class AtomicAssetsActionHandler {
             created_at_block: block.block_num,
             created_at_time: eosioTimestampToDate(block.timestamp).getTime()
         }, ['log_id']);
-    }
-
-    private pushNotificiation(block: ShipBlock, tx: EosioTransaction, prefix: string, name: string, data: any): void {
-        this.core.addNotifyJob(async () => {
-            const channelName = ['eosio-contract-api', this.core.connection.chain.name, this.core.args.socket_api_prefix, prefix].join(':');
-
-            await this.core.connection.redis.ioRedis.publish(channelName, JSON.stringify({
-                transaction: tx,
-                block: {block_num: block.block_num, block_id: block.block_id},
-                action: name, data
-            }));
-        });
     }
 }

@@ -5,7 +5,7 @@ CREATE TABLE atomicassets_assets (
     collection_name character varying(12) NOT NULL,
     schema_name character varying(12) NOT NULL,
     template_id bigint,
-    owner character varying(12) NOT NULL,
+    owner character varying(12),
     readable_name character varying(64),
     ram_payer character varying(12) NOT NULL,
     burned_at_block bigint,
@@ -103,8 +103,7 @@ CREATE TABLE atomicassets_offers_assets (
     contract character varying(12) NOT NULL,
     offer_id bigint NOT NULL,
     owner character varying(12) NOT NULL,
-    asset_id bigint NOT NULL,
-    state smallint NOT NULL
+    asset_id bigint NOT NULL
 );
 
 CREATE TABLE atomicassets_templates (
@@ -263,14 +262,13 @@ CREATE INDEX atomicassets_logs_created_at_block ON atomicassets_logs USING btree
 CREATE INDEX atomicassets_offers_contract ON atomicassets_offers USING btree (contract);
 CREATE INDEX atomicassets_offers_sender ON atomicassets_offers USING btree (sender);
 CREATE INDEX atomicassets_offers_recipient ON atomicassets_offers USING btree (recipient);
-CREATE INDEX atomicassets_offers_state ON atomicassets_offers USING btree (contract, state);
+CREATE INDEX atomicassets_offers_state ON atomicassets_offers USING btree (state);
 CREATE INDEX atomicassets_offers_updated_at_block ON atomicassets_offers USING btree (updated_at_block);
 CREATE INDEX atomicassets_offers_created_at_block ON atomicassets_offers USING btree (created_at_block);
 
 CREATE INDEX atomicassets_offers_assets_contract ON atomicassets_offers_assets USING btree (offer_id);
 CREATE INDEX atomicassets_offers_assets_offer_id ON atomicassets_offers_assets USING btree (offer_id);
 CREATE INDEX atomicassets_offers_assets_owner ON atomicassets_offers_assets USING btree (owner);
-CREATE INDEX atomicassets_offers_assets_state ON atomicassets_offers_assets USING btree (state);
 
 CREATE INDEX atomicassets_templates_contract ON atomicassets_templates USING btree (contract);
 CREATE INDEX atomicassets_templates_collection_name ON atomicassets_templates USING btree (collection_name);
@@ -295,46 +293,46 @@ CREATE INDEX atomicassets_transfers_created_at_block ON atomicassets_transfers U
 
 -- FOREIGN KEYS --
 ALTER TABLE ONLY atomicassets_assets_backed_tokens
-    ADD CONSTRAINT atomicassets_assets_backed_tokens_assets FOREIGN KEY (asset_id, contract) REFERENCES atomicassets_assets(asset_id, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT atomicassets_assets_backed_tokens_assets FOREIGN KEY (asset_id, contract) REFERENCES atomicassets_assets(asset_id, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_assets_backed_tokens
-    ADD CONSTRAINT atomicassets_assets_backed_tokens_symbol FOREIGN KEY (token_symbol, contract) REFERENCES atomicassets_token_symbols(token_symbol, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT atomicassets_assets_backed_tokens_symbol FOREIGN KEY (token_symbol, contract) REFERENCES atomicassets_token_symbols(token_symbol, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_assets
-    ADD CONSTRAINT atomicassets_assets_collections FOREIGN KEY (contract, collection_name) REFERENCES atomicassets_collections(contract, collection_name) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT atomicassets_assets_collections FOREIGN KEY (contract, collection_name) REFERENCES atomicassets_collections(contract, collection_name) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_assets_data
-    ADD CONSTRAINT atomicassets_assets_data_assets FOREIGN KEY (asset_id, contract) REFERENCES atomicassets_assets(asset_id, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT atomicassets_assets_data_assets FOREIGN KEY (asset_id, contract) REFERENCES atomicassets_assets(asset_id, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_assets
-    ADD CONSTRAINT atomicassets_assets_templates FOREIGN KEY (template_id, contract) REFERENCES atomicassets_templates(template_id, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT atomicassets_assets_templates FOREIGN KEY (template_id, contract) REFERENCES atomicassets_templates(template_id, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_assets
-    ADD CONSTRAINT atomicassets_assets_schemas FOREIGN KEY (collection_name, schema_name, contract) REFERENCES atomicassets_schemas(collection_name, schema_name, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT atomicassets_assets_schemas FOREIGN KEY (collection_name, schema_name, contract) REFERENCES atomicassets_schemas(collection_name, schema_name, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_balances
-    ADD CONSTRAINT atomicassets_balances_symbols FOREIGN KEY (token_symbol, contract) REFERENCES atomicassets_token_symbols(token_symbol, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT atomicassets_balances_symbols FOREIGN KEY (token_symbol, contract) REFERENCES atomicassets_token_symbols(token_symbol, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_offers_assets
-    ADD CONSTRAINT atomicassets_offers_assets_assets FOREIGN KEY (asset_id, contract) REFERENCES atomicassets_assets(asset_id, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT atomicassets_offers_assets_assets FOREIGN KEY (asset_id, contract) REFERENCES atomicassets_assets(asset_id, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_offers_assets
-    ADD CONSTRAINT atomicassets_offers_assets_offers FOREIGN KEY (offer_id, contract) REFERENCES atomicassets_offers(offer_id, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT atomicassets_offers_assets_offers FOREIGN KEY (offer_id, contract) REFERENCES atomicassets_offers(offer_id, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_templates
-    ADD CONSTRAINT atomicassets_templates_collections FOREIGN KEY (collection_name, contract) REFERENCES atomicassets_collections(collection_name, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT atomicassets_templates_collections FOREIGN KEY (collection_name, contract) REFERENCES atomicassets_collections(collection_name, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_templates_data
-    ADD CONSTRAINT atomicassets_templates_data_templates FOREIGN KEY (template_id, contract) REFERENCES atomicassets_templates(template_id, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT atomicassets_templates_data_templates FOREIGN KEY (template_id, contract) REFERENCES atomicassets_templates(template_id, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_templates
-    ADD CONSTRAINT atomicassets_templates_schemas FOREIGN KEY (collection_name, schema_name, contract) REFERENCES atomicassets_schemas(collection_name, schema_name, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT atomicassets_templates_schemas FOREIGN KEY (collection_name, schema_name, contract) REFERENCES atomicassets_schemas(collection_name, schema_name, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_schemas
-    ADD CONSTRAINT atomicassets_schemas_collection FOREIGN KEY (collection_name, contract) REFERENCES atomicassets_collections(collection_name, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT atomicassets_schemas_collection FOREIGN KEY (collection_name, contract) REFERENCES atomicassets_collections(collection_name, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_transfers_assets
-    ADD CONSTRAINT atomicassets_transfers_assets_assets FOREIGN KEY (asset_id, contract) REFERENCES atomicassets_assets(asset_id, contract) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT atomicassets_transfers_assets_assets FOREIGN KEY (asset_id, contract) REFERENCES atomicassets_assets(asset_id, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_transfers_assets
-    ADD CONSTRAINT atomicassets_transfers_assets_transfers FOREIGN KEY (transfer_id) REFERENCES atomicassets_transfers(transfer_id) MATCH SIMPLE ON UPDATE CASCADE ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT atomicassets_transfers_assets_transfers FOREIGN KEY (transfer_id) REFERENCES atomicassets_transfers(transfer_id) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;

@@ -24,11 +24,6 @@ export enum OfferState {
     CANCELLED = 5
 }
 
-export enum OfferAssetState {
-    NORMAL = 0,
-    MISSING = 1
-}
-
 export enum JobPriority {
     INDEPENDENT = 100,
     TABLE_BALANCES = 90,
@@ -59,12 +54,15 @@ export default class AtomicAssetsHandler extends ContractHandler {
         version: string,
         collection_format?: ISchema
     };
+    reversible: boolean;
 
     updateQueue: PQueue;
     updateJobs: any[] = [];
 
-    notifyQueue: PQueue;
-    notifyJobs: any[] = [];
+    offerState: {assets: string[], offers: string[]} = {assets: [], offers: []};
+
+    notificationQueue: PQueue;
+    notificationJobs: any[] = [];
 
     tableHandler: AtomicAssetsTableHandler;
     actionHandler: AtomicAssetsActionHandler;
@@ -79,8 +77,8 @@ export default class AtomicAssetsHandler extends ContractHandler {
         this.updateQueue = new PQueue({concurrency: 1, autoStart: false});
         this.updateQueue.pause();
 
-        this.notifyQueue = new PQueue({concurrency: 1, autoStart: false});
-        this.notifyQueue.pause();
+        this.notificationQueue = new PQueue({concurrency: 1, autoStart: false});
+        this.notificationQueue.pause();
 
         this.scope = {
             actions: [
@@ -208,18 +206,131 @@ export default class AtomicAssetsHandler extends ContractHandler {
         await this.tableHandler.handleUpdate(db, block, delta);
     }
 
-    async onBlockComplete(): Promise<void> {
+    async onBlockComplete(db: ContractDBTransaction, block: ShipBlock): Promise<void> {
+        this.reversible = db.currentBlock > db.lastIrreversibleBlock;
+
         this.updateQueue.start();
         await Promise.all(this.updateJobs);
         this.updateQueue.pause();
         this.updateJobs = [];
+
+        await this.updateOfferStates(db, block, this.offerState.offers, this.offerState.assets);
+        this.offerState.offers = [];
+        this.offerState.assets = [];
     }
 
     async onCommit(): Promise<void> {
-        this.notifyQueue.start();
-        await Promise.all(this.notifyJobs);
-        this.notifyQueue.pause();
-        this.notifyJobs = [];
+        this.notificationQueue.start();
+        await Promise.all(this.notificationJobs);
+        this.notificationQueue.pause();
+        this.notificationJobs = [];
+    }
+
+    checkOfferState(offerIDs: string[], assetIDs: string[]): void {
+        for (const offerID of offerIDs) {
+            if (this.offerState.offers.indexOf(offerID) >= 0) {
+                continue;
+            }
+
+            this.offerState.offers.push(offerID);
+        }
+
+        for (const assetID of assetIDs) {
+            if (this.offerState.assets.indexOf(assetID) >= 0) {
+                continue;
+            }
+
+            this.offerState.assets.push(assetID);
+        }
+    }
+
+    async updateOfferStates(db: ContractDBTransaction,  block: ShipBlock, offerIDs: string[], assetIDs: string[]): Promise<void> {
+        if (offerIDs.length === 0 && assetIDs.length === 0) {
+            return;
+        }
+
+        const filterOptions = [];
+
+        if (offerIDs.length > 0) {
+            filterOptions.push('(offer.offer_id IN (' + offerIDs.join(',') + '))');
+        }
+
+        if (assetIDs.length > 0) {
+            filterOptions.push('(asset.asset_id IN (' + assetIDs.join(',') + '))');
+        }
+
+        const relatedOffersQuery = await db.query(
+            'SELECT DISTINCT ON (offer.offer_id) offer.offer_id, offer.state ' +
+            'FROM atomicassets_offers offer, atomicassets_offers_assets asset ' +
+            'WHERE offer.contract = asset.contract AND offer.offer_id = asset.offer_id AND ' +
+            'offer.state IN (' + [OfferState.PENDING.valueOf(), OfferState.INVALID.valueOf()].join(',') + ') AND' +
+            '(' + filterOptions.join(' OR ') + ') AND offer.contract = \'' + this.args.atomicassets_account + '\''
+        );
+
+        if (relatedOffersQuery.rowCount === 0) {
+            return;
+        }
+
+        const invalidOffersQuery = await db.query(
+            'SELECT DISTINCT ON (o_asset.offer_id) o_asset.offer_id ' +
+            'FROM atomicassets_offers_assets o_asset, atomicassets_assets a_asset ' +
+            'WHERE o_asset.contract = a_asset.contract AND o_asset.asset_id = a_asset.asset_id AND ' +
+            'o_asset.offer_id IN (' + relatedOffersQuery.rows.map(row => row.offer_id).join(',') + ') AND ' +
+            'o_asset.owner != a_asset.owner AND o_asset.contract = \'' + this.args.atomicassets_account + '\''
+        );
+
+        const invalidOffers = invalidOffersQuery.rows.map((row) => row.offer_id);
+        const notifications: Array<{offer_id: string, state: number}> = [];
+
+        for (const row of invalidOffersQuery.rows) {
+            if (row.state === OfferState.INVALID.valueOf()) {
+                continue;
+            }
+
+            notifications.push({
+                offer_id: row.offer_id,
+                state: OfferState.INVALID.valueOf()
+            });
+        }
+
+        if (invalidOffers.length > 0) {
+            await db.update('atomicassets_offers', {
+                state: OfferState.INVALID.valueOf()
+            }, {
+                str: 'contract = $1 AND offer_id IN (' + invalidOffers.join(',') + ') AND state = $2',
+                values: [this.args.atomicassets_account, OfferState.PENDING.valueOf()]
+            }, ['contract', 'offer_id', 'asset_id']);
+        }
+
+        for (const row of relatedOffersQuery.rows) {
+            if (invalidOffers.indexOf(row.offer_id) >= 0) {
+                if (row.state === OfferState.PENDING.valueOf()) {
+                    notifications.push({
+                        offer_id: row.offer_id,
+                        state: OfferState.INVALID.valueOf()
+                    });
+                }
+            } else if (row.state === OfferState.INVALID.valueOf()) {
+                await db.update('atomicassets_offers', {
+                    state: OfferState.PENDING.valueOf()
+                }, {
+                    str: 'contract = $1 AND offer_id = $2',
+                    values: [this.args.atomicassets_account, row.offer_id]
+                }, ['contract', 'offer_od']);
+
+                notifications.push({
+                    offer_id: row.offer_id,
+                    state: OfferState.PENDING.valueOf()
+                });
+            }
+        }
+
+        for (const notification of notifications) {
+            this.pushNotificiation(block, null, 'offers', 'state_change', {
+                offer_id: notification.offer_id,
+                state: notification.state
+            });
+        }
     }
 
     addUpdateJob(fn: () => any, priority: number): void {
@@ -230,18 +341,29 @@ export default class AtomicAssetsHandler extends ContractHandler {
                 await fn();
             } catch (e) {
                 logger.error(trace);
+                throw e;
             }
         }, {priority}));
     }
 
-    addNotifyJob(fn: () => any): void {
+    pushNotificiation(block: ShipBlock, tx: EosioTransaction | null, prefix: string, name: string, data: any): void {
+        if (!this.reversible) {
+            return;
+        }
+
         const trace = getStackTrace();
 
-        this.notifyJobs.push(this.notifyQueue.add(async () => {
+        this.notificationJobs.push(this.notificationQueue.add(async () => {
             try {
-                await fn();
+                const channelName = ['eosio-contract-api', this.connection.chain.name, this.args.socket_api_prefix, prefix].join(':');
+
+                await this.connection.redis.ioRedis.publish(channelName, JSON.stringify({
+                    transaction: tx,
+                    block: {block_num: block.block_num, block_id: block.block_id},
+                    action: name, data
+                }));
             } catch (e) {
-                logger.error(trace);
+                logger.warn('Error while pushing notification', trace);
             }
         }));
     }
