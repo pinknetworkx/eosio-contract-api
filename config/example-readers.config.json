@@ -16,16 +16,14 @@
       {
         "handler": "atomicassets",
         "args": {
-          "atomicassets_account": "atomicassets",
-          "socket_api_prefix": "atomicassets"
+          "atomicassets_account": "atomicassets"
         }
       },
       {
         "handler": "atomicmarket",
         "args": {
           "atomicassets_account": "atomicassets",
-          "atomicmarket_account": "atomicmarket",
-          "socket_api_prefix": "atomicmarket"
+          "atomicmarket_account": "atomicmarket"
         }
       }
     ]

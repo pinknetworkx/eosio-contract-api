@@ -1,5 +1,4 @@
 import * as express from 'express';
-import * as fs from 'fs';
 import * as swagger from 'swagger-ui-express';
 
 import { ApiNamespace } from '../interfaces';
@@ -7,6 +6,8 @@ import { HTTPServer } from '../../server';
 import logger from '../../../utils/winston';
 import { webpushEndpoints } from './routes/webpush';
 import { getOpenApiDescription } from '../../openapi';
+import { notificationsEndpoints, notificationsSockets } from './routes/notification';
+import { watchlistEndpoints } from './routes/watchlist';
 
 export type AtomicHubNamespaceArgs = {
     atomicassets_contract: string,
@@ -15,7 +16,9 @@ export type AtomicHubNamespaceArgs = {
     vapid_keys: {
         public: string,
         private: string
-    }
+    },
+
+    notification_title: string
 };
 
 export class AtomicHubNamespace extends ApiNamespace {
@@ -24,16 +27,24 @@ export class AtomicHubNamespace extends ApiNamespace {
     args: AtomicHubNamespaceArgs;
 
     async init(): Promise<void> {
-        try {
-            await this.connection.database.query('SELECT * FROM atomichub_watchlist LIMIT 1');
-        } catch (e) {
-            logger.info('Could not find AtomicHub tables. Create them now...');
+        if (typeof this.args.atomicassets_contract !== 'string') {
+            throw new Error('Argument missing in atomichub api namespace: atomicassets_contract');
+        }
 
-            await this.connection.database.query(fs.readFileSync('./definitions/tables/atomichub_tables.sql', {
-                encoding: 'utf8'
-            }));
+        if (typeof this.args.atomicmarket_contract !== 'string') {
+            throw new Error('Argument missing in atomichub api namespace: atomicmarket_contract');
+        }
 
-            logger.info('AtomicHub tables successfully created');
+        if (
+            typeof this.args.vapid_keys !== 'object' ||
+            typeof this.args.vapid_keys.private !== 'string' ||
+            typeof this.args.vapid_keys.public !== 'string'
+        ) {
+            throw new Error('Argument missing in atomichub api namespace: vapid_keys');
+        }
+
+        if (typeof this.args.notification_title !== 'string') {
+            throw new Error('Argument missing in atomichub api namespace: notification_title');
         }
     }
 
@@ -64,12 +75,18 @@ export class AtomicHubNamespace extends ApiNamespace {
 
         server.web.express.use(this.path + '/v1', server.web.limiter);
 
-        const doc = webpushEndpoints(this, server, router);
+        const docs = [];
 
-        Object.assign(documentation.paths, doc.paths);
+        docs.push(webpushEndpoints(this, server, router));
+        docs.push(notificationsEndpoints(this, server, router));
+        docs.push(watchlistEndpoints(this, server, router));
 
-        if (doc.tag) {
-            documentation.tags.push(doc.tag);
+        for (const doc of docs) {
+            Object.assign(documentation.paths, doc.paths);
+
+            if (doc.tag) {
+                documentation.tags.push(doc.tag);
+            }
         }
 
         logger.debug('AtomicHub swagger docs', documentation);
@@ -83,6 +100,6 @@ export class AtomicHubNamespace extends ApiNamespace {
     }
 
     async socket(server: HTTPServer): Promise<void> {
-
+        notificationsSockets(this, server);
     }
 }

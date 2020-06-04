@@ -16,8 +16,7 @@ import { definitions } from './swagger';
 import { getOpenApiDescription } from '../../openapi';
 
 export type AtomicAssetsNamespaceArgs = {
-    atomicassets_account: string,
-    socket_api_prefix: string
+    atomicassets_account: string
 };
 
 export class AtomicAssetsNamespace extends ApiNamespace {
@@ -26,7 +25,9 @@ export class AtomicAssetsNamespace extends ApiNamespace {
     args: AtomicAssetsNamespaceArgs;
 
     async init(): Promise<void> {
-
+        if (typeof this.args.atomicassets_account !== 'string') {
+            throw new Error('Argument missing in atomicassets api namespace: atomicassets_account');
+        }
     }
 
     async router(server: HTTPServer): Promise<express.Router> {

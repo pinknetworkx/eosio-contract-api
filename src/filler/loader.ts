@@ -19,24 +19,38 @@ export default class ReaderLoader {
     }
 
     async deleteDB(): Promise<void> {
-        for (const handler of this.handlers) {
-            logger.info('Init handler ' + handler + ' for reader ' + this.config.name);
+        const transaction = await this.connection.database.begin();
 
-            await handler.deleteDB();
+        await transaction.query('DELETE FROM contract_readers WHERE name = $1', [this.config.name]);
+        await transaction.query('DELETE FROM reversible_queries WHERE reader = $1', [this.config.name]);
+
+        try {
+            for (const handler of this.handlers) {
+                logger.info('Init handler ' + handler + ' for reader ' + this.config.name);
+
+                await handler.deleteDB(transaction);
+            }
+        } catch (e) {
+            logger.error(e);
+            await transaction.query('ROLLBACK');
+
+            return;
         }
+
+        await transaction.query('COMMIT');
     }
 
     async startFiller(logInterval: number): Promise<void> {
+        for (const handler of this.handlers) {
+            logger.info('Init handler ' + handler + ' for reader ' + this.config.name);
+
+            await handler.init();
+        }
+
         if (this.config.delete_data) {
-            await this.connection.database.query('DELETE FROM contract_readers WHERE name = $1', [this.config.name]);
-            await this.connection.database.query('DELETE FROM reversible_queries WHERE reader = $1', [this.config.name]);
+            logger.info('Deleting data from handler of reader ' + this.config.name);
 
-            for (const handler of this.handlers) {
-                logger.info('Deleting data from handler ' + handler + ' for reader ' + this.config.name);
-
-                await handler.init();
-                await handler.deleteDB();
-            }
+            await this.deleteDB();
         }
 
         const query = await this.connection.database.query('SELECT block_num FROM contract_readers WHERE name = $1', [this.config.name]);
@@ -60,10 +74,6 @@ export default class ReaderLoader {
         }
 
         logger.info('Starting reader: ' + this.config.name);
-
-        for (const handler of this.handlers) {
-            await handler.init();
-        }
 
         await this.reader.startProcessing();
 

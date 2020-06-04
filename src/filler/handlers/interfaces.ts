@@ -1,3 +1,5 @@
+import { PoolClient } from 'pg';
+
 import ConnectionManager from '../../connections/manager';
 import { PromiseEventHandler } from '../../utils/event';
 import { ContractDBTransaction } from '../database';
@@ -18,7 +20,7 @@ export abstract class ContractHandler {
     ) { }
 
     abstract async init(): Promise<void>;
-    abstract async deleteDB(): Promise<void>;
+    abstract async deleteDB(transaction: PoolClient): Promise<void>;
 
     abstract async onAction(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void>;
     abstract async onTableChange(db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow): Promise<void>;

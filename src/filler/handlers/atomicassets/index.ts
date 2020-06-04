@@ -14,6 +14,7 @@ import ConnectionManager from '../../../connections/manager';
 import { PromiseEventHandler } from '../../../utils/event';
 import AtomicAssetsActionHandler from './actions';
 import { getStackTrace } from '../../../utils';
+import { PoolClient } from 'pg';
 
 export enum OfferState {
     PENDING = 0,
@@ -41,8 +42,7 @@ export enum JobPriority {
 }
 
 export type AtomicAssetsReaderArgs = {
-    atomicassets_account: string,
-    socket_api_prefix: string
+    atomicassets_account: string
 };
 
 export default class AtomicAssetsHandler extends ContractHandler {
@@ -54,7 +54,8 @@ export default class AtomicAssetsHandler extends ContractHandler {
         version: string,
         collection_format?: ISchema
     };
-    reversible: boolean;
+
+    reversible = false;
 
     updateQueue: PQueue;
     updateJobs: any[] = [];
@@ -173,28 +174,20 @@ export default class AtomicAssetsHandler extends ContractHandler {
         }
     }
 
-    async deleteDB(): Promise<void> {
-        const client = await this.connection.database.begin();
+    async deleteDB(client: PoolClient): Promise<void> {
+        const tables = [
+            'atomicassets_assets', 'atomicassets_assets_backed_tokens', 'atomicassets_assets_data',
+            'atomicassets_balances', 'atomicassets_collections', 'atomicassets_config',
+            'atomicassets_logs', 'atomicassets_offers', 'atomicassets_offers_assets',
+            'atomicassets_templates', 'atomicassets_templates_data', 'atomicassets_schemas',
+            'atomicassets_token_symbols', 'atomicassets_transfers', 'atomicassets_transfers_assets'
+        ];
 
-        try {
-            const tables = [
-                'atomicassets_assets', 'atomicassets_assets_backed_tokens', 'atomicassets_assets_data',
-                'atomicassets_balances', 'atomicassets_collections', 'atomicassets_config',
-                'atomicassets_logs', 'atomicassets_offers', 'atomicassets_offers_assets',
-                'atomicassets_templates', 'atomicassets_templates_data', 'atomicassets_schemas',
-                'atomicassets_token_symbols', 'atomicassets_transfers', 'atomicassets_transfers_assets'
-            ];
-
-            for (const table of tables) {
-                await client.query(
-                    'DELETE FROM ' + client.escapeIdentifier(table) + ' WHERE contract = $1',
-                    [this.args.atomicassets_account]
-                );
-            }
-
-            await client.query('COMMIT');
-        } finally {
-            client.release();
+        for (const table of tables) {
+            await client.query(
+                'DELETE FROM ' + client.escapeIdentifier(table) + ' WHERE contract = $1',
+                [this.args.atomicassets_account]
+            );
         }
     }
 
@@ -355,7 +348,10 @@ export default class AtomicAssetsHandler extends ContractHandler {
 
         this.notificationJobs.push(this.notificationQueue.add(async () => {
             try {
-                const channelName = ['eosio-contract-api', this.connection.chain.name, this.args.socket_api_prefix, prefix].join(':');
+                const channelName = [
+                    'eosio-contract-api', this.connection.chain.name, 'atomicassets',
+                    this.args.atomicassets_account, prefix
+                ].join(':');
 
                 await this.connection.redis.ioRedis.publish(channelName, JSON.stringify({
                     transaction: tx,

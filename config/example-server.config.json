@@ -26,8 +26,7 @@
       "name": "atomicassets",
       "path": "/atomicassets/",
       "args": {
-        "contract": "atomicassets",
-        "socket_api_prefix": "atomicassets"
+        "atomicassets_account": "atomicassets"
       }
     }
   ]

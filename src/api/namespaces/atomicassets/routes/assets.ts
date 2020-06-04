@@ -422,7 +422,10 @@ export function assetsSockets(core: AtomicAssetsNamespace, server: HTTPServer): 
         });
     });
 
-    const assetChannelName = ['eosio-contract-api', core.connection.chain.name, core.args.socket_api_prefix, 'assets'].join(':');
+    const assetChannelName = [
+        'eosio-contract-api', core.connection.chain.name, 'atomicassets',
+        core.args.atomicassets_account, 'assets'
+    ].join(':');
     core.connection.redis.ioRedisSub.subscribe(assetChannelName, () => {
         core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
             if (channel !== assetChannelName) {
@@ -500,9 +503,7 @@ export function assetsSockets(core: AtomicAssetsNamespace, server: HTTPServer): 
             const msg = JSON.parse(message);
 
             if (msg.action === 'fork') {
-                namespace.emit('fork', {
-                    block_num: msg.block_num
-                });
+                namespace.emit('fork', {block_num: msg.block_num});
             }
         });
     });

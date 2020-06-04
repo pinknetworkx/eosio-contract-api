@@ -281,7 +281,10 @@ export function offersSockets(core: AtomicAssetsNamespace, server: HTTPServer): 
         });
     });
 
-    const offerChannelName = ['eosio-contract-api', core.connection.chain.name, core.args.socket_api_prefix, 'offers'].join(':');
+    const offerChannelName = [
+        'eosio-contract-api', core.connection.chain.name, 'atomicassets',
+        core.args.atomicassets_account, 'offers'
+    ].join(':');
     core.connection.redis.ioRedisSub.subscribe(offerChannelName, () => {
         core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
             if (channel !== offerChannelName) {
@@ -339,9 +342,7 @@ export function offersSockets(core: AtomicAssetsNamespace, server: HTTPServer): 
             const msg = JSON.parse(message);
 
             if (msg.action === 'fork') {
-                namespace.emit('fork', {
-                    block_num: msg.block_num
-                });
+                namespace.emit('fork', {block_num: msg.block_num});
             }
         });
     });

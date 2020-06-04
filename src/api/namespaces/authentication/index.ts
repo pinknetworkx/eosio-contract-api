@@ -21,6 +21,18 @@ export class AuthenticationNamespace extends ApiNamespace {
     args: AuthenticationNamespaceArgs;
 
     async init(): Promise<void> {
+        if (typeof this.args.action !== 'object') {
+            throw new Error('Argument missing in authentication api namespace: action');
+        }
+
+        if (typeof this.args.action.account !== 'string') {
+            throw new Error('Argument missing in authentication api namespace: action.account');
+        }
+
+        if (typeof this.args.action.name !== 'string') {
+            throw new Error('Argument missing in authentication api namespace: action.name');
+        }
+
         try {
             await this.connection.database.query('SELECT * FROM auth_tokens LIMIT 1');
         } catch (e) {
