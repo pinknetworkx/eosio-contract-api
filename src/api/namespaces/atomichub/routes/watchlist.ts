@@ -204,6 +204,7 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
                     security: [
                         {bearerAuth: []}
                     ],
+                    summary: 'Remove an asset from the watchlist',
                     parameters: [
                         {
                             in: 'path',
@@ -213,7 +214,6 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
                             description: 'Asset id which should be removed'
                         }
                     ],
-                    summary: 'Remove an asset from the watchlist',
                     responses: getOpenAPI3Responses([200, 401, 500], {type: 'object', nullable: true})
                 }
             },
@@ -223,6 +223,7 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
                     security: [
                         {bearerAuth: []}
                     ],
+                    summary: 'Add an asset to the watchlist',
                     requestBody: {
                         content: {
                             'application/json': {
@@ -238,7 +239,6 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
                             }
                         }
                     },
-                    summary: 'Add an asset to the watchlist',
                     responses: getOpenAPI3Responses([200, 401, 500], {type: 'object', nullable: true})
                 }
             }

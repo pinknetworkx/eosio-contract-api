@@ -4,12 +4,9 @@ import fetch from 'node-fetch';
 import { AtomicHubNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import logger from '../../../../utils/winston';
+import { getOpenAPI3Responses } from '../../../openapi';
 
 export function utilsEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/search', async (req, res) => {
-        // TODO implement a search which makes sense
-    });
-
     router.get('/v1/avatar/:account', server.web.caching({expire: 60}), async (req, res) => {
         try {
             const resp = await core.connection.chain.rpc.get_table_rows({
@@ -44,6 +41,31 @@ export function utilsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             name: 'utils',
             description: 'Utilities'
         },
-        paths: { }
+        paths: {
+            '/v1/avatar/{account}': {
+                get: {
+                    tags: ['utils'],
+                    summary: 'Get the avatar from a specific user by name',
+                    parameters: [
+                        {
+                            in: 'path',
+                            name: 'account',
+                            required: true,
+                            schema: {type: 'string'},
+                            description: 'Account Name'
+                        }
+                    ],
+                    responses: {
+                        '200': {
+                            description: 'OK',
+                            content: {
+                                'image/png': { },
+                                'image/jpeg': { }
+                            }
+                        },
+                    }
+                }
+            }
+        }
     };
 }

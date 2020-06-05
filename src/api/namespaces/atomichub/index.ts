@@ -1,5 +1,6 @@
 import * as express from 'express';
 import * as swagger from 'swagger-ui-express';
+import * as path from 'path';
 
 import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
@@ -124,7 +125,9 @@ export class AtomicHubNamespace extends ApiNamespace {
 
         logger.debug('AtomicHub swagger docs', documentation);
 
-        server.web.express.use(this.path + '/docs', swagger.serve, swagger.setup(documentation, {
+        server.web.express.use(this.path + '/docs', express.static(path.resolve(__dirname, '../../../../docs/atomichub')));
+
+        server.web.express.use(this.path + '/docs/swagger', swagger.serve, swagger.setup(documentation, {
             customCss: '.topbar { display: none; }',
             customCssUrl: 'https://cdn.jsdelivr.net/npm/swagger-ui-themes@3.0.0/themes/3.x/theme-flattop.min.css'
         }));

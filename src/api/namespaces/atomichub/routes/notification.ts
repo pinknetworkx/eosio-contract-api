@@ -17,7 +17,7 @@ async function getNotifications(
         [account, limit]
     );
 
-    return query.rows;
+    return query.rows.reverse();
 }
 
 export function notificationsEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {

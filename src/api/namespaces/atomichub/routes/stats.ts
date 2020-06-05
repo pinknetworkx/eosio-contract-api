@@ -4,6 +4,7 @@ import { AtomicHubNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { filterQueryArgs } from '../../utils';
 import { formatAsset } from '../../atomicassets/format';
+import { getOpenAPI3Responses } from '../../../openapi';
 
 export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/stats', server.web.caching({expire: 60}), async (_, res) => {
@@ -20,10 +21,14 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
         res.json({
             success: true,
             data: {
-                nfts_total: nftsQuery.rows[0]['nfts'],
-                transactions_daily: transfersQuery.rows[0]['transfers'],
-                sales_count_daily: 0,
-                sales_volume_daily: 0
+                total: {
+                    nfts: nftsQuery.rows[0]['nfts']
+                },
+                today: {
+                    transactions: transfersQuery.rows[0]['transfers'],
+                    sales_count: 0,
+                    sales_volume: 0
+                }
             },
             query_time: Date.now()
         });
@@ -71,6 +76,92 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             name: 'stats',
             description: 'Stats'
         },
-        paths: { }
+        paths: {
+            '/v1/stats': {
+                get: {
+                    tags: ['stats'],
+                    summary: 'Get general atomicassets / atomicmarket stats',
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'object',
+                        properties: {
+                            total: {
+                                type: 'object',
+                                properties: {
+                                    nfts: {type: 'integer'}
+                                }
+                            },
+                            today: {
+                                type: 'object',
+                                properties: {
+                                    transactions: {type: 'integer'},
+                                    sales_count: {type: 'integer'},
+                                    sales_volume: {type: 'number'}
+                                }
+                            }
+                        }
+                    })
+                }
+            },
+            '/v1/trending': {
+                get: {
+                    tags: ['stats'],
+                    summary: 'Get currently trending assets',
+                    parameters: [
+                        {
+                            in: 'query',
+                            name: 'limit',
+                            required: false,
+                            schema: {type: 'integer'},
+                            description: 'Size of the result'
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {type: 'object', nullable: true})
+                }
+            },
+            '/v1/suggestions': {
+                get: {
+                    tags: ['stats'],
+                    summary: 'Get the avatar from a specific user by name',
+                    parameters: [
+                        {
+                            in: 'query',
+                            name: 'limit',
+                            required: false,
+                            schema: {type: 'integer'},
+                            description: 'Size of the result'
+                        },
+                        {
+                            in: 'query',
+                            name: 'collection_name',
+                            required: false,
+                            schema: {type: 'string'},
+                            description: 'Filter by collection'
+                        },
+                        {
+                            in: 'query',
+                            name: 'schema_name',
+                            required: false,
+                            schema: {type: 'string'},
+                            description: 'Filter by schema'
+                        },
+                        {
+                            in: 'query',
+                            name: 'template_id',
+                            required: false,
+                            schema: {type: 'integer'},
+                            description: 'Filter by template'
+                        },
+                        {
+                            in: 'query',
+                            name: 'asset_id',
+                            required: false,
+                            schema: {type: 'integer'},
+                            description: 'Get suggestions for a specific asset'
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {type: 'object', nullable: true})
+                }
+            }
+        }
     };
 }

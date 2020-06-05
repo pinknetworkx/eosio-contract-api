@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Socket API | AtomicAssets API Documentation</title>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/themes/prism-okaidia.min.css">
+
+    <link type="text/css" rel="stylesheet" href="/docs/assets/css/styles.css">
+</head>
+
+<body class="body-pink">
+<div class="page-wrapper">
+    <div class="doc-wrapper">
+        <div class="container">
+            <div id="doc-header" class="doc-header text-center">
+                <h1 class="doc-title">Socket API</h1>
+            </div>
+            <div class="doc-body row">
+                <div class="doc-content col-md-9 col-12 order-1">
+                    <div class="content-inner">
+                        <section id="section-requirements" class="doc-section">
+                            <h2 class="section-title">Requirements</h2>
+                            <div class="section-block">
+                                <p>
+                                    This API uses the library <a href="https://socket.io/">socket.io</a> >= 2.0.0 for the websocket connection which
+                                    is not compatible with standardized websocket clients but allows more flexibility. Socket.io can be used in browser or node environments.
+                                </p>
+                                <p>
+                                    The socket API is used to subscribe to actions on the blockchain and receive realtime notifications.
+                                </p>
+                            </div>
+                        </section>
+                        <section id="section-usage" class="doc-section">
+                            <h2 class="section-title">Usage</h2>
+                            <div class="section-block">
+                                <h3 class="block-title">Connect</h3>
+
+                                <pre><code class="language-javascript">const socket = io('&lt;SOCKET ENDPOINT&gt;');</code></pre>
+                            </div>
+                            <div class="section-block">
+                                <h3 class="block-title">Subscribe Event</h3>
+                                <pre><code class="language-javascript">socket.on('event', (data) => { });</code></pre>
+                            </div><!--//section-block-->
+                            <div class="section-block">
+                                <h3 class="block-title">Publish Event</h3>
+                                <pre><code class="language-javascript">socket.emit('event', data);</code></pre>
+                            </div>
+                        </section>
+                        <section id="section-objects" class="doc-section">
+                            <h2 class="section-title">Standard Objects</h2>
+                            <div id="section-objects-notification" class="section-block">
+                                <h3 class="block-title">Notification</h3>
+                                <pre><code class="language-javascript">{
+    "message": string,
+    "reference": {
+        "type": string
+    },
+    "block_num": string,
+    "block_time": string
+}</code></pre>
+                            </div>
+                        </section>
+                        <section id="section-endpoint-notifications" class="doc-section">
+                            <h2 class="section-title">v1/notifications/{account}</h2>
+                            <div class="section-block">
+                                <p>
+                                    Endpoint: <strong><span class="api-base-path"></span>/v1/notifications/{account}</strong>
+                                </p>
+                            </div>
+                            <div id="section-endpoint-notifications-subscribe" class="section-block">
+                                <h3 class="block-title">Subscribe Events</h3>
+                                <h6>Event: init</h6>
+                                <i>Fired after connecting and returns the last notifications</i>
+                                <pre><code class="language-javascript">Notification[]</code></pre>
+                                <hr />
+                                <h6>Event: notification</h6>
+                                <i>Fired when a new notification is received</i>
+                                <pre><code class="language-javascript">Notification</code></pre>
+                                <hr />
+                                <h6>Event: fork</h6>
+                                <i>Fired when a fork is detected on the blockchain</i>
+                                <pre><code class="language-javascript">{
+    "block_num": number
+}</code></pre>
+                                <hr />
+                            </div>
+                        </section>
+                    </div>
+                </div>
+                <div class="doc-sidebar col-md-3 col-12 order-0 d-none d-md-flex">
+                    <div id="doc-nav" class="doc-nav">
+
+                        <nav id="doc-menu" class="nav doc-menu flex-column sticky">
+                            <a class="nav-link scrollto" href="#section-requirements">Requirements</a>
+                            <a class="nav-link scrollto" href="#section-usage">Usage</a>
+                            <a class="nav-link scrollto" href="#section-objects">Standard Objects</a>
+                            <nav class="doc-sub-menu nav flex-column">
+                                <a class="nav-link scrollto" href="#section-objects-notification">Notification</a>
+                            </nav>
+                            <a class="nav-link scrollto" href="#section-endpoint-notifications">v1/notifications</a>
+                            <nav class="doc-sub-menu nav flex-column">
+                                <a class="nav-link scrollto" href="#section-endpoint-notifications-subscribe">Subscribe Events</a>
+                            </nav>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/jquery-scrollTo/2.1.2/jquery.scrollTo.min.js"></script>
+<script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.0/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/stickyfill/2.1.0/stickyfill.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.20.0/prism.min.js"></script>
+<script type="text/javascript" src="/docs/assets/jscript/main.js"></script>
+</body>
+</html>
+

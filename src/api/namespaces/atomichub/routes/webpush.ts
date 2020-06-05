@@ -39,6 +39,7 @@ export function webpushEndpoints(core: AtomicHubNamespace, _: HTTPServer, router
             '/v1/webpush': {
                 post: {
                     tags: ['webpush'],
+                    summary: 'Get browser notifications for certain events of an account',
                     requestBody: {
                         content: {
                             'application/json': {
@@ -60,7 +61,6 @@ export function webpushEndpoints(core: AtomicHubNamespace, _: HTTPServer, router
                             }
                         }
                     },
-                    summary: 'Get browser notifications for certain events of an account',
                     responses: getOpenAPI3Responses([200, 500], {type: 'object', nullable: true})
                 }
             }
