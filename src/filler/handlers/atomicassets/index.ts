@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import PQueue from 'p-queue';
+import { PoolClient } from 'pg';
 
 import { ObjectSchema } from 'atomicassets';
 import { ISchema } from 'atomicassets/build/Schema';
@@ -14,7 +15,6 @@ import ConnectionManager from '../../../connections/manager';
 import { PromiseEventHandler } from '../../../utils/event';
 import AtomicAssetsActionHandler from './actions';
 import { getStackTrace } from '../../../utils';
-import { PoolClient } from 'pg';
 
 export enum OfferState {
     PENDING = 0,
@@ -172,6 +172,16 @@ export default class AtomicAssetsHandler extends ContractHandler {
             this.config.collection_format = ObjectSchema(query.rows[0].collection_format);
             this.config.version = query.rows[0].version;
         }
+
+        this.events.on('atomicassets_offer_state_change', async ({contract, offer_id, state}: {
+            db: ContractDBTransaction, block: ShipBlock, contract: string, offer_id: string, state: number
+        }) => {
+            if (contract !== this.args.atomicassets_account) {
+                return;
+            }
+
+            logger.debug('Offer #' + offer_id + ' changed state to ' + state);
+        });
     }
 
     async deleteDB(client: PoolClient): Promise<void> {
@@ -237,7 +247,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
         }
     }
 
-    async updateOfferStates(db: ContractDBTransaction,  block: ShipBlock, offerIDs: string[], assetIDs: string[]): Promise<void> {
+    async updateOfferStates(db: ContractDBTransaction, block: ShipBlock, offerIDs: string[], assetIDs: string[]): Promise<void> {
         if (offerIDs.length === 0 && assetIDs.length === 0) {
             return;
         }
@@ -275,17 +285,6 @@ export default class AtomicAssetsHandler extends ContractHandler {
         const invalidOffers = invalidOffersQuery.rows.map((row) => row.offer_id);
         const notifications: Array<{offer_id: string, state: number}> = [];
 
-        for (const row of invalidOffersQuery.rows) {
-            if (row.state === OfferState.INVALID.valueOf()) {
-                continue;
-            }
-
-            notifications.push({
-                offer_id: row.offer_id,
-                state: OfferState.INVALID.valueOf()
-            });
-        }
-
         if (invalidOffers.length > 0) {
             await db.update('atomicassets_offers', {
                 state: OfferState.INVALID.valueOf()
@@ -319,10 +318,10 @@ export default class AtomicAssetsHandler extends ContractHandler {
         }
 
         for (const notification of notifications) {
-            this.pushNotificiation(block, null, 'offers', 'state_change', {
-                offer_id: notification.offer_id,
-                state: notification.state
-            });
+            this.pushNotificiation(block, null, 'offers', 'state_change', notification);
+
+            await this.events.emit('atomicassets_offer_state_change',
+                {db, block, contract: this.args.atomicassets_account, ...notification});
         }
     }
 

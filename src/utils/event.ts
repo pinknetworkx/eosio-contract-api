@@ -9,7 +9,7 @@ export class PromiseEventHandler {
     }>;
 
     constructor() {
-
+        this.listeners = [];
     }
 
     on(name: string, callback: EventCallback, limit: number = 0): void {

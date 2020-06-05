@@ -161,10 +161,10 @@ export default class AtomicAssetsActionHandler {
                 values: [this.contractName, offerChange.offer_id]
             }, ['contract', 'offer_id']);
 
-            this.core.pushNotificiation(block, tx, 'offers', 'state_change', {
-                offer_id: offerChange.offer_id,
-                state: offerChange.state
-            });
+            this.core.pushNotificiation(block, tx, 'offers', 'state_change', offerChange);
+
+            await this.core.events.emit('atomicassets_offer_state_change',
+                {db, block, contract: this.contractName, ...offerChange});
         }
     }
 

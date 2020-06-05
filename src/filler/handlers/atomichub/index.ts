@@ -82,11 +82,7 @@ export default class AtomicHubHandler extends ContractHandler {
     }
 
     async onTableChange(): Promise<void> { }
-
-    async onBlockComplete(): Promise<void> {
-        this.atomicmarketHandler.cleanup();
-        this.atomicassetsHandler.cleanup();
-    }
+    async onBlockComplete(): Promise<void> { }
 
     async onCommit(block: ShipBlock): Promise<void> {
         if (block.block_num % (7200 * 6) === 0) {
@@ -103,7 +99,7 @@ export default class AtomicHubHandler extends ContractHandler {
         db: ContractDBTransaction, block: ShipBlock, contract: string, account: string, message: string, reference: any
     ): Promise<void> {
         await db.insert('atomichub_notifications', {
-            account, message, reference: JSON.stringify(reference),
+            account, contract, message, reference: JSON.stringify(reference),
             block_num: block.block_num, block_time: eosioTimestampToDate(block.timestamp).getTime()
         }, ['id']);
 

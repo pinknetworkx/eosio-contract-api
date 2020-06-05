@@ -38,6 +38,7 @@ CREATE TABLE atomichub_notifications
 (
     id integer NOT NULL,
     account character varying(12) COLLATE pg_catalog."default" NOT NULL,
+    contract character varying(12) COLLATE pg_catalog."default" NOT NULL,
     message character varying(256) COLLATE pg_catalog."default" NOT NULL,
     reference json NOT NULL,
     block_num bigint NOT NULL,

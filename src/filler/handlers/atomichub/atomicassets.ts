@@ -2,16 +2,25 @@ import { ContractDBTransaction } from '../../database';
 import { ShipBlock } from '../../../types/ship';
 import { EosioActionTrace, EosioTransaction } from '../../../types/eosio';
 import AtomicHubHandler from './index';
+import { OfferState } from '../atomicassets';
 
 type TemporaryOffer = { offer_id: string, sender: string, recipient: string };
 
 export default class AtomicAssetsActionHandler {
     private readonly contractName: string;
 
-    private tmpOffers: {[key: string]: TemporaryOffer} = {};
-
     constructor(readonly core: AtomicHubHandler) {
         this.contractName = this.core.args.atomicassets_account;
+
+        this.core.events.on('atomicassets_offer_state_change', async ({db, block, contract, offer_id, state}: {
+            db: ContractDBTransaction, block: ShipBlock, contract: string, offer_id: string, state: number
+        }) => {
+            if (this.contractName !== contract) {
+                return;
+            }
+
+            await this.handleOfferStateChange(db, block, offer_id, state);
+        });
     }
 
     async handleTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
@@ -25,42 +34,43 @@ export default class AtomicAssetsActionHandler {
             await this.handleTransferTrace(db, block, trace);
         } else if (['lognewoffer'].indexOf(trace.act.name) >= 0) {
             await this.handleNewOfferTrace(db, block, trace);
-        } else if (['acceptoffer', 'declineoffer', 'canceloffer'].indexOf(trace.act.name) >= 0) {
-            await this.handleOfferUpdateTrace(db, block, trace);
         }
     }
 
-    cleanup(): void {
-        this.tmpOffers = {};
+    async handleOfferStateChange(db: ContractDBTransaction, block: ShipBlock, offerID: string, state: number): Promise<void> {
+        const offer = await this.getOffer(db, offerID);
+
+        if (state === OfferState.PENDING.valueOf()) {
+            await this.core.createNotification(
+                db, block, this.contractName, offer.sender,
+                'Your offer #' + offer.offer_id + ' has become valid again after it was invalid.', {type: 'offer', id: offer.offer_id}
+            );
+        } else if (state === OfferState.INVALID.valueOf()) {
+            await this.core.createNotification(
+                db, block, this.contractName, offer.sender,
+                'Your offer #' + offer.offer_id + ' has become invalid because items are missing.', {type: 'offer', id: offer.offer_id}
+            );
+        } else if (state === OfferState.ACCEPTED.valueOf()) {
+            await this.core.createNotification(
+                db, block, this.contractName, offer.sender,
+                'Your offer #' + offer.offer_id + ' was accepted.', {type: 'offer', id: offer.offer_id}
+            );
+        } else if (state === OfferState.DECLINED.valueOf()) {
+            await this.core.createNotification(
+                db, block, this.contractName, offer.sender,
+                'Your offer #' + offer.offer_id + ' was declined.', {type: 'offer', id: offer.offer_id}
+            );
+        }
     }
 
     async handleNewOfferTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace): Promise<void> {
         // @ts-ignore
         const data: TemporaryOffer = trace.act.data;
 
-        this.tmpOffers[data.offer_id] = data;
-
         await this.core.createNotification(
             db, block, this.contractName, data.recipient,
             'You received a new offer #' + data.offer_id + ' from ' + data.sender + '.', {type: 'offer', id: data.offer_id}
         );
-    }
-
-    async handleOfferUpdateTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace): Promise<void> {
-        // @ts-ignore
-        const data = await this.getOffer(db, trace.act.data.offer_id);
-
-        if (trace.act.name === 'acceptoffer') {
-            await this.core.createNotification(
-                db, block, this.contractName, data.recipient,
-                'Your offer #' + data.offer_id + ' was accepted.', {type: 'offer', id: data.offer_id}
-            );
-        } else if (trace.act.name === 'declineoffer') {
-            await this.core.createNotification(
-                db, block, this.contractName, data.recipient,
-                'Your offer #' + data.offer_id + ' was declined.', {type: 'offer', id: data.offer_id}
-            );
-        }
     }
 
     async handleTransferTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace): Promise<void> {
@@ -85,13 +95,9 @@ export default class AtomicAssetsActionHandler {
 
     private async getOffer(db: ContractDBTransaction, offerID: string): Promise<TemporaryOffer> {
         const query = await db.query(
-            'SELECT sender, recipient, memo FROM atomicassets_offers WHERE contract = $1 AND offer_id = $2',
+            'SELECT offer_id, sender, recipient, memo FROM atomicassets_offers WHERE contract = $1 AND offer_id = $2',
             [this.contractName, offerID]
         );
-
-        if (query.rowCount === 0 && this.tmpOffers[offerID]) {
-            return this.tmpOffers[offerID];
-        }
 
         if (query.rowCount > 0) {
             return query.rows[0];

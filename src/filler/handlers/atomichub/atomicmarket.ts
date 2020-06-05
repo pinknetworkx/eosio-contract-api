@@ -13,8 +13,4 @@ export default class AtomicMarketActionHandler {
     async handleTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
 
     }
-
-    cleanup() {
-
-    }
 }
