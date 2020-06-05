@@ -115,7 +115,10 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                             description: 'Size of the result'
                         }
                     ],
-                    responses: getOpenAPI3Responses([200, 500], {type: 'object', nullable: true})
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'array',
+                        items: {'$ref': '#/components/schemas/Asset'}
+                    })
                 }
             },
             '/v1/suggestions': {
@@ -159,7 +162,10 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                             description: 'Get suggestions for a specific asset'
                         }
                     ],
-                    responses: getOpenAPI3Responses([200, 500], {type: 'object', nullable: true})
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'array',
+                        items: {'$ref': '#/components/schemas/Asset'}
+                    })
                 }
             }
         }

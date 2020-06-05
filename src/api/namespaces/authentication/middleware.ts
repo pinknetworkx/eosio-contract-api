@@ -4,7 +4,7 @@ import * as crypto from 'crypto';
 import ConnectionManager from '../../../connections/manager';
 
 type BearerTokenOptions = {
-    handler?: (req: express.Request, res: express.Response, next: express.NextFunction) => any,
+    handler?: (req: express.Request, res: express.Response, next: express.NextFunction) => any
 };
 
 declare global {

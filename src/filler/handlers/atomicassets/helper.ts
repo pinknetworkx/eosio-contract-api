@@ -6,7 +6,6 @@ import { AssetsTableRow, OffersTableRow } from './types/tables';
 import { eosioTimestampToDate } from '../../../utils/eosio';
 import { OfferState } from './index';
 import { AttributeMap } from './types/actions';
-import logger from '../../../utils/winston';
 
 export async function saveAssetTableRow(
     db: ContractDBTransaction, block: ShipBlock, contractName: string, scope: string, data: AssetsTableRow,

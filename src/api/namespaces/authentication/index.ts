@@ -92,7 +92,7 @@ export class AuthenticationNamespace extends ApiNamespace {
         return router;
     }
 
-    async socket(server: HTTPServer): Promise<void> {
+    async socket(_: HTTPServer): Promise<void> {
 
     }
 }

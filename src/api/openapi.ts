@@ -7,7 +7,7 @@ export function getOpenApiDescription(server: HTTPServer): string {
         `#### Provided by: [${server.config.provider_name}](${server.config.provider_url})`;
 }
 
-export function getOpenAPI3Responses(codes: number[], data: any) {
+export function getOpenAPI3Responses(codes: number[], data: any): {[key: string]: any} {
     const responses: {[key: string]: any} = {
         '200': {
             description: 'OK',

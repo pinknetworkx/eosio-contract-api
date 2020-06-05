@@ -4,7 +4,6 @@ import fetch from 'node-fetch';
 import { AtomicHubNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import logger from '../../../../utils/winston';
-import { getOpenAPI3Responses } from '../../../openapi';
 
 export function utilsEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/avatar/:account', server.web.caching({expire: 60}), async (req, res) => {
@@ -62,7 +61,7 @@ export function utilsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                                 'image/png': { },
                                 'image/jpeg': { }
                             }
-                        },
+                        }
                     }
                 }
             }

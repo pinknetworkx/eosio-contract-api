@@ -192,9 +192,7 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'array',
-                        items: {
-                            type: 'object'
-                        }
+                        items: {'$ref': '#/components/schemas/Asset'}
                     })
                 }
             },

@@ -11,6 +11,7 @@ import { notificationsEndpoints, notificationsSockets } from './routes/notificat
 import { watchlistEndpoints } from './routes/watchlist';
 import { statsEndpoints } from './routes/stats';
 import { utilsEndpoints } from './routes/utils';
+import { schemas } from './openapi';
 
 export type AtomicHubNamespaceArgs = {
     atomicassets_account: string,
@@ -101,7 +102,8 @@ export class AtomicHubNamespace extends ApiNamespace {
                         type: 'http',
                         scheme: 'bearer'
                     }
-                }
+                },
+                schemas: schemas
             }
         };
 
