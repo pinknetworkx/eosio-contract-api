@@ -9,7 +9,7 @@ import { formatCollection } from '../format';
 import { paginationFilter, standardArrayFilter } from '../swagger';
 
 export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/collections', server.web.caching({ contentType: 'text/json' }), (async (req, res) => {
+    router.get('/v1/collections', server.web.caching(), (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
@@ -72,7 +72,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
         }
     }));
 
-    router.get('/v1/collections/:collection_name', server.web.caching({ contentType: 'text/json' }), (async (req, res) => {
+    router.get('/v1/collections/:collection_name', server.web.caching(), (async (req, res) => {
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_collections_master WHERE contract = $1 AND collection_name = $2',
@@ -94,7 +94,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
         }
     }));
 
-    router.get('/v1/collections/:collection_name/logs', server.web.caching({ contentType: 'text/json' }), (async (req, res) => {
+    router.get('/v1/collections/:collection_name/logs', server.web.caching(), (async (req, res) => {
         const args = filterQueryArgs(req, {
             page: {type: 'int', min: 1, default: 1},
             limit: {type: 'int', min: 1, max: 100, default: 100}

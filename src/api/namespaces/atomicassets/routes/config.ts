@@ -5,7 +5,7 @@ import { HTTPServer } from '../../../server';
 import logger from '../../../../utils/winston';
 
 export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/config', server.web.caching({ contentType: 'text/json' }), (async (_, res) => {
+    router.get('/v1/config', server.web.caching(), (async (_, res) => {
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_config WHERE contract = $1',

@@ -7,6 +7,7 @@ import { AuthenticationNamespace } from './index';
 import { HTTPServer } from '../../server';
 import logger from '../../../utils/winston';
 import { bearerToken } from './middleware';
+import { getOpenAPI3Responses } from '../../openapi';
 
 export function authenticationEndpoints(core: AuthenticationNamespace, server: HTTPServer, router: express.Router): any {
     router.post('/v1/token', (async (req, res) => {
@@ -155,42 +156,13 @@ export function authenticationEndpoints(core: AuthenticationNamespace, server: H
                             }
                         }
                     },
-                    responses: {
-                        '200': {
-                            description: 'OK',
-                            content: {
-                                'application/json': {
-                                    schema: {
-                                        type: 'object',
-                                        properties: {
-                                            success: {type: 'boolean', default: true},
-                                            data: {
-                                                type: 'object',
-                                                properties: {
-                                                    token: {type: 'string'},
-                                                    expire: {type: 'number'}
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        '500': {
-                            description: 'Internal Server Error',
-                            content: {
-                                'application/json': {
-                                    schema: {
-                                        type: 'object',
-                                        properties: {
-                                            success: {type: 'boolean', default: false},
-                                            message: {type: 'string'}
-                                        }
-                                    }
-                                }
-                            }
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'object',
+                        properties: {
+                            token: {type: 'string'},
+                            expire: {type: 'number'}
                         }
-                    }
+                    })
                 },
                 delete: {
                     tags: ['authentication'],
@@ -198,49 +170,7 @@ export function authenticationEndpoints(core: AuthenticationNamespace, server: H
                         {bearerAuth: []}
                     ],
                     summary: 'Revoke existing token',
-                    responses: {
-                        '200': {
-                            description: 'OK',
-                            content: {
-                                'application/json': {
-                                    schema: {
-                                        type: 'object',
-                                        properties: {
-                                            success: {type: 'boolean', default: true}
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        '401': {
-                            description: 'Unauthorized',
-                            content: {
-                                'application/json': {
-                                    schema: {
-                                        type: 'object',
-                                        properties: {
-                                            success: {type: 'boolean', default: false},
-                                            message: {type: 'string'}
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        '500': {
-                            description: 'Internal Server Error',
-                            content: {
-                                'application/json': {
-                                    schema: {
-                                        type: 'object',
-                                        properties: {
-                                            success: {type: 'boolean', default: false},
-                                            message: {type: 'string'}
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    responses: getOpenAPI3Responses([200, 401, 500], {type: 'object', nullable: true})
                 }
             }
         }

@@ -3,17 +3,17 @@ import * as NodeRedis from 'redis';
 
 import logger from './winston';
 
-export type ExpressRedisCacheOptions = { contentType?: string, whitelistedIPs?: string[] };
-export type ExpressRedisCacheHandler = (options: ExpressRedisCacheOptions) => express.RequestHandler;
+export type ExpressRedisCacheOptions = { expire?: number };
+export type ExpressRedisCacheHandler = (options?: ExpressRedisCacheOptions) => express.RequestHandler;
 
-export function expressRedisCache(redis: NodeRedis.RedisClient, prefix: string, expire: number, whitelistedIPs?: string[]): ExpressRedisCacheHandler {
-    return (options: ExpressRedisCacheOptions = { }) => {
+export function expressRedisCache(
+    redis: NodeRedis.RedisClient, prefix: string, expire: number, whitelistedIPs?: string[]
+): ExpressRedisCacheHandler {
+    return (options: ExpressRedisCacheOptions = {}) => {
         return (req: express.Request, res: express.Response, next: express.NextFunction) => {
-            if (expire === 0) {
-                return next();
-            }
+            const cacheLife = options.expire ? options.expire : expire;
 
-            if (options.whitelistedIPs && options.whitelistedIPs.indexOf(req.ip) >= 0) {
+            if (cacheLife === 0) {
                 return next();
             }
 
@@ -27,13 +27,18 @@ export function expressRedisCache(redis: NodeRedis.RedisClient, prefix: string, 
                 if (reply === null) {
                     const sendFn = res.send.bind(res);
 
-                    res.send = (data): express.Response => {
+                    res.send = (data: Buffer | string): express.Response => {
                         sendFn(data);
 
-                        const buffer = Buffer.from(data, 'utf8');
+                        let content;
+                        if (typeof data === 'string') {
+                            content = Buffer.from(data, 'utf8').toString('base64');
+                        } else {
+                            content = data.toString('base64');
+                        }
 
-                        redis.set(key, buffer.toString('base64'), () => {
-                            redis.expire(key, Math.round(expire));
+                        redis.set(key, res.getHeader('content-type') + '::' + content, () => {
+                            redis.expire(key, Math.round(cacheLife));
 
                             logger.debug('Cache API request');
                         });
@@ -45,13 +50,15 @@ export function expressRedisCache(redis: NodeRedis.RedisClient, prefix: string, 
                 } else {
                     logger.debug('API request was cached, returning cached version');
 
-                    const buffer = Buffer.from(reply, 'base64');
+                    const split = reply.split('::');
 
-                    if (options.contentType) {
-                        res.contentType(options.contentType);
+                    const buffer = Buffer.from(split[1], 'base64');
+
+                    if (split[0]) {
+                        res.contentType(split[0]);
                     }
 
-                    res.status(200).send(buffer.toString('utf8'));
+                    res.status(200).send(buffer);
                 }
             });
         };

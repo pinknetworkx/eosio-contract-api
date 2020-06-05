@@ -84,10 +84,10 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
         }
     }
 
-    router.get('/v1/templates', server.web.caching({ contentType: 'text/json' }), templateRequestHandler);
-    router.get('/v1/templates/:collection_name', server.web.caching({ contentType: 'text/json' }), templateRequestHandler);
+    router.get('/v1/templates', server.web.caching(), templateRequestHandler);
+    router.get('/v1/templates/:collection_name', server.web.caching(), templateRequestHandler);
 
-    router.get('/v1/templates/:collection_name/:template_id', server.web.caching({ contentType: 'text/json' }), (async (req, res) => {
+    router.get('/v1/templates/:collection_name/:template_id', server.web.caching(), (async (req, res) => {
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND collection_name = $2 AND template_id = $3',
@@ -108,7 +108,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
         }
     }));
 
-    router.get('/v1/templates/:collection_name/:template_id/logs', server.web.caching({ contentType: 'text/json' }), (async (req, res) => {
+    router.get('/v1/templates/:collection_name/:template_id/logs', server.web.caching(), (async (req, res) => {
         const args = filterQueryArgs(req, {
             page: {type: 'int', min: 1, default: 1},
             limit: {type: 'int', min: 1, max: 100, default: 100}

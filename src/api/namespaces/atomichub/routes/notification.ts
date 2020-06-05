@@ -5,6 +5,7 @@ import { HTTPServer } from '../../../server';
 import { bearerToken } from '../../authentication/middleware';
 import logger from '../../../../utils/winston';
 import { sendPushMessage } from '../webpush';
+import { getOpenAPI3Responses } from '../../../openapi';
 
 async function getNotifications(
     server: HTTPServer, account: string, limit: number
@@ -20,11 +21,11 @@ async function getNotifications(
 }
 
 export function notificationsEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
-    router.delete('/v1/notifications/:account', bearerToken(core.connection), async (req, res) => {
+    router.delete('/v1/notifications', bearerToken(core.connection), async (req, res) => {
         try {
             const query = await core.connection.database.query(
                 'DELETE FROM atomichub_notifications WHERE account = $1 RETURNING *',
-                [req.params.account]
+                [req.authorizedAccount]
             );
 
             return res.json({success: true, data: query.rowCount});
@@ -33,9 +34,9 @@ export function notificationsEndpoints(core: AtomicHubNamespace, server: HTTPSer
         }
     });
 
-    router.get('/v1/notifications/:account', async (req, res) => {
+    router.get('/v1/notifications/:account', server.web.caching(), async (req, res) => {
         try {
-            res.json({success: true, data: await getNotifications(server, req.params.account, 100)});
+            res.json({success: true, data: await getNotifications(server, req.params.account, 100), query_time: Date.now()});
         } catch (e) {
             res.status(500).json({success: false, message: 'Database error'});
         }
@@ -46,7 +47,50 @@ export function notificationsEndpoints(core: AtomicHubNamespace, server: HTTPSer
             name: 'notifications',
             description: 'Notifications'
         },
-        paths: { }
+        paths: {
+            '/v1/notifications/{account}': {
+                get: {
+                    tags: ['notifications'],
+                    summary: 'Get all notifications from a user',
+                    parameters: [
+                        {
+                            in: 'path',
+                            name: 'account',
+                            required: true,
+                            schema: {type: 'string'},
+                            description: 'Notified account'
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                message: {type: 'string'},
+                                reference: {
+                                    type: 'object',
+                                    properties: {
+                                        type: {type: 'string'}
+                                    }
+                                },
+                                block_num: {type: 'integer'},
+                                block_time: {type: 'integer'}
+                            }
+                        }
+                    })
+                }
+            },
+            '/v1/notifications': {
+                delete: {
+                    tags: ['notifications'],
+                    security: [
+                        {bearerAuth: []}
+                    ],
+                    summary: 'Mark all notifications as read from the authenticated user',
+                    responses: getOpenAPI3Responses([200, 401, 500], {type: 'object', nullable: true})
+                }
+            }
+        }
     };
 }
 
@@ -80,7 +124,7 @@ export function notificationsSockets(core: AtomicHubNamespace, server: HTTPServe
 
     const atomicassetsChannelName = [
         'eosio-contract-api', core.connection.chain.name, 'atomichub',
-        'atomicassets', core.args.atomicassets_contract, 'notifications'
+        'atomicassets', core.args.atomicassets_account, 'notifications'
     ].join(':');
 
     core.connection.redis.ioRedisSub.subscribe(atomicassetsChannelName, () => {
@@ -99,7 +143,7 @@ export function notificationsSockets(core: AtomicHubNamespace, server: HTTPServe
 
     const atomicmarketChannelName = [
         'eosio-contract-api', core.connection.chain.name, 'atomichub',
-        'atomicmarket', core.args.atomicassets_contract, 'notifications'
+        'atomicmarket', core.args.atomicassets_account, 'notifications'
     ].join(':');
 
     core.connection.redis.ioRedisSub.subscribe(atomicmarketChannelName, () => {

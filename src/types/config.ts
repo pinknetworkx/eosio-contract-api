@@ -68,5 +68,7 @@ export interface IReaderConfig {
 
 export interface IContractConfig {
     handler: string;
+    start_on?: number;
+
     args: any;
 }

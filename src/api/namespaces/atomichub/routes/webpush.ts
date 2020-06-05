@@ -3,6 +3,7 @@ import * as express from 'express';
 import { AtomicHubNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { filterQueryArgs } from '../../utils';
+import { getOpenAPI3Responses } from '../../../openapi';
 
 export function webpushEndpoints(core: AtomicHubNamespace, _: HTTPServer, router: express.Router): any {
     router.post('/v1/webpush', async (req, res) => {
@@ -34,6 +35,35 @@ export function webpushEndpoints(core: AtomicHubNamespace, _: HTTPServer, router
             name: 'webpush',
             description: 'WebPush'
         },
-        paths: { }
+        paths: {
+            '/v1/webpush': {
+                post: {
+                    tags: ['webpush'],
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        account: {type: 'string'},
+                                        url: {type: 'string'},
+                                        public_key: {type: 'string'},
+                                        secret: {type: 'string'}
+                                    }
+                                },
+                                example: {
+                                    account: 'Account name where you want to receive notifications',
+                                    url: 'https://fcm.googleapis.com/fcm/send/...',
+                                    public_key: 'F84L28x4d_cd8HwUOoeNHBjT-5djL8tJvLHIrvX0zJOrGcMsvcnPla_uXcTQpoDxxDYEPzB32BDCFB50O013Kfu',
+                                    secret: 'Jfk89snJ4J5aNkFgp_gSYU'
+                                }
+                            }
+                        }
+                    },
+                    summary: 'Get browser notifications for certain events of an account',
+                    responses: getOpenAPI3Responses([200, 500], {type: 'object', nullable: true})
+                }
+            }
+        }
     };
 }

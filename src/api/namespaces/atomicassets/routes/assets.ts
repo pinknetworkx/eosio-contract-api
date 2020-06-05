@@ -9,7 +9,7 @@ import { formatAsset } from '../format';
 import { paginationFilter, standardArrayFilter } from '../swagger';
 
 export function assetsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/assets', server.web.caching({ contentType: 'text/json' }), (async (req, res) => {
+    router.get('/v1/assets', server.web.caching(), (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
@@ -110,7 +110,7 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
         }
     }));
 
-    router.get('/v1/assets/:asset_id', server.web.caching({ contentType: 'text/json' }), (async (req, res) => {
+    router.get('/v1/assets/:asset_id', server.web.caching(), (async (req, res) => {
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_assets_master WHERE contract = $1 AND asset_id = $2',
@@ -132,7 +132,7 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
         }
     }));
 
-    router.get('/v1/assets/:asset_id/logs', server.web.caching({ contentType: 'text/json' }), (async (req, res) => {
+    router.get('/v1/assets/:asset_id/logs', server.web.caching(), (async (req, res) => {
         const args = filterQueryArgs(req, {
             page: {type: 'int', min: 1, default: 1},
             limit: {type: 'int', min: 1, max: 100, default: 100}

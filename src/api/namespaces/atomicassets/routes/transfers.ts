@@ -8,7 +8,7 @@ import { formatTransfer } from '../format';
 import { standardArrayFilter } from '../swagger';
 
 export function transfersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/transfers', server.web.caching({ contentType: 'text/json' }), (async (req, res) => {
+    router.get('/v1/transfers', server.web.caching(), (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},

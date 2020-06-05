@@ -6,29 +6,22 @@ import { filterQueryArgs } from '../../utils';
 import { bearerToken } from '../../authentication/middleware';
 import logger from '../../../../utils/winston';
 import { formatAsset } from '../../atomicassets/format';
+import { getOpenAPI3Responses } from '../../../openapi';
 
-export function watchlistEndpoints(core: AtomicHubNamespace, _: HTTPServer, router: express.Router): any {
-    router.put('/v1/watchlist/:account', bearerToken(core.connection), async (req, res) => {
+export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
+    router.put('/v1/watchlist', bearerToken(core.connection), async (req, res) => {
         const body = filterQueryArgs(req, {
             asset_id: {type: 'int', min: 1}
         }, 'body');
 
-        const params = filterQueryArgs(req, {
-            account: {type: 'string', min: 1, max: 12}
-        }, 'params');
-
-        if (!params.account || !body.asset_id) {
+        if (!body.asset_id) {
             return res.status(500).json({success: false, message: 'Input missing'});
-        }
-
-        if (req.authorizedAccount !== params.account) {
-            return res.status(401).json({success: false, message: 'Unauthorized'});
         }
 
         try {
             await core.connection.database.query(
                 'INSERT INTO atomichub_watchlist (account, contract, asset_id, created) VALUES ($1, $2, $3, $4)',
-                [params.account, core.args.atomicassets_contract, body.asset_id, Date.now()]
+                [req.authorizedAccount, core.args.atomicassets_account, body.asset_id, Date.now()]
             );
 
             return res.json({success: true, data: null});
@@ -37,27 +30,19 @@ export function watchlistEndpoints(core: AtomicHubNamespace, _: HTTPServer, rout
         }
     });
 
-    router.delete('/v1/watchlist/:account', bearerToken(core.connection), async (req, res) => {
+    router.delete('/v1/watchlist', bearerToken(core.connection), async (req, res) => {
         const body = filterQueryArgs(req, {
             asset_id: {type: 'int', min: 1}
         }, 'body');
 
-        const params = filterQueryArgs(req, {
-            account: {type: 'string', min: 1, max: 12}
-        }, 'params');
-
-        if (!params.account || !body.asset_id) {
+        if (!body.asset_id) {
             return res.status(500).json({success: false, message: 'Input missing'});
-        }
-
-        if (req.authorizedAccount !== params.account) {
-            return res.status(401).json({success: false, message: 'Unauthorized'});
         }
 
         try {
             const query = await core.connection.database.query(
                 'DELETE FROM atomichub_watchlist WHERE account = $1 AND contract = $2 AND asset_id = $3 RETURNING *',
-                [params.account, core.args.atomicassets_contract, body.asset_id]
+                [req.authorizedAccount, core.args.atomicassets_account, body.asset_id]
             );
 
             if (query.rowCount > 0) {
@@ -70,7 +55,7 @@ export function watchlistEndpoints(core: AtomicHubNamespace, _: HTTPServer, rout
         }
     });
 
-    router.get('/v1/watchlist/:account', async (req, res) => {
+    router.get('/v1/watchlist/:account', server.web.caching(), async (req, res) => {
         const args = filterQueryArgs(req, {
             page: {type: 'int', min: 1, default: 1},
             limit: {type: 'int', min: 1, max: 1000, default: 100},
@@ -84,13 +69,13 @@ export function watchlistEndpoints(core: AtomicHubNamespace, _: HTTPServer, rout
         });
 
         let varCounter = 2;
-        let queryString = 'SELECT DISTINCT ON (asset.contract, asset.asset_id) asset.* ' +
+        let queryString = 'SELECT asset.* ' +
             'FROM atomicassets_assets_master asset JOIN atomichub_watchlist wlist ON (' +
                 'wlist.contract = asset.contract AND wlist.asset_id = asset.asset_id' +
             ')' +
             'WHERE asset.contract = $1 AND wlist.account = $2 ';
 
-        const queryValues: any[] = [core.args.atomicassets_contract, req.params.account];
+        const queryValues: any[] = [core.args.atomicassets_account, req.params.account];
 
         if (args.template_id) {
             queryString += 'AND asset.template_id = $' + ++varCounter + ' ';
@@ -135,6 +120,128 @@ export function watchlistEndpoints(core: AtomicHubNamespace, _: HTTPServer, rout
             name: 'watchlist',
             description: 'Watchlist'
         },
-        paths: { }
+        paths: {
+            '/v1/watchlist/{account}': {
+                get: {
+                    tags: ['watchlist'],
+                    summary: 'Get the watchlist from a specific account',
+                    parameters: [
+                        {
+                            in: 'path',
+                            name: 'account',
+                            required: true,
+                            schema: {type: 'string'},
+                            description: 'Owner of the watchlist'
+                        },
+                        {
+                            in: 'query',
+                            name: 'collection_name',
+                            required: true,
+                            schema: {type: 'string'},
+                            description: 'Filter by the collection'
+                        },
+                        {
+                            in: 'query',
+                            name: 'schema_name',
+                            required: true,
+                            schema: {type: 'string'},
+                            description: 'Filter by the schema'
+                        },
+                        {
+                            in: 'query',
+                            name: 'template_id',
+                            required: true,
+                            schema: {type: 'number'},
+                            description: 'Filter by the template'
+                        },
+                        {
+                            in: 'query',
+                            name: 'match',
+                            required: true,
+                            schema: {type: 'string'},
+                            description: 'Search for a string in the asset name'
+                        },
+                        {
+                            in: 'query',
+                            name: 'sort',
+                            required: true,
+                            schema: {type: 'string', enum: ['asset_id', 'added']},
+                            description: 'Field which is used to sort'
+                        },
+                        {
+                            in: 'query',
+                            name: 'order',
+                            required: true,
+                            schema: {type: 'string', enum: ['desc', 'asc']},
+                            description: 'Sort direction'
+                        },
+                        {
+                            in: 'query',
+                            name: 'limit',
+                            required: true,
+                            schema: {type: 'number'},
+                            description: 'Number of results'
+                        },
+                        {
+                            in: 'query',
+                            name: 'page',
+                            required: true,
+                            schema: {type: 'number'},
+                            description: 'Used for pagination'
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'array',
+                        items: {
+                            type: 'object'
+                        }
+                    })
+                }
+            },
+            '/v1/watchlist/{asset_id}': {
+                delete: {
+                    tags: ['watchlist'],
+                    security: [
+                        {bearerAuth: []}
+                    ],
+                    parameters: [
+                        {
+                            in: 'path',
+                            name: 'asset_id',
+                            required: true,
+                            schema: {type: 'string'},
+                            description: 'Asset id which should be removed'
+                        }
+                    ],
+                    summary: 'Remove an asset from the watchlist',
+                    responses: getOpenAPI3Responses([200, 401, 500], {type: 'object', nullable: true})
+                }
+            },
+            '/v1/watchlist': {
+                put: {
+                    tags: ['watchlist'],
+                    security: [
+                        {bearerAuth: []}
+                    ],
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        asset_id: {type: 'number'}
+                                    }
+                                },
+                                example: {
+                                    asset_id: 'Asset ID'
+                                }
+                            }
+                        }
+                    },
+                    summary: 'Add an asset to the watchlist',
+                    responses: getOpenAPI3Responses([200, 401, 500], {type: 'object', nullable: true})
+                }
+            }
+        }
     };
 }

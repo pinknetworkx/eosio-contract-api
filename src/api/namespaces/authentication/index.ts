@@ -57,7 +57,8 @@ export class AuthenticationNamespace extends ApiNamespace {
                 title: 'Authentication API'
             },
             servers: [
-                {url: 'https://' + server.config.server_name + this.path}
+                {url: 'https://' + server.config.server_name + this.path},
+                {url: 'http://' + server.config.server_name + this.path}
             ],
             tags: [],
             paths: {},

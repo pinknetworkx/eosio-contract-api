@@ -113,7 +113,7 @@ export class WebServer {
     private routes(): void {
         const router = express.Router();
 
-        router.get('/health', this.caching({ contentType: 'text/json' }), async (_: express.Request, res: express.Response) => {
+        router.get('/health', this.caching() , async (_: express.Request, res: express.Response) => {
             let databaseStatus = 'INVALID';
 
             try {

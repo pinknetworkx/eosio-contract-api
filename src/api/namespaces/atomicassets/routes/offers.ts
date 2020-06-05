@@ -8,7 +8,7 @@ import { formatOffer } from '../format';
 import { standardArrayFilter } from '../swagger';
 
 export function offersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/offers', server.web.caching({ contentType: 'text/json' }), (async (req, res) => {
+    router.get('/v1/offers', server.web.caching(), (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
@@ -64,7 +64,7 @@ export function offersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
         }
     }));
 
-    router.get('/v1/offers/:offer_id', server.web.caching({ contentType: 'text/json' }), (async (req, res) => {
+    router.get('/v1/offers/:offer_id', server.web.caching(), (async (req, res) => {
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_offers_master WHERE contract = $1 AND offer_id = $2',

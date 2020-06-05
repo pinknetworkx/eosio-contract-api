@@ -16,7 +16,8 @@ export abstract class ContractHandler {
     protected constructor(
         readonly connection: ConnectionManager,
         readonly events: PromiseEventHandler,
-        readonly args: {[key: string]: any}
+        readonly args: {[key: string]: any},
+        readonly minBlock: number = 0
     ) { }
 
     abstract async init(): Promise<void>;

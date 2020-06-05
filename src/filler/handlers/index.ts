@@ -16,8 +16,14 @@ export function getHandlers(
                 continue;
             }
 
-            // @ts-ignore
-            configHandlers.push(new handler(connection, events, config.args));
+            if (config.start_on) {
+                // @ts-ignore
+                configHandlers.push(new handler(connection, events, config.args, config.start_on));
+            } else {
+                // @ts-ignore
+                configHandlers.push(new handler(connection, events, config.args));
+            }
+
         }
     }
 

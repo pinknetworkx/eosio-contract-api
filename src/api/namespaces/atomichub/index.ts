@@ -8,17 +8,31 @@ import { webpushEndpoints } from './routes/webpush';
 import { getOpenApiDescription } from '../../openapi';
 import { notificationsEndpoints, notificationsSockets } from './routes/notification';
 import { watchlistEndpoints } from './routes/watchlist';
+import { statsEndpoints } from './routes/stats';
+import { utilsEndpoints } from './routes/utils';
 
 export type AtomicHubNamespaceArgs = {
-    atomicassets_contract: string,
-    atomicmarket_contract: string,
+    atomicassets_account: string,
+    atomicmarket_account: string,
+
+    ipfs_node: string,
 
     vapid_keys: {
         public: string,
         private: string
     },
 
-    notification_title: string
+    notification_title: string,
+
+    avatar: {
+        contract: {
+            code: string,
+            table: string,
+            scope: string
+        },
+        ipfs_key_name: string,
+        default: string
+    }
 };
 
 export class AtomicHubNamespace extends ApiNamespace {
@@ -27,12 +41,12 @@ export class AtomicHubNamespace extends ApiNamespace {
     args: AtomicHubNamespaceArgs;
 
     async init(): Promise<void> {
-        if (typeof this.args.atomicassets_contract !== 'string') {
-            throw new Error('Argument missing in atomichub api namespace: atomicassets_contract');
+        if (typeof this.args.atomicassets_account !== 'string') {
+            throw new Error('Argument missing in atomichub api namespace: atomicassets_account');
         }
 
-        if (typeof this.args.atomicmarket_contract !== 'string') {
-            throw new Error('Argument missing in atomichub api namespace: atomicmarket_contract');
+        if (typeof this.args.atomicmarket_account !== 'string') {
+            throw new Error('Argument missing in atomichub api namespace: atomicmarket_account');
         }
 
         if (
@@ -40,11 +54,27 @@ export class AtomicHubNamespace extends ApiNamespace {
             typeof this.args.vapid_keys.private !== 'string' ||
             typeof this.args.vapid_keys.public !== 'string'
         ) {
-            throw new Error('Argument missing in atomichub api namespace: vapid_keys');
+            throw new Error('Argument missing or invalid in atomichub api namespace: vapid_keys');
         }
 
         if (typeof this.args.notification_title !== 'string') {
             throw new Error('Argument missing in atomichub api namespace: notification_title');
+        }
+
+        if (typeof this.args.ipfs_node !== 'string') {
+            throw new Error('Argument missing in atomichub api namespace: ipfs_node');
+        }
+
+        if (
+            typeof this.args.avatar !== 'object' ||
+            typeof this.args.avatar.ipfs_key_name !== 'string' ||
+            typeof this.args.avatar.default !== 'string' ||
+            typeof this.args.avatar.contract !== 'object' ||
+            typeof this.args.avatar.contract.code !== 'string' ||
+            typeof this.args.avatar.contract.table !== 'string' ||
+            typeof this.args.avatar.contract.scope !== 'string'
+        ) {
+            throw new Error('Argument missing or invalid in atomichub api namespace: avatar');
         }
     }
 
@@ -59,7 +89,8 @@ export class AtomicHubNamespace extends ApiNamespace {
                 title: 'AtomicHub API'
             },
             servers: [
-                {url: 'https://' + server.config.server_name + this.path}
+                {url: 'https://' + server.config.server_name + this.path},
+                {url: 'http://' + server.config.server_name + this.path}
             ],
             tags: [],
             paths: {},
@@ -77,9 +108,11 @@ export class AtomicHubNamespace extends ApiNamespace {
 
         const docs = [];
 
-        docs.push(webpushEndpoints(this, server, router));
         docs.push(notificationsEndpoints(this, server, router));
         docs.push(watchlistEndpoints(this, server, router));
+        docs.push(statsEndpoints(this, server, router));
+        docs.push(webpushEndpoints(this, server, router));
+        docs.push(utilsEndpoints(this, server, router));
 
         for (const doc of docs) {
             Object.assign(documentation.paths, doc.paths);

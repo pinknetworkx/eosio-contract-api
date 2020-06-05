@@ -208,8 +208,8 @@ export default class StateReceiver {
 
             const dataHandlers = this.getActionHandlers(actionTrace[1].act.account, actionTrace[1].act.name, true);
             if (dataHandlers.length > 0 || this.isActionWhitelisted(actionTrace[1].act.account, actionTrace[1].act.name)) {
-                const types = await this.fetchContractTypes(actionTrace[1].act.account, block.block_num);
-                const type = await this.getActionType(actionTrace[1].act.account, actionTrace[1].act.name, block.block_num);
+                const types = await this.fetchContractAbiTypes(actionTrace[1].act.account, block.block_num);
+                const type = await this.getActionAbiType(actionTrace[1].act.account, actionTrace[1].act.name, block.block_num);
 
                 // save hex data if ABI does not exist for contract
                 if (types !== null && type !== null) {
@@ -295,8 +295,8 @@ export default class StateReceiver {
 
             const dataHandlers = this.getTableHandlers(contractRow[1].code, contractRow[1].table, true);
             if (dataHandlers.length > 0) {
-                const types = await this.fetchContractTypes(contractRow[1].code, block.block_num);
-                const type = await this.getTableType(contractRow[1].code, contractRow[1].table, block.block_num);
+                const types = await this.fetchContractAbiTypes(contractRow[1].code, block.block_num);
+                const type = await this.getTableAbiType(contractRow[1].code, contractRow[1].table, block.block_num);
 
                 if (type !== null && types !== null) {
                     try {
@@ -424,13 +424,13 @@ export default class StateReceiver {
         return cache;
     }
 
-    private async fetchContractTypes(contract: string, blockNum: number): Promise<Map<string, Serialize.Type>> {
+    private async fetchContractAbiTypes(contract: string, blockNum: number): Promise<Map<string, Serialize.Type>> {
         const cache = await this.fetchContractAbi(contract, blockNum);
 
         return cache.types;
     }
 
-    private async getTableType(contract: string, table: string, blockNum: number): Promise<string | null> {
+    private async getTableAbiType(contract: string, table: string, blockNum: number): Promise<string | null> {
         const cache = await this.fetchContractAbi(contract, blockNum);
 
         if (!cache.json) {
@@ -446,7 +446,7 @@ export default class StateReceiver {
         return null;
     }
 
-    private async getActionType(contract: string, action: string, blockNum: number): Promise<string | null> {
+    private async getActionAbiType(contract: string, action: string, blockNum: number): Promise<string | null> {
         const cache = await this.fetchContractAbi(contract, blockNum);
 
         if (!cache.json) {
@@ -478,6 +478,10 @@ export default class StateReceiver {
                 continue;
             }
 
+            if (this.currentBlock < handler.minBlock) {
+                continue;
+            }
+
             for (const config of handler.scope[group]) {
                 if (deserialize !== null && config.deserialize !== deserialize) {
                     continue;
@@ -497,6 +501,10 @@ export default class StateReceiver {
     private isTableContract(account: string): boolean {
         for (const handler of this.handlers) {
             if (!Array.isArray(handler.scope.tables)) {
+                continue;
+            }
+
+            if (this.currentBlock < handler.minBlock) {
                 continue;
             }
 
