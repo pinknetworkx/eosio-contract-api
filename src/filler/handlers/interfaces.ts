@@ -26,5 +26,5 @@ export abstract class ContractHandler {
     abstract async onAction(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void>;
     abstract async onTableChange(db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow): Promise<void>;
     abstract async onBlockComplete(db: ContractDBTransaction, block: ShipBlock): Promise<void>;
-    abstract async onCommit(): Promise<void>;
+    abstract async onCommit(block: ShipBlock): Promise<void>;
 }

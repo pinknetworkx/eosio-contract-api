@@ -95,7 +95,8 @@ export function notificationsEndpoints(core: AtomicHubNamespace, server: HTTPSer
 }
 
 export function notificationsSockets(core: AtomicHubNamespace, server: HTTPServer): void {
-    const namespace = server.socket.io.of(new RegExp('^' + core.path.replace('/', '\\/') + '\\/v1\\/notifications\\/\\d+$'));
+    const regex = new RegExp('^' + '/atomichub'.replace('/', '\\/') + '\\/v1\\/notifications\\/[a-z1-5\\.]{1,12}$');
+    const namespace = server.socket.io.of(regex);
 
     namespace.on('connection', async (socket) => {
         const account = socket.nsp.name.replace(core.path + '/v1/notifications/', '');
@@ -117,7 +118,7 @@ export function notificationsSockets(core: AtomicHubNamespace, server: HTTPServe
             }
         });
 
-        const notifications = getNotifications(server, account, 100);
+        const notifications = await getNotifications(server, account, 100);
 
         socket.emit('init', notifications);
     });

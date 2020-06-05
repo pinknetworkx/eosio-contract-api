@@ -54,6 +54,7 @@ CREATE SEQUENCE atomichub_notifications_id_seq
     CACHE 1;
 
 ALTER SEQUENCE atomichub_notifications_id_seq OWNED BY atomichub_notifications.id;
+ALTER TABLE ONLY atomichub_notifications ALTER COLUMN id SET DEFAULT nextval('atomichub_notifications_id_seq'::regclass);
 
 CREATE INDEX atomichub_browsers_account ON atomichub_browsers USING btree (account);
 

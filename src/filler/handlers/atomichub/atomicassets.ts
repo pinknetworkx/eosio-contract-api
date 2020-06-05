@@ -69,7 +69,7 @@ export default class AtomicAssetsActionHandler {
 
         await this.core.createNotification(
             db, block, this.contractName, data.to,
-            data.from + ' transferred NFTs to you.', {type: 'transfer'}
+            data.from + ' transferred NFTs to you.', {type: 'transfer', id: null}
         );
     }
 
@@ -79,7 +79,7 @@ export default class AtomicAssetsActionHandler {
 
         await this.core.createNotification(
             db, block, this.contractName, data.new_asset_owner,
-            'Collection ' + data.collection_name + ' issued a NFT to you.', {type: 'transfer'}
+            'Collection ' + data.collection_name + ' issued a NFT to you.', {type: 'mint', id: data.asset_id}
         );
     }
 

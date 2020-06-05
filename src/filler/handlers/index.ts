@@ -11,6 +11,8 @@ export function getHandlers(
     const configHandlers = [];
 
     for (const config of configs) {
+        let handlerFound = false;
+
         for (const handler of handlers) {
             if (config.handler !== handler.handlerName) {
                 continue;
@@ -24,6 +26,13 @@ export function getHandlers(
                 configHandlers.push(new handler(connection, events, config.args));
             }
 
+            handlerFound = true;
+
+            break;
+        }
+
+        if (!handlerFound) {
+            throw new Error('reader handler "' + config.handler + '" not found');
         }
     }
 

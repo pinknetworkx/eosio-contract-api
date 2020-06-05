@@ -10,6 +10,8 @@ export function getNamespaces(
     const configHandlers = [];
 
     for (const config of configs) {
+        let namespaceFound = false;
+
         for (const handler of namespaces) {
             if (config.name !== handler.namespaceName) {
                 continue;
@@ -17,6 +19,13 @@ export function getNamespaces(
 
             // @ts-ignore
             configHandlers.push(new handler(config.path, connection, config.args));
+            namespaceFound = true;
+
+            break;
+        }
+
+        if (!namespaceFound) {
+            throw new Error('Could not find api namespace "' + config.name + '"');
         }
     }
 

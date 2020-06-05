@@ -49,7 +49,7 @@ export default class StateReceiver {
         let startBlock = await this.database.getReaderPosition() + 1;
 
         if (this.config.start_block > 0 && this.config.start_block < startBlock) {
-            throw new Error('Reader start block cannot be lower than the last processed block');
+            logger.error('Reader start block cannot be lower than the last processed block. Ignoring config.');
         }
 
         startBlock = Math.max(startBlock, this.config.start_block);
@@ -132,7 +132,7 @@ export default class StateReceiver {
         await db.commit();
 
         for (const handler of this.handlers) {
-            await handler.onCommit();
+            await handler.onCommit(block);
         }
     }
 

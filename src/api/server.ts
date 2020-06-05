@@ -188,7 +188,7 @@ export class SocketServer {
 
     async reserveConnection(socket: socketio.Socket): Promise<boolean> {
         let ip;
-        if (this.server.config.trust_proxy) {
+        if (this.server.config.trust_proxy && socket.handshake.headers['x-forwarded-for']) {
             ip = socket.handshake.headers['x-forwarded-for'].split(',')[0];
         } else {
             ip = socket.conn.remoteAddress;

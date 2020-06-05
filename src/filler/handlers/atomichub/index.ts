@@ -18,7 +18,7 @@ export type AtomicMarketArgs = {
 };
 
 export default class AtomicHubHandler extends ContractHandler {
-    static handlerName = 'atomicmarket';
+    static handlerName = 'atomichub';
 
     readonly args: AtomicMarketArgs;
 
@@ -88,14 +88,23 @@ export default class AtomicHubHandler extends ContractHandler {
         this.atomicassetsHandler.cleanup();
     }
 
-    async onCommit(): Promise<void> { }
+    async onCommit(block: ShipBlock): Promise<void> {
+        if (block.block_num % (7200 * 6) === 0) {
+            // only keep last 100 notifications of account to prevent spam
+            await this.connection.database.query(
+                'DELETE FROM atomichub_notifications n1 WHERE n1.id NOT IN (' +
+                    'SELECT n2.id FROM atomichub_notifications n2 WHERE n2.account = n1.account ORDER BY block_num DESC LIMIT 100' +
+                ')'
+            );
+        }
+    }
 
     async createNotification(
         db: ContractDBTransaction, block: ShipBlock, contract: string, account: string, message: string, reference: any
     ): Promise<void> {
         await db.insert('atomichub_notifications', {
             account, message, reference: JSON.stringify(reference),
-            block_num: block.block_num, block_time: eosioTimestampToDate(block.timestamp)
+            block_num: block.block_num, block_time: eosioTimestampToDate(block.timestamp).getTime()
         }, ['id']);
 
         const channelName = ['eosio-contract-api', this.connection.chain.name, 'atomichub', contract, 'notifications'].join(':');
@@ -104,7 +113,7 @@ export default class AtomicHubHandler extends ContractHandler {
             account: account,
             notification: {
                 message: message, reference: reference,
-                block_num: block.block_num, block_time: eosioTimestampToDate(block.timestamp)
+                block_num: block.block_num, block_time: eosioTimestampToDate(block.timestamp).getTime()
             }
         }));
     }

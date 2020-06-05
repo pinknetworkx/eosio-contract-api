@@ -25,10 +25,10 @@ export default class ReaderLoader {
         await transaction.query('DELETE FROM reversible_queries WHERE reader = $1', [this.config.name]);
 
         try {
-            for (const handler of this.handlers) {
-                logger.info('Init handler ' + handler + ' for reader ' + this.config.name);
+            for (let i = 0; i < this.handlers.length; i++) {
+                logger.info('Init handler ' + this.config.contracts[i].handler + ' for reader ' + this.config.name);
 
-                await handler.deleteDB(transaction);
+                await this.handlers[i].deleteDB(transaction);
             }
         } catch (e) {
             logger.error(e);
@@ -60,17 +60,8 @@ export default class ReaderLoader {
 
             await this.connection.database.query(
                 'INSERT INTO contract_readers(name, block_num, block_time, updated) VALUES ($1, $2, $3, $4)',
-                [this.config.name, Math.max(this.config.start_block - 1, 0), 0, Date.now()]
+                [this.config.name, 0, 0, Date.now()]
             );
-        } else if (this.config.start_block > 0) {
-            if (this.config.start_block - 1 >= query.rows[0].block_num) {
-                await this.connection.database.query(
-                    'UPDATE contract_readers SET block_num = $1 WHERE name = $2',
-                    [this.config.start_block - 1, this.config.name]
-                );
-            } else {
-                throw new Error('Reader start block cannot be earlier than the last indexed block without deleting all data');
-            }
         }
 
         logger.info('Starting reader: ' + this.config.name);
