@@ -1,7 +1,7 @@
 import * as cluster from 'cluster';
 import * as fs from 'fs';
 
-import ReaderLoader from '../filler/loader';
+import Reader from '../filler/reader';
 import ConnectionManager from '../connections/manager';
 import logger from '../utils/winston';
 import { IConnectionsConfig, IReaderConfig } from '../types/config';
@@ -38,7 +38,7 @@ if (cluster.isMaster) {
     logger.info('Worker ' + process.pid + ' started');
 
     const connection = new ConnectionManager(connectionConfig);
-    const reader = new ReaderLoader(readerConfigs[parseInt(process.env.config_index, 10)], connection);
+    const reader = new Reader(readerConfigs[parseInt(process.env.config_index, 10)], connection);
 
     reader.startFiller(2).then();
 }

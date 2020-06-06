@@ -6,7 +6,7 @@ import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
 import logger from '../../../utils/winston';
 import { authenticationEndpoints } from './routes';
-import { getOpenApiDescription } from '../../openapi';
+import { getOpenApiDescription } from '../../docs';
 
 export type AuthenticationNamespaceArgs = {
     action: {

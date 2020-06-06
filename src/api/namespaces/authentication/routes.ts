@@ -7,7 +7,7 @@ import { AuthenticationNamespace } from './index';
 import { HTTPServer } from '../../server';
 import logger from '../../../utils/winston';
 import { bearerToken } from './middleware';
-import { getOpenAPI3Responses } from '../../openapi';
+import { getOpenAPI3Responses } from '../../docs';
 
 export function authenticationEndpoints(core: AuthenticationNamespace, server: HTTPServer, router: express.Router): any {
     router.post('/v1/token', (async (req, res) => {

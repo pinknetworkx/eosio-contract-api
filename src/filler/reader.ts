@@ -7,7 +7,7 @@ import { IReaderConfig } from '../types/config';
 import { formatSecondsLeft } from '../utils/time';
 import { PromiseEventHandler } from '../utils/event';
 
-export default class ReaderLoader {
+export default class Reader {
     private readonly handlers: ContractHandler[];
     private readonly reader: StateReceiver;
     private readonly events: PromiseEventHandler;

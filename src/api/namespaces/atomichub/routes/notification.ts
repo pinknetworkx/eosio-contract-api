@@ -5,7 +5,7 @@ import { HTTPServer } from '../../../server';
 import { bearerToken } from '../../authentication/middleware';
 import logger from '../../../../utils/winston';
 import { sendPushMessage } from '../webpush';
-import { getOpenAPI3Responses } from '../../../openapi';
+import { getOpenAPI3Responses } from '../../../docs';
 
 async function getNotifications(
     server: HTTPServer, account: string, limit: number

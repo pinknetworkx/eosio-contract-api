@@ -2,7 +2,7 @@ import ConnectionManager from '../../connections/manager';
 import { INamespaceConfig } from '../../types/config';
 import { ApiNamespace } from './interfaces';
 
-import { namespaces } from './settings';
+import { namespaces } from './loader';
 
 export function getNamespaces(
     configs: INamespaceConfig[], connection: ConnectionManager

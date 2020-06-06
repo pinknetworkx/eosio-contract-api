@@ -13,7 +13,7 @@ import { templatesEndpoints } from './routes/templates';
 import { transfersEndpoints, transfersSockets } from './routes/transfers';
 import logger from '../../../utils/winston';
 import { definitions } from './swagger';
-import { getOpenApiDescription } from '../../openapi';
+import { getOpenApiDescription } from '../../docs';
 
 export type AtomicAssetsNamespaceArgs = {
     atomicassets_account: string

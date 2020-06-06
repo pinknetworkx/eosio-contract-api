@@ -3,7 +3,7 @@ import { IContractConfig } from '../../types/config';
 import { PromiseEventHandler } from '../../utils/event';
 import { ContractHandler } from './interfaces';
 
-import { handlers } from './settings';
+import { handlers } from './loader';
 
 export function getHandlers(
     configs: IContractConfig[], connection: ConnectionManager, events: PromiseEventHandler

@@ -6,7 +6,7 @@ import { filterQueryArgs } from '../../utils';
 import { bearerToken } from '../../authentication/middleware';
 import logger from '../../../../utils/winston';
 import { formatAsset } from '../../atomicassets/format';
-import { getOpenAPI3Responses } from '../../../openapi';
+import { getOpenAPI3Responses } from '../../../docs';
 
 export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
     router.put('/v1/watchlist', bearerToken(core.connection), async (req, res) => {

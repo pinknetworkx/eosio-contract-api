@@ -4,7 +4,7 @@ import { AtomicHubNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { filterQueryArgs } from '../../utils';
 import { formatAsset } from '../../atomicassets/format';
-import { getOpenAPI3Responses } from '../../../openapi';
+import { getOpenAPI3Responses } from '../../../docs';
 
 export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/stats', server.web.caching({expire: 60}), async (_, res) => {

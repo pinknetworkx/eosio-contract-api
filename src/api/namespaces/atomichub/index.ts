@@ -6,7 +6,7 @@ import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
 import logger from '../../../utils/winston';
 import { webpushEndpoints } from './routes/webpush';
-import { getOpenApiDescription } from '../../openapi';
+import { getOpenApiDescription } from '../../docs';
 import { notificationsEndpoints, notificationsSockets } from './routes/notification';
 import { watchlistEndpoints } from './routes/watchlist';
 import { statsEndpoints } from './routes/stats';

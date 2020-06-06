@@ -6,7 +6,7 @@ import { IServerConfig } from '../types/config';
 import ConnectionManager from '../connections/manager';
 import { getNamespaces } from './namespaces';
 
-export default class ApiLoader {
+export default class Api {
     private readonly namespaces: ApiNamespace[];
     private readonly server: HTTPServer;
 
