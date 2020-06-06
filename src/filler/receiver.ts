@@ -73,7 +73,8 @@ export default class StateReceiver {
     }
 
     private async consumer(header: ShipHeader, rawBlock: Uint8Array, rawTraces: Uint8Array, rawDeltas: Uint8Array): Promise<void> {
-        let processDeltas = this.config.start_from_snapshot && this.currentBlock === 0;
+        // process deltas of first block because it could be started from a snapshot
+        let processDeltas = this.currentBlock === 0;
 
         const block: ShipBlock = { ...header.this_block, ...this.ship.deserialize('signed_block', rawBlock) };
         const traces: ShipTransactionTrace[] = this.ship.deserialize('transaction_trace[]', rawTraces);

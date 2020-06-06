@@ -5,7 +5,6 @@
     "start_block": 0,
     "stop_block": 0,
     "irreversible_only": false,
-    "start_from_snapshot": false,
 
     "ship_prefetch_blocks": 50,
     "ship_min_block_confirmation": 30,
