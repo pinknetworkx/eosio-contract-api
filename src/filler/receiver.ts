@@ -331,7 +331,16 @@ export default class StateReceiver {
 
     private async handleAbiUpdate(db: ContractDBTransaction, block: ShipBlock, action: EosioAction): Promise<void> {
         if (typeof action.data !== 'string') {
-            const abiJson = this.connection.chain.deserializeAbi(action.data.abi);
+            let abiJson;
+
+            try {
+                abiJson = this.connection.chain.deserializeAbi(action.data.abi);
+            } catch (e) {
+                logger.warn('Could not deserialize ABI of ' + action.data.account, e);
+
+                return;
+            }
+
             const types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), abiJson);
 
             this.abis[action.data.account] = { json: abiJson, types, block_num: block.block_num };
@@ -391,19 +400,33 @@ export default class StateReceiver {
         let rawAbi = await this.database.fetchAbi(contract, blockNum);
 
         if (rawAbi) {
-            abiJson = this.connection.chain.deserializeAbi(rawAbi.data);
-            abiBlock = rawAbi.block_num;
-        } else {
+            try {
+                abiJson = this.connection.chain.deserializeAbi(rawAbi.data);
+                abiBlock = rawAbi.block_num;
+            } catch (e) {
+                logger.warn('Could not deserialize ABI of ' + contract, e);
+            }
+        }
+
+        if (!abiJson) {
             logger.warn('Could not find ABI for ' + contract + ' in cache, so requesting it...');
 
             rawAbi = await this.database.fetchNextAbi(contract, blockNum);
 
             if (rawAbi) {
-                abiJson = this.connection.chain.deserializeAbi(rawAbi.data);
-                abiBlock = rawAbi.block_num;
+                try {
+                    abiJson = this.connection.chain.deserializeAbi(rawAbi.data);
+                    abiBlock = rawAbi.block_num;
+                } catch (e) {
+                    logger.warn('Could not deserialize ABI of ' + contract, e);
+                }
             } else {
-                abiJson = (await this.connection.chain.rpc.get_abi(contract)).abi;
-                abiBlock = blockNum;
+                try {
+                    abiJson = (await this.connection.chain.rpc.get_abi(contract)).abi;
+                    abiBlock = blockNum;
+                } catch (e) {
+                    logger.warn('Could not fetch ABI of ' + contract, e);
+                }
             }
         }
 
