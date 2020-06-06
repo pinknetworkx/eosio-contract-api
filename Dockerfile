@@ -9,6 +9,6 @@ WORKDIR /home/application/app
 
 COPY . .
 
-RUN yarn install && yarn build
+RUN yarn install
 
 EXPOSE 9000
