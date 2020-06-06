@@ -6,6 +6,7 @@ import logger from '../../../../utils/winston';
 import { filterQueryArgs } from '../../utils';
 import { formatOffer } from '../format';
 import { standardArrayFilter } from '../swagger';
+import { fillOffers } from '../filler';
 
 export function offersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/offers', server.web.caching(), (async (req, res) => {
@@ -16,9 +17,10 @@ export function offersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                 sort: {type: 'string', values: ['created'], default: 'created'},
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
-                account: {type: 'string', min: 1, max: 12},
-                sender: {type: 'string', min: 1, max: 12},
-                recipient: {type: 'string', min: 1, max: 12}
+                account: {type: 'string', min: 1},
+                sender: {type: 'string', min: 1},
+                recipient: {type: 'string', min: 1},
+                state: {type: 'string', min: 1}
             });
 
             let varCounter = 1;
@@ -27,18 +29,23 @@ export function offersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
             const queryValues: any[] = [core.args.atomicassets_account];
 
             if (args.account) {
-                queryString += 'AND (sender_name = $' + ++varCounter + ' OR recipient_name = $' + varCounter + ') ';
-                queryValues.push(args.account);
+                queryString += 'AND (sender_name = ANY ($' + ++varCounter + ') OR recipient_name = ANY ($' + varCounter + ')) ';
+                queryValues.push(args.account.split(','));
             }
 
             if (args.sender) {
-                queryString += 'AND sender_name = $' + ++varCounter + ' ';
-                queryValues.push(args.sender);
+                queryString += 'AND sender_name = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.sender.split(','));
             }
 
             if (args.recipient) {
-                queryString += 'AND recipient_name = $' + ++varCounter + ' ';
-                queryValues.push(args.recipient);
+                queryString += 'AND recipient_name = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.recipient.split(','));
+            }
+
+            if (args.state) {
+                queryString += 'AND state = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.state.split(','));
             }
 
             const sortColumnMapping = {
@@ -54,8 +61,12 @@ export function offersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
             logger.debug(queryString);
 
             const query = await core.connection.database.query(queryString, queryValues);
+            const offers = await fillOffers(
+                core.connection, core.args.atomicassets_account,
+                query.rows.map((row) => formatOffer(row))
+            );
 
-            return res.json({success: true, data: query.rows.map((row) => formatOffer(row)), query_time: Date.now()});
+            return res.json({success: true, data: offers, query_time: Date.now()});
         } catch (e) {
             logger.error(e);
 
@@ -77,7 +88,12 @@ export function offersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                 return res.json({success: false, message: 'Offer not found'});
             }
 
-            return res.json({success: true, data: formatOffer(query.rows[0]), query_time: Date.now()});
+            const offers = await fillOffers(
+                core.connection, core.args.atomicassets_account,
+                query.rows.map((row) => formatOffer(row))
+            );
+
+            return res.json({success: true, data: formatOffer(offers[0]), query_time: Date.now()});
         } catch (e) {
             logger.error(e);
 
@@ -101,21 +117,28 @@ export function offersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                         {
                             name: 'account',
                             in: 'query',
-                            description: 'Notified account (can be sender or recipient)',
+                            description: 'Notified account (can be sender or recipient) - separate multiple with ","',
                             required: false,
                             type: 'string'
                         },
                         {
                             name: 'sender',
                             in: 'query',
-                            description: 'Offer sender',
+                            description: 'Offer sender - separate multiple with ","',
                             required: false,
                             type: 'string'
                         },
                         {
                             name: 'recipient',
                             in: 'query',
-                            description: 'Offer recipient',
+                            description: 'Offer recipient - separate multiple with ","',
+                            required: false,
+                            type: 'string'
+                        },
+                        {
+                            name: 'state',
+                            in: 'query',
+                            description: 'Offer State (0: Pending; 1: Invalid; 2: Unknown [not valid anymore]; 3: Accepted; 4: Declined; 5: Canceled) - separate multiple with ","',
                             required: false,
                             type: 'string'
                         },

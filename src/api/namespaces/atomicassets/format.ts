@@ -48,18 +48,11 @@ export function formatCollection(row: any): any {
 }
 
 export function formatOffer(row: any): any {
-    const data = {...row};
-
-    data.sender_assets = data.sender_assets.map((asset: any) => formatAsset(asset));
-    data.recipient_assets = data.recipient_assets.map((asset: any) => formatAsset(asset));
-
-    return data;
+    return {...row};
 }
 
 export function formatTransfer(row: any): any {
     const data = {...row};
-
-    data.assets = data.assets.map((asset: any) => formatAsset(asset));
 
     delete data['transfer_id'];
 

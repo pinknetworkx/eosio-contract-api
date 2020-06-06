@@ -6,6 +6,7 @@ import { filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { formatTransfer } from '../format';
 import { standardArrayFilter } from '../swagger';
+import { fillTransfers } from '../filler';
 
 export function transfersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/transfers', server.web.caching(), (async (req, res) => {
@@ -16,9 +17,9 @@ export function transfersEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                 sort: {type: 'string', values: ['created'], default: 'created'},
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
-                account: {type: 'string', min: 1, max: 12},
-                sender: {type: 'string', min: 1, max: 12},
-                recipient: {type: 'string', min: 1, max: 12}
+                account: {type: 'string', min: 1},
+                sender: {type: 'string', min: 1},
+                recipient: {type: 'string', min: 1}
             });
 
             let varCounter = 1;
@@ -27,18 +28,18 @@ export function transfersEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             const queryValues: any[] = [core.args.atomicassets_account];
 
             if (args.account) {
-                queryString += 'AND (sender_name = $' + ++varCounter + ' OR recipient_name = $' + varCounter + ') ';
-                queryValues.push(args.account);
+                queryString += 'AND (sender_name = ANY $' + ++varCounter + ' OR recipient_name = ANY $' + varCounter + ') ';
+                queryValues.push(args.account.split(','));
             }
 
             if (args.sender) {
-                queryString += 'AND sender_name = $' + ++varCounter + ' ';
-                queryValues.push(args.sender);
+                queryString += 'AND sender_name = ANY $' + ++varCounter + ' ';
+                queryValues.push(args.sender.split(','));
             }
 
             if (args.recipient) {
-                queryString += 'AND recipient_name = $' + ++varCounter + ' ';
-                queryValues.push(args.recipient);
+                queryString += 'AND recipient_name = ANY $' + ++varCounter + ' ';
+                queryValues.push(args.recipient.split(','));
             }
 
             const sortColumnMapping = {
@@ -54,8 +55,12 @@ export function transfersEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             logger.debug(queryString);
 
             const query = await core.connection.database.query(queryString, queryValues);
+            const transfers = await fillTransfers(
+                core.connection, core.args.atomicassets_account,
+                query.rows.map((row) => formatTransfer(row))
+            );
 
-            return res.json({success: true, data: query.rows.map((row) => formatTransfer(row)), query_time: Date.now()});
+            return res.json({success: true, data: transfers, query_time: Date.now()});
         } catch (e) {
             logger.error(e);
 
@@ -79,21 +84,21 @@ export function transfersEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                         {
                             name: 'account',
                             in: 'query',
-                            description: 'Notified account (can be sender or recipient)',
+                            description: 'Notified account (can be sender or recipient) - separate multiple with ","',
                             required: false,
                             type: 'string'
                         },
                         {
                             name: 'sender',
                             in: 'query',
-                            description: 'Transfer sender',
+                            description: 'Transfer sender - separate multiple with ","',
                             required: false,
                             type: 'string'
                         },
                         {
                             name: 'recipient',
                             in: 'query',
-                            description: 'Transfer recipient',
+                            description: 'Transfer recipient - separate multiple with ","',
                             required: false,
                             type: 'string'
                         },
