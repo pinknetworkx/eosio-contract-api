@@ -5,6 +5,8 @@ RUN adduser --disabled-password application && \
   chown -R application:application /home/application
 
 USER application
+ENV NODE_ENV production
+
 WORKDIR /home/application/app
 
 COPY . .
