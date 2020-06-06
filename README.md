@@ -29,7 +29,7 @@ Notes
 * Redis: Can be used for multiple chains without further action
 * PostgreSQL: Each chain needs it own postgres database, but multiple readers of the same
 chain can use the same database
-* Nodeos: It can be initialized with a snapshot
+* Nodeos: Can be initialized with a snapshot, but history will be missing, so it is advised not to do that
 
 ```javascript
 {
@@ -140,11 +140,11 @@ There are two suggested ways to run the project: Docker if you want to container
 3. There is an example docker compose file provided
 4. `docker-compose up -d`
 
-#### Start
+Start
 * `docker-compose start eosio-contract-api-filler`
 * `docker-compose start eosio-contract-api-server`
 
-#### Stop
+Stop
 * `docker-compose stop eosio-contract-api-filler`
 * `docker-compose stop eosio-contract-api-server`
 
@@ -155,10 +155,10 @@ There are two suggested ways to run the project: Docker if you want to container
 3. `yarn install`
 4. `yarn global add pm2`
 
-#### Start
+Start
 * `pm2 start filler`
 * `pm2 start api`
 
-#### Stop
+Stop
 * `pm2 stop filler`
 * `pm2 stop api`
