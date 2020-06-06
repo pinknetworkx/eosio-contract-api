@@ -7,26 +7,28 @@ import logger from '../../../../utils/winston';
 
 export function utilsEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/avatar/:account', server.web.caching({expire: 60}), async (req, res) => {
-        try {
-            const resp = await core.connection.chain.rpc.get_table_rows({
-                json: true, ...core.args.avatar.contract, lower_bound: req.params.account, upper_bound: req.params.account
-            });
-
-            if (resp.rows.length > 0) {
-                const url = core.args.ipfs_node + '/ipfs/' + resp.rows[0][core.args.avatar.ipfs_key_name];
-
-                const ipfsImage = await fetch(url, {
-                    timeout: 5000,
-                    size: 5 * 1024 * 1024
+        if (core.args.avatar.enable) {
+            try {
+                const resp = await core.connection.chain.rpc.get_table_rows({
+                    json: true, ...core.args.avatar.contract, lower_bound: req.params.account, upper_bound: req.params.account
                 });
 
-                if (['image/png', 'image/jpeg'].indexOf(ipfsImage.headers.get('content-type')) >= 0) {
-                    return res.contentType(ipfsImage.headers.get('content-type'))
-                        .send(Buffer.from(await ipfsImage.arrayBuffer()));
+                if (resp.rows.length > 0) {
+                    const url = core.args.ipfs_node + '/ipfs/' + resp.rows[0][core.args.avatar.ipfs_key_name];
+
+                    const ipfsImage = await fetch(url, {
+                        timeout: 5000,
+                        size: 5 * 1024 * 1024
+                    });
+
+                    if (['image/png', 'image/jpeg'].indexOf(ipfsImage.headers.get('content-type')) >= 0) {
+                        return res.contentType(ipfsImage.headers.get('content-type'))
+                            .send(Buffer.from(await ipfsImage.arrayBuffer()));
+                    }
                 }
+            } catch (e) {
+                logger.debug('Avatar error', e);
             }
-        } catch (e) {
-            logger.debug('Avatar error', e);
         }
 
         const defaultImage = await fetch(core.args.avatar.default);

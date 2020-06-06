@@ -25,10 +25,8 @@ export default class ReaderLoader {
         await transaction.query('DELETE FROM reversible_queries WHERE reader = $1', [this.config.name]);
 
         try {
-            for (let i = 0; i < this.handlers.length; i++) {
-                logger.info('Init handler ' + this.config.contracts[i].handler + ' for reader ' + this.config.name);
-
-                await this.handlers[i].deleteDB(transaction);
+            for (const handler of this.handlers) {
+                await handler.deleteDB(transaction);
             }
         } catch (e) {
             logger.error(e);
@@ -41,10 +39,10 @@ export default class ReaderLoader {
     }
 
     async startFiller(logInterval: number): Promise<void> {
-        for (const handler of this.handlers) {
-            logger.info('Init handler ' + handler + ' for reader ' + this.config.name);
+        for (let i = 0; i < this.handlers.length; i++) {
+            logger.info('Init handler ' + this.config.contracts[i].handler + ' for reader ' + this.config.name);
 
-            await handler.init();
+            await this.handlers[i].init();
         }
 
         if (this.config.delete_data) {

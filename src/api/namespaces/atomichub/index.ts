@@ -27,6 +27,7 @@ export type AtomicHubNamespaceArgs = {
     notification_title: string,
 
     avatar: {
+        enable: boolean,
         contract: {
             code: string,
             table: string,
@@ -69,6 +70,7 @@ export class AtomicHubNamespace extends ApiNamespace {
 
         if (
             typeof this.args.avatar !== 'object' ||
+            typeof this.args.avatar.enable !== 'boolean' ||
             typeof this.args.avatar.ipfs_key_name !== 'string' ||
             typeof this.args.avatar.default !== 'string' ||
             typeof this.args.avatar.contract !== 'object' ||

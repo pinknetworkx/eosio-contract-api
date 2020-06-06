@@ -10,13 +10,15 @@
     "lint": "tslint -c tslint.json 'src/**/*.ts'",
     "build": "yarn clean && yarn lint && tsc",
     "test": "mocha -r ts-node/register test/**/*.test.ts",
+    "postinstall": "yarn build",
+
     "start:api": "node ./build/bin/api.js",
     "start:filler": "node ./build/bin/filler.js",
     "dev:api": "tsc && node --trace-warnings ./build/bin/api.js",
     "dev:filler": "tsc && node --trace-warnings ./build/bin/filler.js"
   },
   "dependencies": {
-    "atomicassets": "^0.7.1",
+    "atomicassets": "^0.8.1",
     "await-lock": "^2.0.1",
     "body-parser": "^1.19.0",
     "cookie-parser": "^1.4.5",

@@ -343,10 +343,10 @@ asynckit@^0.4.0:
   resolved "https://registry.yarnpkg.com/asynckit/-/asynckit-0.4.0.tgz#c79ed97f7f34cb8f2ba1bc9790bcc366474b4b79"
   integrity sha1-x57Zf380y48robyXkLzDZkdLS3k=
 
-atomicassets@^0.7.1:
-  version "0.7.1"
-  resolved "https://registry.yarnpkg.com/atomicassets/-/atomicassets-0.7.1.tgz#5f876f3586f7362bd9d027fbe271cd53f73eca5b"
-  integrity sha512-cp7oJJYngpEpfNJSkKMVaHBpnGFG4EafTcuRtsJWv6qXZGGyMeaeXs2Mh8T297QAeB3LwooY9ibBqFS63u5rxA==
+atomicassets@^0.8.1:
+  version "0.8.1"
+  resolved "https://registry.yarnpkg.com/atomicassets/-/atomicassets-0.8.1.tgz#1175e324c4aa6e9a33f4329946b1391dfb9a35e6"
+  integrity sha512-8EBh8ed0f6KYRKloLe5tuX2v8kDRh0s3K/s1px1P2x6l4rl0vMk4/HdcGB5dHbfS/BvDBUVUGaRK9B660uomFg==
   dependencies:
     big-integer "^1.6.48"
 

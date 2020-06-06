@@ -1,32 +1,14 @@
-FROM node:14.1-alpine as build-stage
+FROM node:14.4-alpine
 
-RUN mkdir -p /root/app/
-WORKDIR /root/app/
+RUN adduser --disabled-password application && \
+  mkdir -p /home/application/app/ && \
+  chown -R application:application /home/application
 
-COPY package.json .
-COPY yarn.lock .
-
-RUN yarn install
+USER application
+WORKDIR /home/application/app
 
 COPY . .
 
-RUN yarn build
-
-# application docker
-FROM node:14.1-alpine
-
-RUN mkdir -p /root/app/build
-WORKDIR /root/app/
-
-COPY --from=build-stage /root/app/build ./build
-
-COPY package.json .
-COPY yarn.lock .
-COPY definitions ./definitions
-COPY docs ./docs
-
-RUN yarn install --production
-
-ENV NODE_ENV production
+RUN yarn install && yarn build
 
 EXPOSE 9000

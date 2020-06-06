@@ -23,8 +23,7 @@ export default class ApiLoader {
         }
 
         this.server.web.express.use('*', (_: express.Request, res: express.Response) => {
-            res.status(500);
-            res.json({
+            res.status(404).json({
                 success: false, message: 'Endpoint not found'
             });
         });
