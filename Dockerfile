@@ -5,7 +5,6 @@ RUN adduser --disabled-password application && \
   chown -R application:application /home/application
 
 USER application
-ENV NODE_ENV production
 
 WORKDIR /home/application/app
 
@@ -13,4 +12,5 @@ COPY . .
 
 RUN yarn install
 
+ENV NODE_ENV production
 EXPOSE 9000
