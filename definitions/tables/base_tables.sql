@@ -43,11 +43,11 @@ ALTER TABLE ONLY contract_readers ADD CONSTRAINT contract_readers_pkey PRIMARY K
 ALTER TABLE ONLY reversible_queries ADD CONSTRAINT reversible_queries_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY reversible_blocks ADD CONSTRAINT reversible_blocks_pkey PRIMARY KEY (reader, block_num);
 
-CREATE INDEX contract_abis_account ON contract_abis USING btree (account);
+CREATE INDEX contract_abis_account ON contract_abis USING hash (account);
 CREATE INDEX contract_abis_block_num ON contract_abis USING btree (block_num);
 CREATE INDEX contract_abis_block_time ON contract_abis USING btree (block_time);
-CREATE INDEX contract_codes_account ON contract_codes USING btree (account);
+CREATE INDEX contract_codes_account ON contract_codes USING hash (account);
 CREATE INDEX contract_codes_block_num ON contract_codes USING btree (block_num);
 CREATE INDEX contract_codes_block_time ON contract_codes USING btree (block_time);
 CREATE INDEX reversible_queries_block_num ON reversible_queries USING btree (block_num);
-CREATE INDEX reversible_queries_reader ON reversible_queries USING btree (reader);
+CREATE INDEX reversible_queries_reader ON reversible_queries USING hash (reader);

@@ -1,9 +1,13 @@
+import * as fs from 'fs';
+import { PoolClient } from 'pg';
+
 import { ContractHandler } from '../interfaces';
 import { ShipBlock } from '../../../types/ship';
 import { EosioActionTrace, EosioTableRow, EosioTransaction } from '../../../types/eosio';
 import { ContractDBTransaction } from '../../database';
 import ConnectionManager from '../../../connections/manager';
 import { PromiseEventHandler } from '../../../utils/event';
+import logger from '../../../utils/winston';
 
 export type AtomicMarketArgs = {
     atomicassets_account: string,
@@ -43,11 +47,35 @@ export default class AtomicAssetsHandler extends ContractHandler {
     }
 
     async init(): Promise<void> {
+        try {
+            await this.connection.database.query(
+                'SELECT * FROM atomicmarket_config WHERE market_contract = $1',
+                [this.args.atomicmarket_account]
+            );
+        } catch (e) {
+            logger.info('Could not find AtomicMarket tables. Create them now...');
 
+            await this.connection.database.query(fs.readFileSync('./definitions/tables/atomicmarket_tables.sql', {
+                encoding: 'utf8'
+            }));
+
+            logger.info('AtomicMarket tables successfully created');
+        }
     }
 
-    async deleteDB(): Promise<void> {
+    async deleteDB(client: PoolClient): Promise<void> {
+        const tables = [
+            'atomicmarket_auctions', 'atomicmarket_auctions_bids', 'atomicmarket_config',
+            'atomicmarket_delphi_pairs', 'atomicmarket_marketplaces', 'atomicmarket_sales',
+            'atomicmarket_token_symbols'
+        ];
 
+        for (const table of tables) {
+            await client.query(
+                'DELETE FROM ' + client.escapeIdentifier(table) + ' WHERE marketcontract = $1',
+                [this.args.atomicmarket_account]
+            );
+        }
     }
 
     async onAction(_db: ContractDBTransaction, _block: ShipBlock, _trace: EosioActionTrace, _tx: EosioTransaction): Promise<void> {
