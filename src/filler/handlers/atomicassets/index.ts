@@ -123,24 +123,14 @@ export default class AtomicAssetsHandler extends ContractHandler {
             logger.info('AtomicAssets tables successfully created');
         }
 
-        await this.connection.database.query(
-            fs.readFileSync('./definitions/views/atomicassets_assets_master.sql', {encoding: 'utf8'})
-        );
-        await this.connection.database.query(
-            fs.readFileSync('./definitions/views/atomicassets_templates_master.sql', {encoding: 'utf8'})
-        );
-        await this.connection.database.query(
-            fs.readFileSync('./definitions/views/atomicassets_schemas_master.sql', {encoding: 'utf8'})
-        );
-        await this.connection.database.query(
-            fs.readFileSync('./definitions/views/atomicassets_collections_master.sql', {encoding: 'utf8'})
-        );
-        await this.connection.database.query(
-            fs.readFileSync('./definitions/views/atomicassets_offers_master.sql', {encoding: 'utf8'})
-        );
-        await this.connection.database.query(
-            fs.readFileSync('./definitions/views/atomicassets_transfers_master.sql', {encoding: 'utf8'})
-        );
+        const views = [
+            'atomicassets_assets_master', 'atomicassets_templates_master', 'atomicassets_schemas_master',
+            'atomicassets_collections_master', 'atomicassets_offers_master', 'atomicassets_transfers_master'
+        ];
+
+        for (const view of views) {
+            await this.connection.database.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
+        }
 
         if (query === null || query.rows.length === 0) {
             const configTable = await this.connection.chain.rpc.get_table_rows({

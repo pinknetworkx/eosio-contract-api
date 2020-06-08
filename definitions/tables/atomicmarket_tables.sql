@@ -26,7 +26,6 @@ CREATE TABLE atomicmarket_auctions_bids
     bid_number integer NOT NULL,
     account character varying(12) NOT NULL,
     amount bigint NOT NULL,
-    token_symbol character varying(12) NOT NULL,
     created_at_block bigint NOT NULL,
     created_at_time bigint NOT NULL,
     CONSTRAINT atomicmarket_auctions_bids_pkey PRIMARY KEY (market_contract, auction_id, bid_number)
@@ -57,6 +56,7 @@ CREATE TABLE atomicmarket_delphi_pairs (
     delphi_pair_name character varying(12) NOT NULL,
     stable_symbol character varying(12) NOT NULL,
     token_symbol character varying(12) NOT NULL,
+    exchange_rate bigint NOT NULL,
     CONSTRAINT atomicmarket_delphi_pairs_pkey PRIMARY KEY (market_contract, delphi_pair_name)
 );
 
@@ -89,7 +89,7 @@ CREATE TABLE atomicmarket_sales
     created_at_block bigint NOT NULL,
     created_at_time bigint NOT NULL,
     CONSTRAINT atomicmarket_sales_pkey PRIMARY KEY (market_contract, sale_id),
-    CONSTRAINT atomicmarket_sales_offer_id_key UNIQUE (asset_contract, offer_id)
+    CONSTRAINT atomicmarket_sales_offer_id_key UNIQUE (market_contract, asset_contract, offer_id)
 );
 
 CREATE TABLE atomicmarket_token_symbols (

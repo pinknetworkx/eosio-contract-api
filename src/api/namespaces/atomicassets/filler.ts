@@ -4,7 +4,12 @@ import { formatAsset } from './format';
 export class AssetFiller {
     private assets: {[key: string]: any} | null;
 
-    constructor(readonly connection: ConnectionManager, readonly contract: string, readonly assetIDs: string[]) {
+    constructor(
+        readonly connection: ConnectionManager,
+        readonly contract: string,
+        readonly assetIDs: string[],
+        readonly assetView: string = 'atomicassets_assets_master'
+    ) {
         this.assets = null;
     }
 
@@ -20,7 +25,7 @@ export class AssetFiller {
         }
 
         const query = await this.connection.database.query(
-            'SELECT * FROM atomicassets_assets_master WHERE contract = $1 AND asset_id = ANY ($2)',
+            'SELECT * FROM ' + this.assetView + ' WHERE contract = $1 AND asset_id = ANY ($2)',
             [this.contract, this.assetIDs]
         );
 
@@ -32,7 +37,9 @@ export class AssetFiller {
     }
 }
 
-export async function fillOffers(connection: ConnectionManager, contract: string, offers: any[]): Promise<any[]> {
+export async function fillOffers(
+    connection: ConnectionManager, contract: string, offers: any[], assetView: string = 'atomicassets_assets_master'
+): Promise<any[]> {
     const assetIDs: string[] = [];
 
     for (const offer of offers) {
@@ -40,7 +47,7 @@ export async function fillOffers(connection: ConnectionManager, contract: string
         assetIDs.push(...offer.recipient_assets);
     }
 
-    const filler = new AssetFiller(connection, contract, assetIDs);
+    const filler = new AssetFiller(connection, contract, assetIDs, assetView);
 
     return await Promise.all(offers.map(async (offer) => {
         offer.sender_assets = await filler.fill(offer.sender_assets);
@@ -50,14 +57,16 @@ export async function fillOffers(connection: ConnectionManager, contract: string
     }));
 }
 
-export async function fillTransfers(connection: ConnectionManager, contract: string, transfers: any[]): Promise<any[]> {
+export async function fillTransfers(
+    connection: ConnectionManager, contract: string, transfers: any[], assetView: string = 'atomicassets_assets_master'
+): Promise<any[]> {
     const assetIDs: string[] = [];
 
     for (const transfer of transfers) {
         assetIDs.push(...transfer.assets);
     }
 
-    const filler = new AssetFiller(connection, contract, assetIDs);
+    const filler = new AssetFiller(connection, contract, assetIDs, assetView);
 
     return await Promise.all(transfers.map(async (transfer) => {
         transfer.assets = await filler.fill(transfer.assets);

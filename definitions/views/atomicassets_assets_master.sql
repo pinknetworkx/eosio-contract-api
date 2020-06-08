@@ -34,7 +34,7 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
             'immutable_data', (SELECT json_object_agg("key", "value") FROM atomicassets_templates_data WHERE contract = asset_a.contract AND template_id = asset_a.template_id),
             'created_at_time', template_a.created_at_time,
             'created_at_block', template_a.created_at_block
-        ) END AS"template",
+        ) END AS "template",
         (SELECT json_object_agg("key", "value") FROM atomicassets_assets_data WHERE contract = asset_a.contract AND asset_id = asset_a.asset_id AND mutable IS true) mutable_data,
         (SELECT json_object_agg("key", "value") FROM atomicassets_assets_data WHERE contract = asset_a.contract AND asset_id = asset_a.asset_id AND mutable IS false) immutable_data,
         ARRAY(

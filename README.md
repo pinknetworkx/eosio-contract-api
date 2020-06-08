@@ -1,9 +1,9 @@
 # EOSIO Contract API
-The aim of this project is to provide a wrapper for an API and filler of specific
-contracts on eosio based blockchains. It communicates with the eosio State History
-Plugin and uses PostgreSQL to store the data. This combination makes it possible to
-guarantee that the state of the database matches the onchain state by using table deltas
-and action traces. This consistency is achieved with per block Postgres transactions and
+The aim of this project is to provide an interface to query contracts and the blockchain
+state on eosio based blockchains. It communicates with the eosio State History
+Plugin and uses PostgreSQL to store the data which makes it possible to
+guarantee that the state of the database matches the onchain state. 
+This consistency is achieved with per block Postgres transactions and
 internal fork handling which still will be consistent even if you kill the process at 
 any time.
 

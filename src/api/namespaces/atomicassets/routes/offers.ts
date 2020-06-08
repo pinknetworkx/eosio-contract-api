@@ -8,7 +8,9 @@ import { formatOffer } from '../format';
 import { standardArrayFilter } from '../swagger';
 import { fillOffers } from '../filler';
 
-export function offersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
+export function offersEndpoints(
+    core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router, assetView: string = 'atomicassets_assets_master'
+): any {
     router.get('/v1/offers', server.web.caching(), (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
@@ -63,7 +65,7 @@ export function offersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
             const query = await core.connection.database.query(queryString, queryValues);
             const offers = await fillOffers(
                 core.connection, core.args.atomicassets_account,
-                query.rows.map((row) => formatOffer(row))
+                query.rows.map((row) => formatOffer(row)), assetView
             );
 
             return res.json({success: true, data: offers, query_time: Date.now()});
@@ -90,7 +92,7 @@ export function offersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
 
             const offers = await fillOffers(
                 core.connection, core.args.atomicassets_account,
-                query.rows.map((row) => formatOffer(row))
+                query.rows.map((row) => formatOffer(row)), assetView
             );
 
             return res.json({success: true, data: formatOffer(offers[0]), query_time: Date.now()});

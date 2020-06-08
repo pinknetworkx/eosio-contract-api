@@ -13,7 +13,8 @@ CREATE TABLE atomicassets_assets (
     updated_at_block bigint NOT NULL,
     updated_at_time bigint NOT NULL,
     minted_at_block bigint NOT NULL,
-    minted_at_time bigint NOT NULL
+    minted_at_time bigint NOT NULL,
+    CONSTRAINT atomicassets_assets_pkey PRIMARY KEY (contract, asset_id)
 );
 
 CREATE TABLE atomicassets_assets_backed_tokens (
@@ -22,7 +23,8 @@ CREATE TABLE atomicassets_assets_backed_tokens (
     token_symbol character varying(12) NOT NULL,
     amount bigint NOT NULL,
     updated_at_block bigint NOT NULL,
-    updated_at_time bigint NOT NULL
+    updated_at_time bigint NOT NULL,
+    CONSTRAINT atomicassets_assets_backed_tokens_pkey PRIMARY KEY (contract, asset_id, token_symbol)
 );
 
 CREATE TABLE atomicassets_assets_data (
@@ -32,7 +34,8 @@ CREATE TABLE atomicassets_assets_data (
     "value" json NOT NULL,
     mutable boolean NOT NULL,
     updated_at_block bigint NOT NULL,
-    updated_at_time bigint NOT NULL
+    updated_at_time bigint NOT NULL,
+    CONSTRAINT atomicassets_assets_data_pkey PRIMARY KEY (contract, asset_id, "key", mutable)
 );
 
 CREATE TABLE atomicassets_balances (
@@ -41,7 +44,8 @@ CREATE TABLE atomicassets_balances (
     token_symbol character varying(12) NOT NULL,
     amount bigint NOT NULL,
     updated_at_block bigint NOT NULL,
-    updated_at_time bigint NOT NULL
+    updated_at_time bigint NOT NULL,
+    CONSTRAINT atomicassets_balances_pkey PRIMARY KEY (contract, owner, token_symbol)
 );
 
 CREATE TABLE atomicassets_collections (
@@ -55,13 +59,15 @@ CREATE TABLE atomicassets_collections (
     market_fee double precision NOT NULL,
     data json,
     created_at_block bigint NOT NULL,
-    created_at_time bigint NOT NULL
+    created_at_time bigint NOT NULL,
+    CONSTRAINT atomicassets_collections_pkey PRIMARY KEY (contract, collection_name)
 );
 
 CREATE TABLE atomicassets_config (
     contract character varying(12) NOT NULL,
     version character varying(64) NOT NULL,
-    collection_format json[] NOT NULL
+    collection_format json[] NOT NULL,
+    CONSTRAINT atomicassets_config_pkey PRIMARY KEY (contract)
 );
 
 CREATE TABLE atomicassets_logs (
@@ -73,7 +79,8 @@ CREATE TABLE atomicassets_logs (
     data json NOT NULL,
     txid bytea NOT NULL,
     created_at_block bigint NOT NULL,
-    created_at_time bigint NOT NULL
+    created_at_time bigint NOT NULL,
+    CONSTRAINT atomicassets_logs_pkey PRIMARY KEY (log_id)
 );
 
 CREATE SEQUENCE atomicassets_logs_log_id_seq
@@ -96,14 +103,16 @@ CREATE TABLE atomicassets_offers (
     updated_at_time bigint NOT NULL,
     updated_at_block bigint NOT NULL,
     created_at_time bigint NOT NULL,
-    created_at_block bigint NOT NULL
+    created_at_block bigint NOT NULL,
+    CONSTRAINT atomicassets_offers_pkey PRIMARY KEY (contract, offer_id)
 );
 
 CREATE TABLE atomicassets_offers_assets (
     contract character varying(12) NOT NULL,
     offer_id bigint NOT NULL,
     owner character varying(12) NOT NULL,
-    asset_id bigint NOT NULL
+    asset_id bigint NOT NULL,
+    CONSTRAINT atomicassets_offers_assets_pkey PRIMARY KEY (contract, offer_id, asset_id)
 );
 
 CREATE TABLE atomicassets_templates (
@@ -117,14 +126,16 @@ CREATE TABLE atomicassets_templates (
     max_supply bigint NOT NULL,
     issued_supply bigint NOT NULL,
     created_at_time bigint NOT NULL,
-    created_at_block bigint NOT NULL
+    created_at_block bigint NOT NULL,
+    CONSTRAINT atomicassets_templates_pkey PRIMARY KEY (contract, template_id)
 );
 
 CREATE TABLE atomicassets_templates_data (
     contract character varying(12) NOT NULL,
     template_id bigint NOT NULL,
     "key" character varying(64) NOT NULL,
-    "value" json NOT NULL
+    "value" json NOT NULL,
+    CONSTRAINT atomicassets_templates_data_pkey PRIMARY KEY (contract, template_id, "key")
 );
 
 CREATE TABLE atomicassets_schemas (
@@ -133,14 +144,16 @@ CREATE TABLE atomicassets_schemas (
     schema_name character varying(12) NOT NULL,
     format json[] NOT NULL,
     created_at_block bigint NOT NULL,
-    created_at_time bigint NOT NULL
+    created_at_time bigint NOT NULL,
+    CONSTRAINT atomicassets_schemas_pkey PRIMARY KEY (contract, collection_name, schema_name)
 );
 
 CREATE TABLE atomicassets_token_symbols (
     contract character varying(12) NOT NULL,
     token_symbol character varying(12) NOT NULL,
     token_contract character varying(12) NOT NULL,
-    token_precision integer NOT NULL
+    token_precision integer NOT NULL,
+    CONSTRAINT atomicassets_token_symbols_pkey PRIMARY KEY (contract, token_symbol)
 );
 
 CREATE TABLE atomicassets_transfers (
@@ -151,13 +164,15 @@ CREATE TABLE atomicassets_transfers (
     memo character varying(256) NOT NULL,
     txid bytea NOT NULL,
     created_at_block bigint NOT NULL,
-    created_at_time bigint NOT NULL
+    created_at_time bigint NOT NULL,
+    CONSTRAINT atomicassets_transfers_pkey PRIMARY KEY (transfer_id)
 );
 
 CREATE TABLE atomicassets_transfers_assets (
     transfer_id integer NOT NULL,
     contract character varying(12) NOT NULL,
-    asset_id bigint NOT NULL
+    asset_id bigint NOT NULL,
+    CONSTRAINT atomicassets_transfers_assets_pkey PRIMARY KEY (transfer_id, contract, asset_id)
 );
 
 CREATE SEQUENCE atomicassets_transfers_transfer_id_seq
@@ -175,52 +190,6 @@ ALTER SEQUENCE atomicassets_transfers_transfer_id_seq OWNED BY atomicassets_tran
 ALTER TABLE ONLY atomicassets_logs ALTER COLUMN log_id SET DEFAULT nextval('atomicassets_logs_log_id_seq'::regclass);
 
 ALTER TABLE ONLY atomicassets_transfers ALTER COLUMN transfer_id SET DEFAULT nextval('atomicassets_transfers_transfer_id_seq'::regclass);
-
--- PRIMARY KEYS --
-ALTER TABLE ONLY atomicassets_assets_backed_tokens
-    ADD CONSTRAINT atomicassets_assets_backed_tokens_pkey PRIMARY KEY (contract, asset_id, token_symbol);
-
-ALTER TABLE ONLY atomicassets_assets_data
-    ADD CONSTRAINT atomicassets_assets_data_pkey PRIMARY KEY (contract, asset_id, "key", mutable);
-
-ALTER TABLE ONLY atomicassets_assets
-    ADD CONSTRAINT atomicassets_assets_pkey PRIMARY KEY (contract, asset_id);
-
-ALTER TABLE ONLY atomicassets_balances
-    ADD CONSTRAINT atomicassets_balances_pkey PRIMARY KEY (contract, owner, token_symbol);
-
-ALTER TABLE ONLY atomicassets_collections
-    ADD CONSTRAINT atomicassets_collections_pkey PRIMARY KEY (contract, collection_name);
-
-ALTER TABLE ONLY atomicassets_config
-    ADD CONSTRAINT atomicassets_config_pkey PRIMARY KEY (contract);
-
-ALTER TABLE ONLY atomicassets_logs
-    ADD CONSTRAINT atomicassets_logs_pkey PRIMARY KEY (log_id);
-
-ALTER TABLE ONLY atomicassets_offers_assets
-    ADD CONSTRAINT atomicassets_offers_assets_pkey PRIMARY KEY (contract, offer_id, asset_id);
-
-ALTER TABLE ONLY atomicassets_offers
-    ADD CONSTRAINT atomicassets_offers_pkey PRIMARY KEY (contract, offer_id);
-
-ALTER TABLE ONLY atomicassets_templates_data
-    ADD CONSTRAINT atomicassets_templates_data_pkey PRIMARY KEY (contract, template_id, "key");
-
-ALTER TABLE ONLY atomicassets_templates
-    ADD CONSTRAINT atomicassets_templates_pkey PRIMARY KEY (contract, template_id);
-
-ALTER TABLE ONLY atomicassets_schemas
-    ADD CONSTRAINT atomicassets_schemas_pkey PRIMARY KEY (contract, collection_name, schema_name);
-
-ALTER TABLE ONLY atomicassets_token_symbols
-    ADD CONSTRAINT atomicassets_token_symbols_pkey PRIMARY KEY (contract, token_symbol);
-
-ALTER TABLE ONLY atomicassets_transfers_assets
-    ADD CONSTRAINT atomicassets_transfers_assets_pkey PRIMARY KEY (transfer_id, contract, asset_id);
-
-ALTER TABLE ONLY atomicassets_transfers
-    ADD CONSTRAINT atomicassets_transfers_pkey PRIMARY KEY (transfer_id);
 
 -- FOREIGN KEYS --
 ALTER TABLE ONLY atomicassets_assets_backed_tokens

@@ -8,7 +8,9 @@ import logger from '../../../../utils/winston';
 import { formatAsset } from '../format';
 import { paginationFilter, standardArrayFilter } from '../swagger';
 
-export function assetsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
+export function assetsEndpoints(
+    core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router, assetView: string = 'atomicassets_assets_master'
+): any {
     router.get('/v1/assets', server.web.caching(), (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
@@ -27,7 +29,7 @@ export function assetsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
             });
 
             let varCounter = 1;
-            let queryString = 'SELECT * FROM atomicassets_assets_master asset WHERE contract = $1 ';
+            let queryString = 'SELECT * FROM ' + assetView + ' asset WHERE contract = $1 ';
             let queryValues: any[] = [core.args.atomicassets_account];
 
             if (args.collection_name && args.schema_name) {

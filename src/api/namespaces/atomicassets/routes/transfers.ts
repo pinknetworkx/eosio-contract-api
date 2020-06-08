@@ -8,7 +8,9 @@ import { formatTransfer } from '../format';
 import { standardArrayFilter } from '../swagger';
 import { fillTransfers } from '../filler';
 
-export function transfersEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
+export function transfersEndpoints(
+    core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router, assetView: string = 'atomicassets_assets_master'
+): any {
     router.get('/v1/transfers', server.web.caching(), (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
@@ -57,7 +59,7 @@ export function transfersEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             const query = await core.connection.database.query(queryString, queryValues);
             const transfers = await fillTransfers(
                 core.connection, core.args.atomicassets_account,
-                query.rows.map((row) => formatTransfer(row))
+                query.rows.map((row) => formatTransfer(row)), assetView
             );
 
             return res.json({success: true, data: transfers, query_time: Date.now()});
