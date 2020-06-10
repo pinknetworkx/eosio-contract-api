@@ -36,14 +36,20 @@ export default class Reader {
         }
 
         await transaction.query('COMMIT');
+        transaction.release();
     }
 
     async startFiller(logInterval: number): Promise<void> {
+        const initTransaction = await this.connection.database.begin();
+
         for (let i = 0; i < this.handlers.length; i++) {
             logger.info('Init handler ' + this.config.contracts[i].handler + ' for reader ' + this.config.name);
 
-            await this.handlers[i].init();
+            await this.handlers[i].init(initTransaction);
         }
+
+        await initTransaction.query('COMMIT');
+        initTransaction.release();
 
         if (this.config.delete_data) {
             logger.info('Deleting data from handler of reader ' + this.config.name);

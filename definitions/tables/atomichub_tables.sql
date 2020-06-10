@@ -56,7 +56,7 @@ ALTER TABLE ONLY atomichub_notifications ALTER COLUMN id SET DEFAULT nextval('at
 
 ALTER TABLE ONLY atomichub_watchlist
     ADD CONSTRAINT atomichub_watchlist_asset_id FOREIGN KEY (asset_id, contract)
-    REFERENCES atomicassets_assets (asset_id, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED
+    REFERENCES atomicassets_assets (asset_id, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
 
 -- Indexes
 

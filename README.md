@@ -162,3 +162,88 @@ Start
 Stop
 * `pm2 stop filler`
 * `pm2 stop api`
+
+## Currently Supported Contracts
+
+### Readers
+
+Readers are used to fill the database for a specific contract.
+
+#### atomicassets
+
+```javascript
+{
+  "handler": "atomicassets",
+  "args": {
+    "atomicassets_account": "atomicassets" // account where the atomicassets contract is deployed
+  }
+}
+```
+
+#### atomicmarket
+This reader requires a atomicassets reader with the same contract as specified here
+```javascript
+{
+  "handler": "atomicmarket",
+  "args": {
+    "atomicassets_account": "atomicassets" // account where the atomicassets contract is deployed
+    "atomicmarket_account": "atomicmarket" // account where the atomicmarket contract is deployed
+  }
+}
+```
+
+#### delphioracle
+
+```javascript
+{
+  "handler": "delphioracle",
+  "args": {
+    "delphioracle_account": "delphioracle" // account where the delphioracle contract is deployed
+  }
+}
+```
+
+### Namespace (for api)
+
+A namespace provides an API for a specific contract or use case and is based on data a reader provides
+
+#### atomicassets
+
+```javascript
+{
+  "handler": "atomicassets",
+  "args": {
+    "atomicassets_account": "atomicassets" // account where the atomicassets contract is deployed
+  }
+}
+```
+
+#### atomicmarket
+
+```javascript
+{
+  "handler": "atomicmarket",
+  "args": {
+    "atomicassets_account": "atomicassets", // account where the atomicassets contract is deployed
+    "atomicmarket_account": "atomicmarket", // account where the atomicmarket contract is deployed
+    "admin_token": "changeme" // auth token which is used to add or remove elements from the blacklist / whitelist
+  }
+}
+```
+
+#### authentication
+This namespace allows token generation and authentication for eosio wallets.
+It needs a smart contract which has an action with a nonce parameter
+
+```javascript
+{
+  "name": "authentication",
+  "path": "/authentication",
+  "args": {
+    "action": {
+      "account": "utility11111", // contract name
+      "name": "auth" // action name which has a nonce parameter and always throws
+    }
+  }
+},
+```

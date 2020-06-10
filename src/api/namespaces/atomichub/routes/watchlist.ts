@@ -6,7 +6,9 @@ import { filterQueryArgs } from '../../utils';
 import { bearerToken } from '../../authentication/middleware';
 import logger from '../../../../utils/winston';
 import { formatAsset } from '../../atomicassets/format';
-import { getOpenAPI3Responses } from '../../../docs';
+import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
+import { assetFilterParameters } from '../../atomicassets/openapi';
+import { buildAssetFilter } from '../../atomicassets/utils';
 
 export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
     router.put('/v1/watchlist', bearerToken(core.connection), async (req, res) => {
@@ -61,11 +63,6 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
             limit: {type: 'int', min: 1, max: 1000, default: 100},
             sort: {type: 'string', values: ['added', 'asset_id'], default: 'added'},
             order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
-
-            template_id: {type: 'int', min: 0},
-            collection_name: {type: 'string', min: 1, max: 12},
-            schema_name: {type: 'string', min: 1, max: 12},
-            match: {type: 'string', min: 1}
         });
 
         let varCounter = 2;
@@ -75,27 +72,13 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
             ')' +
             'WHERE asset.contract = $1 AND wlist.account = $2 ';
 
-        const queryValues: any[] = [core.args.atomicassets_account, req.params.account];
+        let queryValues: any[] = [core.args.atomicassets_account, req.params.account];
 
-        if (args.template_id) {
-            queryString += 'AND asset.template_id = $' + ++varCounter + ' ';
-            queryValues.push(args.template_id);
-        }
+        const filter = buildAssetFilter(req, varCounter);
 
-        if (args.collection_name) {
-            queryString += 'AND asset.collection_name = $' + ++varCounter + ' ';
-            queryValues.push(args.collection_name);
-        }
-
-        if (args.schema_name) {
-            queryString += 'AND asset.schema_name = $' + ++varCounter + ' ';
-            queryValues.push(args.schema_name);
-        }
-
-        if (args.match) {
-            queryString += 'AND asset.name LIKE $' + ++varCounter + ' ';
-            queryValues.push('%' + args.match + '%');
-        }
+        queryValues = queryValues.concat(filter.values);
+        varCounter += filter.values.length;
+        queryString += filter.str;
 
         const sortColumnMapping = {
             asset_id: 'asset.asset_id',
@@ -126,68 +109,14 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
                     tags: ['watchlist'],
                     summary: 'Get the watchlist from a specific account',
                     parameters: [
-                        {
-                            in: 'path',
-                            name: 'account',
-                            required: true,
-                            schema: {type: 'string'},
-                            description: 'Owner of the watchlist'
-                        },
-                        {
-                            in: 'query',
-                            name: 'collection_name',
-                            required: true,
-                            schema: {type: 'string'},
-                            description: 'Filter by the collection'
-                        },
-                        {
-                            in: 'query',
-                            name: 'schema_name',
-                            required: true,
-                            schema: {type: 'string'},
-                            description: 'Filter by the schema'
-                        },
-                        {
-                            in: 'query',
-                            name: 'template_id',
-                            required: true,
-                            schema: {type: 'number'},
-                            description: 'Filter by the template'
-                        },
-                        {
-                            in: 'query',
-                            name: 'match',
-                            required: true,
-                            schema: {type: 'string'},
-                            description: 'Search for a string in the asset name'
-                        },
+                        ...assetFilterParameters,
+                        ...paginationParameters,
                         {
                             in: 'query',
                             name: 'sort',
-                            required: true,
+                            required: false,
                             schema: {type: 'string', enum: ['asset_id', 'added']},
                             description: 'Field which is used to sort'
-                        },
-                        {
-                            in: 'query',
-                            name: 'order',
-                            required: true,
-                            schema: {type: 'string', enum: ['desc', 'asc']},
-                            description: 'Sort direction'
-                        },
-                        {
-                            in: 'query',
-                            name: 'limit',
-                            required: true,
-                            schema: {type: 'number'},
-                            description: 'Number of results'
-                        },
-                        {
-                            in: 'query',
-                            name: 'page',
-                            required: true,
-                            schema: {type: 'number'},
-                            description: 'Used for pagination'
                         }
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
@@ -212,7 +141,7 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
                             description: 'Asset id which should be removed'
                         }
                     ],
-                    responses: getOpenAPI3Responses([200, 401, 500], {type: 'object', nullable: true})
+                    responses: getOpenAPI3Responses([200, 401, 500], {'$ref': '#/components/schemas/Asset'})
                 }
             },
             '/v1/watchlist': {

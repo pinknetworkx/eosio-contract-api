@@ -2,14 +2,16 @@ import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { buildDataConditions, getLogs } from '../utils';
+import { buildAssetFilter, getLogs } from '../utils';
 import { filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { formatAsset } from '../format';
-import { paginationFilter, standardArrayFilter } from '../swagger';
+import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
+import { assetFilterParameters } from '../openapi';
 
 export function assetsEndpoints(
-    core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router, assetView: string = 'atomicassets_assets_master'
+    core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router,
+    assetView: string = 'atomicassets_assets_master', assetSchema: string = 'Asset'
 ): any {
     router.get('/v1/assets', server.web.caching(), (async (req, res) => {
         try {
@@ -19,73 +21,23 @@ export function assetsEndpoints(
                 sort: {type: 'string', values: ['asset_id', 'updated', 'minted'], default: 'asset_id'},
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
-                owner: {type: 'string', min: 1, max: 12},
-                template_id: {type: 'int', min: 0},
-                collection_name: {type: 'string', min: 1, max: 12},
-                schema_name: {type: 'string', min: 1, max: 12},
-
-                authorized_account: {type: 'string', min: 1, max: 12},
-                match: {type: 'string', min: 1}
+                authorized_account: {type: 'string', min: 1, max: 12}
             });
 
             let varCounter = 1;
             let queryString = 'SELECT * FROM ' + assetView + ' asset WHERE contract = $1 ';
             let queryValues: any[] = [core.args.atomicassets_account];
 
-            if (args.collection_name && args.schema_name) {
-                const data = buildDataConditions(req.query, varCounter);
-
-                if (data.conditions.length > 0) {
-                    queryString += 'AND (' +
-                        'EXISTS (' +
-                            'SELECT "key" ' +
-                            'FROM atomicassets_assets_data data ' +
-                            'WHERE data.contract = asset.contract AND data.asset_id = asset.asset_id AND ' +
-                            '(' + data.conditions.join(' OR ') + ')' +
-                        ') ';
-
-                    queryString += 'OR ' +
-                        'EXISTS (' +
-                            'SELECT "key" ' +
-                            'FROM atomicassets_templates_data data ' +
-                            'WHERE data.contract = asset.contract AND data.template_id = asset.template_id AND ' +
-                            '(' + data.conditions.join(' OR ') + ')' +
-                        ')) ';
-
-                    queryValues = queryValues.concat(data.values);
-                    varCounter += data.values.length;
-                }
-            }
-
-            if (args.owner) {
-                queryString += 'AND owner = $' + ++varCounter + ' ';
-                queryValues.push(args.owner);
-            }
-
-            if (args.template_id) {
-                queryString += 'AND template_id = $' + ++varCounter + ' ';
-                queryValues.push(args.template_id);
-            }
-
-            if (args.collection_name) {
-                queryString += 'AND collection_name = $' + ++varCounter + ' ';
-                queryValues.push(args.collection_name);
-            }
-
-            if (args.schema_name) {
-                queryString += 'AND schema_name = $' + ++varCounter + ' ';
-                queryValues.push(args.schema_name);
-            }
-
-            if (args.match) {
-                queryString += 'AND name LIKE $' + ++varCounter + ' ';
-                queryValues.push('%' + args.match + '%');
-            }
-
             if (args.authorized_account) {
                 queryString += 'AND $' + ++varCounter + ' = ANY(authorized_accounts) ';
                 queryValues.push(args.authorized_account);
             }
+
+            const filter = buildAssetFilter(req, varCounter);
+
+            queryValues = queryValues.concat(filter.values);
+            varCounter += filter.values.length;
+            queryString += filter.str;
 
             const sortColumnMapping = {
                 asset_id: 'asset_id',
@@ -112,7 +64,7 @@ export function assetsEndpoints(
         }
     }));
 
-    router.get('/v1/assets/:asset_id', server.web.caching(), (async (req, res) => {
+    router.get('/v1/assets/:asset_id', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_assets_master WHERE contract = $1 AND asset_id = $2',
@@ -137,7 +89,8 @@ export function assetsEndpoints(
     router.get('/v1/assets/:asset_id/logs', server.web.caching(), (async (req, res) => {
         const args = filterQueryArgs(req, {
             page: {type: 'int', min: 1, default: 1},
-            limit: {type: 'int', min: 1, max: 100, default: 100}
+            limit: {type: 'int', min: 1, max: 100, default: 100},
+            order: {type: 'string', values: ['asc', 'desc'], default: 'asc'}
         });
 
         try {
@@ -145,7 +98,7 @@ export function assetsEndpoints(
                 success: true,
                 data: await getLogs(
                     core.connection.database, core.args.atomicassets_account, 'asset', req.params.asset_id,
-                    (args.page - 1) * args.limit, args.limit
+                    (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });
         } catch (e) {
@@ -166,167 +119,67 @@ export function assetsEndpoints(
                 get: {
                     tags: ['assets'],
                     summary: 'Fetch assets',
-                    produces: ['application/json'],
                     parameters: [
-                        {
-                            name: 'owner',
-                            in: 'query',
-                            description: 'Get assets owned by the account',
-                            required: false,
-                            type: 'string'
-                        },
-                        {
-                            name: 'collection_name',
-                            in: 'query',
-                            description: 'Get all assets within the collection',
-                            required: false,
-                            type: 'string'
-                        },
-                        {
-                            name: 'schema_name',
-                            in: 'query',
-                            description: 'Get all assets which use that schema',
-                            required: false,
-                            type: 'string'
-                        },
-                        {
-                            name: 'template_id',
-                            in: 'query',
-                            description: 'Get all assets implement the template',
-                            required: false,
-                            type: 'integer'
-                        },
-                        {
-                            name: 'match',
-                            in: 'query',
-                            description: 'Search for input in asset name',
-                            required: false,
-                            type: 'string'
-                        },
+                        ...assetFilterParameters,
                         {
                             name: 'authorized_account',
                             in: 'query',
                             description: 'Filter for assets the provided account can edit',
                             required: false,
-                            type: 'string'
+                            schema: {
+                                type: 'string'
+                            }
                         },
-                        ...standardArrayFilter,
+                        ...paginationParameters,
                         {
                             name: 'sort',
                             in: 'query',
                             description: 'Column to sort',
                             required: false,
-                            type: 'string',
-                            enum: ['asset_id', 'minted', 'updated'],
-                            default: 'asset_id'
+                            schema: {
+                                type: 'string',
+                                enum: ['asset_id', 'minted', 'updated'],
+                                default: 'asset_id'
+                            }
                         }
                     ],
-                    responses: {
-                        '200': {
-                            description: 'OK',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: true},
-                                    data: {type: 'array', items: {'$ref': '#/definitions/Asset'}},
-                                    query_time: {type: 'number'}
-                                }
-                            }
-                        },
-                        '500': {
-                            description: 'Internal Server Error',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: false},
-                                    message: {type: 'string'}
-                                }
-                            }
-                        }
-                    }
+                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/' + assetSchema}})
                 }
             },
             '/v1/assets/{asset_id}': {
                 get: {
                     tags: ['assets'],
                     summary: 'Fetch asset by id',
-                    produces: ['application/json'],
                     parameters: [
                         {
                             name: 'asset_id',
                             in: 'path',
                             description: 'ID of asset',
                             required: true,
-                            type: 'string'
+                            schema: {type: 'string'}
                         }
                     ],
-                    responses: {
-                        '200': {
-                            description: 'OK',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: true},
-                                    data: {'$ref': '#/definitions/Asset'},
-                                    query_time: {type: 'number'}
-                                }
-                            }
-                        },
-                        '500': {
-                            description: 'Internal Server Error',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: false},
-                                    message: {type: 'string'}
-                                }
-                            }
-                        }
-                    }
+                    responses: getOpenAPI3Responses([200, 500], {'$ref': '#/components/schemas/' + assetSchema})
                 }
             },
             '/v1/assets/{asset_id}/logs': {
                 get: {
                     tags: ['assets'],
                     summary: 'Fetch asset logs',
-                    produces: ['application/json'],
                     parameters: [
                         {
                             name: 'asset_id',
                             in: 'path',
                             description: 'ID of asset',
                             required: true,
-                            type: 'integer'
+                            schema: {type: 'integer'}
                         },
-                        ...paginationFilter
+                        ...paginationParameters
                     ],
-                    responses: {
-                        '200': {
-                            description: 'OK',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: true},
-                                    data: {'$ref': '#/definitions/Log'},
-                                    query_time: {type: 'number'}
-                                }
-                            }
-                        },
-                        '500': {
-                            description: 'Internal Server Error',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: false},
-                                    message: {type: 'string'}
-                                }
-                            }
-                        }
-                    }
+                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Log'}})
                 }
             }
-        },
-        definitions: {}
+        }
     };
 }
 

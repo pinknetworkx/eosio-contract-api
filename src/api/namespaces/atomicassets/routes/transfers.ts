@@ -5,8 +5,8 @@ import { HTTPServer } from '../../../server';
 import { filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { formatTransfer } from '../format';
-import { standardArrayFilter } from '../swagger';
 import { fillTransfers } from '../filler';
+import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 
 export function transfersEndpoints(
     core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router, assetView: string = 'atomicassets_assets_master'
@@ -21,7 +21,8 @@ export function transfersEndpoints(
 
                 account: {type: 'string', min: 1},
                 sender: {type: 'string', min: 1},
-                recipient: {type: 'string', min: 1}
+                recipient: {type: 'string', min: 1},
+                asset_id: {type: 'string', min: 1}
             });
 
             let varCounter = 1;
@@ -42,6 +43,14 @@ export function transfersEndpoints(
             if (args.recipient) {
                 queryString += 'AND recipient_name = ANY $' + ++varCounter + ' ';
                 queryValues.push(args.recipient.split(','));
+            }
+
+            if (args.asset_id) {
+                queryString += 'AND transfer_id IN(' +
+                    'SELECT DISTINCT ON (contract, transfer_id) transfer_id FROM atomicassets_transfers_assets ' +
+                    'WHERE contract = $1 AND asset_id = ANY $' + ++varCounter + '' +
+                ') ';
+                queryValues.push(args.asset_id.split(','));
             }
 
             const sortColumnMapping = {
@@ -81,67 +90,52 @@ export function transfersEndpoints(
                 get: {
                     tags: ['transfers'],
                     summary: 'Fetch transfers',
-                    produces: ['application/json'],
                     parameters: [
                         {
                             name: 'account',
                             in: 'query',
                             description: 'Notified account (can be sender or recipient) - separate multiple with ","',
                             required: false,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
                         {
                             name: 'sender',
                             in: 'query',
                             description: 'Transfer sender - separate multiple with ","',
                             required: false,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
                         {
                             name: 'recipient',
                             in: 'query',
                             description: 'Transfer recipient - separate multiple with ","',
                             required: false,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
-                        ...standardArrayFilter,
+                        {
+                            name: 'asset_id',
+                            in: 'query',
+                            description: 'Asset which is in the transfer - separate multiple with ","',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        ...paginationParameters,
                         {
                             name: 'sort',
                             in: 'query',
                             description: 'Column to sort',
                             required: false,
-                            type: 'string',
-                            enum: ['created'],
-                            default: 'created'
+                            schema: {
+                                type: 'string',
+                                enum: ['created'],
+                                default: 'created'
+                            }
                         }
                     ],
-                    responses: {
-                        '200': {
-                            description: 'OK',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: true},
-                                    data: {type: 'array', items: {'$ref': '#/definitions/Transfer'}},
-                                    query_time: {type: 'number'}
-                                }
-                            }
-                        },
-                        '500': {
-                            description: 'Internal Server Error',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: false},
-                                    message: {type: 'string'}
-                                }
-                            }
-                        }
-                    }
+                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Transfer'}})
                 }
             }
-        },
-        definitions: {}
+        }
     };
 }
 

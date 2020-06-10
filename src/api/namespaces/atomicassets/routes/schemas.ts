@@ -6,7 +6,7 @@ import { filterQueryArgs } from '../../utils';
 import { getLogs } from '../utils';
 import logger from '../../../../utils/winston';
 import { formatSchema } from '../format';
-import { paginationFilter, standardArrayFilter } from '../swagger';
+import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 
 export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     async function schemaRequestHandler(req: express.Request, res: express.Response): Promise<any> {
@@ -73,7 +73,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
     router.get('/v1/schemas', server.web.caching(), schemaRequestHandler);
     router.get('/v1/schemas/:collection_name', server.web.caching(), schemaRequestHandler);
 
-    router.get('/v1/schemas/:collection_name/:schema_name', server.web.caching(), (async (req, res) => {
+    router.get('/v1/schemas/:collection_name/:schema_name', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_schemas_master WHERE contract = $1 AND collection_name = $2 AND schema_name = $3',
@@ -97,7 +97,8 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
     router.get('/v1/schemas/:collection_name/:schema_name/logs', server.web.caching(), (async (req, res) => {
         const args = filterQueryArgs(req, {
             page: {type: 'int', min: 1, default: 1},
-            limit: {type: 'int', min: 1, max: 100, default: 100}
+            limit: {type: 'int', min: 1, max: 100, default: 100},
+            order: {type: 'string', values: ['asc', 'desc'], default: 'asc'}
         });
 
         try {
@@ -106,7 +107,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                 data: await getLogs(
                     core.connection.database, core.args.atomicassets_account, 'schema',
                     req.params.collection_name + ':' + req.params.schema_name,
-                    (args.page - 1) * args.limit, args.limit
+                    (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });
         } catch (e) {
@@ -127,159 +128,91 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                 get: {
                     tags: ['schemas'],
                     summary: 'Fetch schemas',
-                    produces: ['application/json'],
                     parameters: [
                         {
                             name: 'collection_name',
                             in: 'query',
                             description: 'Get all schemas within the collection',
                             required: false,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
                         {
                             name: 'authorized_account',
                             in: 'query',
                             description: 'Filter for schemas the provided account can edit',
                             required: false,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
                         {
                             name: 'match',
                             in: 'query',
                             description: 'Search for input in schema name',
                             required: false,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
-                        ...standardArrayFilter,
+                        ...paginationParameters,
                         {
                             name: 'sort',
                             in: 'query',
                             description: 'Column to sort',
                             required: false,
-                            type: 'string',
-                            enum: ['created'],
-                            default: 'created'
+                            schema: {
+                                type: 'string',
+                                enum: ['created'],
+                                default: 'created'
+                            }
                         }
                     ],
-                    responses: {
-                        '200': {
-                            description: 'OK',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: true},
-                                    data: {type: 'array', items: {'$ref': '#/definitions/Schema'}},
-                                    query_time: {type: 'number'}
-                                }
-                            }
-                        },
-                        '500': {
-                            description: 'Internal Server Error',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: false},
-                                    message: {type: 'string'}
-                                }
-                            }
-                        }
-                    }
+                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Schema'}})
                 }
             },
             '/v1/schemas/{collection_name}/{schema_name}': {
                 get: {
                     tags: ['schemas'],
                     summary: 'Find schema by schema_name',
-                    produces: ['application/json'],
                     parameters: [
                         {
                             name: 'collection_name',
                             in: 'path',
                             description: 'Collection name of schema',
                             required: true,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
                         {
                             name: 'schema_name',
                             in: 'path',
                             description: 'Name of schema',
                             required: true,
-                            type: 'string'
+                            schema: {type: 'string'}
                         }
                     ],
-                    responses: {
-                        '200': {
-                            description: 'OK',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: true},
-                                    data: {'$ref': '#/definitions/Schema'},
-                                    query_time: {type: 'number'}
-                                }
-                            }
-                        },
-                        '500': {
-                            description: 'Internal Server Error',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: false},
-                                    message: {type: 'string'}
-                                }
-                            }
-                        }
-                    }
+                    responses: getOpenAPI3Responses([200, 500], {'$ref': '#/components/schemas/Schema'})
                 }
             },
             '/v1/schemas/{collection_name}/{schema_name}/logs': {
                 get: {
                     tags: ['schemas'],
                     summary: 'Fetch schema logs',
-                    produces: ['application/json'],
                     parameters: [
                         {
                             name: 'collection_name',
                             in: 'path',
                             description: 'Collection name of schema',
                             required: true,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
                         {
                             name: 'schema_name',
                             in: 'path',
                             description: 'Name of schema',
                             required: true,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
-                        ...paginationFilter
+                        ...paginationParameters
                     ],
-                    responses: {
-                        '200': {
-                            description: 'OK',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: true},
-                                    data: {'$ref': '#/definitions/Log'},
-                                    query_time: {type: 'number'}
-                                }
-                            }
-                        },
-                        '500': {
-                            description: 'Internal Server Error',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: false},
-                                    message: {type: 'string'}
-                                }
-                            }
-                        }
-                    }
+                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Log'}})
                 }
             }
-        },
-        definitions: {}
+        }
     };
 }

@@ -34,7 +34,7 @@ export function notificationsEndpoints(core: AtomicHubNamespace, server: HTTPSer
         }
     });
 
-    router.get('/v1/notifications/:account', server.web.caching(), async (req, res) => {
+    router.get('/v1/notifications/:account', server.web.caching({ignoreQueryString: true}), async (req, res) => {
         try {
             res.json({success: true, data: await getNotifications(server, req.params.account, 100), query_time: Date.now()});
         } catch (e) {

@@ -6,7 +6,7 @@ import { filterQueryArgs } from '../../utils';
 import { getLogs } from '../utils';
 import logger from '../../../../utils/winston';
 import { formatCollection } from '../format';
-import { paginationFilter, standardArrayFilter } from '../swagger';
+import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 
 export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/collections', server.web.caching(), (async (req, res) => {
@@ -72,7 +72,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
         }
     }));
 
-    router.get('/v1/collections/:collection_name', server.web.caching(), (async (req, res) => {
+    router.get('/v1/collections/:collection_name', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_collections_master WHERE contract = $1 AND collection_name = $2',
@@ -97,7 +97,8 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
     router.get('/v1/collections/:collection_name/logs', server.web.caching(), (async (req, res) => {
         const args = filterQueryArgs(req, {
             page: {type: 'int', min: 1, default: 1},
-            limit: {type: 'int', min: 1, max: 100, default: 100}
+            limit: {type: 'int', min: 1, max: 100, default: 100},
+            order: {type: 'string', values: ['asc', 'desc'], default: 'asc'}
         });
 
         try {
@@ -105,7 +106,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
                 success: true,
                 data: await getLogs(
                     core.connection.database, core.args.atomicassets_account, 'collection', req.params.collection_name,
-                    (args.page - 1) * args.limit, args.limit
+                    (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });
         } catch (e) {
@@ -126,149 +127,82 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
                 get: {
                     tags: ['collections'],
                     summary: 'Fetch collections',
-                    produces: ['application/json'],
                     parameters: [
                         {
                             name: 'author',
                             in: 'query',
                             description: 'Get collections by author',
                             required: false,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
                         {
                             name: 'match',
                             in: 'query',
                             description: 'Search for input in collection name',
                             required: false,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
                         {
                             name: 'authorized_account',
                             in: 'query',
                             description: 'Filter for collections which the provided account can use to create assets',
                             required: false,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
                         {
                             name: 'notify_account',
                             in: 'query',
                             description: 'Filter for collections where the provided account is notified',
                             required: false,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
-                        ...standardArrayFilter,
+                        ...paginationParameters,
                         {
                             name: 'sort',
                             in: 'query',
                             description: 'Column to sort',
                             required: false,
-                            type: 'string',
-                            enum: ['created'],
-                            default: 'created'
+                            schema: {
+                                type: 'string',
+                                enum: ['created'],
+                                default: 'created'
+                            }
                         }
                     ],
-                    responses: {
-                        '200': {
-                            description: 'OK',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: true},
-                                    data: {type: 'array', items: {'$ref': '#/definitions/Collection'}},
-                                    query_time: {type: 'number'}
-                                }
-                            }
-                        },
-                        '500': {
-                            description: 'Internal Server Error',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: false},
-                                    message: {type: 'string'}
-                                }
-                            }
-                        }
-                    }
+                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Collection'}})
                 }
             },
             '/v1/collections/{collection_name}': {
                 get: {
                     tags: ['collections'],
                     summary: 'Find collection by its name',
-                    produces: ['application/json'],
                     parameters: [
                         {
                             name: 'collection_name',
                             in: 'path',
                             description: 'Name of collection',
                             required: true,
-                            type: 'string'
+                            schema: {type: 'string'}
                         }
                     ],
-                    responses: {
-                        '200': {
-                            description: 'OK',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: true},
-                                    data: {'$ref': '#/definitions/Collection'},
-                                    query_time: {type: 'number'}
-                                }
-                            }
-                        },
-                        '500': {
-                            description: 'Internal Server Error',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: false},
-                                    message: {type: 'string'}
-                                }
-                            }
-                        }
-                    }
+                    responses: getOpenAPI3Responses([200, 500], {'$ref': '#/components/schemas/Collection'})
                 }
             },
             '/v1/collections/{collection_name}/logs': {
                 get: {
                     tags: ['collections'],
                     summary: 'Fetch collection logs',
-                    produces: ['application/json'],
                     parameters: [
                         {
                             name: 'collection_name',
                             in: 'path',
                             description: 'Name of collection',
                             required: true,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
-                        ...paginationFilter
+                        ...paginationParameters
                     ],
-                    responses: {
-                        '200': {
-                            description: 'OK',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: true},
-                                    data: {'$ref': '#/definitions/Log'},
-                                    query_time: {type: 'number'}
-                                }
-                            }
-                        },
-                        '500': {
-                            description: 'Internal Server Error',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: false},
-                                    message: {type: 'string'}
-                                }
-                            }
-                        }
-                    }
+                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Log'}})
                 }
             }
         },

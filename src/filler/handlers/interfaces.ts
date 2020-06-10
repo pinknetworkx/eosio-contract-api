@@ -20,7 +20,7 @@ export abstract class ContractHandler {
         readonly minBlock: number = 0
     ) { }
 
-    abstract async init(): Promise<void>;
+    abstract async init(transaction: PoolClient): Promise<void>;
     abstract async deleteDB(transaction: PoolClient): Promise<void>;
 
     abstract async onAction(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void>;

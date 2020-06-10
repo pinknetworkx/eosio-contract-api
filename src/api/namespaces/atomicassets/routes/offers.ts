@@ -5,8 +5,8 @@ import { HTTPServer } from '../../../server';
 import logger from '../../../../utils/winston';
 import { filterQueryArgs } from '../../utils';
 import { formatOffer } from '../format';
-import { standardArrayFilter } from '../swagger';
 import { fillOffers } from '../filler';
+import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 
 export function offersEndpoints(
     core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router, assetView: string = 'atomicassets_assets_master'
@@ -22,7 +22,8 @@ export function offersEndpoints(
                 account: {type: 'string', min: 1},
                 sender: {type: 'string', min: 1},
                 recipient: {type: 'string', min: 1},
-                state: {type: 'string', min: 1}
+                state: {type: 'string', min: 1},
+                offer_id: {type: 'string', min: 1}
             });
 
             let varCounter = 1;
@@ -48,6 +49,14 @@ export function offersEndpoints(
             if (args.state) {
                 queryString += 'AND state = ANY ($' + ++varCounter + ') ';
                 queryValues.push(args.state.split(','));
+            }
+
+            if (args.asset_id) {
+                queryString += 'AND offer_id IN(' +
+                    'SELECT DISTINCT ON (contract, offer_id) offer_id FROM atomicassets_offers_assets ' +
+                    'WHERE contract = $1 AND asset_id = ANY $' + ++varCounter +
+                ') ';
+                queryValues.push(args.asset_id.split(','));
             }
 
             const sortColumnMapping = {
@@ -77,7 +86,7 @@ export function offersEndpoints(
         }
     }));
 
-    router.get('/v1/offers/:offer_id', server.web.caching(), (async (req, res) => {
+    router.get('/v1/offers/:offer_id', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_offers_master WHERE contract = $1 AND offer_id = $2',
@@ -114,113 +123,75 @@ export function offersEndpoints(
                 get: {
                     tags: ['offers'],
                     summary: 'Fetch offers',
-                    produces: ['application/json'],
                     parameters: [
                         {
                             name: 'account',
                             in: 'query',
                             description: 'Notified account (can be sender or recipient) - separate multiple with ","',
                             required: false,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
                         {
                             name: 'sender',
                             in: 'query',
                             description: 'Offer sender - separate multiple with ","',
                             required: false,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
                         {
                             name: 'recipient',
                             in: 'query',
                             description: 'Offer recipient - separate multiple with ","',
                             required: false,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
                         {
                             name: 'state',
                             in: 'query',
                             description: 'Offer State (0: Pending; 1: Invalid; 2: Unknown [not valid anymore]; 3: Accepted; 4: Declined; 5: Canceled) - separate multiple with ","',
                             required: false,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
-                        ...standardArrayFilter,
+                        {
+                            name: 'asset_id',
+                            in: 'query',
+                            description: 'Asset which is in the offer - separate multiple with ","',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        ...paginationParameters,
                         {
                             name: 'sort',
                             in: 'query',
                             description: 'Column to sort',
                             required: false,
-                            type: 'string',
-                            enum: ['created'],
-                            default: 'created'
+                            schema: {
+                                type: 'string',
+                                enum: ['created'],
+                                default: 'created'
+                            }
                         }
                     ],
-                    responses: {
-                        '200': {
-                            description: 'OK',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: true},
-                                    data: {type: 'array', items: {'$ref': '#/definitions/Offer'}},
-                                    query_time: {type: 'number'}
-                                }
-                            }
-                        },
-                        '500': {
-                            description: 'Internal Server Error',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: false},
-                                    message: {type: 'string'}
-                                }
-                            }
-                        }
-                    }
+                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Offer'}})
                 }
             },
             '/v1/offers/{offer_id}': {
                 get: {
                     tags: ['offers'],
                     summary: 'Find offer by id',
-                    produces: ['application/json'],
                     parameters: [
                         {
                             name: 'offer_id',
                             in: 'path',
                             description: 'ID of offer',
                             required: true,
-                            type: 'integer'
+                            schema: {type: 'integer'}
                         }
                     ],
-                    responses: {
-                        '200': {
-                            description: 'OK',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: true},
-                                    data: {'$ref': '#/definitions/Offer'},
-                                    query_time: {type: 'number'}
-                                }
-                            }
-                        },
-                        '500': {
-                            description: 'Internal Server Error',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: false},
-                                    message: {type: 'string'}
-                                }
-                            }
-                        }
-                    }
+                    responses: getOpenAPI3Responses([200, 500], {'$ref': '#/components/schemas/Offer'})
                 }
             }
-        },
-        definitions: {}
+        }
     };
 }
 

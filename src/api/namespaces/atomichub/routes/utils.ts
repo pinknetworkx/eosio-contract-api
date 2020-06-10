@@ -6,7 +6,7 @@ import { HTTPServer } from '../../../server';
 import logger from '../../../../utils/winston';
 
 export function utilsEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/avatar/:account', server.web.caching({expire: 60}), async (req, res) => {
+    router.get('/v1/avatar/:account', server.web.caching({expire: 60, ignoreQueryString: true}), async (req, res) => {
         if (core.args.avatar.enable) {
             try {
                 const resp = await core.connection.chain.rpc.get_table_rows({

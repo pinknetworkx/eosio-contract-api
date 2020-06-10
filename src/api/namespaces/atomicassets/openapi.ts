@@ -1,37 +1,6 @@
-export const paginationFilter = [
-    {
-        name: 'page',
-        in: 'query',
-        description: 'Result Page',
-        required: false,
-        type: 'integer',
-        default: 1
-    },
-    {
-        name: 'limit',
-        in: 'query',
-        description: 'Results per Page',
-        required: false,
-        type: 'integer',
-        default: 100
-    }
-];
-
-export const standardArrayFilter = [
-    ...paginationFilter,
-    {
-        name: 'order',
-        in: 'query',
-        description: 'Order direction',
-        required: false,
-        type: 'string',
-        enum: ['asc', 'desc'],
-        default: 'desc'
-    }
-];
-
-export const definitions = {
+export const atomicassetsComponents = {
     'Asset': {
+        type: 'object',
         properties: {
             contract: {type: 'string'},
             asset_id: {type: 'integer'},
@@ -112,6 +81,7 @@ export const definitions = {
         }
     },
     'Collection': {
+        type: 'object',
         properties: {
             contract: {type: 'string'},
             collection_name: {type: 'string'},
@@ -129,6 +99,7 @@ export const definitions = {
         }
     },
     'Schema': {
+        type: 'object',
         properties: {
             contract: {type: 'string'},
             schema_name: {type: 'string'},
@@ -162,6 +133,7 @@ export const definitions = {
         }
     },
     'Template': {
+        type: 'object',
         properties: {
             contract: {type: 'string'},
             template_id: {type: 'integer'},
@@ -211,6 +183,7 @@ export const definitions = {
         }
     },
     'Offer': {
+        type: 'object',
         properties: {
             contract: {type: 'string'},
             offer_id: {type: 'string'},
@@ -221,8 +194,8 @@ export const definitions = {
 
             is_sender_contract: {type: 'boolean'},
             is_recipient_contract: {type: 'boolean'},
-            sender_assets: {type: 'array', items: {'$ref': '#/definitions/Asset'}},
-            recipient_assets: {type: 'array', items: {'$ref': '#/definitions/Asset'}},
+            sender_assets: {type: 'array', items: {'$ref': '#/components/schema/Asset'}},
+            recipient_assets: {type: 'array', items: {'$ref': '#/components/schema/Asset'}},
 
             updated_at_block: {type: 'integer'},
             updated_at_time: {type: 'integer'},
@@ -231,19 +204,21 @@ export const definitions = {
         }
     },
     'Transfer': {
+        type: 'object',
         properties: {
             contract: {type: 'string'},
             sender_name: {type: 'string'},
             recipient_name: {type: 'string'},
             memo: {type: 'string'},
 
-            assets: {type: 'array', items: {'$ref': '#/definitions/Asset'}},
+            assets: {type: 'array', items: {'$ref': '#/components/schema/Asset'}},
 
             created_at_block: {type: 'integer'},
             created_at_time: {type: 'integer'}
         }
     },
     'Log': {
+        type: 'object',
         properties: {
             log_id: {type: 'integer'},
             name: {type: 'string'},
@@ -254,3 +229,41 @@ export const definitions = {
         }
     }
 };
+
+export const assetFilterParameters = [
+    {
+        name: 'owner',
+        in: 'query',
+        description: 'Get assets owned by the account',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'collection_name',
+        in: 'query',
+        description: 'Get all assets within the collection',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'schema_name',
+        in: 'query',
+        description: 'Get all assets which use that schema',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'template_id',
+        in: 'query',
+        description: 'Get all assets implement the template',
+        required: false,
+        schema: {type: 'integer'}
+    },
+    {
+        name: 'match',
+        in: 'query',
+        description: 'Search for input in asset name',
+        required: false,
+        schema: {type: 'string'}
+    }
+];

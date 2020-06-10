@@ -54,13 +54,16 @@ export default class AtomicHubHandler extends ContractHandler {
         this.atomicmarketHandler = new AtomicMarketActionHandler(this);
     }
 
-    async init(): Promise<void> {
-        try {
-            await this.connection.database.query('SELECT * FROM atomichub_watchlist LIMIT 1');
-        } catch (e) {
+    async init(client: PoolClient): Promise<void> {
+        const existsQuery = await client.query(
+            'SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2)',
+            [await this.connection.database.schema(), 'atomichub_notifications']
+        );
+
+        if (!existsQuery.rows[0].exists) {
             logger.info('Could not find AtomicHub tables. Create them now...');
 
-            await this.connection.database.query(fs.readFileSync('./definitions/tables/atomichub_tables.sql', {
+            await client.query(fs.readFileSync('./definitions/tables/atomichub_tables.sql', {
                 encoding: 'utf8'
             }));
 

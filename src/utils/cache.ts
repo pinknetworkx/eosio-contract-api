@@ -3,7 +3,12 @@ import * as NodeRedis from 'redis';
 
 import logger from './winston';
 
-export type ExpressRedisCacheOptions = { expire?: number };
+export type ExpressRedisCacheOptions = {
+    expire?: number,
+    ignoreQueryString?: boolean,
+    urlHandler?: express.RequestHandler
+};
+
 export type ExpressRedisCacheHandler = (options?: ExpressRedisCacheOptions) => express.RequestHandler;
 
 export function expressRedisCache(
@@ -21,7 +26,14 @@ export function expressRedisCache(
                 return next();
             }
 
-            const key = prefix + ':' + req.originalUrl;
+            let key: string;
+            if (options.urlHandler) {
+                key = prefix + ':' + String(options.urlHandler(req, res, next));
+            } else if (options.ignoreQueryString) {
+                key = prefix + ':' + req.baseUrl + req.url;
+            } else {
+                key = prefix + ':' + req.originalUrl;
+            }
 
             redis.get(key, (_, reply) => {
                 if (reply === null) {

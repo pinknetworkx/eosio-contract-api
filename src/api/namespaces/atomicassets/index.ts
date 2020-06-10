@@ -12,7 +12,7 @@ import { schemasEndpoints } from './routes/schemas';
 import { templatesEndpoints } from './routes/templates';
 import { transfersEndpoints, transfersSockets } from './routes/transfers';
 import logger from '../../../utils/winston';
-import { definitions } from './swagger';
+import { atomicassetsComponents } from './openapi';
 import { getOpenApiDescription } from '../../docs';
 
 export type AtomicAssetsNamespaceArgs = {
@@ -34,20 +34,21 @@ export class AtomicAssetsNamespace extends ApiNamespace {
         const router = express.Router();
 
         const documentation: any = {
-            swagger: '2.0',
+            openapi: '3.0.0',
             info: {
                 description: getOpenApiDescription(server),
                 version: '1.0.0',
                 title: 'AtomicAssets API'
             },
-            host: server.config.server_name,
-            basePath: this.path,
-            schemes: ['https', 'http'],
-            consumes: ['application/json'],
-            produces: ['application/json'],
+            servers: [
+                {url: 'https://' + server.config.server_name + this.path},
+                {url: 'http://' + server.config.server_name + this.path}
+            ],
             tags: [],
             paths: {},
-            definitions: definitions
+            components: {
+                schemas: atomicassetsComponents
+            }
         };
 
         server.web.express.use(this.path + '/v1', server.web.limiter);
@@ -69,7 +70,6 @@ export class AtomicAssetsNamespace extends ApiNamespace {
             }
 
             Object.assign(documentation.paths, doc.paths);
-            Object.assign(documentation.definitions, doc.definitions);
         }
 
         logger.debug('atomicassets swagger docs', documentation);

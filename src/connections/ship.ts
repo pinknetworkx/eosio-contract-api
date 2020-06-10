@@ -240,8 +240,8 @@ export default class StateHistoryBlockReader {
             } else if (this.currentArgs.start_block_num % 10000 === 0) {
                 logger.warn(
                     'Empty block #' + this.currentArgs.start_block_num + ' received. ' +
-                    'Node was likely started with a snapshot and you tried to process a blocks range ' +
-                    'older than the snapshot. Catching up until init block.'
+                    'Node was likely started with a snapshot and you tried to process a block range ' +
+                    'before the snapshot. Catching up until init block.'
                 );
             }
 

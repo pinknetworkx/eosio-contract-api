@@ -11,7 +11,7 @@ import { notificationsEndpoints, notificationsSockets } from './routes/notificat
 import { watchlistEndpoints } from './routes/watchlist';
 import { statsEndpoints } from './routes/stats';
 import { utilsEndpoints } from './routes/utils';
-import { schemas } from './openapi';
+import { atomicmarketComponents } from '../atomicmarket/openapi';
 
 export type AtomicHubNamespaceArgs = {
     atomicassets_account: string,
@@ -100,12 +100,17 @@ export class AtomicHubNamespace extends ApiNamespace {
             paths: {},
             components: {
                 securitySchemes: {
-                    bearerAuth: {
+                    adminAuth: {
                         type: 'http',
                         scheme: 'bearer'
                     }
                 },
-                schemas: schemas
+                schemas: {
+                    Sale: atomicmarketComponents.Sale,
+                    Auction: atomicmarketComponents.Auction,
+                    Asset: atomicmarketComponents.Asset,
+                    ListingAsset: atomicmarketComponents.ListingAsset
+                }
             }
         };
 

@@ -9,13 +9,15 @@ import { assetsEndpoints } from '../atomicassets/routes/assets';
 import { offersEndpoints } from '../atomicassets/routes/offers';
 import { transfersEndpoints } from '../atomicassets/routes/transfers';
 import logger from '../../../utils/winston';
-import { schemas } from '../atomichub/openapi';
 import { auctionsEndpoints } from './routes/auctions';
 import { salesEndpoints } from './routes/sales';
+import { atomicmarketComponents } from './openapi';
 
 export type AtomicMarketNamespaceArgs = {
-    atomicassets_account: string
-    atomicmarket_account: string
+    atomicassets_account: string,
+    atomicmarket_account: string,
+
+    admin_token: string
 };
 
 export class AtomicMarketNamespace extends ApiNamespace {
@@ -25,11 +27,15 @@ export class AtomicMarketNamespace extends ApiNamespace {
 
     async init(): Promise<void> {
         if (typeof this.args.atomicmarket_account !== 'string') {
-            throw new Error('Argument missing in atomicassets api namespace: atomicmarket_account');
+            throw new Error('Argument missing in atomicmarket api namespace: atomicmarket_account');
         }
 
         if (typeof this.args.atomicassets_account !== 'string') {
-            throw new Error('Argument missing in atomicassets api namespace: atomicassets_account');
+            throw new Error('Argument missing in atomicmarket api namespace: atomicassets_account');
+        }
+
+        if (typeof this.args.admin_token !== 'string') {
+            throw new Error('Argument missing in atomicmarket api namespace: admin_token');
         }
     }
 
@@ -56,7 +62,7 @@ export class AtomicMarketNamespace extends ApiNamespace {
                         scheme: 'bearer'
                     }
                 },
-                schemas: schemas
+                schemas: atomicmarketComponents
             }
         };
 
@@ -64,7 +70,7 @@ export class AtomicMarketNamespace extends ApiNamespace {
 
         const docs = [];
 
-        docs.push(assetsEndpoints(this, server, router, 'atomicmarket_assets_master'));
+        docs.push(assetsEndpoints(this, server, router, 'atomicmarket_assets_master', 'ListingAsset'));
         docs.push(offersEndpoints(this, server, router, 'atomicmarket_assets_master'));
         docs.push(transfersEndpoints(this, server, router, 'atomicmarket_assets_master'));
 

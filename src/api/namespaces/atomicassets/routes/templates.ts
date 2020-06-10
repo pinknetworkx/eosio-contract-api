@@ -6,7 +6,7 @@ import { buildDataConditions, getLogs } from '../utils';
 import { filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { formatTemplate } from '../format';
-import { paginationFilter, standardArrayFilter } from '../swagger';
+import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 
 export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     async function templateRequestHandler(req: express.Request, res: express.Response): Promise<any> {
@@ -87,7 +87,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
     router.get('/v1/templates', server.web.caching(), templateRequestHandler);
     router.get('/v1/templates/:collection_name', server.web.caching(), templateRequestHandler);
 
-    router.get('/v1/templates/:collection_name/:template_id', server.web.caching(), (async (req, res) => {
+    router.get('/v1/templates/:collection_name/:template_id', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND collection_name = $2 AND template_id = $3',
@@ -111,7 +111,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
     router.get('/v1/templates/:collection_name/:template_id/logs', server.web.caching(), (async (req, res) => {
         const args = filterQueryArgs(req, {
             page: {type: 'int', min: 1, default: 1},
-            limit: {type: 'int', min: 1, max: 100, default: 100}
+            limit: {type: 'int', min: 1, max: 100, default: 100},
+            order: {type: 'string', values: ['asc', 'desc'], default: 'asc'}
         });
 
         try {
@@ -120,7 +121,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                 data: await getLogs(
                     core.connection.database, core.args.atomicassets_account, 'template',
                     req.params.collection_name + ':' + req.params.template_id,
-                    (args.page - 1) * args.limit, args.limit
+                    (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });
         } catch (e) {
@@ -141,159 +142,91 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                 get: {
                     tags: ['templates'],
                     summary: 'Fetch templates',
-                    produces: ['application/json'],
                     parameters: [
                         {
                             name: 'collection_name',
                             in: 'query',
                             description: 'Get all templates within the collection',
                             required: false,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
                         {
                             name: 'schema_name',
                             in: 'query',
                             description: 'Get all templates which implement that schema',
                             required: false,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
                         {
                             name: 'authorized_account',
                             in: 'query',
                             description: 'Filter for templates the provided account can use',
                             required: false,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
-                        ...standardArrayFilter,
+                        ...paginationParameters,
                         {
                             name: 'sort',
                             in: 'query',
                             description: 'Column to sort',
                             required: false,
-                            type: 'string',
-                            enum: ['created'],
-                            default: 'created'
+                            schema: {
+                                type: 'string',
+                                enum: ['created'],
+                                default: 'created'
+                            }
                         }
                     ],
-                    responses: {
-                        '200': {
-                            description: 'OK',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: true},
-                                    data: {type: 'array', items: {'$ref': '#/definitions/Template'}},
-                                    query_time: {type: 'number'}
-                                }
-                            }
-                        },
-                        '500': {
-                            description: 'Internal Server Error',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: false},
-                                    message: {type: 'string'}
-                                }
-                            }
-                        }
-                    }
+                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Template'}})
                 }
             },
             '/v1/templates/{collection_name}/{template_id}': {
                 get: {
                     tags: ['templates'],
                     summary: 'Find template by id',
-                    produces: ['application/json'],
                     parameters: [
                         {
                             name: 'collection_name',
                             in: 'path',
                             description: 'Name of collection',
                             required: true,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
                         {
                             name: 'template_id',
                             in: 'path',
                             description: 'ID of template',
                             required: true,
-                            type: 'integer'
+                            schema: {type: 'integer'}
                         }
                     ],
-                    responses: {
-                        '200': {
-                            description: 'OK',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: true},
-                                    data: {'$ref': '#/definitions/Template'},
-                                    query_time: {type: 'number'}
-                                }
-                            }
-                        },
-                        '500': {
-                            description: 'Internal Server Error',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: false},
-                                    message: {type: 'string'}
-                                }
-                            }
-                        }
-                    }
+                    responses: getOpenAPI3Responses([200, 500], {'$ref': '#/components/schemas/Template'})
                 }
             },
             '/v1/templates/{collection_name}/{template_id}/logs': {
                 get: {
                     tags: ['templates'],
                     summary: 'Fetch template logs',
-                    produces: ['application/json'],
                     parameters: [
                         {
                             name: 'collection_name',
                             in: 'path',
                             description: 'Name of collection',
                             required: true,
-                            type: 'string'
+                            schema: {type: 'string'}
                         },
                         {
                             name: 'template_id',
                             in: 'path',
                             description: 'ID of template',
                             required: true,
-                            type: 'integer'
+                            schema: {type: 'integer'}
                         },
-                        ...paginationFilter
+                        ...paginationParameters
                     ],
-                    responses: {
-                        '200': {
-                            description: 'OK',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: true},
-                                    data: {'$ref': '#/definitions/Log'},
-                                    query_time: {type: 'number'}
-                                }
-                            }
-                        },
-                        '500': {
-                            description: 'Internal Server Error',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: false},
-                                    message: {type: 'string'}
-                                }
-                            }
-                        }
-                    }
+                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Log'}})
                 }
             }
-        },
-        definitions: {}
+        }
     };
 }

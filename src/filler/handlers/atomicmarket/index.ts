@@ -77,16 +77,16 @@ export default class AtomicAssetsHandler extends ContractHandler {
         };
     }
 
-    async init(): Promise<void> {
-        try {
-            await this.connection.database.query(
-                'SELECT * FROM atomicmarket_config WHERE market_contract = $1',
-                [this.args.atomicmarket_account]
-            );
-        } catch (e) {
+    async init(client: PoolClient): Promise<void> {
+        const existsQuery = await client.query(
+            'SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2)',
+            [await this.connection.database.schema(), 'atomicmarket_config']
+        );
+
+        if (!existsQuery.rows[0].exists) {
             logger.info('Could not find AtomicMarket tables. Create them now...');
 
-            await this.connection.database.query(fs.readFileSync('./definitions/tables/atomicmarket_tables.sql', {
+            await client.query(fs.readFileSync('./definitions/tables/atomicmarket_tables.sql', {
                 encoding: 'utf8'
             }));
 
@@ -96,7 +96,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
         const views = ['atomicmarket_assets_master', 'atomicmarket_auctions_master', 'atomicmarket_sales_master'];
 
         for (const view of views) {
-            await this.connection.database.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
+            await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
         }
 
         // TODO fill config
@@ -111,7 +111,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
 
         for (const table of tables) {
             await client.query(
-                'DELETE FROM ' + client.escapeIdentifier(table) + ' WHERE marketcontract = $1',
+                'DELETE FROM ' + client.escapeIdentifier(table) + ' WHERE market_contract = $1',
                 [this.args.atomicmarket_account]
             );
         }

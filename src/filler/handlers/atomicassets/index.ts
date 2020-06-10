@@ -105,23 +105,26 @@ export default class AtomicAssetsHandler extends ContractHandler {
         this.actionHandler = new AtomicAssetsActionHandler(this);
     }
 
-    async init(): Promise<void> {
-        let query = null;
+    async init(client: PoolClient): Promise<void> {
+        const existsQuery = await client.query(
+            'SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2)',
+            [await this.connection.database.schema(), 'atomicassets_config']
+        );
 
-        try {
-            query = await this.connection.database.query(
-                'SELECT * FROM atomicassets_config WHERE contract = $1',
-                [this.args.atomicassets_account]
-            );
-        } catch (e) {
+        if (!existsQuery.rows[0].exists) {
             logger.info('Could not find AtomicAssets tables. Create them now...');
 
-            await this.connection.database.query(fs.readFileSync('./definitions/tables/atomicassets_tables.sql', {
+            await client.query(fs.readFileSync('./definitions/tables/atomicassets_tables.sql', {
                 encoding: 'utf8'
             }));
 
             logger.info('AtomicAssets tables successfully created');
         }
+
+        const configQuery = await client.query(
+            'SELECT * FROM atomicassets_config WHERE contract = $1',
+            [this.args.atomicassets_account]
+        );
 
         const views = [
             'atomicassets_assets_master', 'atomicassets_templates_master', 'atomicassets_schemas_master',
@@ -129,10 +132,10 @@ export default class AtomicAssetsHandler extends ContractHandler {
         ];
 
         for (const view of views) {
-            await this.connection.database.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
+            await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
         }
 
-        if (query === null || query.rows.length === 0) {
+        if (configQuery === null || configQuery.rows.length === 0) {
             const configTable = await this.connection.chain.rpc.get_table_rows({
                 json: true, code: this.args.atomicassets_account,
                 scope: this.args.atomicassets_account, table: 'config'
@@ -144,7 +147,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
             });
 
             if (configTable.rows.length > 0 && tokenTable.rows.length > 0 && tokenTable.rows[0].standard === 'atomicassets') {
-                await this.connection.database.query(
+                await client.query(
                     'INSERT INTO atomicassets_config (contract, version, collection_format) VALUES ($1, $2, $3)',
                     [
                         this.args.atomicassets_account,
@@ -159,8 +162,8 @@ export default class AtomicAssetsHandler extends ContractHandler {
                 throw new Error('Unable to fetch atomicassets version');
             }
         } else {
-            this.config.collection_format = ObjectSchema(query.rows[0].collection_format);
-            this.config.version = query.rows[0].version;
+            this.config.collection_format = ObjectSchema(configQuery.rows[0].collection_format);
+            this.config.version = configQuery.rows[0].version;
         }
 
         this.events.on('atomicassets_offer_state_change', async ({contract, offer_id, state}: {

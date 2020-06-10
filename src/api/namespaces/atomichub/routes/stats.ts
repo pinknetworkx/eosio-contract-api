@@ -3,11 +3,11 @@ import * as express from 'express';
 import { AtomicHubNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { filterQueryArgs } from '../../utils';
-import { formatAsset } from '../../atomicassets/format';
 import { getOpenAPI3Responses } from '../../../docs';
+import { formatListingAsset, formatSale } from '../../atomicmarket/format';
 
 export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/stats', server.web.caching({expire: 60}), async (_, res) => {
+    router.get('/v1/stats', server.web.caching({expire: 60, ignoreQueryString: true}), async (_, res) => {
         const nftsQuery = await core.connection.database.query(
             'SELECT COUNT(*) as nfts FROM atomicassets_assets WHERE contract = $1',
             [core.args.atomicassets_account]
@@ -34,18 +34,18 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
         });
     });
 
-    router.get('/v1/trending', server.web.caching({expire: 60}), async (req, res) => {
+    router.get('/v1/sales/trending', server.web.caching({expire: 60}), async (req, res) => {
         const args = filterQueryArgs(req, {
             limit: {type: 'int', min: 1, max: 100, default: 10}
         });
 
-        const query = await core.connection.database.query('SELECT * from atomicassets_assets_master LIMIT $1', [args.limit]);
+        const query = await core.connection.database.query('SELECT * from atomicassets_sales_master LIMIT $1', [args.limit]);
 
         // TODO do some market magic to find trending assets
 
         res.json({
             success: true,
-            data: query.rows.map(row => formatAsset(row)),
+            data: query.rows.map(row => formatSale(row)),
             query_time: Date.now()
         });
     });
@@ -62,11 +62,11 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
 
         // TODO filter for only relevant NFTs
 
-        const query = await core.connection.database.query('SELECT * from atomicassets_assets_master LIMIT $1', [args.limit]);
+        const query = await core.connection.database.query('SELECT * from atomicmarket_assets_master LIMIT $1', [args.limit]);
 
         res.json({
             success: true,
-            data: query.rows.map(row => formatAsset(row)),
+            data: query.rows.map(row => formatListingAsset(row)),
             query_time: Date.now()
         });
     });
@@ -102,10 +102,10 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                     })
                 }
             },
-            '/v1/trending': {
+            '/v1/sales/trending': {
                 get: {
                     tags: ['stats'],
-                    summary: 'Get currently trending assets',
+                    summary: 'Get currently trending asset sales',
                     parameters: [
                         {
                             in: 'query',
@@ -117,14 +117,14 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'array',
-                        items: {'$ref': '#/components/schemas/Asset'}
+                        items: {'$ref': '#/components/schemas/Sale'}
                     })
                 }
             },
             '/v1/suggestions': {
                 get: {
                     tags: ['stats'],
-                    summary: 'Get the avatar from a specific user by name',
+                    summary: 'Get suggestions for the input. More detailed if more info is provided',
                     parameters: [
                         {
                             in: 'query',
@@ -164,7 +164,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'array',
-                        items: {'$ref': '#/components/schemas/Asset'}
+                        items: {'$ref': '#/components/schemas/ListingAsset'}
                     })
                 }
             }

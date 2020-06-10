@@ -3,9 +3,10 @@ import * as express from 'express';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import logger from '../../../../utils/winston';
+import { getOpenAPI3Responses } from '../../../docs';
 
 export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/config', server.web.caching(), (async (_, res) => {
+    router.get('/v1/config', server.web.caching({ignoreQueryString: true}), (async (_, res) => {
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_config WHERE contract = $1',
@@ -41,49 +42,25 @@ export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                 get: {
                     tags: ['config'],
                     summary: 'Get general information about the API and the connected contract',
-                    produces: ['application/json'],
-                    responses: {
-                        '200': {
-                            description: 'OK',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: true},
-                                    data: {
-                                        type: 'object',
-                                        properties: {
-                                            contract: {type: 'string'},
-                                            version: {type: 'string'},
-                                            collection_format: {
-                                                type: 'array',
-                                                items: {
-                                                    type: 'object',
-                                                    properties: {
-                                                        name: {type: 'string'},
-                                                        type: {type: 'string'}
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    },
-                                    query_time: {type: 'number'}
-                                }
-                            }
-                        },
-                        '500': {
-                            description: 'Internal Server Error',
-                            schema: {
-                                type: 'object',
-                                properties: {
-                                    success: {type: 'boolean', default: false},
-                                    message: {type: 'string'}
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'object',
+                        properties: {
+                            contract: {type: 'string'},
+                            version: {type: 'string'},
+                            collection_format: {
+                                type: 'array',
+                                items: {
+                                    type: 'object',
+                                    properties: {
+                                        name: {type: 'string'},
+                                        type: {type: 'string'}
+                                    }
                                 }
                             }
                         }
-                    }
+                    })
                 }
             }
-        },
-        definitions: {}
+        }
     };
 }
