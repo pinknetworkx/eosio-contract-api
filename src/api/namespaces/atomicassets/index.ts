@@ -4,16 +4,17 @@ import * as path from 'path';
 
 import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
-import { assetsEndpoints, assetsSockets } from './routes/assets';
+import { AssetApi } from './routes/assets';
 import { collectionsEndpoints } from './routes/collections';
 import { configEndpoints } from './routes/config';
-import { offersEndpoints, offersSockets } from './routes/offers';
 import { schemasEndpoints } from './routes/schemas';
 import { templatesEndpoints } from './routes/templates';
-import { transfersEndpoints, transfersSockets } from './routes/transfers';
 import logger from '../../../utils/winston';
 import { atomicassetsComponents } from './openapi';
 import { getOpenApiDescription } from '../../docs';
+import { formatAsset, formatOffer, formatTransfer } from './format';
+import { TransferApi } from './routes/transfers';
+import { OfferApi } from './routes/offers';
 
 export type AtomicAssetsNamespaceArgs = {
     atomicassets_account: string
@@ -55,13 +56,28 @@ export class AtomicAssetsNamespace extends ApiNamespace {
 
         const endpointsDocs: any[] = [];
 
-        endpointsDocs.push(assetsEndpoints(this, server, router));
+        const assetApi = new AssetApi(
+            this, server, 'Asset',
+            'atomicassets_assets_master', formatAsset
+        );
+        const transferApi = new TransferApi(
+            this, server, 'Transfer',
+            'atomicassets_transfers_master', formatTransfer,
+            'atomicassets_assets_master', formatAsset
+        );
+        const offerApi = new OfferApi(
+            this, server, 'Offer',
+            'atomicassets_offers_master', formatOffer,
+            'atomicassets_assets_master', formatAsset
+        );
+
+        endpointsDocs.push(assetApi.endpoints(router));
         endpointsDocs.push(collectionsEndpoints(this, server, router));
         endpointsDocs.push(schemasEndpoints(this, server, router));
         endpointsDocs.push(templatesEndpoints(this, server, router));
 
-        endpointsDocs.push(offersEndpoints(this, server, router));
-        endpointsDocs.push(transfersEndpoints(this, server, router));
+        endpointsDocs.push(offerApi.endpoints(router));
+        endpointsDocs.push(transferApi.endpoints(router));
         endpointsDocs.push(configEndpoints(this, server, router));
 
         for (const doc of endpointsDocs) {
@@ -85,8 +101,23 @@ export class AtomicAssetsNamespace extends ApiNamespace {
     }
 
     async socket(server: HTTPServer): Promise<void> {
-        assetsSockets(this, server);
-        transfersSockets(this, server);
-        offersSockets(this, server);
+        const assetApi = new AssetApi(
+            this, server, 'Asset',
+            'atomicassets_assets_master', formatAsset
+        );
+        const transferApi = new TransferApi(
+            this, server, 'Transfer',
+            'atomicassets_transfers_master', formatTransfer,
+            'atomicassets_assets_master', formatAsset
+        );
+        const offerApi = new OfferApi(
+            this, server, 'Offer',
+            'atomicassets_offers_master', formatOffer,
+            'atomicassets_assets_master', formatAsset
+        );
+
+        assetApi.sockets();
+        transferApi.sockets();
+        offerApi.sockets();
     }
 }

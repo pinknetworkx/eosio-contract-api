@@ -1,4 +1,4 @@
-import { atomicassetsComponents } from '../atomicassets/openapi';
+import { atomicassetsComponents, generateOfferSchema, generateTransferSchema } from '../atomicassets/openapi';
 
 export const atomicmarketComponents = {
     ListingAsset: {
@@ -24,6 +24,8 @@ export const atomicmarketComponents = {
             }
         }
     },
+    ListingOffer: generateOfferSchema('ListingAsset'),
+    ListingTransfer: generateTransferSchema('ListingAsset'),
     Asset: atomicassetsComponents.Asset,
     Sale: {
         type: 'object',
@@ -52,7 +54,7 @@ export const atomicmarketComponents = {
 
             assets: {
                 type: 'array',
-                items: {'$ref': '#/components/schemas/ListingAsset'}
+                items: {'$ref': '#/components/schemas/Asset'}
             },
 
             maker_marketplace: {type: 'string', nullable: true},
@@ -90,7 +92,7 @@ export const atomicmarketComponents = {
 
             assets: {
                 type: 'array',
-                items: {'$ref': '#/components/schemas/ListingAsset'}
+                items: {'$ref': '#/components/schemas/Asset'}
             },
 
             maker_marketplace: {type: 'string', nullable: true},
@@ -105,5 +107,15 @@ export const atomicmarketComponents = {
             created_at_block: {type: 'integer'},
             created_at_time: {type: 'integer'}
         }
-    }
+    },
+    Marketplace: {
+        type: 'object',
+        properties: {
+            marketplace_name: {type: 'string'},
+            creator: {type: 'string'},
+            created_at_block: {type: 'integer'},
+            created_at_time: {type: 'integer'}
+        }
+    },
+    Collection: atomicassetsComponents.Collection
 };

@@ -5,19 +5,25 @@ import * as swagger from 'swagger-ui-express';
 import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
 import { getOpenApiDescription } from '../../docs';
-import { assetsEndpoints } from '../atomicassets/routes/assets';
-import { offersEndpoints } from '../atomicassets/routes/offers';
-import { transfersEndpoints } from '../atomicassets/routes/transfers';
+import { AssetApi } from '../atomicassets/routes/assets';
+import { OfferApi } from '../atomicassets/routes/offers';
+import { TransferApi } from '../atomicassets/routes/transfers';
 import logger from '../../../utils/winston';
 import { auctionsEndpoints } from './routes/auctions';
 import { salesEndpoints } from './routes/sales';
 import { atomicmarketComponents } from './openapi';
+import { adminEndpoints } from './routes/admin';
+import { configEndpoints } from './routes/config';
+import { marketplacesEndpoints } from './routes/marketplaces';
+import { formatOffer, formatTransfer } from '../atomicassets/format';
+import { formatListingAsset } from './format';
 
 export type AtomicMarketNamespaceArgs = {
-    atomicassets_account: string,
     atomicmarket_account: string,
-
     admin_token: string
+
+    atomicassets_account: string,
+    delphioracle_account: string
 };
 
 export class AtomicMarketNamespace extends ApiNamespace {
@@ -30,12 +36,22 @@ export class AtomicMarketNamespace extends ApiNamespace {
             throw new Error('Argument missing in atomicmarket api namespace: atomicmarket_account');
         }
 
-        if (typeof this.args.atomicassets_account !== 'string') {
-            throw new Error('Argument missing in atomicmarket api namespace: atomicassets_account');
-        }
-
         if (typeof this.args.admin_token !== 'string') {
             throw new Error('Argument missing in atomicmarket api namespace: admin_token');
+        }
+
+        const query = await this.connection.database.query(
+            'SELECT * FROM atomicmarket_config WHERE market_contract = $1',
+            [this.args.atomicmarket_account]
+        );
+
+        if (query.rowCount === 0) {
+            if (typeof this.args.atomicassets_account !== 'string' || typeof this.args.delphioracle_account !== 'string') {
+                throw new Error('AtomicMarket API is not initialized yet (reader not running)');
+            }
+        } else {
+            this.args.atomicassets_account = query.rows[0].asset_contract;
+            this.args.delphioracle_account = query.rows[0].delphi_contract;
         }
     }
 
@@ -57,7 +73,7 @@ export class AtomicMarketNamespace extends ApiNamespace {
             paths: {},
             components: {
                 securitySchemes: {
-                    bearerAuth: {
+                    adminAuth: {
                         type: 'http',
                         scheme: 'bearer'
                     }
@@ -70,12 +86,31 @@ export class AtomicMarketNamespace extends ApiNamespace {
 
         const docs = [];
 
-        docs.push(assetsEndpoints(this, server, router, 'atomicmarket_assets_master', 'ListingAsset'));
-        docs.push(offersEndpoints(this, server, router, 'atomicmarket_assets_master'));
-        docs.push(transfersEndpoints(this, server, router, 'atomicmarket_assets_master'));
-
         docs.push(auctionsEndpoints(this, server, router));
         docs.push(salesEndpoints(this, server, router));
+        docs.push(marketplacesEndpoints(this, server, router));
+        docs.push(configEndpoints(this, server, router));
+
+        const assetApi = new AssetApi(
+            this, server, 'ListingAsset',
+            'atomicmarket_assets_master', formatListingAsset
+        );
+        const transferApi = new TransferApi(
+            this, server, 'ListingTransfer',
+            'atomicassets_transfers_master', formatTransfer,
+            'atomicmarket_assets_master', formatListingAsset
+        );
+        const offerApi = new OfferApi(
+            this, server, 'ListingOffer',
+            'atomicassets_offers_master', formatOffer,
+            'atomicmarket_assets_master', formatListingAsset
+        );
+
+        docs.push(assetApi.endpoints(router));
+        docs.push(transferApi.endpoints(router));
+        docs.push(offerApi.endpoints(router));
+
+        docs.push(adminEndpoints(this, server, router));
 
         for (const doc of docs) {
             Object.assign(documentation.paths, doc.paths);
@@ -97,7 +132,7 @@ export class AtomicMarketNamespace extends ApiNamespace {
         return router;
     }
 
-    async socket(server: HTTPServer): Promise<void> {
+    async socket(_: HTTPServer): Promise<void> {
 
     }
 }

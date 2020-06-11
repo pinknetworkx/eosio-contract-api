@@ -224,7 +224,6 @@ A namespace provides an API for a specific contract or use case and is based on 
 {
   "handler": "atomicmarket",
   "args": {
-    "atomicassets_account": "atomicassets", // account where the atomicassets contract is deployed
     "atomicmarket_account": "atomicmarket", // account where the atomicmarket contract is deployed
     "admin_token": "changeme" // auth token which is used to add or remove elements from the blacklist / whitelist
   }
@@ -245,5 +244,5 @@ It needs a smart contract which has an action with a nonce parameter
       "name": "auth" // action name which has a nonce parameter and always throws
     }
   }
-},
+}
 ```

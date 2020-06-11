@@ -62,7 +62,6 @@ export function buildAssetFilter(req: express.Request, varOffset: number): {str:
         template_id: {type: 'int', min: 0},
         collection_name: {type: 'string', min: 1, max: 12},
         schema_name: {type: 'string', min: 1, max: 12},
-        authorized_account: {type: 'string', min: 1, max: 12},
         match: {type: 'string', min: 1}
     });
 

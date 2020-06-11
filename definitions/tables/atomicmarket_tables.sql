@@ -53,6 +53,8 @@ CREATE TABLE atomicmarket_balances (
 CREATE TABLE atomicmarket_config
 (
     market_contract character varying(12) NOT NULL,
+    asset_contract character varying(12) NOT NULL,
+    delphi_contract character varying(12) NOT NULL,
     version character varying(12) NOT NULL,
     maker_market_fee double precision NOT NULL,
     taker_market_fee double precision NOT NULL,
@@ -93,7 +95,8 @@ CREATE TABLE atomicmarket_sales
     market_contract character varying(12) NOT NULL,
     sale_id integer NOT NULL,
     seller character varying(12) NOT NULL,
-    price bigint NOT NULL,
+    listing_price bigint NOT NULL,
+    final_price bigint,
     token_symbol character varying(12),
     listing_symbol character varying(12),
     settlement_symbol character varying(12),
@@ -112,9 +115,9 @@ CREATE TABLE atomicmarket_sales
     CONSTRAINT atomicmarket_sales_offer_id_key UNIQUE (market_contract, asset_contract, offer_id)
 );
 
-CREATE TABLE atomicmarket_blacklist_seller (
+CREATE TABLE atomicmarket_blacklist_accounts (
     market_contract character varying(12) NOT NULL,
-    seller character varying(12) NOT NULL,
+    account character varying(12) NOT NULL,
     CONSTRAINT atomicmarket_blacklist_sellers_pkey PRIMARY KEY (market_contract, seller)
 );
 
@@ -125,9 +128,9 @@ CREATE TABLE atomicmarket_blacklist_collections (
     CONSTRAINT atomicmarket_blacklist_collections_pkey PRIMARY KEY (market_contract, asset_contract, collection_name)
 );
 
-CREATE TABLE atomicmarket_whitelist_sellers (
+CREATE TABLE atomicmarket_whitelist_accounts (
     market_contract character varying(12) NOT NULL,
-    seller character varying(12) NOT NULL,
+    account character varying(12) NOT NULL,
     CONSTRAINT atomicmarket_whitelist_sellers_pkey PRIMARY KEY (market_contract, seller)
 );
 

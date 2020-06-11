@@ -5,10 +5,10 @@ import { HTTPServer } from '../../../server';
 import { filterQueryArgs } from '../../utils';
 import { bearerToken } from '../../authentication/middleware';
 import logger from '../../../../utils/winston';
-import { formatAsset } from '../../atomicassets/format';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import { assetFilterParameters } from '../../atomicassets/openapi';
 import { buildAssetFilter } from '../../atomicassets/utils';
+import { formatListingAsset } from '../../atomicmarket/format';
 
 export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
     router.put('/v1/watchlist', bearerToken(core.connection), async (req, res) => {
@@ -62,12 +62,12 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
             page: {type: 'int', min: 1, default: 1},
             limit: {type: 'int', min: 1, max: 1000, default: 100},
             sort: {type: 'string', values: ['added', 'asset_id'], default: 'added'},
-            order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+            order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
         });
 
         let varCounter = 2;
         let queryString = 'SELECT asset.* ' +
-            'FROM atomicassets_assets_master asset JOIN atomichub_watchlist wlist ON (' +
+            'FROM atomicmarket_assets_master asset JOIN atomichub_watchlist wlist ON (' +
                 'wlist.contract = asset.contract AND wlist.asset_id = asset.asset_id' +
             ')' +
             'WHERE asset.contract = $1 AND wlist.account = $2 ';
@@ -95,7 +95,7 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
 
         const query = await core.connection.database.query(queryString, queryValues);
 
-        return res.json({success: true, data: query.rows.map((row) => formatAsset(row)), query_time: Date.now()});
+        return res.json({success: true, data: query.rows.map((row) => formatListingAsset(row)), query_time: Date.now()});
     });
 
     return {
@@ -121,7 +121,7 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'array',
-                        items: {'$ref': '#/components/schemas/Asset'}
+                        items: {'$ref': '#/components/schemas/ListingAsset'}
                     })
                 }
             },
@@ -141,7 +141,7 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
                             description: 'Asset id which should be removed'
                         }
                     ],
-                    responses: getOpenAPI3Responses([200, 401, 500], {'$ref': '#/components/schemas/Asset'})
+                    responses: getOpenAPI3Responses([200, 401, 500], {type: 'object', nullable: true})
                 }
             },
             '/v1/watchlist': {

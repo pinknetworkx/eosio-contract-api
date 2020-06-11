@@ -2,7 +2,7 @@ import * as express from 'express';
 
 export type FilterDefinition = {
     [key: string]: {
-        type: 'string' | 'int' | 'float',
+        type: 'string' | 'int' | 'float' | 'bool',
         min?: number,
         max?: number,
         default?: any,
@@ -72,6 +72,24 @@ export function filterQueryArgs(req: express.Request, filter: FilterDefinition, 
             }
 
             result[key] = n;
+        } else if (filter[key].type === 'bool') {
+            if (typeof data === 'undefined') {
+                result[key] = filter[key].default || false;
+            }
+
+            if (data === 'true' || data === '1') {
+                result[key] = true;
+
+                continue;
+            }
+
+            if (data === 'false' || data === '0') {
+                result[key] = false;
+
+                continue;
+            }
+
+            result[key] = !!data;
         }
     }
 
