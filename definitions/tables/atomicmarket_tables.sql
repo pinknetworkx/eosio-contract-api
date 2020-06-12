@@ -69,7 +69,7 @@ CREATE TABLE atomicmarket_tokens (
     market_contract character varying(12) NOT NULL,
     token_contract character varying(12) NOT NULL,
     token_symbol character varying(12) NOT NULL,
-    token_precision character varying(12) NOT NULL,
+    token_precision integer NOT NULL,
     CONSTRAINT atomicmarket_tokens_pkey PRIMARY KEY (market_contract, token_symbol)
 );
 

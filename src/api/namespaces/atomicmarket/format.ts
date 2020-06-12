@@ -6,7 +6,8 @@ export function formatAuction(row: any): any {
     data.price.amount = row.raw_price;
 
     delete row.raw_price;
-    delete row.raw_price_precision;
+    delete row.raw_token_symbol;
+    delete row.raw_token_precision;
     delete row.collection_name;
 
     return data;
@@ -18,7 +19,8 @@ export function formatSale(row: any): any {
     data.price.amount = row.raw_price;
 
     delete row.raw_price;
-    delete row.raw_price_precision;
+    delete row.raw_token_symbol;
+    delete row.raw_token_precision;
     delete row.collection_name;
 
     return data;

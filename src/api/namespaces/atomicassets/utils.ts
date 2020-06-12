@@ -56,7 +56,9 @@ export function buildDataConditions(args: any, varCounter: number = 0): {conditi
     };
 }
 
-export function buildAssetFilter(req: express.Request, varOffset: number): {str: string, values: any[]} {
+export function buildAssetFilter(
+    req: express.Request, varOffset: number, template_readable_name: string = 'template_readable_name', asset_readable_name: string = 'asset_readable_name'
+): {str: string, values: any[]} {
     const args = filterQueryArgs(req, {
         owner: {type: 'string', min: 1, max: 12},
         template_id: {type: 'int', min: 0},
@@ -115,7 +117,7 @@ export function buildAssetFilter(req: express.Request, varOffset: number): {str:
     }
 
     if (args.match) {
-        queryString += 'AND (asset_readable_name LIKE $' + ++varCounter + ' OR template_readable_name LIKE $' + varCounter + ') ';
+        queryString += 'AND (' + asset_readable_name + ' LIKE $' + ++varCounter + ' OR ' + template_readable_name + ' LIKE $' + varCounter + ') ';
         queryValues.push('%' + args.match + '%');
     }
 

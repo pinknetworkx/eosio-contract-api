@@ -15,7 +15,8 @@ CREATE OR REPLACE VIEW atomicmarket_sales_master AS
                 ((sale.listing_price / delphi.median) * power(10, delphi.median_precision + delphi.base_precision - delphi.quote_precision))
             ELSE sale.listing_price
         END) raw_price,
-        token.token_precision raw_precision,
+        token.token_precision raw_token_precision,
+        token.token_symbol raw_token_symbol,
 
         json_build_object(
             'token_contract', token.token_contract,

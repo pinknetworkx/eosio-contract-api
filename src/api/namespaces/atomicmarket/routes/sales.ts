@@ -41,7 +41,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             logger.debug(queryString);
 
-            const query = await core.connection.database.query(queryString, [core.args.atomicmarket_account, ...filter.values]);
+            const query = await core.connection.database.query(queryString, queryValues);
 
             const sales = await fillSales(
                 core.connection, core.args.atomicmarket_account, query.rows.map((row) => formatSale(row))

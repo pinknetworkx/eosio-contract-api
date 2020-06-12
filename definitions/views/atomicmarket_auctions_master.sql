@@ -6,7 +6,8 @@ CREATE OR REPLACE VIEW atomicmarket_auctions_master AS
         auction.asset_contract,
 
         auction.price raw_price,
-        token.token_precision raw_precision,
+        token.token_precision raw_token_precision,
+        token.token_symbol raw_token_symbol,
 
         json_build_object(
             'token_contract', token.token_contract,
