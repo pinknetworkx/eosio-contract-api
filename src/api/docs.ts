@@ -69,23 +69,30 @@ export const paginationParameters = [
         in: 'query',
         description: 'Result Page',
         required: false,
-        schema: {type: 'integer'},
-        default: 1
+        schema: {
+            type: 'integer',
+            default: 1
+        }
     },
     {
         name: 'limit',
         in: 'query',
         description: 'Results per Page',
         required: false,
-        schema: {type: 'integer'},
-        default: 100
+        schema: {
+            type: 'integer',
+            default: 100
+        }
     },
     {
         name: 'order',
         in: 'query',
         description: 'Order direction',
         required: false,
-        schema: {type: 'string', enum: ['asc', 'desc']},
-        default: 'desc'
+        schema: {
+            type: 'string',
+            enum: ['asc', 'desc'],
+            default: 'desc'
+        }
     }
 ];

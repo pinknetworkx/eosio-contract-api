@@ -56,10 +56,10 @@ export function configEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                             atomicmarket_contract: {type: 'string'},
                             delphioracle_contract: {type: 'string'},
                             version: {type: 'string'},
-                            maker_market_fee: {type: 'double'},
-                            taker_market_fee: {type: 'double'},
+                            maker_market_fee: {type: 'number'},
+                            taker_market_fee: {type: 'number'},
                             maximum_auction_duration: {type: 'integer'},
-                            minimum_bid_increase: {type: 'double'},
+                            minimum_bid_increase: {type: 'number'},
                             supported_tokens: {
                                 type: 'array',
                                 items: {

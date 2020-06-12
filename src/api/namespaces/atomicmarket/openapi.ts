@@ -121,7 +121,8 @@ export const atomicmarketComponents = {
             created_at_time: {type: 'integer'}
         }
     },
-    Collection: atomicassetsComponents.Collection
+    Collection: atomicassetsComponents.Collection,
+    Log: atomicassetsComponents.Log
 };
 
 export const listingFilterParameters = [
