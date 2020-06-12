@@ -79,8 +79,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
         } catch (e) {
             logger.error(e);
 
-            res.status(500);
-            res.json({success: false, message: 'Internal Server Error'});
+            res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }
 
@@ -95,16 +94,30 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             );
 
             if (query.rowCount === 0) {
-                res.status(500);
-                return res.json({success: false, message: 'Template not found'});
+                return res.status(500).json({success: false, message: 'Template not found'});
             }
 
             return res.json({success: true, data: formatTemplate(query.rows[0]), query_time: Date.now()});
         } catch (e) {
             logger.error(e);
 
-            res.status(500);
-            res.json({success: false, message: 'Internal Server Error'});
+            res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
+    }));
+
+    router.get('/v1/templates/:collection_name/:template_id/stats', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+        try {
+            const query = await core.connection.database.query(
+                'SELECT ' +
+                '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND template_id = $3) assets ' +
+                [core.args.atomicassets_account, req.params.collection_name, req.params.template_id]
+            );
+
+            return res.json({success: true, data: query.rows[0]});
+        } catch (e) {
+            logger.error(e);
+
+            res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));
 
@@ -127,8 +140,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
         } catch (e) {
             logger.error(e);
 
-            res.status(500);
-            return res.json({success: false, message: 'Internal Server Error'});
+            return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));
 
@@ -201,6 +213,34 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                         }
                     ],
                     responses: getOpenAPI3Responses([200, 500], {'$ref': '#/components/schemas/Template'})
+                }
+            },
+            '/v1/templates/{collection_name}/{template_id}/stats': {
+                get: {
+                    tags: ['templates'],
+                    summary: 'Get stats about a specific template',
+                    parameters: [
+                        {
+                            name: 'collection_name',
+                            in: 'path',
+                            description: 'Name of collection',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'template_id',
+                            in: 'path',
+                            description: 'ID of template',
+                            required: true,
+                            schema: {type: 'integer'}
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'object',
+                        properties: {
+                            assets: {type: 'integer'}
+                        }
+                    })
                 }
             },
             '/v1/templates/{collection_name}/{template_id}/logs': {

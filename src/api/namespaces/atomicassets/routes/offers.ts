@@ -96,8 +96,7 @@ export class OfferApi {
             } catch (e) {
                 logger.error(e);
 
-                res.status(500);
-                res.json({success: false, message: 'Internal Server Error'});
+                res.status(500).json({success: false, message: 'Internal Server Error'});
             }
         }));
 
@@ -109,9 +108,7 @@ export class OfferApi {
                 );
 
                 if (query.rowCount === 0) {
-                    res.status(500);
-
-                    return res.json({success: false, message: 'Offer not found'});
+                    return res.status(500).json({success: false, message: 'Offer not found'});
                 }
 
                 const offers = await fillOffers(
@@ -124,8 +121,7 @@ export class OfferApi {
             } catch (e) {
                 logger.error(e);
 
-                res.status(500);
-                return res.json({success: false, message: 'Internal Server Error'});
+                return res.status(500).json({success: false, message: 'Internal Server Error'});
             }
         }));
 

@@ -36,19 +36,13 @@ export const atomicmarketComponents = {
             asset_contract: {type: 'string'},
             offer_id: {type: 'integer'},
 
-            // TODO
             price: {
                 type: 'object',
                 properties: {
-                    raw: {
-                        type: 'object',
-                        properties: {
-                            amount: {type: 'integer'},
-                            token_precision: {type: 'integer'},
-                            token_contract: {type: 'string'},
-                            token_symbol: {type: 'string'}
-                        }
-                    }
+                    amount: {type: 'integer'},
+                    token_precision: {type: 'integer'},
+                    token_contract: {type: 'string'},
+                    token_symbol: {type: 'string'}
                 }
             },
 
@@ -64,6 +58,11 @@ export const atomicmarketComponents = {
 
             sale_state: {type: 'integer'},
             offer_state: {type: 'integer'},
+
+            collection_blacklisted: {type: 'boolean'},
+            collection_whitelisted: {type: 'boolean'},
+            seller_blacklisted: {type: 'boolean'},
+            seller_whitelisted: {type: 'boolean'},
 
             updated_at_block: {type: 'integer'},
             updated_at_time: {type: 'integer'},
@@ -102,6 +101,11 @@ export const atomicmarketComponents = {
 
             auction_state: {type: 'integer'},
 
+            collection_blacklisted: {type: 'boolean'},
+            collection_whitelisted: {type: 'boolean'},
+            seller_blacklisted: {type: 'boolean'},
+            seller_whitelisted: {type: 'boolean'},
+
             updated_at_block: {type: 'integer'},
             updated_at_time: {type: 'integer'},
             created_at_block: {type: 'integer'},
@@ -119,3 +123,90 @@ export const atomicmarketComponents = {
     },
     Collection: atomicassetsComponents.Collection
 };
+
+export const listingFilterParameters = [
+    {
+        name: 'max_assets',
+        in: 'query',
+        description: 'Max assets per listing',
+        required: false,
+        schema: {type: 'integer'}
+    },
+    {
+        name: 'show_blacklisted',
+        in: 'query',
+        description: 'Include blacklisted collections and sellers',
+        required: false,
+        schema: {type: 'boolean'}
+    },
+    {
+        name: 'whitelisted_seller_only',
+        in: 'query',
+        description: 'Only show listings from verified sellers',
+        required: false,
+        schema: {type: 'boolean'}
+    },
+    {
+        name: 'whitelisted_collections_only',
+        in: 'query',
+        description: 'Only show assets from verified collections',
+        required: false,
+        schema: {type: 'boolean'}
+    },
+    {
+        name: 'whitelisted_only',
+        in: 'query',
+        description: 'Only show explicit whitelisted listings',
+        required: false,
+        schema: {type: 'boolean'}
+    },
+    {
+        name: 'marketplace',
+        in: 'query',
+        description: 'Filter by all sales where a certain marketplace is either taker or maker marketplace',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'maker_marketplace',
+        in: 'query',
+        description: 'Maker marketplace',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'taker_marketplace',
+        in: 'query',
+        description: 'Taker marketplace',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'symbol',
+        in: 'query',
+        description: 'Filter by symbol',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'seller',
+        in: 'query',
+        description: 'Filter by seller',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'min_price',
+        in: 'query',
+        description: 'Lower price limit',
+        required: false,
+        schema: {type: 'number'}
+    },
+    {
+        name: 'max_price',
+        in: 'query',
+        description: 'Upper price limit',
+        required: false,
+        schema: {type: 'number'}
+    }
+];

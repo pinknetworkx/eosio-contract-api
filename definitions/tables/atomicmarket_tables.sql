@@ -10,9 +10,11 @@ CREATE TABLE atomicmarket_auctions
     taker_marketplace character varying(12),
     collection_name character varying(12),
     collection_fee double precision NOT NULL,
-    claimed_by_buyer bigint,
-    claimed_by_seller bigint,
+    claimed_by_buyer boolean,
+    claimed_by_seller boolean,
     state smallint NOT NULL,
+    end_at_block bigint NOT NULL,
+    end_at_time bigint NOT NULL,
     updated_at_block bigint NOT NULL,
     updated_at_time bigint NOT NULL,
     created_at_block bigint NOT NULL,
@@ -76,7 +78,8 @@ CREATE TABLE atomicmarket_symbol_pairs (
     listing_symbol character varying(12) NOT NULL,
     settlement_symbol character varying(12) NOT NULL,
     delphi_contract character varying(12) NOT NULL,
-    delphi_pair_name character varying(12),
+    delphi_pair_name character varying(12) NOT NULL,
+    invert_delphi_pair boolean NOT NULL,
     CONSTRAINT atomicmarket_delphi_pairs_pkey PRIMARY KEY (market_contract, listing_symbol, settlement_symbol)
 );
 
@@ -97,7 +100,6 @@ CREATE TABLE atomicmarket_sales
     seller character varying(12) NOT NULL,
     listing_price bigint NOT NULL,
     final_price bigint,
-    token_symbol character varying(12),
     listing_symbol character varying(12),
     settlement_symbol character varying(12),
     asset_contract character varying(12) NOT NULL,
@@ -118,7 +120,7 @@ CREATE TABLE atomicmarket_sales
 CREATE TABLE atomicmarket_blacklist_accounts (
     market_contract character varying(12) NOT NULL,
     account character varying(12) NOT NULL,
-    CONSTRAINT atomicmarket_blacklist_sellers_pkey PRIMARY KEY (market_contract, seller)
+    CONSTRAINT atomicmarket_blacklist_account_pkey PRIMARY KEY (market_contract, account)
 );
 
 CREATE TABLE atomicmarket_blacklist_collections (
@@ -131,7 +133,7 @@ CREATE TABLE atomicmarket_blacklist_collections (
 CREATE TABLE atomicmarket_whitelist_accounts (
     market_contract character varying(12) NOT NULL,
     account character varying(12) NOT NULL,
-    CONSTRAINT atomicmarket_whitelist_sellers_pkey PRIMARY KEY (market_contract, seller)
+    CONSTRAINT atomicmarket_whitelist_account_pkey PRIMARY KEY (market_contract, account)
 );
 
 CREATE TABLE atomicmarket_whitelist_collections (
@@ -189,11 +191,7 @@ ALTER TABLE ONLY atomicmarket_sales
     REFERENCES atomicassets_offers (offer_id, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicmarket_sales
-    ADD CONSTRAINT atomicmarket_sales_delphi_fkey FOREIGN KEY (market_contract, listing_symbol, settlement_symbol)
-    REFERENCES atomicmarket_symbol_pairs (market_contract, listing_symbol, settlement_symbol) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
-
-ALTER TABLE ONLY atomicmarket_sales
-    ADD CONSTRAINT atomicmarket_sales_token_symbol_fkey FOREIGN KEY (market_contract, token_symbol)
+    ADD CONSTRAINT atomicmarket_sales_symbol_fkey FOREIGN KEY (market_contract, settlement_symbol)
     REFERENCES atomicmarket_tokens (market_contract, token_symbol) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 
@@ -210,12 +208,13 @@ ALTER TABLE ONLY atomicmarket_blacklist_collections
 CREATE INDEX atomicmarket_auctions_market_contract ON atomicmarket_auctions USING hash (market_contract);
 CREATE INDEX atomicmarket_auctions_asset_contract ON atomicmarket_auctions USING hash (asset_contract);
 CREATE INDEX atomicmarket_auctions_seller ON atomicmarket_auctions USING hash (seller);
-CREATE INDEX atomicmarket_auctions_price ON atomicmarket_sales USING btree (price);
+CREATE INDEX atomicmarket_auctions_price ON atomicmarket_auctions USING btree (price);
 CREATE INDEX atomicmarket_auctions_maker_marketplace ON atomicmarket_auctions USING hash (maker_marketplace);
 CREATE INDEX atomicmarket_auctions_taker_marketplace ON atomicmarket_auctions USING hash (taker_marketplace);
 CREATE INDEX atomicmarket_auctions_state ON atomicmarket_auctions USING btree (state);
 CREATE INDEX atomicmarket_auctions_updated_at_block ON atomicmarket_auctions USING btree (updated_at_block);
 CREATE INDEX atomicmarket_auctions_created_at_block ON atomicmarket_auctions USING btree (created_at_block);
+CREATE INDEX atomicmarket_auctions_end_at_block ON atomicmarket_auctions USING btree (end_at_block);
 
 CREATE INDEX atomicmarket_auctions_bids_market_contract ON atomicmarket_auctions_bids USING hash (market_contract);
 CREATE INDEX atomicmarket_auctions_bids_account ON atomicmarket_auctions_bids USING btree (account);
@@ -232,7 +231,8 @@ CREATE INDEX atomicmarket_balances_updated_at_block ON atomicmarket_balances USI
 CREATE INDEX atomicmarket_sales_market_contract ON atomicmarket_sales USING hash (market_contract);
 CREATE INDEX atomicmarket_sales_asset_contract ON atomicmarket_sales USING hash (asset_contract);
 CREATE INDEX atomicmarket_sales_seller ON atomicmarket_sales USING hash (seller);
-CREATE INDEX atomicmarket_sales_price ON atomicmarket_sales USING btree (price);
+CREATE INDEX atomicmarket_sales_listing_price ON atomicmarket_sales USING btree (listing_price);
+CREATE INDEX atomicmarket_sales_final_price ON atomicmarket_sales USING btree (final_price);
 CREATE INDEX atomicmarket_sales_maker_marketplace ON atomicmarket_sales USING hash (maker_marketplace);
 CREATE INDEX atomicmarket_sales_taker_marketplace ON atomicmarket_sales USING hash (taker_marketplace);
 CREATE INDEX atomicmarket_sales_state ON atomicmarket_sales USING btree (state);

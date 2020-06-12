@@ -67,8 +67,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
         } catch (e) {
             logger.error(e);
 
-            res.status(500);
-            res.json({success: false, message: 'Internal Server Error'});
+            res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));
 
@@ -80,17 +79,14 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
             );
 
             if (query.rowCount === 0) {
-                res.status(500);
-
-                return res.json({success: false, message: 'Collection not found'});
+                return res.status(500).json({success: false, message: 'Collection not found'});
             }
 
             return res.json({success: true, data: formatCollection(query.rows[0]), query_time: Date.now()});
         } catch (e) {
             logger.error(e);
 
-            res.status(500);
-            return res.json({success: false, message: 'Internal Server Error'});
+            return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));
 
@@ -112,8 +108,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
         } catch (e) {
             logger.error(e);
 
-            res.status(500);
-            return res.json({success: false, message: 'Internal Server Error'});
+            return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));
 

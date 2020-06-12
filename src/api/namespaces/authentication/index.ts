@@ -33,9 +33,12 @@ export class AuthenticationNamespace extends ApiNamespace {
             throw new Error('Argument missing in authentication api namespace: action.name');
         }
 
-        try {
-            await this.connection.database.query('SELECT * FROM auth_tokens LIMIT 1');
-        } catch (e) {
+        const existsQuery = await this.connection.database.query(
+            'SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2)',
+            [await this.connection.database.schema(), 'auth_tokens']
+        );
+
+        if (!existsQuery.rows[0].exists) {
             logger.info('Could not find Authentication tables. Create them now...');
 
             await this.connection.database.query(fs.readFileSync('./definitions/tables/authentication_tables.sql', {

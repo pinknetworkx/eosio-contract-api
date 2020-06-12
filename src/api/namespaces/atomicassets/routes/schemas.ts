@@ -65,8 +65,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
         } catch (e) {
             logger.error(e);
 
-            res.status(500);
-            res.json({success: false, message: 'Internal Server Error'});
+            res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }
 
@@ -81,16 +80,31 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
             );
 
             if (query.rowCount === 0) {
-                res.status(500);
-                return res.json({success: false, message: 'Schema not found'});
+                return res.status(500).json({success: false, message: 'Schema not found'});
             }
 
             return res.json({success: true, data: formatSchema(query.rows[0])});
         } catch (e) {
             logger.error(e);
 
-            res.status(500);
-            res.json({success: false, message: 'Internal Server Error'});
+            res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
+    }));
+
+    router.get('/v1/schemas/:collection_name/:schema_name/stats', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+        try {
+            const query = await core.connection.database.query(
+                'SELECT ' +
+                '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND schema_name = $3) assets, ' +
+                '(SELECT COUNT(*) FROM atomicassets_templates WHERE contract = $1 AND collection_name = $2 AND schema_name = $3) templates',
+                [core.args.atomicassets_account, req.params.collection_name, req.params.schema_name]
+            );
+
+            return res.json({success: true, data: query.rows[0]});
+        } catch (e) {
+            logger.error(e);
+
+            res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));
 
@@ -113,8 +127,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
         } catch (e) {
             logger.error(e);
 
-            res.status(500);
-            return res.json({success: false, message: 'Internal Server Error'});
+            return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));
 
@@ -187,6 +200,35 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                         }
                     ],
                     responses: getOpenAPI3Responses([200, 500], {'$ref': '#/components/schemas/Schema'})
+                }
+            },
+            '/v1/schemas/{collection_name}/{template_id}/stats': {
+                get: {
+                    tags: ['templates'],
+                    summary: 'Get stats about a specific schema',
+                    parameters: [
+                        {
+                            name: 'collection_name',
+                            in: 'path',
+                            description: 'Collection name of schema',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'schema_name',
+                            in: 'path',
+                            description: 'Name of schema',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'object',
+                        properties: {
+                            assets: {type: 'integer'},
+                            templates: {type: 'integer'}
+                        }
+                    })
                 }
             },
             '/v1/schemas/{collection_name}/{schema_name}/logs': {

@@ -27,8 +27,7 @@ export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
         } catch (e) {
             logger.error(e);
 
-            res.status(500);
-            return res.json({success: false, message: 'Internal Server Error'});
+            return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));
 

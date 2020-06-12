@@ -24,7 +24,8 @@ export enum SaleState {
 
 export enum AuctionState {
     PENDING = 0,
-    FINISHED = 1
+    CANCELED = 1,
+    FINISHED = 2
 }
 
 export default class AtomicAssetsHandler extends ContractHandler {

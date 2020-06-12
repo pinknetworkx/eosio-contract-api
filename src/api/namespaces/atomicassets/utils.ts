@@ -115,7 +115,7 @@ export function buildAssetFilter(req: express.Request, varOffset: number): {str:
     }
 
     if (args.match) {
-        queryString += 'AND asset.name LIKE $' + ++varCounter + ' ';
+        queryString += 'AND (asset_readable_name LIKE $' + ++varCounter + ' OR template_readable_name LIKE $' + varCounter + ') ';
         queryValues.push('%' + args.match + '%');
     }
 

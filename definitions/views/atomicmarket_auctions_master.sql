@@ -6,7 +6,7 @@ CREATE OR REPLACE VIEW atomicmarket_auctions_master AS
         auction.asset_contract,
 
         auction.price raw_price,
-        auction.token_symbol raw_symbol,
+        token.token_precision raw_precision,
 
         json_build_object(
             'token_contract', token.token_contract,
@@ -38,6 +38,10 @@ CREATE OR REPLACE VIEW atomicmarket_auctions_master AS
         auction.maker_marketplace,
         auction.taker_marketplace,
 
+        auction.claimed_by_buyer,
+        auction.claimed_by_seller,
+
+        auction.collection_name,
         json_build_object(
             'collection_name', collection.collection_name,
             'name', collection.readable_name,
@@ -52,6 +56,27 @@ CREATE OR REPLACE VIEW atomicmarket_auctions_master AS
 
         auction.state auction_state,
 
+        EXISTS (
+            SELECT * FROM atomicmarket_blacklist_collections list
+            WHERE list.market_contract = auction.market_contract AND list.asset_contract = auction.asset_contract AND
+                list.collection_name = auction.collection_name
+        ) collection_blacklisted,
+        EXISTS (
+            SELECT * FROM atomicmarket_whitelist_collections list
+            WHERE list.market_contract = auction.market_contract AND list.asset_contract = auction.asset_contract AND
+                list.collection_name = auction.collection_name
+        ) collection_whitelisted,
+        EXISTS (
+            SELECT * FROM atomicmarket_blacklist_accounts list
+            WHERE list.market_contract = auction.market_contract AND list.account = auction.seller
+        ) seller_blacklisted,
+        EXISTS (
+            SELECT * FROM atomicmarket_whitelist_accounts list
+            WHERE list.market_contract = auction.market_contract AND list.account = auction.seller
+        ) seller_whitelisted,
+
+        auction.end_at_block,
+        auction.end_at_time,
         auction.updated_at_block,
         auction.updated_at_time,
         auction.created_at_block,

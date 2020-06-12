@@ -89,8 +89,7 @@ export class TransferApi {
             } catch (e) {
                 logger.error(e);
 
-                res.status(500);
-                res.json({success: false, message: 'Internal Server Error'});
+                res.status(500).json({success: false, message: 'Internal Server Error'});
             }
         }));
 

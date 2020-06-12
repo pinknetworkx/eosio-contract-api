@@ -71,8 +71,7 @@ export class AssetApi {
             } catch (e) {
                 logger.error(e);
 
-                res.status(500);
-                return res.json({success: false, message: 'Internal Server Error'});
+                return res.status(500).json({success: false, message: 'Internal Server Error'});
             }
         }));
 
@@ -84,17 +83,14 @@ export class AssetApi {
                 );
 
                 if (query.rowCount === 0) {
-                    res.status(500);
-
-                    return res.json({success: false, message: 'Asset not found'});
+                    return res.status(500).json({success: false, message: 'Asset not found'});
                 }
 
                 return res.json({success: true, data: this.assetFormatter(query.rows[0]), query_time: Date.now()});
             } catch (e) {
                 logger.error(e);
 
-                res.status(500);
-                return res.json({success: false, message: 'Internal Server Error'});
+                return res.status(500).json({success: false, message: 'Internal Server Error'});
             }
         }));
 
@@ -116,8 +112,7 @@ export class AssetApi {
             } catch (e) {
                 logger.error(e);
 
-                res.status(500);
-                return res.json({success: false, message: 'Internal Server Error'});
+                return res.status(500).json({success: false, message: 'Internal Server Error'});
             }
         }));
 

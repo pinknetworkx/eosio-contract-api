@@ -16,6 +16,8 @@ export function formatAsset(row: any): any {
     delete data['schema_name'];
     delete data['collection_name'];
     delete data['authorized_accounts'];
+    delete data['template_readable_name'];
+    delete data['asset_readable_name'];
 
     return data;
 }

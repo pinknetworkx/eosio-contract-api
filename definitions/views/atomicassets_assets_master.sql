@@ -1,9 +1,14 @@
 CREATE OR REPLACE VIEW atomicassets_assets_master AS
     SELECT DISTINCT ON (asset_a.contract, asset_a.asset_id)
         asset_a.contract, asset_a.asset_id, asset_a.owner,
+
+        template_a.readable_name template_readable_name,
+        asset_a.readable_name asset_readable_name,
         CASE WHEN template_a.readable_name IS NULL THEN asset_a.readable_name ELSE template_a.readable_name END AS name,
+
         CASE WHEN template_a.template_id IS NULL THEN true ELSE template_a.transferable END AS is_transferable,
         CASE WHEN template_a.template_id IS NULL THEN true ELSE template_a.burnable END AS is_burnable,
+
         collection_a.collection_name, collection_a.authorized_accounts,
         json_build_object(
             'collection_name', collection_a.collection_name,
@@ -16,6 +21,7 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
             'created_at_block', collection_a.created_at_block,
             'created_at_time', collection_a.created_at_time
         ) collection,
+
         schema_a.schema_name,
         json_build_object(
             'schema_name', schema_a.schema_name,
@@ -23,6 +29,7 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
             'created_at_block', schema_a.created_at_block,
             'created_at_time', schema_a.created_at_time
         ) "schema",
+
         template_a.template_id,
         CASE WHEN template_a.template_id IS NULL THEN null ELSE
         json_build_object(
@@ -35,8 +42,10 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
             'created_at_time', template_a.created_at_time,
             'created_at_block', template_a.created_at_block
         ) END AS "template",
+
         (SELECT json_object_agg("key", "value") FROM atomicassets_assets_data WHERE contract = asset_a.contract AND asset_id = asset_a.asset_id AND mutable IS true) mutable_data,
         (SELECT json_object_agg("key", "value") FROM atomicassets_assets_data WHERE contract = asset_a.contract AND asset_id = asset_a.asset_id AND mutable IS false) immutable_data,
+
         ARRAY(
             SELECT DISTINCT ON (backed_b.contract, backed_b.asset_id, backed_b.token_symbol)
                 json_build_object(
@@ -50,6 +59,7 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
                 backed_b.contract = symbols_b.contract AND backed_b.token_symbol = symbols_b.token_symbol AND
                 backed_b.contract = asset_a.contract AND backed_b.asset_id = asset_a.asset_id
         ) backed_tokens,
+
         asset_a.burned_at_block, asset_a.burned_at_time, asset_a.updated_at_block,
         asset_a.updated_at_time, asset_a.minted_at_block, asset_a.minted_at_time
     FROM

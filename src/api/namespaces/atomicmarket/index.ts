@@ -26,6 +26,12 @@ export type AtomicMarketNamespaceArgs = {
     delphioracle_account: string
 };
 
+export enum SaleApiState {
+    PENDING = 0,
+    INVALID = 1,
+    BOUGHT = 2
+}
+
 export class AtomicMarketNamespace extends ApiNamespace {
     static namespaceName = 'atomicmarket';
 
@@ -63,7 +69,7 @@ export class AtomicMarketNamespace extends ApiNamespace {
             info: {
                 description: getOpenApiDescription(server),
                 version: '1.0.0',
-                title: 'AtomicHub API'
+                title: 'AtomicMarket API'
             },
             servers: [
                 {url: 'https://' + server.config.server_name + this.path},
