@@ -184,7 +184,7 @@ export default class StateReceiver {
         if (actionTrace[0] === 'action_trace_v0') {
             // ignore if its a notification
             if (actionTrace[1].receiver !== actionTrace[1].act.account) {
-                return this.isTableContract(actionTrace[1].receiver);
+                return this.areDeltasNeeded(actionTrace[1].receiver);
             }
 
             if (this.isActionBlacklisted(actionTrace[1].act.account, actionTrace[1].act.name)) {
@@ -224,7 +224,7 @@ export default class StateReceiver {
                 await this.handleAction(dataHandlers, db, block, trace, tx);
             }
 
-            return this.isTableContract(actionTrace[1].act.account);
+            return this.areDeltasNeeded(actionTrace[1].act.account);
         }
 
         await db.abort();
@@ -522,7 +522,7 @@ export default class StateReceiver {
         return handlers;
     }
 
-    private isTableContract(account: string): boolean {
+    private areDeltasNeeded(account: string): boolean {
         for (const handler of this.handlers) {
             if (!Array.isArray(handler.scope.tables)) {
                 continue;

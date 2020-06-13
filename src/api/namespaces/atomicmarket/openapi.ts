@@ -31,9 +31,12 @@ export const atomicmarketComponents = {
         type: 'object',
         properties: {
             market_contract: {type: 'string'},
-            sale_id: {type: 'integer'},
-            seller: {type: 'string'},
             asset_contract: {type: 'string'},
+            sale_id: {type: 'integer'},
+
+            seller: {type: 'string'},
+            buyer: {type: 'string'},
+
             offer_id: {type: 'integer'},
 
             price: {
@@ -74,10 +77,11 @@ export const atomicmarketComponents = {
         type: 'object',
         properties: {
             market_contract: {type: 'string'},
-            auction_id: {type: 'integer'},
-            seller: {type: 'string'},
             asset_contract: {type: 'string'},
-            offer_id: {type: 'integer'},
+            auction_id: {type: 'integer'},
+
+            seller: {type: 'string'},
+            buyer: {type: 'string', nullable: true},
 
             price: {
                 type: 'object',
@@ -105,6 +109,8 @@ export const atomicmarketComponents = {
             collection_whitelisted: {type: 'boolean'},
             seller_blacklisted: {type: 'boolean'},
             seller_whitelisted: {type: 'boolean'},
+
+            end_time: {type: 'integer'},
 
             updated_at_block: {type: 'integer'},
             updated_at_time: {type: 'integer'},
@@ -164,21 +170,21 @@ export const listingFilterParameters = [
     {
         name: 'marketplace',
         in: 'query',
-        description: 'Filter by all sales where a certain marketplace is either taker or maker marketplace',
+        description: 'Filter by all sales where a certain marketplace is either taker or maker marketplace - separate multiple with ","',
         required: false,
         schema: {type: 'string'}
     },
     {
         name: 'maker_marketplace',
         in: 'query',
-        description: 'Maker marketplace',
+        description: 'Maker marketplace - separate multiple with ","',
         required: false,
         schema: {type: 'string'}
     },
     {
         name: 'taker_marketplace',
         in: 'query',
-        description: 'Taker marketplace',
+        description: 'Taker marketplace - separate multiple with ","',
         required: false,
         schema: {type: 'string'}
     },
@@ -192,7 +198,14 @@ export const listingFilterParameters = [
     {
         name: 'seller',
         in: 'query',
-        description: 'Filter by seller',
+        description: 'Filter by seller - separate multiple with ","',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'buyer',
+        in: 'query',
+        description: 'Filter by buyer - separate multiple with ","',
         required: false,
         schema: {type: 'string'}
     },

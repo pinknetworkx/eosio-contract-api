@@ -220,7 +220,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                             description: 'Name of schema',
                             required: true,
                             schema: {type: 'string'}
-                        },
+                        }
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'object',

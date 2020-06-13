@@ -53,9 +53,9 @@ export async function saveAssetTableRow(
     for (const token of data.backed_tokens) {
         const split = token.split(' ');
 
-        localBackedTokens[split[1].toLowerCase()] = {
+        localBackedTokens[split[1]] = {
             amount: split[0].replace('.', ''),
-            token_symbol: split[1].toLowerCase()
+            token_symbol: split[1]
         };
     }
 

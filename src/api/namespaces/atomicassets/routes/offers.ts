@@ -37,7 +37,9 @@ export class OfferApi {
                     sender: {type: 'string', min: 1},
                     recipient: {type: 'string', min: 1},
                     state: {type: 'string', min: 1},
-                    offer_id: {type: 'string', min: 1}
+
+                    asset_id: {type: 'string', min: 1},
+                    is_recipient_contract: {type: 'string'}
                 });
 
                 let varCounter = 1;
@@ -63,6 +65,12 @@ export class OfferApi {
                 if (args.state) {
                     queryString += 'AND state = ANY ($' + ++varCounter + ') ';
                     queryValues.push(args.state.split(','));
+                }
+
+                if (args.is_recipient_contract === true) {
+                    queryString += 'AND recipient_contract_account IS NOT NULL ';
+                } else if (args.is_recipient_contract === true) {
+                    queryString += 'AND recipient_contract_account IS NULL ';
                 }
 
                 if (args.asset_id) {
@@ -163,6 +171,13 @@ export class OfferApi {
                                 description: 'Offer State (0: Pending; 1: Invalid; 2: Unknown [not valid anymore]; 3: Accepted; 4: Declined; 5: Canceled) - separate multiple with ","',
                                 required: false,
                                 schema: {type: 'string'}
+                            },
+                            {
+                                name: 'is_recipient_contract',
+                                in: 'query',
+                                description: 'Filter offers where recipient is a contract',
+                                required: false,
+                                schema: {type: 'boolean'}
                             },
                             {
                                 name: 'asset_id',

@@ -15,7 +15,7 @@ any time.
 * Nodeos >= 1.8.0 (only tested with 2.0) The state history plugin needs to be enabled and the options: 
 `trace-history = true`, `chain-state-history = true`
 
-Additional Tools
+Suggestions
 * Hasura GraphQL Engine >= 1.2 (if you want to allow GraphQL queries)
 * PGAdmin 4 (Interface to manage the postgres database)
 
@@ -34,21 +34,21 @@ chain can use the same database
 ```javascript
 {
   "postgres": {
-    "host": "eosio-contract-api-postgres",
+    "host": "127.0.0.1",
     "port": 5432,
     "user": "username",
     "password": "changeme",
-    "database": "eosio-contract-api"
+    "database": "contract-api-wax-testnet"
   },
   "redis": {
-    "host": "eosio-contract-api-redis",
+    "host": "127.0.0.1",
     "port": 6379
   },
   "chain": {
     "name": "wax-testnet",
     "chain_id": "f16b1833c747c43682f4386fca9cbb327929334a762755ebec17f6f23c9b8a12",
-    "http": "http://nodeos:8888",
-    "ship": "ws://nodeos:8080"
+    "http": "http://127.0.0.1:8888",
+    "ship": "ws://127.0.0.1:8080"
   }
 }
 ```
@@ -165,7 +165,7 @@ Stop
 
 ## Currently Supported Contracts
 
-### Readers
+### Readers (used to fill the database)
 
 Readers are used to fill the database for a specific contract.
 
@@ -181,7 +181,7 @@ Readers are used to fill the database for a specific contract.
 ```
 
 #### atomicmarket
-This reader requires a atomicassets reader with the same contract as specified here
+This reader requires a atomicassets and a delphioracle reader with the same contract as specified here
 ```javascript
 {
   "handler": "atomicmarket",
@@ -203,7 +203,7 @@ This reader requires a atomicassets reader with the same contract as specified h
 }
 ```
 
-### Namespace (for api)
+### Namespace (API endpoints)
 
 A namespace provides an API for a specific contract or use case and is based on data a reader provides
 

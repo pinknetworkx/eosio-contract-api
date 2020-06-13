@@ -27,9 +27,10 @@ export type AtomicMarketNamespaceArgs = {
 };
 
 export enum SaleApiState {
-    PENDING = 0,
+    LISTED = 0,
     INVALID = 1,
-    BOUGHT = 2
+    SOLD = 2,
+    WAITING = 3
 }
 
 export class AtomicMarketNamespace extends ApiNamespace {

@@ -94,7 +94,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                         {
                             name: 'state',
                             in: 'query',
-                            description: 'Filter by auction state (0: Listed, 1: Canceled, 2: Finished)',
+                            description: 'Filter by auction state (0: Listed, 1: Canceled, 2: Finished, 3: Waiting for assets) - separate multiple with ","',
                             required: false,
                             schema: {type: 'string'}
                         },

@@ -3,6 +3,7 @@ import { ShipBlock } from '../../../types/ship';
 import { EosioActionTrace, EosioTransaction } from '../../../types/eosio';
 import AtomicHubHandler from './index';
 import { OfferState } from '../atomicassets';
+import logger from '../../../utils/winston';
 
 type TemporaryOffer = { offer_id: string, sender: string, recipient: string };
 
@@ -39,6 +40,12 @@ export default class AtomicAssetsActionHandler {
 
     async handleOfferStateChange(db: ContractDBTransaction, block: ShipBlock, offerID: string, state: number): Promise<void> {
         const offer = await this.getOffer(db, offerID);
+
+        if (offer === null) {
+            logger.error('[AtomicHub] Offer state changed but offer not found in database');
+
+            return;
+        }
 
         if (state === OfferState.PENDING.valueOf()) {
             await this.core.createNotification(
@@ -103,6 +110,6 @@ export default class AtomicAssetsActionHandler {
             return query.rows[0];
         }
 
-        throw new Error('Offer not found');
+        return null;
     }
 }

@@ -33,12 +33,14 @@ export default class AtomicAssetsActionHandler {
     }
 
     async handleTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
-        if (trace.act.account !== this.core.args.atomicassets_account) {
-            logger.warn('[atomicassets] Received action from wrong contract: ' + trace.act.account);
+        if (typeof trace.act.data === 'string') {
+            throw new Error('AtomicAssets: Data of atomicassets action could not be deserialized: ' + trace.act.name);
         }
 
-        if (typeof trace.act.data === 'string') {
-            throw new Error('Data of atomicassets action could not be deserialized: ' + trace.act.name);
+        if (trace.act.account !== this.core.args.atomicassets_account) {
+            logger.warn('[atomicassets] Received action from wrong contract: ' + trace.act.account);
+
+            return;
         }
 
         if (['lognewoffer'].indexOf(trace.act.name) >= 0) {

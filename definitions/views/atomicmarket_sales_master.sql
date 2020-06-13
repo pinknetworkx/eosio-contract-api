@@ -1,10 +1,12 @@
 CREATE OR REPLACE VIEW atomicmarket_sales_master AS
     SELECT DISTINCT ON (market_contract, sale_id)
         sale.market_contract,
+        sale.asset_contract,
         sale.sale_id,
 
         sale.seller,
-        sale.asset_contract,
+        sale.buyer,
+
         sale.offer_id,
 
         (CASE
@@ -21,7 +23,8 @@ CREATE OR REPLACE VIEW atomicmarket_sales_master AS
         json_build_object(
             'token_contract', token.token_contract,
             'token_symbol', token.token_symbol,
-            'token_precision', token.token_precision
+            'token_precision', token.token_precision,
+            'median', delphi.median,
         ) price,
 
         ARRAY(
@@ -59,10 +62,13 @@ CREATE OR REPLACE VIEW atomicmarket_sales_master AS
             WHERE list.market_contract = sale.market_contract AND list.asset_contract = sale.asset_contract AND
                 list.collection_name = sale.collection_name
         ) collection_whitelisted,
-        EXISTS (
+        (EXISTS (
             SELECT * FROM atomicmarket_blacklist_accounts list
             WHERE list.market_contract = sale.market_contract AND list.account = sale.seller
-        ) seller_blacklisted,
+        ) OR EXISTS (
+            SELECT * FROM contract_codes list
+            WHERE list.account = sale.seller
+        )) seller_blacklisted,
         EXISTS (
             SELECT * FROM atomicmarket_whitelist_accounts list
             WHERE list.market_contract = sale.market_contract AND list.account = sale.seller

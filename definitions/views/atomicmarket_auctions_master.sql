@@ -1,9 +1,11 @@
 CREATE OR REPLACE VIEW atomicmarket_auctions_master AS
     SELECT DISTINCT ON (market_contract, auction_id)
         auction.market_contract,
-        auction.auction_id,
-        auction.seller,
         auction.asset_contract,
+        auction.auction_id,
+
+        auction.seller,
+        auction.buyer,
 
         auction.price raw_price,
         token.token_precision raw_token_precision,
@@ -76,8 +78,8 @@ CREATE OR REPLACE VIEW atomicmarket_auctions_master AS
             WHERE list.market_contract = auction.market_contract AND list.account = auction.seller
         ) seller_whitelisted,
 
-        auction.end_at_block,
-        auction.end_at_time,
+        auction.end_time,
+
         auction.updated_at_block,
         auction.updated_at_time,
         auction.created_at_block,

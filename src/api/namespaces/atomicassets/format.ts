@@ -50,7 +50,11 @@ export function formatCollection(row: any): any {
 }
 
 export function formatOffer(row: any): any {
-    return {...row};
+    const data = {...row};
+
+    delete data['recipient_contract_account'];
+
+    return data;
 }
 
 export function formatTransfer(row: any): any {

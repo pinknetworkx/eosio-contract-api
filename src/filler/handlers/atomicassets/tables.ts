@@ -27,11 +27,13 @@ export default class AtomicAssetsTableHandler {
 
     async handleUpdate(db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow): Promise<void> {
         if (typeof delta.value === 'string') {
-            throw new Error('Data of atomicassets table could not be deserialized: ' + delta.table);
+            throw new Error('AtomicAssets: Delta of atomicassets table could not be deserialized: ' + delta.table);
         }
 
         if (delta.code !== this.core.args.atomicassets_account) {
             logger.warn('[atomicassets] Received table delta from wrong contract: ' + delta.code);
+
+            return;
         }
 
         if (delta.table === 'assets') {
@@ -85,7 +87,7 @@ export default class AtomicAssetsTableHandler {
                     for (const token of data.supported_tokens) {
                         await db.replace('atomicassets_token_symbols', {
                             contract: this.contractName,
-                            token_symbol: token.token_symbol.split(',')[1].toLowerCase(),
+                            token_symbol: token.token_symbol.split(',')[1],
                             token_contract: token.token_contract,
                             token_precision: token.token_symbol.split(',')[0]
                         }, ['contract', 'token_symbol']);
@@ -132,7 +134,7 @@ export default class AtomicAssetsTableHandler {
     async handleBalancesUpdate(
         db: ContractDBTransaction, block: ShipBlock, data: BalancesTableRow, _: boolean
     ): Promise<void> {
-        const symbols = data.quantities.map((quantity) => (quantity.split(' ')[1].toLowerCase()));
+        const symbols = data.quantities.map((quantity) => (quantity.split(' ')[1]));
 
         await db.delete('atomicassets_balances', {
             str: 'contract = $1 AND owner = $2 AND token_symbol NOT IN (' + symbols.map((symbol) => '\'' + symbol + '\'').join(', ') + ')',
@@ -143,7 +145,7 @@ export default class AtomicAssetsTableHandler {
             await db.replace('atomicassets_balances', {
                 contract: this.contractName,
                 owner: data.owner,
-                token_symbol: quantity.split(' ')[1].toLowerCase(),
+                token_symbol: quantity.split(' ')[1],
                 amount: quantity.split(' ')[0].replace('.', ''),
                 updated_at_block: block.block_num,
                 updated_at_time: eosioTimestampToDate(block.timestamp).getTime()

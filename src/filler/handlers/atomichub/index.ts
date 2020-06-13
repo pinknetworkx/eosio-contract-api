@@ -41,10 +41,6 @@ export default class AtomicHubHandler extends ContractHandler {
                 {
                     filter: this.args.atomicassets_account + ':*',
                     deserialize: true
-                },
-                {
-                    filter: this.args.atomicmarket_account + ':*',
-                    deserialize: true
                 }
             ],
             tables: [ ]
@@ -77,9 +73,7 @@ export default class AtomicHubHandler extends ContractHandler {
     }
 
     async onAction(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
-        if (trace.act.account === this.args.atomicmarket_account) {
-            await this.atomicmarketHandler.handleTrace(db, block, trace, tx);
-        } else if (trace.act.account === this.args.atomicassets_account) {
+        if (trace.act.account === this.args.atomicassets_account) {
             await this.atomicassetsHandler.handleTrace(db, block, trace, tx);
         }
     }

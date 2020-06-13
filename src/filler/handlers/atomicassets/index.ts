@@ -121,11 +121,6 @@ export default class AtomicAssetsHandler extends ContractHandler {
             logger.info('AtomicAssets tables successfully created');
         }
 
-        const configQuery = await client.query(
-            'SELECT * FROM atomicassets_config WHERE contract = $1',
-            [this.args.atomicassets_account]
-        );
-
         const views = [
             'atomicassets_assets_master', 'atomicassets_templates_master', 'atomicassets_schemas_master',
             'atomicassets_collections_master', 'atomicassets_offers_master', 'atomicassets_transfers_master'
@@ -134,6 +129,11 @@ export default class AtomicAssetsHandler extends ContractHandler {
         for (const view of views) {
             await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
         }
+
+        const configQuery = await client.query(
+            'SELECT * FROM atomicassets_config WHERE contract = $1',
+            [this.args.atomicassets_account]
+        );
 
         if (configQuery === null || configQuery.rows.length === 0) {
             const configTable = await this.connection.chain.rpc.get_table_rows({

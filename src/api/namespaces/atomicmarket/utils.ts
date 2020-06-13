@@ -33,7 +33,9 @@ export function buildListingFilter(req: express.Request, varOffset: number): {st
         taker_marketplace: {type: 'string', min: 1, max: 12},
         marketplace: {type: 'string', min: 1, max: 12},
         symbol: {type: 'string', min: 1},
+
         seller: {type: 'string', min: 1},
+        buyer: {type: 'string', min: 1},
 
         collection_name: {type: 'string', min: 1, max: 12},
 
@@ -50,6 +52,11 @@ export function buildListingFilter(req: express.Request, varOffset: number): {st
         queryValues.push(args.seller.split(','));
     }
 
+    if (args.buyer) {
+        queryString += 'AND listing.buyer = ANY ($' + ++varCounter + ') ';
+        queryValues.push(args.buyer.split(','));
+    }
+
     if (args.collection_name) {
         queryString += 'AND listing.collection_name = $' + ++varCounter + ' ';
         queryValues.push(args.collection_name);
@@ -62,7 +69,7 @@ export function buildListingFilter(req: express.Request, varOffset: number): {st
     } else if (args.whitelisted_seller_only) {
         queryString += 'AND listing.seller_whitelisted = true ';
     } else if (!args.show_blacklisted) {
-        queryString += 'AND listing.seller_blacklisted = false AND collection_blacklisted = false ';
+        queryString += 'AND (listing.seller_blacklisted = false OR listing.seller_whitelisted = true) AND collection_blacklisted = false ';
     }
 
     if (args.marketplace) {
@@ -145,14 +152,20 @@ export function buildSaleFilter(req: express.Request, varOffset: number): {str: 
     if (args.state) {
         const stateConditions: string[] = [];
 
-        if (args.state.split(',') === String(SaleApiState.PENDING.valueOf())) {
+        if (args.state.split(',').indexOf(String(SaleApiState.LISTED.valueOf())) >= 0) {
             stateConditions.push(`(sale_state = ${SaleState.LISTED.valueOf()} AND listing.offer_state = ${OfferState.PENDING.valueOf()})`);
         }
-        if (args.state.split(',') === String(SaleApiState.INVALID.valueOf())) {
+
+        if (args.state.split(',').indexOf(String(SaleApiState.INVALID.valueOf())) >= 0) {
             stateConditions.push(`(offer_state != ${OfferState.PENDING.valueOf()} AND listing.sale_state != ${SaleState.SOLD.valueOf()})`);
         }
-        if (args.state.split(',') === String(SaleApiState.BOUGHT.valueOf())) {
+
+        if (args.state.split(',').indexOf(String(SaleApiState.SOLD.valueOf())) >= 0) {
             stateConditions.push(`(sale_state = ${SaleState.SOLD.valueOf()})`);
+        }
+
+        if (args.state.split(',').indexOf(String(SaleApiState.WAITING.valueOf())) >= 0) {
+            stateConditions.push(`(sale_state = ${SaleState.WAITING.valueOf()})`);
         }
 
         queryString += 'AND ' + stateConditions.join(' OR ') + ' ';

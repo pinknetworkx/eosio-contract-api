@@ -114,44 +114,40 @@ export class WebServer {
         const router = express.Router();
 
         router.get('/health', this.caching() , async (_: express.Request, res: express.Response) => {
-            let databaseStatus = 'INVALID';
+            let databaseHealth = {status: 'INVALID', readers: <string[]>[]};
 
             try {
-                const query = await this.server.connection.database.query('SELECT * FROM contract_readers');
+                const query = await this.server.connection.database.query('SELECT block_num FROM contract_readers');
 
                 if (query.rowCount > 0) {
-                    databaseStatus = 'OK';
+                    databaseHealth = {status: 'OK', readers: query.rows};
                 }
             } catch (e) {
-                databaseStatus = 'ERROR';
+                databaseHealth = {status: 'ERROR', readers: []};
             }
 
-            let chainStatus;
+            let chainHealth;
 
             try {
                 const info = await this.server.connection.chain.rpc.get_info();
 
                 if (Date.now() - 20 * 1000 < new Date(info.head_block_time + '+0000').getTime()) {
-                    chainStatus = 'OK';
+                    chainHealth = {status: 'OK', head_block: info.head_block_num};
                 } else {
-                    chainStatus = 'NODE_BEHIND';
+                    chainHealth = {status: 'BEHIND', head_block: info.head_block_num};
                 }
             } catch (e) {
-                chainStatus = 'ERROR';
+                chainHealth = {status: 'ERROR', head_block: 0};
             }
 
             res.json({
                 success: true, data: {
                     version: packageJson.version,
-                    postgres: {
-                        status: databaseStatus
-                    },
+                    postgres: databaseHealth,
                     redis: {
                         status: this.server.connection.redis.ioRedis.status === 'ready' ? 'OK' : 'ERROR'
                     },
-                    chain: {
-                        status: chainStatus
-                    }
+                    chain: chainHealth
                 }
             });
         });

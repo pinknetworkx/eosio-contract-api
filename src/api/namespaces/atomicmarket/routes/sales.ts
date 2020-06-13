@@ -92,7 +92,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                         {
                             name: 'state',
                             in: 'query',
-                            description: 'Filter by sale state (0: Listed, 1: Invalid, 2: Sold)',
+                            description: 'Filter by sale state (0: Listed, 1: Invalid, 2: Sold, 3: Waiting for assets) - separate multiple with ","',
                             required: false,
                             schema: {type: 'string'}
                         },
