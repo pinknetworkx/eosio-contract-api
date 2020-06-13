@@ -36,45 +36,40 @@ export default class AtomicAssetsTableHandler {
             return;
         }
 
+        logger.debug('AtomicAssets Delta', delta);
+
         if (delta.table === 'assets') {
             this.core.addUpdateJob(async () => {
-                logger.debug('AtomicAssets Delta', delta);
                 // @ts-ignore
                 await this.handleAssetsUpdate(db, block, delta.scope, delta.value, !delta.present);
             }, JobPriority.TABLE_ASSETS);
         } else if (delta.table === 'balances' && delta.scope === this.core.args.atomicassets_account) {
             this.core.addUpdateJob(async () => {
-                logger.debug('AtomicAssets Delta', delta);
                 // @ts-ignore
                 await this.handleBalancesUpdate(db, block, delta.value, !delta.present);
             }, JobPriority.TABLE_BALANCES);
         } else if (delta.table === 'collections' && delta.scope === this.core.args.atomicassets_account) {
             this.core.addUpdateJob(async () => {
-                logger.debug('AtomicAssets Delta', delta);
                 // @ts-ignore
                 await this.handleCollectionsUpdate(db, block, delta.value, !delta.present);
             }, JobPriority.TABLE_COLLECTIONS);
         } else if (delta.table === 'offers' && delta.scope === this.core.args.atomicassets_account) {
             this.core.addUpdateJob(async () => {
-                logger.debug('AtomicAssets Delta', delta);
                 // @ts-ignore
                 await this.handleOffersUpdate(db, block, delta.value, !delta.present);
             }, JobPriority.TABLE_OFFERS);
         } else if (delta.table === 'templates') {
             this.core.addUpdateJob(async () => {
-                logger.debug('AtomicAssets Delta', delta);
                 // @ts-ignore
                 await this.handleTemplatesUpdate(db, block, delta.scope, delta.value, !delta.present);
             }, JobPriority.TABLE_PRESETS);
         } else if (delta.table === 'schemas') {
             this.core.addUpdateJob(async () => {
-                logger.debug('AtomicAssets Delta', delta);
                 // @ts-ignore
                 await this.handleSchemasUpdate(db, block, delta.scope, delta.value, !delta.present);
             }, JobPriority.TABLE_SCHEMES);
         } else if (delta.table === 'config' && delta.scope === this.core.args.atomicassets_account) {
             this.core.addUpdateJob(async () => {
-                logger.debug('AtomicAssets Delta', delta);
                 // @ts-ignore
                 const data: ConfigTableRow = delta.value;
 
@@ -105,7 +100,6 @@ export default class AtomicAssetsTableHandler {
             }, JobPriority.TABLE_CONFIG);
         } else if (delta.table === 'tokenconfigs' && delta.scope === this.core.args.atomicassets_account) {
             this.core.addUpdateJob(async () => {
-                logger.debug('AtomicAssets Delta', delta);
                 // @ts-ignore
                 const data: TokenConfigsTableRow = delta.value;
 

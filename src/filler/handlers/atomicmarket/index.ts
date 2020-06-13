@@ -36,6 +36,7 @@ export enum AuctionState {
 export enum JobPriority {
     INDEPENDENT = 100,
     TABLE_BALANCES = 90,
+    TABLE_MARKETPLACES = 90,
     TABLE_CONFIG = 90,
     TABLE_AUCTIONS = 80,
     TABLE_SALES = 80,
