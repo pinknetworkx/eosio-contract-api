@@ -36,11 +36,11 @@ export type AuctionBidActionData = {
     taker_marketplace: string
 };
 
-export type AuctionClaimBuyActionData = {
+export type AuctionClaimBuyerActionData = {
     auction_id: string
 };
 
-export type AuctionClaimSelActionData = {
+export type AuctionClaimSellerActionData = {
     auction_id: string
 };
 
@@ -50,7 +50,9 @@ export type LogNewSaleActionData = {
     asset_ids: string[],
     listing_price: string,
     settlement_symbol: string,
-    maker_marketplace: string
+    maker_marketplace: string,
+    collection_name: string
+    collection_fee: number
 };
 
 export type LogNewAuctionActionData = {
@@ -59,5 +61,17 @@ export type LogNewAuctionActionData = {
     asset_ids: string[],
     starting_bid: string,
     duration: number,
+    end_time: number,
     maker_marketplace: string
+    collection_name: string
+    collection_fee: number
+};
+
+export type LogSaleStartActionData = {
+    sale_id: string,
+    offer_id: string
+};
+
+export type LogAuctionStartActionData = {
+    auction_id: string
 };

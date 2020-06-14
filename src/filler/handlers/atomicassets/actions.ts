@@ -38,45 +38,35 @@ export default class AtomicAssetsActionHandler {
         }
 
         if (trace.act.account !== this.core.args.atomicassets_account) {
-            logger.warn('[atomicassets] Received action from wrong contract: ' + trace.act.account);
+            logger.warn('AtomicAssets: Received action from wrong contract: ' + trace.act.account);
 
             return;
         }
 
+        logger.debug('AtomicAssets Action', trace.act);
+
         if (['lognewoffer'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
-                logger.debug('AtomicAssets Action', trace.act);
-
                 await this.handleOfferCreateTrace(db, block, trace, tx);
             }, JobPriority.ACTION_CREATE_OFFER);
         } else if (['acceptoffer', 'declineoffer', 'canceloffer'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
-                logger.debug('AtomicAssets Action', trace.act);
-
                 await this.handleOfferUpdateTrace(db, block, trace, tx);
             }, JobPriority.ACTION_UPDATE_OFFER);
         } else if (['logtransfer'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
-                logger.debug('AtomicAssets Action', trace.act);
-
                 await this.handleTransferTrace(db, block, trace, tx);
             }, JobPriority.ACTION_TRANSFER_ASSET);
         } else if (['logburnasset'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
-                logger.debug('AtomicAssets Action', trace.act);
-
                 await this.handleAssetBurnTrace(db, block, trace, tx);
             }, JobPriority.ACTION_BURN_ASSET);
         } else if (['logmint', 'logburnasset', 'logbackasset', 'logsetdata'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
-                logger.debug('AtomicAssets Action', trace.act);
-
                 await this.handleAssetUpdateTrace(db, block, trace, tx);
             }, JobPriority.INDEPENDENT);
         } else if (['lognewtempl'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
-                logger.debug('AtomicAssets Action', trace.act);
-
                 await this.handleTemplateTrace(db, block, trace, tx);
             }, JobPriority.INDEPENDENT);
         } else if ([
@@ -84,14 +74,10 @@ export default class AtomicAssetsActionHandler {
             'remcolauth', 'remnotifyacc', 'setmarketfee', 'setcoldata'
         ].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
-                logger.debug('AtomicAssets Action', trace.act);
-
                 await this.handleCollectionTrace(db, block, trace, tx);
             }, JobPriority.INDEPENDENT);
         } else if (['createschema', 'extendschema'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
-                logger.debug('AtomicAssets Action', trace.act);
-
                 await this.handleSchemaTrace(db, block, trace, tx);
             }, JobPriority.INDEPENDENT);
         }
@@ -185,7 +171,7 @@ export default class AtomicAssetsActionHandler {
         }, ['transfer_id']);
 
         if (query.rowCount === 0) {
-            throw new Error('Could not insert atomicassets transfer');
+            throw new Error('AtomicAssets: Could not insert atomicassets transfer');
         }
 
         await db.insert('atomicassets_transfers_assets', data.asset_ids.map((assetID) => ({

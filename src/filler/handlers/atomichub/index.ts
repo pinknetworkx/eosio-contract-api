@@ -27,11 +27,11 @@ export default class AtomicHubHandler extends ContractHandler {
 
     constructor(connection: ConnectionManager, events: PromiseEventHandler, args: {[key: string]: any}) {
         if (typeof args.atomicassets_account !== 'string') {
-            throw new Error('Argument missing in atomichub reader handler: atomicassets_account');
+            throw new Error('AtomicHub: Argument missing in atomichub reader handler: atomicassets_account');
         }
 
         if (typeof args.atomicmarket_account !== 'string') {
-            throw new Error('Argument missing in atomichub reader handler: atomicmarket_account');
+            throw new Error('AtomicHub: Argument missing in atomichub reader handler: atomicmarket_account');
         }
 
         super(connection, events, args);

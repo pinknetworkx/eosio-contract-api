@@ -292,6 +292,10 @@ export class ContractDBTransaction {
                     delete updateValues[key];
                 }
 
+                for (const key of primaryKey) {
+                    delete updateValues[key];
+                }
+
                 await this.update(table, updateValues, condition, primaryKey, false, false);
 
                 if (this.currentBlock > this.lastIrreversibleBlock && reversible) {

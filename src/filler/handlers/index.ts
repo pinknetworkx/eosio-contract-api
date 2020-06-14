@@ -32,7 +32,7 @@ export function getHandlers(
         }
 
         if (!handlerFound) {
-            throw new Error('reader handler "' + config.handler + '" not found');
+            throw new Error('Reader handler "' + config.handler + '" not found');
         }
     }
 

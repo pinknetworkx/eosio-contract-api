@@ -1,14 +1,14 @@
-export type EosioAction = {
+export type EosioAction<T = {[key: string]: any} | string> = {
     account: string,
     name: string,
     authorization: Array<{actor: string, permission: string}>,
-    data: {[key: string]: any} | string
+    data: T
 };
 
-export type EosioActionTrace = {
+export type EosioActionTrace<T = {[key: string]: any} | string> = {
     action_ordinal: number,
     creator_action_ordinal: number,
-    act: EosioAction
+    act: EosioAction<T>
 };
 
 export type EosioTransaction = {

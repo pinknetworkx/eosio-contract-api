@@ -21,16 +21,25 @@ import { formatListingAsset } from './format';
 export type AtomicMarketNamespaceArgs = {
     atomicmarket_account: string,
     admin_token: string
-
+    // optional
     atomicassets_account: string,
     delphioracle_account: string
 };
 
 export enum SaleApiState {
-    LISTED = 0,
-    INVALID = 1,
-    SOLD = 2,
-    WAITING = 3
+    WAITING = 0,
+    LISTED = 1,
+    CANCELED = 2,
+    SOLD = 3,
+    INVALID = 4
+}
+
+export enum AuctionApiState {
+    WAITING = 0, // Auction created but assets were not transferred yet
+    LISTED = 1, // Auction pending and open to bids
+    CANCELED = 2, // Auction was canceled
+    SOLD = 3, // Auction has been sold
+    INVALID = 4 // Auction ended but no bid was made
 }
 
 export class AtomicMarketNamespace extends ApiNamespace {

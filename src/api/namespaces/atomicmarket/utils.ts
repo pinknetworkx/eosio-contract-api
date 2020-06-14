@@ -2,8 +2,8 @@ import * as express from 'express';
 
 import { filterQueryArgs } from '../utils';
 import { buildAssetFilter } from '../atomicassets/utils';
-import { SaleApiState } from './index';
-import { SaleState } from '../../../filler/handlers/atomicmarket';
+import { AuctionApiState, SaleApiState } from './index';
+import { AuctionState, SaleState } from '../../../filler/handlers/atomicmarket';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 
 function hasAssetFilter(req: express.Request): boolean {
@@ -152,20 +152,24 @@ export function buildSaleFilter(req: express.Request, varOffset: number): {str: 
     if (args.state) {
         const stateConditions: string[] = [];
 
-        if (args.state.split(',').indexOf(String(SaleApiState.LISTED.valueOf())) >= 0) {
-            stateConditions.push(`(sale_state = ${SaleState.LISTED.valueOf()} AND listing.offer_state = ${OfferState.PENDING.valueOf()})`);
+        if (args.state.split(',').indexOf(String(SaleApiState.WAITING.valueOf())) >= 0) {
+            stateConditions.push(`(listing.sale_state = ${SaleState.WAITING.valueOf()})`);
         }
 
-        if (args.state.split(',').indexOf(String(SaleApiState.INVALID.valueOf())) >= 0) {
-            stateConditions.push(`(offer_state != ${OfferState.PENDING.valueOf()} AND listing.sale_state != ${SaleState.SOLD.valueOf()})`);
+        if (args.state.split(',').indexOf(String(SaleApiState.LISTED.valueOf())) >= 0) {
+            stateConditions.push(`(listing.sale_state = ${SaleState.LISTED.valueOf()} AND listing.offer_state = ${OfferState.PENDING.valueOf()})`);
+        }
+
+        if (args.state.split(',').indexOf(String(SaleApiState.CANCELED.valueOf())) >= 0) {
+            stateConditions.push(`(listing.sale_state = ${SaleState.CANCELED.valueOf()})`);
         }
 
         if (args.state.split(',').indexOf(String(SaleApiState.SOLD.valueOf())) >= 0) {
-            stateConditions.push(`(sale_state = ${SaleState.SOLD.valueOf()})`);
+            stateConditions.push(`(listing.sale_state = ${SaleState.SOLD.valueOf()})`);
         }
 
-        if (args.state.split(',').indexOf(String(SaleApiState.WAITING.valueOf())) >= 0) {
-            stateConditions.push(`(sale_state = ${SaleState.WAITING.valueOf()})`);
+        if (args.state.split(',').indexOf(String(SaleApiState.INVALID.valueOf())) >= 0) {
+            stateConditions.push(`(listing.offer_state != ${OfferState.PENDING.valueOf()} AND listing.sale_state = ${SaleState.LISTED.valueOf()})`);
         }
 
         queryString += 'AND ' + stateConditions.join(' OR ') + ' ';
@@ -219,8 +223,29 @@ export function buildAuctionFilter(req: express.Request, varOffset: number): {st
     }
 
     if (args.state) {
-        queryString += 'AND auction_state = ANY ($' + ++varCounter + ') ';
-        queryValues.push(args.state.split(','));
+        const stateConditions: string[] = [];
+
+        if (args.state.split(',').indexOf(String(AuctionApiState.WAITING.valueOf())) >= 0) {
+            stateConditions.push(`(listing.auction_state = ${AuctionState.WAITING.valueOf()})`);
+        }
+
+        if (args.state.split(',').indexOf(String(AuctionApiState.LISTED.valueOf())) >= 0) {
+            stateConditions.push(`(listing.auction_state = ${AuctionState.LISTED.valueOf()} AND listing.end_time > ${Date.now()}))`);
+        }
+
+        if (args.state.split(',').indexOf(String(AuctionApiState.CANCELED.valueOf())) >= 0) {
+            stateConditions.push(`(listing.auction_sate = ${AuctionState.CANCELED.valueOf()})`);
+        }
+
+        if (args.state.split(',').indexOf(String(AuctionApiState.SOLD.valueOf())) >= 0) {
+            stateConditions.push(`(listing.auction_sate = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Date.now()} AND listing.buyer IS NOT NULL)`);
+        }
+
+        if (args.state.split(',').indexOf(String(AuctionApiState.INVALID.valueOf())) >= 0) {
+            stateConditions.push(`(listing.auction_sate = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Date.now()} AND listing.buyer IS NULL)`);
+        }
+
+        queryString += 'AND ' + stateConditions.join(' OR ') + ' ';
     }
 
     return {

@@ -17,7 +17,7 @@ export async function saveAssetTableRow(
     );
 
     if (schemaQuery.rowCount === 0) {
-        throw new Error('Schema for asset not found');
+        throw new Error('AtomicAssets: Schema for asset not found');
     }
 
     const schema = ObjectSchema(schemaQuery.rows[0].format);

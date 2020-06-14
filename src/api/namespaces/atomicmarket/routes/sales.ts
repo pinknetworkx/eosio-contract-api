@@ -92,7 +92,13 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                         {
                             name: 'state',
                             in: 'query',
-                            description: 'Filter by sale state (0: Listed, 1: Invalid, 2: Sold, 3: Waiting for assets) - separate multiple with ","',
+                            description: 'Filter by sale state (' +
+                                '0: WAITING - Sale created but offer was not send yet, ' +
+                                '1: LISTED - Assets for sale, ' +
+                                '2: CANCELED - Sale was canceled, ' +
+                                '3: SOLD - Sale was bought' +
+                                '4: INVALID - Sale is still listed but offer is currently invalid (can become valid again if the user owns all assets again)' +
+                                ') - separate multiple with ","',
                             required: false,
                             schema: {type: 'string'}
                         },

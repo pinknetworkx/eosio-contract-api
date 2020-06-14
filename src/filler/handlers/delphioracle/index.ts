@@ -136,7 +136,7 @@ export default class DelphiOracleHandler extends ContractHandler {
         });
 
         if (resp.rows.length === 0) {
-            throw new Error('Delphi par not found');
+            throw new Error('DelphiOracle: Delphi pair not found');
         }
 
         await this.savePair(db, block, resp.rows[0]);
@@ -147,9 +147,9 @@ export default class DelphiOracleHandler extends ContractHandler {
             contract: this.args.delphioracle_account,
             delphi_pair_name: row.name,
             base_symbol: row.base_symbol.split(',')[1],
-            base_precision: row.base_symbol.split(',')[1],
+            base_precision: row.base_symbol.split(',')[0],
             quote_symbol: row.quote_symbol.split(',')[1],
-            quote_precision: row.quote_symbol.split(',')[1],
+            quote_precision: row.quote_symbol.split(',')[0],
             median: 1, // should not be 0
             median_precision: row.quoted_precision,
             updated_at_time: 0,

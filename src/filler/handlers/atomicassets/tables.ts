@@ -71,46 +71,12 @@ export default class AtomicAssetsTableHandler {
         } else if (delta.table === 'config' && delta.scope === this.core.args.atomicassets_account) {
             this.core.addUpdateJob(async () => {
                 // @ts-ignore
-                const data: ConfigTableRow = delta.value;
-
-                const supportedTokensQuery = await db.query(
-                    'SELECT token_symbol FROM atomicassets_token_symbols WHERE contract = $1',
-                    [this.contractName]
-                );
-
-                if (supportedTokensQuery.rowCount < data.supported_tokens.length) {
-                    for (const token of data.supported_tokens) {
-                        await db.replace('atomicassets_token_symbols', {
-                            contract: this.contractName,
-                            token_symbol: token.token_symbol.split(',')[1],
-                            token_contract: token.token_contract,
-                            token_precision: token.token_symbol.split(',')[0]
-                        }, ['contract', 'token_symbol']);
-                    }
-                }
-
-                await db.update('atomicassets_config', {
-                    collection_format: data.collection_format.map((element: any) => JSON.stringify(element))
-                }, {
-                    str: 'contract = $1',
-                    values: [this.contractName]
-                }, ['contract']);
-
-                this.core.config.collection_format = ObjectSchema(data.collection_format);
+                await this.handleConfigUpdate(db, block, delta.value, !delta.present);
             }, JobPriority.TABLE_CONFIG);
         } else if (delta.table === 'tokenconfigs' && delta.scope === this.core.args.atomicassets_account) {
             this.core.addUpdateJob(async () => {
                 // @ts-ignore
-                const data: TokenConfigsTableRow = delta.value;
-
-                await db.update('atomicassets_config', {
-                    version: data.version
-                }, {
-                    str: 'contract = $1',
-                    values: [this.contractName]
-                }, ['contract']);
-
-                this.core.config.version = data.version;
+                await this.handleTokenconfigsUpdate(db, block, delta.value, !delta.present);
             }, JobPriority.TABLE_TOKENCONFIGS);
         } else {
             logger.warn('[atomicassets] Received table delta from unknown table: ' + delta.table + ' - ' + delta.scope);
@@ -126,17 +92,19 @@ export default class AtomicAssetsTableHandler {
     }
 
     async handleBalancesUpdate(
-        db: ContractDBTransaction, block: ShipBlock, data: BalancesTableRow, _: boolean
+        db: ContractDBTransaction, block: ShipBlock, data: BalancesTableRow, deleted: boolean
     ): Promise<void> {
-        const symbols = data.quantities.map((quantity) => (quantity.split(' ')[1]));
-
         await db.delete('atomicassets_balances', {
-            str: 'contract = $1 AND owner = $2 AND token_symbol NOT IN (' + symbols.map((symbol) => '\'' + symbol + '\'').join(', ') + ')',
+            str: 'contract = $1 AND owner = $2',
             values: [this.contractName, data.owner]
         });
 
+        if (deleted) {
+            return;
+        }
+
         for (const quantity of data.quantities) {
-            await db.replace('atomicassets_balances', {
+            await db.insert('atomicassets_balances', {
                 contract: this.contractName,
                 owner: data.owner,
                 token_symbol: quantity.split(' ')[1],
@@ -151,10 +119,10 @@ export default class AtomicAssetsTableHandler {
         db: ContractDBTransaction, block: ShipBlock, data: CollectionsTableRow, deleted: boolean
     ): Promise<void> {
         if (deleted) {
-            throw new Error('A collection was deleted. Should not be possible by contract');
+            throw new Error('AtomicAssets: A collection was deleted. Should not be possible by contract');
         }
 
-        const deserializedData = deserialize(new Uint8Array(data.serialized_data), this.core.config.collection_format);
+        const deserializedData = deserialize(new Uint8Array(data.serialized_data), ObjectSchema(this.core.config.collection_format));
 
         await db.replace('atomicassets_collections', {
             contract: this.contractName,
@@ -183,7 +151,7 @@ export default class AtomicAssetsTableHandler {
         db: ContractDBTransaction, block: ShipBlock, scope: string, data: TemplatesTableRow, deleted: boolean
     ): Promise<void> {
         if (deleted) {
-            throw new Error('A template was deleted. Should not be possible by contract');
+            throw new Error('AtomicAssets: A template was deleted. Should not be possible by contract');
         }
 
         const schemaQuery = await db.query(
@@ -192,7 +160,7 @@ export default class AtomicAssetsTableHandler {
         );
 
         if (schemaQuery.rowCount === 0) {
-            throw new Error('Schema of template not found. Should not be possible by contract');
+            throw new Error('AtomicAssets: Schema of template not found. Should not be possible by contract');
         }
 
         const immutableData = deserialize(new Uint8Array(data.immutable_serialized_data), ObjectSchema(schemaQuery.rows[0].format));
@@ -234,7 +202,7 @@ export default class AtomicAssetsTableHandler {
         db: ContractDBTransaction, block: ShipBlock, scope: string, data: SchemasTableRow, deleted: boolean
     ): Promise<void> {
         if (deleted) {
-            throw new Error('A schema was deleted. Should not be possible by contract');
+            throw new Error('AtomicAssets: A schema was deleted. Should not be possible by contract');
         }
 
         await db.replace('atomicassets_schemas', {
@@ -245,5 +213,62 @@ export default class AtomicAssetsTableHandler {
             created_at_block: block.block_num,
             created_at_time: eosioTimestampToDate(block.timestamp).getTime()
         }, ['contract', 'collection_name', 'schema_name'], ['created_at_block', 'created_at_time']);
+    }
+
+    async handleConfigUpdate(
+        db: ContractDBTransaction, _: ShipBlock, data: ConfigTableRow, deleted: boolean
+    ): Promise<void> {
+        if (deleted) {
+            throw new Error('AtomicAssets: The config was deleted. Should not be possible by contract');
+        }
+
+        if (this.core.config.supported_tokens.length !== data.supported_tokens.length) {
+            const tokens = this.core.config.supported_tokens.map(row => row.token_symbol);
+
+            for (const token of data.supported_tokens) {
+                const index = tokens.indexOf(token.token_symbol);
+
+                if (index === -1) {
+                    await db.insert('atomicassets_tokens', {
+                        contract: this.contractName,
+                        token_symbol: token.token_symbol.split(',')[1],
+                        token_contract: token.token_contract,
+                        token_precision: token.token_symbol.split(',')[0]
+                    }, ['contract', 'token_symbol']);
+                } else {
+                    tokens.splice(index, 1);
+                }
+            }
+        }
+
+        if (this.core.config.collection_format.length !== data.collection_format.length) {
+            await db.update('atomicassets_config', {
+                collection_format: data.collection_format.map((element: any) => JSON.stringify(element))
+            }, {
+                str: 'contract = $1',
+                values: [this.contractName]
+            }, ['contract']);
+        }
+
+        this.core.config = data;
+    }
+
+    async handleTokenconfigsUpdate(
+        db: ContractDBTransaction, _: ShipBlock, data: TokenConfigsTableRow, deleted: boolean
+    ): Promise<void> {
+        if (deleted) {
+            throw new Error('AtomicAssets: Tokenconfigs were deleted. Should not be possible by contract');
+        }
+
+        if (this.core.tokenconfigs.version !== data.version) {
+            await db.update('atomicassets_config', {
+                version: data.version
+            }, {
+                str: 'contract = $1',
+                values: [this.contractName]
+            }, ['contract']);
+        }
+
+        this.core.tokenconfigs = data;
     }
 }

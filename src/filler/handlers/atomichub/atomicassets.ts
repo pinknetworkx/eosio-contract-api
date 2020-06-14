@@ -26,7 +26,7 @@ export default class AtomicAssetsActionHandler {
 
     async handleTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
         if (typeof trace.act.data === 'string') {
-            throw new Error('AtomicHub: atomicassets actions was not deserialized properly ' + JSON.stringify({trace, tx}));
+            throw new Error('AtomicHub: Action was not deserialized properly ' + JSON.stringify({trace, tx}));
         }
 
         if (['logmint'].indexOf(trace.act.name) >= 0) {
@@ -42,7 +42,7 @@ export default class AtomicAssetsActionHandler {
         const offer = await this.getOffer(db, offerID);
 
         if (offer === null) {
-            logger.error('[AtomicHub] Offer state changed but offer not found in database');
+            logger.error('AtomicHub: Offer state changed but offer not found in database');
 
             return;
         }

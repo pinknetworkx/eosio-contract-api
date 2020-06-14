@@ -2,7 +2,7 @@ import { ContractDBTransaction } from '../../database';
 import { ShipBlock } from '../../../types/ship';
 import AtomicHubHandler from './index';
 import logger from '../../../utils/winston';
-import { AuctionState, SaleState } from '../atomicmarket';
+import { SaleState } from '../atomicmarket';
 
 export default class AtomicMarketActionHandler {
     private readonly contractName: string;
@@ -41,44 +41,63 @@ export default class AtomicMarketActionHandler {
         });
     }
 
-    async handleAuctionStateChange(db: ContractDBTransaction, block: ShipBlock, auctionID: string, state: number): Promise<void> {
+    async handleAuctionStateChange(db: ContractDBTransaction, _block: ShipBlock, auctionID: string, _state: number): Promise<void> {
         const auction = await this.getAuction(db, auctionID);
 
         if (auction === null) {
-            logger.error('[AtomicHub] Auction state changed but auction not found in database');
+            logger.error('AtomicHub: Auction state changed but auction not found in database');
 
             return;
         }
 
-        if (state === AuctionState.FINISHED.valueOf()) {
+        /*if (state === AuctionState.FINISHED.valueOf()) {
             await this.core.createNotification(
                 db, block, this.contractName, auction.seller,
                 'Your auction #' + auctionID + ' has ended',
                 {type: 'auction', id: auctionID}
             );
-        }
+        }*/
     }
 
-    async handleAuctionBid(db: ContractDBTransaction, block: ShipBlock, auctionID: string, bidNumber: number): Promise<void> {
-        const query = await this.core.connection.database.query(
+    async handleAuctionBid(
+        db: ContractDBTransaction, block: ShipBlock, auctionID: string, bidNumber: number
+    ): Promise<void> {
+        const lowerBidQuery = await this.core.connection.database.query(
             'SELECT account FROM atomicmarket_auctions_bids WHERE market_contract = $1 AND auction_id = $2 AND bid_number < $3 ORDER BY bid_number DESC LIMIT 1',
             [this.contractName, auctionID, bidNumber]
         );
 
-        if (query.rows.length > 0) {
+        if (lowerBidQuery.rows.length > 0) {
             await this.core.createNotification(
-                db, block, this.contractName, query.rows[0].account,
+                db, block, this.contractName, lowerBidQuery.rows[0].account,
                 'You were outbid on auction #' + auctionID + '',
                 {type: 'auction', id: auctionID}
             );
         }
+
+        const saleQuery = await db.query(
+            'SELECT bid.account, auction.seller FROM atomicmarket_auctions auction, atomicmarket_auctions_bids bid ' +
+            'WHERE bid.market_contract = auction.market_contract AND bid.auction_id = auction.auction_id AND ' +
+            'bid.market_contract = $1 AND bid.auction_id = $2 AND bid.bid_number = $3',
+            [this.core.args.atomicmarket_account, auctionID, bidNumber]
+        );
+
+        if (saleQuery.rowCount === 0) {
+            throw new Error('AtomicHub: Bid not found');
+        }
+
+        await this.core.createNotification(
+            db, block, this.contractName, saleQuery.rows[0].seller,
+            saleQuery.rows[0].seller + ' has made a bid on auction #' + auctionID + '',
+            {type: 'auction', id: auctionID}
+        );
     }
 
     async handleSaleStateChange(db: ContractDBTransaction, block: ShipBlock, saleID: string, state: number): Promise<void> {
         const auction = await this.getSale(db, saleID);
 
         if (auction === null) {
-            logger.error('[AtomicHub] Sale state changed but sale not found in database');
+            logger.error('AtomicHub: Sale state changed but sale not found in database');
 
             return;
         }
@@ -86,7 +105,7 @@ export default class AtomicMarketActionHandler {
         if (state === SaleState.SOLD.valueOf()) {
             await this.core.createNotification(
                 db, block, this.contractName, auction.seller,
-                'Your sale #' + saleID + ' was bought',
+                'Your sale #' + saleID + ' was bought.',
                 {type: 'sale', id: saleID}
             );
         }

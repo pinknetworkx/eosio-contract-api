@@ -15,31 +15,32 @@ import AtomicMarketTableHandler from './tables';
 import AtomicMarketActionHandler from './actions';
 
 export type AtomicMarketArgs = {
+    atomicmarket_account: string,
     atomicassets_account: string,
-    atomicmarket_account: string
+    delphioracle_account: string
 };
 
 export enum SaleState {
-    LISTED = 0,
-    CANCELED = 1,
-    SOLD = 2,
-    WAITING = 3
+    WAITING = 0,
+    LISTED = 1,
+    CANCELED = 2,
+    SOLD = 3
 }
 
 export enum AuctionState {
-    LISTED = 0,
-    CANCELED = 1,
-    FINISHED = 2,
-    WAITING = 3
+    WAITING = 0,
+    LISTED = 1,
+    CANCELED = 2
 }
 
 export enum JobPriority {
-    INDEPENDENT = 100,
     TABLE_BALANCES = 90,
     TABLE_MARKETPLACES = 90,
     TABLE_CONFIG = 90,
-    TABLE_AUCTIONS = 80,
-    TABLE_SALES = 80,
+    ACTION_CREATE_SALE = 80,
+    ACTION_CREATE_AUCTION = 80,
+    TABLE_AUCTIONS = 70,
+    TABLE_SALES = 70,
     ACTION_UPDATE_SALE = 50,
     ACTION_UPDATE_AUCTION = 50
 }
@@ -49,9 +50,7 @@ export default class AtomicMarketHandler extends ContractHandler {
 
     readonly args: AtomicMarketArgs;
 
-    config: {
-        version: string
-    };
+    config: ConfigTableRow;
 
     reversible = false;
 
@@ -67,12 +66,8 @@ export default class AtomicMarketHandler extends ContractHandler {
     constructor(connection: ConnectionManager, events: PromiseEventHandler, args: {[key: string]: any}) {
         super(connection, events, args);
 
-        if (typeof args.atomicassets_account !== 'string') {
-            throw new Error('Argument missing in atomicmarket handler: atomicassets_account');
-        }
-
         if (typeof args.atomicmarket_account !== 'string') {
-            throw new Error('Argument missing in atomicmarket handler: atomicmarket_account');
+            throw new Error('AtomicMarket: Argument missing in atomicmarket handler: atomicmarket_account');
         }
 
         this.updateQueue = new PQueue({concurrency: 1, autoStart: false});
@@ -124,7 +119,7 @@ export default class AtomicMarketHandler extends ContractHandler {
 
         const configQuery = await client.query(
             'SELECT * FROM atomicmarket_config WHERE market_contract = $1',
-            [this.args.atomicassets_account]
+            [this.args.atomicmarket_account]
         );
 
         if (configQuery === null || configQuery.rows.length === 0) {
@@ -134,18 +129,17 @@ export default class AtomicMarketHandler extends ContractHandler {
             });
 
             if (configTable.rows.length === 0) {
-                throw new Error('Unable to fetch atomicmarket version');
+                throw new Error('AtomicMarket: Unable to fetch atomicmarket version');
             }
 
             const config: ConfigTableRow = configTable.rows[0];
 
-            if (config.atomicassets_account !== this.args.atomicassets_account) {
-                throw new Error('AtomicAssets does not match the config in atomicmarket reader');
-            }
+            this.args.delphioracle_account = config.delphioracle_account;
+            this.args.atomicassets_account = config.atomicassets_account;
 
             await client.query(
                 'INSERT INTO atomicmarket_config ' +
-                '(market_contract, asset_contract, delphi_contract, version, market_market_fee, taker_market_fee, maximum_auction_duration, minimum_bid_increase) ' +
+                '(market_contract, asset_contract, delphi_contract, version, maker_market_fee, taker_market_fee, maximum_auction_duration, minimum_bid_increase) ' +
                 'VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
                 [
                     this.args.atomicmarket_account,
@@ -159,10 +153,42 @@ export default class AtomicMarketHandler extends ContractHandler {
                 ]
             );
 
-            this.config.version = config.version;
-
+            this.config = {
+                ...config,
+                supported_symbol_pairs: [],
+                supported_tokens: []
+            };
         } else {
-            this.config.version = configQuery.rows[0].version;
+            this.args.delphioracle_account = configQuery.rows[0].delphi_account;
+            this.args.atomicassets_account = configQuery.rows[0].asset_account;
+
+            const tokensQuery = await this.connection.database.query(
+                'SELECT * FROM atomicmarket_tokens WHERE market_contract = $1',
+                [this.args.atomicassets_account]
+            );
+
+            const pairsQuery = await this.connection.database.query(
+                'SELECT * FROM atomicmarket_symbol_pairs WHERE market_contract = $1',
+                [this.args.atomicassets_account]
+            );
+
+            this.config = {
+                ...configQuery.rows[0],
+                supported_symbol_pairs: pairsQuery.rows.map(row => ({
+                    listing_symbol: 'X,' + row.listing_symbol,
+                    settlement_symbol: 'X,' + row.settlement_symbol,
+                    invert_delphi_pair: row.invert_delphi_pair,
+                    delphi_pair_name: row.delphi_pair_name
+                })),
+                supported_tokens: tokensQuery.rows.map(row => ({
+                    token_contract: row.token_contract,
+                    token_symbol: row.token_precision + ',' + row.token_symbol
+                })),
+                auction_counter: 0,
+                sale_counter: 0,
+                delphioracle_account: this.args.delphioracle_account,
+                atomicassets_account: this.args.atomicassets_account
+            };
         }
     }
 

@@ -2,9 +2,6 @@ import * as fs from 'fs';
 import PQueue from 'p-queue';
 import { PoolClient } from 'pg';
 
-import { ObjectSchema } from 'atomicassets';
-import { ISchema } from 'atomicassets/build/Schema';
-
 import { ContractHandler } from '../interfaces';
 import { ShipBlock } from '../../../types/ship';
 import { EosioActionTrace, EosioTableRow, EosioTransaction } from '../../../types/eosio';
@@ -15,6 +12,7 @@ import ConnectionManager from '../../../connections/manager';
 import { PromiseEventHandler } from '../../../utils/event';
 import AtomicAssetsActionHandler from './actions';
 import { getStackTrace } from '../../../utils';
+import { ConfigTableRow, TokenConfigsTableRow } from './types/tables';
 
 export enum OfferState {
     PENDING = 0,
@@ -50,10 +48,8 @@ export default class AtomicAssetsHandler extends ContractHandler {
 
     readonly args: AtomicAssetsReaderArgs;
 
-    config: {
-        version: string,
-        collection_format?: ISchema
-    };
+    config: ConfigTableRow;
+    tokenconfigs: TokenConfigsTableRow;
 
     reversible = false;
 
@@ -72,7 +68,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
         super(connection, events, args);
 
         if (typeof args.atomicassets_account !== 'string') {
-            throw new Error('Argument missing in atomicassets handler: atomicassets_account');
+            throw new Error('AtomicAssets: Argument missing in atomicassets handler: atomicassets_account');
         }
 
         this.updateQueue = new PQueue({concurrency: 1, autoStart: false});
@@ -94,11 +90,6 @@ export default class AtomicAssetsHandler extends ContractHandler {
                     deserialize: true
                 }
             ]
-        };
-
-        this.config = {
-            version: '0.0.0',
-            collection_format: undefined
         };
 
         this.tableHandler = new AtomicAssetsTableHandler(this);
@@ -135,35 +126,56 @@ export default class AtomicAssetsHandler extends ContractHandler {
             [this.args.atomicassets_account]
         );
 
-        if (configQuery === null || configQuery.rows.length === 0) {
-            const configTable = await this.connection.chain.rpc.get_table_rows({
-                json: true, code: this.args.atomicassets_account,
-                scope: this.args.atomicassets_account, table: 'config'
-            });
-
-            const tokenTable = await this.connection.chain.rpc.get_table_rows({
+        if (configQuery.rows.length === 0) {
+            const tokenconfigsTable = await this.connection.chain.rpc.get_table_rows({
                 json: true, code: this.args.atomicassets_account,
                 scope: this.args.atomicassets_account, table: 'tokenconfigs'
             });
 
-            if (configTable.rows.length > 0 && tokenTable.rows.length > 0 && tokenTable.rows[0].standard === 'atomicassets') {
+            if (tokenconfigsTable.rows[0].standard !== 'atomicassets') {
+                throw new Error('AtomicAssets: Contract not deployed on the account');
+            }
+
+            this.config = {
+                supported_tokens: [],
+                asset_counter: 0,
+                offer_counter: 0,
+                collection_format: []
+            };
+
+            this.tokenconfigs = {
+                version: tokenconfigsTable.rows[0].version,
+                standard: tokenconfigsTable.rows[0].standard
+            };
+
+            if (tokenconfigsTable.rows.length > 0) {
                 await client.query(
                     'INSERT INTO atomicassets_config (contract, version, collection_format) VALUES ($1, $2, $3)',
-                    [
-                        this.args.atomicassets_account,
-                        tokenTable.rows[0].version,
-                        configTable.rows[0].collection_format.map((element: any) => JSON.stringify(element))
-                    ]
+                    [this.args.atomicassets_account, tokenconfigsTable.rows[0].version, []]
                 );
-
-                this.config.collection_format = ObjectSchema(configTable.rows[0].collection_format);
-                this.config.version = tokenTable.rows[0].version;
             } else {
-                throw new Error('Unable to fetch atomicassets version');
+                throw new Error('AtomicAssets: Tokenconfigs table empty');
             }
         } else {
-            this.config.collection_format = ObjectSchema(configQuery.rows[0].collection_format);
-            this.config.version = configQuery.rows[0].version;
+            const tokensQuery = await this.connection.database.query(
+                'SELECT * FROM atomicassets_tokens WHERE contract = $1',
+                [this.args.atomicassets_account]
+            );
+
+            this.config = {
+                supported_tokens: tokensQuery.rows.map(row => ({
+                    token_contract: row.token_contract,
+                    token_symbol: row.token_precision + ',' + row.token_symbol
+                })),
+                asset_counter: 0,
+                offer_counter: 0,
+                collection_format: configQuery.rows[0].collection_format
+            };
+
+            this.tokenconfigs = {
+                version: configQuery.rows[0].version,
+                standard: 'atomicassets'
+            };
         }
 
         this.events.on('atomicassets_offer_state_change', async ({contract, offer_id, state}: {
@@ -183,7 +195,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
             'atomicassets_balances', 'atomicassets_collections', 'atomicassets_config',
             'atomicassets_logs', 'atomicassets_offers', 'atomicassets_offers_assets',
             'atomicassets_templates', 'atomicassets_templates_data', 'atomicassets_schemas',
-            'atomicassets_token_symbols', 'atomicassets_transfers', 'atomicassets_transfers_assets'
+            'atomicassets_tokens', 'atomicassets_transfers', 'atomicassets_transfers_assets'
         ];
 
         for (const table of tables) {

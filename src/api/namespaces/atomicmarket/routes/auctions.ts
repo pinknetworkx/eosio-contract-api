@@ -29,7 +29,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
 
             const sortColumnMapping = {
                 auction_id: 'auction_id',
-                ending: 'end_at_block',
+                ending: 'end_time',
                 created: 'created_at_block',
                 price: 'raw_price'
             };
@@ -94,7 +94,13 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                         {
                             name: 'state',
                             in: 'query',
-                            description: 'Filter by auction state (0: Listed, 1: Canceled, 2: Finished, 3: Waiting for assets) - separate multiple with ","',
+                            description: 'Filter by auction state (' +
+                                '0: WAITING: Auction created but assets were not transferred yet, ' +
+                                '1: LISTED - Auction pending and open to bids, ' +
+                                '2: CANCELED - Auction was canceled, ' +
+                                '3: SOLD - Auction has been sold, ' +
+                                '4: INVALID - Auction ended but no bid was made' +
+                                ') - separate multiple with ","',
                             required: false,
                             schema: {type: 'string'}
                         },

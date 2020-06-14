@@ -54,7 +54,7 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
                     'token_precision', symbols_b.token_precision,
                     'amount', backed_b.amount
                 )
-            FROM atomicassets_assets_backed_tokens backed_b, atomicassets_token_symbols symbols_b
+            FROM atomicassets_assets_backed_tokens backed_b, atomicassets_tokens symbols_b
             WHERE
                 backed_b.contract = symbols_b.contract AND backed_b.token_symbol = symbols_b.token_symbol AND
                 backed_b.contract = asset_a.contract AND backed_b.asset_id = asset_a.asset_id

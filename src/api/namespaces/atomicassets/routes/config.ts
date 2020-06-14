@@ -19,11 +19,19 @@ export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                 return res.json({success: false, message: 'Config not found'});
             }
 
-            return res.json({success: true, data: {
-                contract: core.args.atomicassets_account,
-                version: query.rows[0].version,
-                collection_format: query.rows[0].collection_format
-            }, query_time: Date.now()});
+            const tokensQuery = await core.connection.database.query(
+                'SELECT token_symbol, token_contract, token_precision FROM atomicassets_tokens WHERE contract = $1',
+                [core.args.atomicassets_account]
+            );
+
+            return res.json({
+                success: true, data: {
+                    contract: core.args.atomicassets_account,
+                    version: query.rows[0].version,
+                    collection_format: query.rows[0].collection_format,
+                    supported_tokens: tokensQuery.rows
+                }, query_time: Date.now()
+            });
         } catch (e) {
             logger.error(e);
 
@@ -53,6 +61,17 @@ export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                                     properties: {
                                         name: {type: 'string'},
                                         type: {type: 'string'}
+                                    }
+                                }
+                            },
+                            supported_tokens: {
+                                type: 'array',
+                                items: {
+                                    type: 'object',
+                                    properties: {
+                                        token_contract: {type: 'string'},
+                                        token_symbol: {type: 'string'},
+                                        token_precision: {type: 'integer'}
                                     }
                                 }
                             }

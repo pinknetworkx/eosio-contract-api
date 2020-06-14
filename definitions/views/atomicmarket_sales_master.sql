@@ -24,7 +24,7 @@ CREATE OR REPLACE VIEW atomicmarket_sales_master AS
             'token_contract', token.token_contract,
             'token_symbol', token.token_symbol,
             'token_precision', token.token_precision,
-            'median', delphi.median,
+            'median', delphi.median
         ) price,
 
         ARRAY(
