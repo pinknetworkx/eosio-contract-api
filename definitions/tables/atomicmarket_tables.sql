@@ -219,6 +219,7 @@ CREATE INDEX atomicmarket_auctions_taker_marketplace ON atomicmarket_auctions US
 CREATE INDEX atomicmarket_auctions_state ON atomicmarket_auctions USING btree (state);
 CREATE INDEX atomicmarket_auctions_updated_at_block ON atomicmarket_auctions USING btree (updated_at_block);
 CREATE INDEX atomicmarket_auctions_created_at_block ON atomicmarket_auctions USING btree (created_at_block);
+CREATE INDEX atomicmarket_auctions_created_at_time ON atomicmarket_auctions USING btree (created_at_time);
 CREATE INDEX atomicmarket_auctions_end_time ON atomicmarket_auctions USING btree (end_time);
 
 CREATE INDEX atomicmarket_auctions_bids_market_contract ON atomicmarket_auctions_bids USING hash (market_contract);
@@ -244,3 +245,4 @@ CREATE INDEX atomicmarket_sales_taker_marketplace ON atomicmarket_sales USING ha
 CREATE INDEX atomicmarket_sales_state ON atomicmarket_sales USING btree (state);
 CREATE INDEX atomicmarket_sales_updated_at_block ON atomicmarket_sales USING btree (updated_at_block);
 CREATE INDEX atomicmarket_sales_created_at_block ON atomicmarket_sales USING btree (created_at_block);
+CREATE INDEX atomicmarket_sales_created_at_time ON atomicmarket_sales USING btree (created_at_time);

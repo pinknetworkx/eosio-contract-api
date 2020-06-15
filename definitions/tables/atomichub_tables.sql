@@ -67,3 +67,4 @@ CREATE INDEX atomichub_watchlist_created ON atomichub_watchlist USING btree (cre
 
 CREATE INDEX atomichub_notifications_account ON atomichub_notifications USING hash (account);
 CREATE INDEX atomichub_notifications_block_num ON atomichub_notifications USING btree (block_num);
+CREATE INDEX atomichub_notifications_block_time ON atomichub_notifications USING btree (block_time);

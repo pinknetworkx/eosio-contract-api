@@ -93,7 +93,7 @@ export default class StateHistoryBlockReader {
         return buffer.asUint8Array();
     }
 
-    deserialize(type: string, data: any, types?: Map<string, Serialize.Type>): any {
+    deserialize(type: string, data: any, types?: Map<string, Serialize.Type>, checkLength: boolean = true): any {
         let serializeTypes: Map<string, Serialize.Type>;
 
         if (types) {
@@ -106,7 +106,7 @@ export default class StateHistoryBlockReader {
         const result = Serialize.getType(serializeTypes, type)
             .deserialize(buffer, new Serialize.SerializerState({ bytesAsUint8Array: true }));
 
-        if (buffer.readPos !== data.length) {
+        if (buffer.readPos !== data.length && checkLength) {
             throw new Error('Deserialization error: ' + type);
         }
 

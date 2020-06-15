@@ -5,6 +5,8 @@ import { HTTPServer } from '../../../server';
 import { filterQueryArgs } from '../../utils';
 import { getOpenAPI3Responses } from '../../../docs';
 import { formatListingAsset, formatSale } from '../../atomicmarket/format';
+import { SaleState } from '../../../../filler/handlers/atomicmarket';
+import { OfferState } from '../../../../filler/handlers/atomicassets';
 
 export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/stats', server.web.caching({expire: 60, ignoreQueryString: true}), async (_, res) => {
@@ -39,7 +41,14 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             limit: {type: 'int', min: 1, max: 100, default: 10}
         });
 
-        const query = await core.connection.database.query('SELECT * from atomicassets_sales_master LIMIT $1', [args.limit]);
+        const query = await core.connection.database.query(
+            'SELECT * from atomicmarket_sales_master ' +
+            'WHERE sale_state = $1 AND offer_state = $2 AND market_contract = $3 AND asset_contract = $4 LIMIT $5',
+            [
+                SaleState.LISTED.valueOf(), OfferState.PENDING.valueOf(),
+                core.args.atomicmarket_account, core.args.atomicassets_account, args.limit
+            ]
+        );
 
         // TODO do some market magic to find trending assets
 
@@ -62,7 +71,10 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
 
         // TODO filter for only relevant NFTs
 
-        const query = await core.connection.database.query('SELECT * from atomicmarket_assets_master LIMIT $1', [args.limit]);
+        const query = await core.connection.database.query(
+            'SELECT * from atomicmarket_assets_master WHERE contract = $1 LIMIT $2',
+            [core.args.atomicassets_account, args.limit]
+        );
 
         res.json({
             success: true,

@@ -115,10 +115,14 @@ export default class AtomicMarketActionHandler {
         await db.insert('atomicmarket_auctions_assets', rows, [
             'market_contract', 'auction_id', 'asset_contract', 'asset_id'
         ]);
+
+        this.core.pushNotificiation(block, tx, 'auctions', 'create', {
+            auction_id: trace.act.data.auction_id, trace
+        });
     }
 
     async logauctstart(
-        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace<LogAuctionStartActionData>, _: EosioTransaction
+        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace<LogAuctionStartActionData>, tx: EosioTransaction
     ): Promise<void> {
         await db.update('atomicmarket_auctions', {
             state: AuctionState.LISTED.valueOf(),
@@ -133,10 +137,14 @@ export default class AtomicMarketActionHandler {
             db, block, contract: this.core.args.atomicmarket_account,
             auction_id: trace.act.data.auction_id, state: AuctionState.LISTED.valueOf()
         });
+
+        this.core.pushNotificiation(block, tx, 'auctions', 'state_change', {
+            auction_id: trace.act.data.auction_id, state: AuctionState.LISTED.valueOf(), trace
+        });
     }
 
     async cancelauct(
-        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace<CancelAuctionActionData>, _: EosioTransaction
+        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace<CancelAuctionActionData>, tx: EosioTransaction
     ): Promise<void> {
         await db.update('atomicmarket_auctions', {
             state: AuctionState.CANCELED.valueOf(),
@@ -150,6 +158,10 @@ export default class AtomicMarketActionHandler {
         await this.core.events.emit('atomicmarket_auction_state_change', {
             db, block, contract: this.core.args.atomicmarket_account,
             auction_id: trace.act.data.auction_id, state: AuctionState.CANCELED.valueOf()
+        });
+
+        this.core.pushNotificiation(block, tx, 'auctions', 'state_change', {
+            auction_id: trace.act.data.auction_id, state: AuctionState.CANCELED.valueOf(), trace
         });
     }
 
@@ -242,10 +254,14 @@ export default class AtomicMarketActionHandler {
             created_at_time: eosioTimestampToDate(block.timestamp).getTime(),
             created_at_txid: Buffer.from(tx.id, 'hex')
         }, ['market_contract', 'sale_id']);
+
+        this.core.pushNotificiation(block, tx, 'sales', 'create', {
+            sale_id: trace.act.data.sale_id, trace
+        });
     }
 
     async logsalestart(
-        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace<LogSaleStartActionData>, _: EosioTransaction
+        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace<LogSaleStartActionData>, tx: EosioTransaction
     ): Promise<void> {
         await db.update('atomicmarket_sales', {
             state: SaleState.LISTED.valueOf(),
@@ -261,10 +277,14 @@ export default class AtomicMarketActionHandler {
             db, block, contract: this.core.args.atomicmarket_account,
             sale_id: trace.act.data.sale_id, state: SaleState.LISTED.valueOf()
         });
+
+        this.core.pushNotificiation(block, tx, 'sales', 'state_change', {
+            sale_id: trace.act.data.sale_id, state: SaleState.LISTED.valueOf(), trace
+        });
     }
 
     async cancelsale(
-        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace<CancelSaleActionData>, _: EosioTransaction
+        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace<CancelSaleActionData>, tx: EosioTransaction
     ): Promise<void> {
         await db.update('atomicmarket_sales', {
             state: SaleState.CANCELED.valueOf(),
@@ -279,10 +299,14 @@ export default class AtomicMarketActionHandler {
             db, block, contract: this.core.args.atomicmarket_account,
             sale_id: trace.act.data.sale_id, state: SaleState.CANCELED.valueOf()
         });
+
+        this.core.pushNotificiation(block, tx, 'sales', 'state_change', {
+            sale_id: trace.act.data.sale_id, state: SaleState.CANCELED.valueOf(), trace
+        });
     }
 
     async purchasesale(
-        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace<PurchaseSaleActionData>, _: EosioTransaction
+        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace<PurchaseSaleActionData>, tx: EosioTransaction
     ): Promise<void> {
         let finalPrice = null;
 
@@ -337,6 +361,10 @@ export default class AtomicMarketActionHandler {
         await this.core.events.emit('atomicmarket_sale_state_change', {
             db, block, contract: this.core.args.atomicmarket_account,
             sale_id: trace.act.data.sale_id, state: SaleState.SOLD.valueOf()
+        });
+
+        this.core.pushNotificiation(block, tx, 'sales', 'state_change', {
+            sale_id: trace.act.data.sale_id, state: SaleState.SOLD.valueOf(), trace
         });
     }
 }

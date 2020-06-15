@@ -215,7 +215,7 @@ export default class StateReceiver {
                 // save hex data if ABI does not exist for contract
                 if (types !== null && type !== null) {
                     try {
-                        trace.act.data = this.ship.deserialize(type, actionTrace[1].act.data, types);
+                        trace.act.data = this.ship.deserialize(type, actionTrace[1].act.data, types, false);
                     } catch (e) {
                         logger.warn(e);
                     }
