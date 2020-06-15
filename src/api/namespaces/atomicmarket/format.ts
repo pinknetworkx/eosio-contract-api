@@ -20,11 +20,11 @@ export function formatAuction(row: any): any {
         data.state = AuctionApiState.INVALID.valueOf();
     }
 
-    delete row.raw_price;
-    delete row.raw_token_symbol;
-    delete row.raw_token_precision;
-    delete row.collection_name;
-    delete row.auction_state;
+    delete data.raw_price;
+    delete data.raw_token_symbol;
+    delete data.raw_token_precision;
+    delete data.collection_name;
+    delete data.auction_state;
 
     return data;
 }
@@ -46,11 +46,11 @@ export function formatSale(row: any): any {
         data.state = SaleApiState.INVALID.valueOf();
     }
 
-    delete row.raw_price;
-    delete row.raw_token_symbol;
-    delete row.raw_token_precision;
-    delete row.sale_state;
-    delete row.offer_state;
+    delete data.raw_price;
+    delete data.raw_token_symbol;
+    delete data.raw_token_precision;
+    delete data.sale_state;
+    delete data.offer_state;
 
     return data;
 }

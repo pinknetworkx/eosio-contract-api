@@ -54,6 +54,6 @@ export type ConfigTableRow = {
 };
 
 export type BalancesTableRow = {
-    name: string,
+    owner: string,
     quantities: string[]
 };

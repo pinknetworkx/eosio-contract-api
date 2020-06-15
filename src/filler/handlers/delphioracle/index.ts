@@ -73,6 +73,31 @@ export default class DelphiOracleHandler extends ContractHandler {
             }));
 
             logger.info('DelphiOracle tables successfully created');
+
+            const resp = await this.connection.chain.rpc.get_table_rows({
+                json: true, code: this.args.delphioracle_account, scope: this.args.delphioracle_account,
+                table: 'pairs', limit: 100
+            });
+
+            const createdPairs = [];
+
+            for (const row of resp.rows) {
+                const data = this.getDatabaseRow(row);
+                const keys = Object.keys(data);
+
+                await client.query(
+                    'INSERT INTO delphioracle_pairs (' +
+                    keys.map((key) => client.escapeIdentifier(key)).join(',') +
+                    ') VALUES (' +
+                    keys.map((_, index) => '$' + (index + 1)).join(',') +
+                    ')',
+                    keys.map(key => data[key])
+                );
+
+                createdPairs.push(row.name);
+            }
+
+            logger.info('Successfully created ' + createdPairs.length + ' delphi pairs on first run', createdPairs);
         }
     }
 
@@ -129,7 +154,7 @@ export default class DelphiOracleHandler extends ContractHandler {
 
     async onCommit(): Promise<void> { }
 
-    async fillPair(db: ContractDBTransaction, block: ShipBlock, pair: string): Promise<void> {
+    private async fillPair(db: ContractDBTransaction, block: ShipBlock, pair: string): Promise<void> {
         const resp = await this.connection.chain.rpc.get_table_rows({
             json: true, code: this.args.delphioracle_account, scope: this.args.delphioracle_account,
             table: 'pairs', lower_bound: pair, upper_bound: pair
@@ -142,18 +167,22 @@ export default class DelphiOracleHandler extends ContractHandler {
         await this.savePair(db, block, resp.rows[0]);
     }
 
-    async savePair(db: ContractDBTransaction, _: ShipBlock, row: PairsTableRow): Promise<void> {
-        await db.replace('delphioracle_pairs', {
+    private async savePair(db: ContractDBTransaction, _: ShipBlock, row: PairsTableRow): Promise<void> {
+        await db.replace('delphioracle_pairs', this.getDatabaseRow(row), ['contract', 'delphi_pair_name'], ['median']);
+    }
+
+    private getDatabaseRow(table: PairsTableRow): any {
+        return {
             contract: this.args.delphioracle_account,
-            delphi_pair_name: row.name,
-            base_symbol: row.base_symbol.split(',')[1],
-            base_precision: row.base_symbol.split(',')[0],
-            quote_symbol: row.quote_symbol.split(',')[1],
-            quote_precision: row.quote_symbol.split(',')[0],
+            delphi_pair_name: table.name,
+            base_symbol: table.base_symbol.split(',')[1],
+            base_precision: table.base_symbol.split(',')[0],
+            quote_symbol: table.quote_symbol.split(',')[1],
+            quote_precision: table.quote_symbol.split(',')[0],
             median: 1, // should not be 0
-            median_precision: row.quoted_precision,
+            median_precision: table.quoted_precision,
             updated_at_time: 0,
             updated_at_block: 0
-        }, ['contract', 'delphi_pair_name'], ['median']);
+        };
     }
 }

@@ -103,16 +103,14 @@ export default class AtomicAssetsTableHandler {
             return;
         }
 
-        for (const quantity of data.quantities) {
-            await db.insert('atomicassets_balances', {
-                contract: this.contractName,
-                owner: data.owner,
-                token_symbol: quantity.split(' ')[1],
-                amount: quantity.split(' ')[0].replace('.', ''),
-                updated_at_block: block.block_num,
-                updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
-            }, ['contract', 'owner', 'token_symbol']);
-        }
+        await db.insert('atomicassets_balances', data.quantities.map(quantity => ({
+            contract: this.contractName,
+            owner: data.owner,
+            token_symbol: quantity.split(' ')[1],
+            amount: quantity.split(' ')[0].replace('.', ''),
+            updated_at_block: block.block_num,
+            updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
+        })), ['contract', 'owner', 'token_symbol']);
     }
 
     async handleCollectionsUpdate(

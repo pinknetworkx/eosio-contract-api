@@ -12,9 +12,9 @@ CREATE OR REPLACE VIEW atomicmarket_sales_master AS
         (CASE
             WHEN sale.final_price IS NOT NULL THEN sale.final_price
             WHEN pair.invert_delphi_pair IS NOT NULL AND pair.invert_delphi_pair = true THEN
-                (sale.listing_price * delphi.median * power(10, delphi.quote_precision - delphi.base_precision - delphi.median_precision))
-            WHEN pair.invert_delphi_pair IS NOT NULL AND pair.invert_delphi_pair = false THEN
                 ((sale.listing_price / delphi.median) * power(10, delphi.median_precision + delphi.base_precision - delphi.quote_precision))
+            WHEN pair.invert_delphi_pair IS NOT NULL AND pair.invert_delphi_pair = false THEN
+                (sale.listing_price * delphi.median * power(10, delphi.quote_precision - delphi.base_precision - delphi.median_precision))
             ELSE sale.listing_price
         END) raw_price,
         token.token_precision raw_token_precision,
@@ -77,7 +77,8 @@ CREATE OR REPLACE VIEW atomicmarket_sales_master AS
         sale.updated_at_block,
         sale.updated_at_time,
         sale.created_at_block,
-        sale.created_at_time
+        sale.created_at_time,
+        encode(sale.created_at_txid::bytea, 'hex') created_at_txid
     FROM
         atomicmarket_sales sale LEFT JOIN atomicmarket_symbol_pairs pair ON (
             pair.market_contract = sale.market_contract AND

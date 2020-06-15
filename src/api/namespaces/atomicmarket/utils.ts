@@ -25,9 +25,9 @@ function hasAssetFilter(req: express.Request): boolean {
 export function buildListingFilter(req: express.Request, varOffset: number): {str: string, values: any[], counter: number} {
     const args = filterQueryArgs(req, {
         show_blacklisted: {type: 'bool', default: false},
-        whitelisted_seller_only: {type: 'bool', default: true},
-        whitelisted_collections_only: {type: 'bool', default: true},
-        whitelisted_only: {type: 'bool', default: true},
+        whitelisted_seller_only: {type: 'bool'},
+        whitelisted_collections_only: {type: 'bool'},
+        whitelisted_only: {type: 'bool'},
 
         maker_marketplace: {type: 'string', min: 1, max: 12},
         taker_marketplace: {type: 'string', min: 1, max: 12},
@@ -230,7 +230,7 @@ export function buildAuctionFilter(req: express.Request, varOffset: number): {st
         }
 
         if (args.state.split(',').indexOf(String(AuctionApiState.LISTED.valueOf())) >= 0) {
-            stateConditions.push(`(listing.auction_state = ${AuctionState.LISTED.valueOf()} AND listing.end_time > ${Date.now()}))`);
+            stateConditions.push(`(listing.auction_state = ${AuctionState.LISTED.valueOf()} AND listing.end_time > ${Date.now()})`);
         }
 
         if (args.state.split(',').indexOf(String(AuctionApiState.CANCELED.valueOf())) >= 0) {

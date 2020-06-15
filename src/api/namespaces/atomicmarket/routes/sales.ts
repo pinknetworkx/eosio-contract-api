@@ -44,7 +44,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             const query = await core.connection.database.query(queryString, queryValues);
 
             const sales = await fillSales(
-                core.connection, core.args.atomicmarket_account, query.rows.map((row) => formatSale(row))
+                core.connection, core.args.atomicassets_account, query.rows.map((row) => formatSale(row))
             );
 
             res.json({status: true, data: sales});
@@ -66,7 +66,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 res.status(500).json({success: false, message: 'Sale not found'});
             } else {
                 const sales = await fillSales(
-                    core.connection, core.args.atomicmarket_account, query.rows.map((row) => formatSale(row))
+                    core.connection, core.args.atomicassets_account, query.rows.map((row) => formatSale(row))
                 );
 
                 res.json({status: true, data: sales[0]});

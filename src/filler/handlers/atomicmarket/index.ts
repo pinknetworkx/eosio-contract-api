@@ -159,17 +159,17 @@ export default class AtomicMarketHandler extends ContractHandler {
                 supported_tokens: []
             };
         } else {
-            this.args.delphioracle_account = configQuery.rows[0].delphi_account;
-            this.args.atomicassets_account = configQuery.rows[0].asset_account;
+            this.args.delphioracle_account = configQuery.rows[0].delphi_contract;
+            this.args.atomicassets_account = configQuery.rows[0].asset_contract;
 
             const tokensQuery = await this.connection.database.query(
                 'SELECT * FROM atomicmarket_tokens WHERE market_contract = $1',
-                [this.args.atomicassets_account]
+                [this.args.atomicmarket_account]
             );
 
             const pairsQuery = await this.connection.database.query(
                 'SELECT * FROM atomicmarket_symbol_pairs WHERE market_contract = $1',
-                [this.args.atomicassets_account]
+                [this.args.atomicmarket_account]
             );
 
             this.config = {
@@ -238,6 +238,7 @@ export default class AtomicMarketHandler extends ContractHandler {
             try {
                 await fn();
             } catch (e) {
+                logger.error(e);
                 logger.error(trace);
 
                 throw e;
@@ -256,7 +257,7 @@ export default class AtomicMarketHandler extends ContractHandler {
             try {
                 const channelName = [
                     'eosio-contract-api', this.connection.chain.name, 'atomicmarket',
-                    this.args.atomicassets_account, prefix
+                    this.args.atomicmarket_account, prefix
                 ].join(':');
 
                 await this.connection.redis.ioRedis.publish(channelName, JSON.stringify({

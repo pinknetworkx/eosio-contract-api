@@ -19,11 +19,11 @@ export default class AtomicMarketActionHandler {
     private readonly contractName: string;
 
     constructor(readonly core: AtomicMarketHandler) {
-        this.contractName = this.core.args.atomicassets_account;
+        this.contractName = this.core.args.atomicmarket_account;
     }
 
     async handleTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
-        if (trace.act.account !== this.core.args.atomicassets_account) {
+        if (trace.act.account !== this.core.args.atomicmarket_account) {
             logger.error('AtomicMarket: Received action from wrong contract: ' + trace.act.account);
 
             return;
@@ -176,7 +176,7 @@ export default class AtomicMarketActionHandler {
         await db.insert('atomicmarket_auctions_bids', {
             market_contract: this.core.args.atomicmarket_account,
             auction_id: trace.act.data.auction_id,
-            bid_number: bidCount.rows[0].count + 1,
+            bid_number: parseInt(bidCount.rows[0].count, 10) + 1,
             account: trace.act.data.bidder,
             amount: trace.act.data.bid.split(' ')[0].replace('.', ''),
             txid: Buffer.from(tx.id, 'hex'),
@@ -186,7 +186,7 @@ export default class AtomicMarketActionHandler {
 
         await this.core.events.emit('atomicmarket_auction_bid', {
             db, block, contract: this.core.args.atomicmarket_account,
-            auction_id: trace.act.data.auction_id, bid_number: bidCount.rows[0].count + 1
+            auction_id: trace.act.data.auction_id, bid_number: parseInt(bidCount.rows[0].count, 10) + 1
         });
     }
 
@@ -220,9 +220,10 @@ export default class AtomicMarketActionHandler {
     async lognewsale(
         db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace<LogNewSaleActionData>, tx: EosioTransaction
     ): Promise<void> {
-        await db.insert('atomicmarket_auctions', {
+        await db.insert('atomicmarket_sales', {
             market_contract: this.core.args.atomicmarket_account,
             sale_id: trace.act.data.sale_id,
+            seller: trace.act.data.seller,
             buyer: null,
             listing_price: trace.act.data.listing_price.split(' ')[0].replace('.', ''),
             final_price: null,
@@ -240,7 +241,7 @@ export default class AtomicMarketActionHandler {
             created_at_block: block.block_num,
             created_at_time: eosioTimestampToDate(block.timestamp).getTime(),
             created_at_txid: Buffer.from(tx.id, 'hex')
-        }, ['market_contract', 'auction_id']);
+        }, ['market_contract', 'sale_id']);
     }
 
     async logsalestart(
@@ -313,16 +314,16 @@ export default class AtomicMarketActionHandler {
             const row = query.rows[0];
 
             if (row.invert_delphi_pair) {
-                finalPrice = (parseInt(row.listing_price, 10) / parseInt(trace.act.data.intended_delphi_median, 10)) *
-                    Math.pow(10, row.median_precision + row.base_precision - row.quote_precision);
+                finalPrice = Math.floor(parseInt(row.listing_price, 10) * parseInt(trace.act.data.intended_delphi_median, 10) *
+                    Math.pow(10, row.quote_precision - row.base_precision - row.median_precision));
             } else {
-                finalPrice = parseInt(row.listing_price, 10) * parseInt(trace.act.data.intended_delphi_median, 10) *
-                    Math.pow(10, row.quote_precision - row.base_precision - row.median_precision);
+                finalPrice = Math.floor((parseInt(row.listing_price, 10) / parseInt(trace.act.data.intended_delphi_median, 10)) *
+                    Math.pow(10, row.median_precision + row.base_precision - row.quote_precision));
             }
         }
 
         await db.update('atomicmarket_sales', {
-            buyer: trace.act.data.name,
+            buyer: trace.act.data.buyer,
             final_price: finalPrice,
             state: SaleState.SOLD.valueOf(),
             taker_marketplace: trace.act.data.taker_marketplace,

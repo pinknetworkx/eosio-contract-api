@@ -45,7 +45,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             const query = await core.connection.database.query(queryString, queryValues);
 
             const auctions = await fillAuctions(
-                core.connection, core.args.atomicmarket_account, query.rows.map((row) => formatAuction(row))
+                core.connection, core.args.atomicassets_account, query.rows.map((row) => formatAuction(row))
             );
 
             res.json({status: true, data: auctions});
@@ -67,7 +67,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                 res.status(500).json({success: false, message: 'Auction not found'});
             } else {
                 const auctions = await fillAuctions(
-                    core.connection, core.args.atomicmarket_account, query.rows.map((row) => formatAuction(row))
+                    core.connection, core.args.atomicassets_account, query.rows.map((row) => formatAuction(row))
                 );
 
                 res.json({status: true, data: auctions[0]});

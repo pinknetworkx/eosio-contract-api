@@ -14,7 +14,7 @@ export function configEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
         const config = configQuery.rows[0];
 
         const pairsQuery = await core.connection.database.query(
-            'SELECT listing_symbol, settlement_symbol, delphi_pair_name FROM atomicmarket_symbol_pairs WHERE market_contract = $1',
+            'SELECT listing_symbol, settlement_symbol, delphi_pair_name, invert_delphi_pair FROM atomicmarket_symbol_pairs WHERE market_contract = $1',
             [core.args.atomicmarket_account]
         );
 
@@ -78,7 +78,8 @@ export function configEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                                     properties: {
                                         listing_symbol: {type: 'string'},
                                         settlement_symbol: {type: 'string'},
-                                        delphi_pair_name: {type: 'string'}
+                                        delphi_pair_name: {type: 'string'},
+                                        invert_delphi_pair: {type: 'boolean'}
                                     }
                                 }
                             }

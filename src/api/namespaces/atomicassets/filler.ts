@@ -16,7 +16,7 @@ export class AssetFiller {
     async fill(assetIDs: string[]): Promise<any[]> {
         await this.query();
 
-        return assetIDs.map((assetID) => this.assets[assetID]);
+        return assetIDs.map((assetID) => this.assets[String(assetID)] || String(assetID));
     }
 
     private async query(): Promise<void> {

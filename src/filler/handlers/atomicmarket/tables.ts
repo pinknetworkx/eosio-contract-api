@@ -10,7 +10,7 @@ export default class AtomicMarketTableHandler {
     private readonly contractName: string;
 
     constructor(readonly core: AtomicMarketHandler) {
-        this.contractName = this.core.args.atomicassets_account;
+        this.contractName = this.core.args.atomicmarket_account;
     }
 
     async handleUpdate(db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow): Promise<void> {
@@ -29,7 +29,7 @@ export default class AtomicMarketTableHandler {
         if (delta.table === 'sales' && delta.scope === this.core.args.atomicmarket_account) {
             this.core.addUpdateJob(async () => {
                 // @ts-ignore
-                await this.handleSalesUpdate(db, block, delta.scope, delta.value, !delta.present);
+                await this.handleSalesUpdate(db, block, delta.value, !delta.present);
             }, JobPriority.TABLE_SALES);
         } else if (delta.table === 'auctions' && delta.scope === this.core.args.atomicmarket_account) {
             this.core.addUpdateJob(async () => {
@@ -49,7 +49,7 @@ export default class AtomicMarketTableHandler {
         } else if (delta.table === 'config' && delta.scope === this.core.args.atomicmarket_account) {
             this.core.addUpdateJob(async () => {
                 // @ts-ignore
-                await this.handleConfigUpdate(db, block, delta.scope, delta.value, !delta.present);
+                await this.handleConfigUpdate(db, block, delta.value, !delta.present);
             }, JobPriority.TABLE_CONFIG);
         }
     }
@@ -71,7 +71,7 @@ export default class AtomicMarketTableHandler {
             settlement_symbol: data.settlement_symbol.split(',')[1],
             asset_contract: this.core.args.atomicassets_account,
             offer_id: parseInt(data.offer_id, 10) === -1 ? null : data.offer_id,
-            marker_marketplace: data.maker_marketplace,
+            maker_marketplace: data.maker_marketplace,
             taker_marketplace: null,
             collection_name: data.collection_name,
             collection_fee: data.collection_fee,
@@ -140,25 +140,23 @@ export default class AtomicMarketTableHandler {
     async handleBalancesUpdate(
         db: ContractDBTransaction, block: ShipBlock, data: BalancesTableRow, deleted: boolean
     ): Promise<void> {
-        await db.delete('atomicassets_balances', {
-            str: 'contract = $1 AND owner = $2',
-            values: [this.contractName, data.name]
+        await db.delete('atomicmarket_balances', {
+            str: 'market_contract = $1 AND owner = $2',
+            values: [this.contractName, data.owner]
         });
 
         if (deleted) {
             return;
         }
 
-        for (const quantity of data.quantities) {
-            await db.insert('atomicassets_balances', {
-                contract: this.contractName,
-                owner: data.name,
-                token_symbol: quantity.split(' ')[1],
-                amount: quantity.split(' ')[0].replace('.', ''),
-                updated_at_block: block.block_num,
-                updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
-            }, ['contract', 'owner', 'token_symbol']);
-        }
+        await db.insert('atomicmarket_balances', data.quantities.map(quantity => ({
+            market_contract: this.contractName,
+            owner: data.owner,
+            token_symbol: quantity.split(' ')[1],
+            amount: quantity.split(' ')[0].replace('.', ''),
+            updated_at_block: block.block_num,
+            updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
+        })), ['market_contract', 'owner', 'token_symbol']);
     }
 
     async handleConfigUpdate(

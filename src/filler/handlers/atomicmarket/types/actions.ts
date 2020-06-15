@@ -11,7 +11,7 @@ export type CancelSaleActionData = {
 };
 
 export type PurchaseSaleActionData = {
-    name: string,
+    buyer: string,
     sale_id: string,
     intended_delphi_median: string,
     taker_marketplace: string

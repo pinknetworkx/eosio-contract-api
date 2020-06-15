@@ -70,7 +70,8 @@ export const atomicmarketComponents = {
             updated_at_block: {type: 'integer'},
             updated_at_time: {type: 'integer'},
             created_at_block: {type: 'integer'},
-            created_at_time: {type: 'integer'}
+            created_at_time: {type: 'integer'},
+            created_at_txid: {type: 'string'}
         }
     },
     Auction: {
@@ -98,12 +99,27 @@ export const atomicmarketComponents = {
                 items: {'$ref': '#/components/schemas/Asset'}
             },
 
+            bids: {
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        number: {type: 'integer'},
+                        account: {type: 'string'},
+                        amount: {type: 'integer'},
+                        created_at_block: {type: 'integer'},
+                        created_at_time: {type: 'integer'},
+                        txid: {type: 'string'}
+                    }
+                }
+            },
+
             maker_marketplace: {type: 'string', nullable: true},
             taker_marketplace: {type: 'string', nullable: true},
 
             collection: atomicassetsComponents.Asset.properties.collection,
 
-            auction_state: {type: 'integer'},
+            state: {type: 'integer'},
 
             collection_blacklisted: {type: 'boolean'},
             collection_whitelisted: {type: 'boolean'},
@@ -115,7 +131,8 @@ export const atomicmarketComponents = {
             updated_at_block: {type: 'integer'},
             updated_at_time: {type: 'integer'},
             created_at_block: {type: 'integer'},
-            created_at_time: {type: 'integer'}
+            created_at_time: {type: 'integer'},
+            created_at_txid: {type: 'string'}
         }
     },
     Marketplace: {
