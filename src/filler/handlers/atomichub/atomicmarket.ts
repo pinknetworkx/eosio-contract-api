@@ -88,7 +88,7 @@ export default class AtomicMarketActionHandler {
 
         await this.core.createNotification(
             db, block, this.contractName, saleQuery.rows[0].seller,
-            saleQuery.rows[0].seller + ' has made a bid on auction #' + auctionID + '',
+            saleQuery.rows[0].seller + ' has made a bid on your auction #' + auctionID + '',
             {type: 'auction', id: auctionID}
         );
     }

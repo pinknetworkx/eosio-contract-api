@@ -49,6 +49,8 @@ export const atomicmarketComponents = {
                 }
             },
 
+            listing_symbol: {type: 'string'},
+
             assets: {
                 type: 'array',
                 items: {'$ref': '#/components/schemas/Asset'}
