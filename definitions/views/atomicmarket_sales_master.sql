@@ -12,9 +12,9 @@ CREATE OR REPLACE VIEW atomicmarket_sales_master AS
         (CASE
             WHEN sale.final_price IS NOT NULL THEN sale.final_price
             WHEN pair.invert_delphi_pair IS NOT NULL AND pair.invert_delphi_pair = true THEN
-                ((sale.listing_price / delphi.median) * power(10, delphi.median_precision + delphi.base_precision - delphi.quote_precision))
+                (sale.listing_price::decimal * delphi.median * power(10.0, delphi.quote_precision - delphi.base_precision - delphi.median_precision))::bigint
             WHEN pair.invert_delphi_pair IS NOT NULL AND pair.invert_delphi_pair = false THEN
-                (sale.listing_price * delphi.median * power(10, delphi.quote_precision - delphi.base_precision - delphi.median_precision))
+                ((sale.listing_price::decimal / delphi.median) * power(10.0, delphi.median_precision + delphi.base_precision - delphi.quote_precision))::bigint
             ELSE sale.listing_price
         END) raw_price,
         token.token_precision raw_token_precision,
