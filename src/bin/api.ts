@@ -9,6 +9,20 @@ const connectionConfig: IConnectionsConfig = require('../../config/connections.c
 logger.info('Starting API Server...');
 
 const connection = new ConnectionManager(connectionConfig);
-const server = new Api(serverConfig, connection);
 
-server.listen().then();
+(async () => {
+    if (!(await connection.chain.checkChainId())) {
+        logger.error('Chain Id in config mismatches node chain id. Stopping API...');
+
+        process.exit(1);
+    }
+
+    if (!(await connection.database.tableExists('contract_readers'))) {
+        logger.error('Tables not initialized yet. Stopping API...');
+
+        process.exit(1);
+    }
+
+    const server = new Api(serverConfig, connection);
+    await server.listen();
+})();

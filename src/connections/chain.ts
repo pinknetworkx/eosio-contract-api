@@ -26,6 +26,12 @@ export default class ChainApi {
         return await request.json();
     }
 
+    async checkChainId() {
+        const info = await this.rpc.get_info();
+
+        return info.chain_id === this.chainId;
+    }
+
     deserializeAbi(data: Uint8Array): Abi {
         return this.api.rawAbiToJson(data);
     }

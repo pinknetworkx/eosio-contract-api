@@ -8,6 +8,8 @@ export type EosioAction<T = {[key: string]: any} | string> = {
 export type EosioActionTrace<T = {[key: string]: any} | string> = {
     action_ordinal: number,
     creator_action_ordinal: number,
+    global_sequence: string,
+    account_ram_deltas: Array<{account: string, delta: number}>,
     act: EosioAction<T>
 };
 

@@ -122,21 +122,21 @@ export default class AtomicAssetsActionHandler {
 
             offerChange = { offer_id: data.offer_id, state: OfferState.ACCEPTED.valueOf() };
 
-            await this.createLogMessage(db, block, tx, 'accept', 'offer', data.offer_id, null);
+            await this.createLogMessage(db, block, tx, trace.global_sequence, 'accept', 'offer', data.offer_id, null);
         } else if (trace.act.name === 'declineoffer') {
             // @ts-ignore
             const data: DeclineOfferActionData = trace.act.data;
 
             offerChange = { offer_id: data.offer_id, state: OfferState.DECLINED.valueOf() };
 
-            await this.createLogMessage(db, block, tx, 'decline', 'offer', data.offer_id, null);
+            await this.createLogMessage(db, block, tx, trace.global_sequence, 'decline', 'offer', data.offer_id, null);
         } else if (trace.act.name === 'canceloffer') {
             // @ts-ignore
             const data: CancelOfferActionData = trace.act.data;
 
             offerChange = { offer_id: data.offer_id, state: OfferState.CANCELLED.valueOf() };
 
-            await this.createLogMessage(db, block, tx, 'cancel', 'offer', data.offer_id, null);
+            await this.createLogMessage(db, block, tx, trace.global_sequence, 'cancel', 'offer', data.offer_id, null);
         }
 
         if (offerChange !== null) {
@@ -160,7 +160,8 @@ export default class AtomicAssetsActionHandler {
         // @ts-ignore
         const data: LogTransferActionData = trace.act.data;
 
-        const query = await db.insert('atomicassets_transfers', {
+        await db.insert('atomicassets_transfers', {
+            transfer_id: trace.global_sequence,
             contract: this.contractName,
             sender: data['from'],
             recipient: data.to,
@@ -170,18 +171,14 @@ export default class AtomicAssetsActionHandler {
             created_at_time: eosioTimestampToDate(block.timestamp).getTime()
         }, ['transfer_id']);
 
-        if (query.rowCount === 0) {
-            throw new Error('AtomicAssets: Could not insert atomicassets transfer');
-        }
-
         await db.insert('atomicassets_transfers_assets', data.asset_ids.map((assetID) => ({
-            transfer_id: query.rows[0].transfer_id,
+            transfer_id: trace.global_sequence,
             contract: this.contractName,
             asset_id: assetID
         })), ['transfer_id', 'contract', 'asset_id']);
 
         this.core.pushNotificiation(block, tx, 'transfers', 'create', {
-            transfer_id: query.rows[0].transfer_id,
+            transfer_id: trace.global_sequence,
             trace: data
         });
     }
@@ -202,7 +199,7 @@ export default class AtomicAssetsActionHandler {
                 mutable_serialized_data: null
             }, true, data.old_immutable_data, data.old_mutable_data);
 
-            await this.createLogMessage(db, block, tx, 'burn', 'asset', data.asset_id, {
+            await this.createLogMessage(db, block, tx, trace.global_sequence, 'burn', 'asset', data.asset_id, {
                 backed_tokens: data.backed_tokens
             });
 
@@ -220,7 +217,7 @@ export default class AtomicAssetsActionHandler {
             // @ts-ignore
             const data: LogMintAssetActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, 'mint', 'asset', data.asset_id, {
+            await this.createLogMessage(db, block, tx, trace.global_sequence, 'mint', 'asset', data.asset_id, {
                 minter: data.minter,
                 new_owner: data.new_owner
             });
@@ -233,7 +230,7 @@ export default class AtomicAssetsActionHandler {
             // @ts-ignore
             const data: LogBackAssetActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, 'back', 'asset', data.asset_id, {
+            await this.createLogMessage(db, block, tx, trace.global_sequence, 'back', 'asset', data.asset_id, {
                 back_quantity: data.backed_token
             });
 
@@ -281,7 +278,7 @@ export default class AtomicAssetsActionHandler {
                 });
             }
 
-            await this.createLogMessage(db, block, tx, 'update', 'asset', data.asset_id, delta);
+            await this.createLogMessage(db, block, tx, trace.global_sequence, 'update', 'asset', data.asset_id, delta);
 
             this.core.pushNotificiation(block, tx, 'assets', 'update', {
                 asset_id: data.asset_id,
@@ -296,52 +293,55 @@ export default class AtomicAssetsActionHandler {
             // @ts-ignore
             const data: AddColAuthActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, 'add_authorized_accounts', 'collection', data.collection_name, {
-                account: data.account_to_add
-            });
+            await this.createLogMessage(db, block, tx, trace.global_sequence,
+                'add_authorized_accounts', 'collection', data.collection_name,
+                {account: data.account_to_add}
+                );
         } else if (trace.act.name === 'addnotifyacc') {
             // @ts-ignore
             const data: AddNotifyAccActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, 'add_notify_accounts', 'collection', data.collection_name, {
+            await this.createLogMessage(db, block, tx, trace.global_sequence, 'add_notify_accounts', 'collection', data.collection_name, {
                 account: data.account_to_add
             });
         } else if (trace.act.name === 'createcol') {
             // @ts-ignore
             const data: CreateColActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, 'create', 'collection', data.collection_name, data);
+            await this.createLogMessage(db, block, tx, trace.global_sequence, 'create', 'collection', data.collection_name, data);
         } else if (trace.act.name === 'forbidnotify') {
             // @ts-ignore
             const data: ForbidNotifyActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, 'forbid_notify', 'collection', data.collection_name, null);
+            await this.createLogMessage(db, block, tx, trace.global_sequence, 'forbid_notify', 'collection', data.collection_name, null);
         } else if (trace.act.name === 'remcolauth') {
             // @ts-ignore
             const data: RemColAuthActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, 'remove_authorized_accounts', 'collection', data.collection_name, {
-                account: data.account_to_remove
-            });
+            await this.createLogMessage(db, block, tx, trace.global_sequence,
+                'remove_authorized_accounts', 'collection', data.collection_name,
+                {account: data.account_to_remove}
+                );
         } else if (trace.act.name === 'remnotifyacc') {
             // @ts-ignore
             const data: RemNotifyAccActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, 'remove_notify_accounts', 'collection', data.collection_name, {
-                account: data.account_to_remove
-            });
+            await this.createLogMessage(db, block, tx, trace.global_sequence,
+                'remove_notify_accounts', 'collection', data.collection_name,
+                {account: data.account_to_remove}
+                );
         } else if (trace.act.name === 'setmarketfee') {
             // @ts-ignore
             const data: SetMarketFeeActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, 'update_market_fee', 'collection', data.collection_name, {
+            await this.createLogMessage(db, block, tx, trace.global_sequence, 'update_market_fee', 'collection', data.collection_name, {
                 market_fee: data.market_fee
             });
         } else if (trace.act.name === 'setcoldata') {
             // @ts-ignore
             const data: SetColDataActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, 'update_data', 'collection', data.collection_name, {
+            await this.createLogMessage(db, block, tx, trace.global_sequence, 'update_data', 'collection', data.collection_name, {
                 data: data.data
             });
         }
@@ -352,9 +352,11 @@ export default class AtomicAssetsActionHandler {
             // @ts-ignore
             const data: LogNewTemplateActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, 'create', 'template', data.collection_name + ':' + data.template_id, {
-                creator: data.authorized_creator
-            });
+            await this.createLogMessage(
+                db, block, tx, trace.global_sequence,
+                'create', 'template', data.collection_name + ':' + data.template_id,
+                {creator: data.authorized_creator}
+                );
         }
     }
 
@@ -363,26 +365,27 @@ export default class AtomicAssetsActionHandler {
             // @ts-ignore
             const data: CreateSchemaActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, 'create', 'schema', data.collection_name + ':' + data.schema_name, {
-                authorized_creator: data.authorized_creator,
-                schema_format: data.schema_format
-            });
+            await this.createLogMessage(db, block, tx, trace.global_sequence,
+                'create', 'schema', data.collection_name + ':' + data.schema_name,
+                {authorized_creator: data.authorized_creator, schema_format: data.schema_format}
+                );
         } else if (trace.act.name === 'extendschema') {
             // @ts-ignore
             const data: ExtendSchemaActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, 'extend', 'schema', data.collection_name + ':' + data.schema_name, {
-                authorized_editor: data.authorized_editor,
-                schema_format_extension: data.schema_format_extension
-            });
+            await this.createLogMessage(db, block, tx, trace.global_sequence,
+                'extend', 'schema', data.collection_name + ':' + data.schema_name,
+                {authorized_editor: data.authorized_editor, schema_format_extension: data.schema_format_extension}
+                );
         }
     }
 
     private async createLogMessage(
-        db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction,
+        db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, globalSequence: string,
         name: string, relationName: string, relationId: string | number, data: any
     ): Promise<void> {
         await db.insert('atomicassets_logs', {
+            log_id: globalSequence,
             contract: this.contractName,
             name: String(name).substr(0, 64),
             relation_name: String(relationName).substr(0, 64),

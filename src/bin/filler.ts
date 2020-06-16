@@ -16,9 +16,13 @@ if (cluster.isMaster) {
     const connection = new ConnectionManager(connectionConfig);
 
     (async () => {
-        try {
-            await connection.database.query('SELECT * FROM contract_readers LIMIT 1');
-        } catch (e) {
+        if (!(await connection.chain.checkChainId())) {
+            logger.error('Chain Id in config mismatches node chain id');
+
+            process.exit(1);
+        }
+
+        if (!(await connection.database.tableExists('contract_readers'))) {
             logger.info('Could not find base tables. Create them now...');
 
             await connection.database.query(fs.readFileSync('./definitions/tables/base_tables.sql', {

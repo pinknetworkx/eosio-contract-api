@@ -48,7 +48,7 @@ export type ShipTransactionTrace = [
         net_usage: string,
         scheduled: boolean,
         action_traces: ShipActionTrace[],
-        account_ram_delta: any | null,
+        account_ram_delta: Array<{account: string, delta: number}> | null,
         except: any | null,
         error_code: any | null,
         failed_dtrx_trace: any | null,
@@ -72,7 +72,7 @@ export type ShipActionTrace = [
         context_free: boolean,
         elapsed: string,
         'console': string,
-        account_ram_deltas: any[],
+        account_ram_deltas:  Array<{account: string, delta: number}>,
         except: any | null,
         error_code: any | null
     }

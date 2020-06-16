@@ -71,7 +71,7 @@ CREATE TABLE atomicassets_config (
 );
 
 CREATE TABLE atomicassets_logs (
-    log_id integer NOT NULL,
+    log_id bigint NOT NULL,
     contract character varying(12) NOT NULL,
     name character varying(64) NOT NULL,
     relation_name character varying(64) NOT NULL,
@@ -82,16 +82,6 @@ CREATE TABLE atomicassets_logs (
     created_at_time bigint NOT NULL,
     CONSTRAINT atomicassets_logs_pkey PRIMARY KEY (log_id)
 );
-
-CREATE SEQUENCE atomicassets_logs_log_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-ALTER SEQUENCE atomicassets_logs_log_id_seq OWNED BY atomicassets_logs.log_id;
 
 CREATE TABLE atomicassets_offers (
     contract character varying(12) NOT NULL,
@@ -157,7 +147,7 @@ CREATE TABLE atomicassets_tokens (
 );
 
 CREATE TABLE atomicassets_transfers (
-    transfer_id integer NOT NULL,
+    transfer_id bigint NOT NULL,
     contract character varying(12) NOT NULL,
     "sender" character varying(12) NOT NULL,
     "recipient" character varying(12) NOT NULL,
@@ -169,27 +159,11 @@ CREATE TABLE atomicassets_transfers (
 );
 
 CREATE TABLE atomicassets_transfers_assets (
-    transfer_id integer NOT NULL,
+    transfer_id bigint NOT NULL,
     contract character varying(12) NOT NULL,
     asset_id bigint NOT NULL,
     CONSTRAINT atomicassets_transfers_assets_pkey PRIMARY KEY (transfer_id, contract, asset_id)
 );
-
-CREATE SEQUENCE atomicassets_transfers_transfer_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-ALTER SEQUENCE atomicassets_transfers_transfer_id_seq OWNED BY atomicassets_transfers.transfer_id;
-
-
--- SEQUENCES --
-ALTER TABLE ONLY atomicassets_logs ALTER COLUMN log_id SET DEFAULT nextval('atomicassets_logs_log_id_seq'::regclass);
-
-ALTER TABLE ONLY atomicassets_transfers ALTER COLUMN transfer_id SET DEFAULT nextval('atomicassets_transfers_transfer_id_seq'::regclass);
 
 -- FOREIGN KEYS --
 ALTER TABLE ONLY atomicassets_assets_backed_tokens
