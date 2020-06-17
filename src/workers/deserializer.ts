@@ -1,22 +1,28 @@
 import { parentPort, workerData } from 'worker_threads';
 import { TextDecoder, TextEncoder } from 'text-encoding';
 import { Serialize } from 'eosjs';
+import { Abi } from 'eosjs/dist/eosjs-rpc-interfaces';
 import * as abieos from '@eosrio/node-abieos';
 
 import logger from '../utils/winston';
+import { IBlockReaderOptions } from '../types/ship';
+
+const args: {options: IBlockReaderOptions, abi: Abi} = workerData;
 
 logger.info('Launching deserialization worker...');
 
-if (!abieos) {
-    logger.warn('C abi deserializer not supported on this platform. Using eosjs instead');
-} else {
-    abieos.load_abi('0', JSON.stringify(workerData));
+if (args.options.ds_experimental) {
+    if (!abieos) {
+        logger.warn('C abi deserializer not supported on this platform. Using eosjs instead');
+    } else {
+        abieos.load_abi('0', JSON.stringify(args.abi));
+    }
 }
 
-const types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), workerData);
+const types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), args.abi);
 
 function deserialize(type: string, data: Uint8Array): any {
-    if (abieos) {
+    if (args.options.ds_experimental && abieos) {
         return abieos.bin_to_json('0', type, Buffer.from(data));
     }
 

@@ -34,7 +34,7 @@ export default class StateHistoryBlockReader {
 
     constructor(
         private readonly endpoint: string,
-        private options: IBlockReaderOptions = {min_block_confirmation: 1, ds_threads: 4}
+        private options: IBlockReaderOptions = {min_block_confirmation: 1, ds_threads: 4, ds_experimental: true}
     ) {
         this.connected = false;
         this.connecting = false;
@@ -132,7 +132,10 @@ export default class StateHistoryBlockReader {
                 this.deserializeWorkers = new StaticPool({
                     size: this.options.ds_threads,
                     task: './build/workers/deserializer.js',
-                    workerData: this.abi
+                    workerData: {
+                        abi: this.abi,
+                        options: this.options
+                    }
                 });
 
                 for (const table of this.abi.tables) {

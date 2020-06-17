@@ -61,6 +61,7 @@ export interface IReaderConfig {
     ship_min_block_confirmation: number;
 
     ds_threads: number;
+    ds_experimental: boolean;
 
     delete_data: boolean;
 

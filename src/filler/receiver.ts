@@ -37,7 +37,8 @@ export default class StateReceiver {
     ) {
         this.ship = connection.createShipBlockReader({
             min_block_confirmation: config.ship_min_block_confirmation,
-            ds_threads: config.ds_threads
+            ds_threads: config.ds_threads,
+            ds_experimental: config.ds_experimental
         });
 
         this.database = new ContractDB(this.config.name, this.connection);
