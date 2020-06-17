@@ -76,7 +76,7 @@ export type ShipActionTrace = [
         context_free: boolean,
         elapsed: string,
         'console': string,
-        account_ram_deltas:  Array<{account: string, delta: number}>,
+        account_ram_deltas: Array<{account: string, delta: number}>,
         except: any | null,
         error_code: any | null
     }

@@ -26,7 +26,7 @@ export default class ChainApi {
         return await request.json();
     }
 
-    async checkChainId() {
+    async checkChainId(): Promise<boolean> {
         const info = await this.rpc.get_info();
 
         return info.chain_id === this.chainId;

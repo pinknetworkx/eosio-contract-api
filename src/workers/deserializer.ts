@@ -15,9 +15,9 @@ if (!abieos) {
 
 const types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), workerData);
 
-function deserialize(type: string, data: any): any {
+function deserialize(type: string, data: Uint8Array): any {
     if (abieos) {
-        return abieos.bin_to_json('0', type, data);
+        return abieos.bin_to_json('0', type, Buffer.from(data));
     }
 
     const buffer = new Serialize.SerialBuffer({ textEncoder: new TextEncoder, textDecoder: new TextDecoder, array: data });
