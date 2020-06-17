@@ -197,7 +197,7 @@ export default class StateReceiver {
                     account: actionTrace[1].act.account,
                     name: actionTrace[1].act.name,
                     authorization: actionTrace[1].act.authorization,
-                    data: binToHex(actionTrace[1].act.data)
+                    data: typeof actionTrace[1].act.data === 'string' ? actionTrace[1].act.data : binToHex(actionTrace[1].act.data)
                 }
             };
 
@@ -275,7 +275,10 @@ export default class StateReceiver {
                 return;
             }
 
-            const tableDelta = { ...contractRow[1], present, value: binToHex(contractRow[1].value) };
+            const tableDelta = {
+                ...contractRow[1], present,
+                value: typeof contractRow[1].value === 'string' ? contractRow[1].value : binToHex(contractRow[1].value)
+            };
 
             const rawHandlers = this.getTableHandlers(contractRow[1].code, contractRow[1].table, false);
             if (rawHandlers.length > 0) {

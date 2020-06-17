@@ -1,3 +1,5 @@
+import { EosioTableRow } from './eosio';
+
 export interface BlockRequestType {
     start_block_num?: number;
     end_block_num?: number;
@@ -72,7 +74,7 @@ export type ShipActionTrace = [
             account: string,
             name: string,
             authorization: Array<{actor: string, permission: string}>,
-            data: {[key: string]: number}
+            data: string | Uint8Array
         },
         context_free: boolean,
         elapsed: string,
@@ -115,7 +117,7 @@ export type ShipTableDelta = [
     'table_delta_v0',
     {
         name: string,
-        rows: Array<{present: boolean, data: [string, {[key: string]: number}]}>
+        rows: Array<{present: boolean, data: [string, EosioTableRow]}>
     }
 ];
 
@@ -127,6 +129,6 @@ export type ShipContractRow = [
         table: string,
         primary_key: string,
         payer: string,
-        value: Uint8Array
+        value: Uint8Array | string
     }
 ];

@@ -1,39 +1,47 @@
 import { parentPort, workerData } from 'worker_threads';
 import { TextDecoder, TextEncoder } from 'text-encoding';
 import { Serialize } from 'eosjs';
-import { Abi } from 'eosjs/dist/eosjs-rpc-interfaces';
 import * as nodeAbieos from '@eosrio/node-abieos';
 
 import logger from '../utils/winston';
 import { IBlockReaderOptions } from '../types/ship';
 
-const args: {options: IBlockReaderOptions, abi: Abi} = workerData;
+const args: {options: IBlockReaderOptions, abi: string} = workerData;
 
 logger.info('Launching deserialization worker...');
 
-let useAbiEOS = false;
-
+let abieosSupported = false;
 if (args.options.ds_experimental) {
     if (!nodeAbieos) {
         logger.warn('C abi deserializer not supported on this platform. Using eosjs instead');
-    } else if (!nodeAbieos.load_abi('0', JSON.stringify(args.abi))) {
+    } else if (!nodeAbieos.load_abi('0', args.abi)) {
         logger.warn('Failed to load ship ABI in abieos');
     } else {
-        useAbiEOS = true;
+        abieosSupported = true;
         logger.info('Ship ABI loaded in deserializer worker thread');
     }
 }
 
-const types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), args.abi);
+const eosjsTypes: any = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), JSON.parse(args.abi));
 
-function deserialize(type: string, data: Uint8Array): any {
-    if (useAbiEOS) {
-        return nodeAbieos.bin_to_json('0', type, Buffer.from(data));
+function deserialize(type: string, data: Uint8Array | string): any {
+    /*if (abieosSupported) {
+        if (typeof data === 'string') {
+            return nodeAbieos.hex_to_json('0', type, data);
+        } else {
+            return nodeAbieos.bin_to_json('0', type, Buffer.from(data));
+        }
+    }*/
+
+    let dataArray;
+    if (typeof data === 'string') {
+        dataArray = Uint8Array.from(Buffer.from(data, 'hex'));
+    } else {
+        dataArray = data;
     }
 
-    const buffer = new Serialize.SerialBuffer({ textEncoder: new TextEncoder, textDecoder: new TextDecoder, array: data });
-    const result = Serialize.getType(types, type)
-        .deserialize(buffer, new Serialize.SerializerState({ bytesAsUint8Array: true }));
+    const buffer = new Serialize.SerialBuffer({ textEncoder: new TextEncoder, textDecoder: new TextDecoder, array: dataArray });
+    const result = Serialize.getType(eosjsTypes, type).deserialize(buffer, new Serialize.SerializerState({ bytesAsUint8Array: true }));
 
     if (buffer.readPos !== data.length) {
         throw new Error('Deserialization error: ' + type);
@@ -42,33 +50,24 @@ function deserialize(type: string, data: Uint8Array): any {
     return result;
 }
 
-parentPort.on('message', (data: any) => {
-    const result: any = {...data};
-
-    if (data.block) {
-        result.block = deserialize('signed_block', data.block);
-
-        result.block.block_num = data.this_block.block_num;
-        result.block.block_id = data.this_block.block_id;
+parentPort.on('message', (param: {type: string, data: Uint8Array | string}) => {
+    if (param.data === null) {
+        return parentPort.postMessage(null);
     }
 
-    if (data.traces) {
-        result.traces = deserialize('transaction_trace[]', data.traces);
-    }
+    const data = deserialize(param.type, param.data);
 
-    if (data.deltas) {
-        result.deltas = deserialize('table_delta[]', data.deltas);
-
-        for (const delta of result.deltas) {
+    if (param.type === 'table_delta[]') {
+        for (const delta of data) {
             if (delta[0] === 'table_delta_v0') {
-                delta[1].rows.map((row: any) => {
-                    row.data = deserialize(delta[1].name, row.data);
-                });
+                delta[1].rows = delta[1].rows.map((row: any) => ({
+                    ...row, data: deserialize(delta[1].name, row.data)
+                }));
             } else {
                 throw Error('Unsupported table delta type received ' + delta[0]);
             }
         }
     }
 
-    parentPort.postMessage(result);
+    return parentPort.postMessage(data);
 });

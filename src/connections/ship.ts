@@ -92,18 +92,23 @@ export default class StateHistoryBlockReader {
         return buffer.asUint8Array();
     }
 
-    deserialize(type: string, data: any, types?: Map<string, Serialize.Type>, checkLength: boolean = true): any {
-        let serializeTypes: Map<string, Serialize.Type>;
+    deserialize(type: string, data: Uint8Array | string, types?: Map<string, Serialize.Type>, checkLength: boolean = true): any {
+        let dataArray;
+        if (typeof data === 'string') {
+            dataArray = Uint8Array.from(Buffer.from(data, 'hex'));
+        } else {
+            dataArray = data;
+        }
 
+        let serializeTypes: Map<string, Serialize.Type>;
         if (types) {
             serializeTypes = types;
         } else {
             serializeTypes = this.types;
         }
 
-        const buffer = new Serialize.SerialBuffer({ textEncoder: new TextEncoder, textDecoder: new TextDecoder, array: data });
-        const result = Serialize.getType(serializeTypes, type)
-            .deserialize(buffer, new Serialize.SerializerState({ bytesAsUint8Array: true }));
+        const buffer = new Serialize.SerialBuffer({ textEncoder: new TextEncoder, textDecoder: new TextDecoder, array: dataArray });
+        const result = Serialize.getType(serializeTypes, type).deserialize(buffer, new Serialize.SerializerState({ bytesAsUint8Array: true }));
 
         if (buffer.readPos !== data.length && checkLength) {
             throw new Error('Deserialization error: ' + type);
@@ -133,7 +138,7 @@ export default class StateHistoryBlockReader {
                     size: this.options.ds_threads,
                     task: './build/workers/deserializer.js',
                     workerData: {
-                        abi: this.abi,
+                        abi: data,
                         options: this.options
                     }
                 });
@@ -149,11 +154,21 @@ export default class StateHistoryBlockReader {
                 const [type, response] = this.deserialize('result', data, this.types);
 
                 if (type === 'get_blocks_result_v0') {
-                    const blockData = this.deserializeWorkers.exec(response);
+                    const block = this.deserializeWorkers.exec({type: 'signed_block', data: response.block});
+                    const traces = this.deserializeWorkers.exec({type: 'transaction_trace[]', data: response.traces});
+                    const deltas = this.deserializeWorkers.exec({type: 'table_delta[]', data: response.deltas});
 
                     this.blocksQueue.add(async () => {
                         try {
-                            await this.processBlock(await blockData);
+                            await this.processBlock({
+                                this_block: response.this_block,
+                                head: response.head,
+                                last_irreversible: response.last_irreversible,
+                                prev_block: response.prev_block,
+                                block: Object.assign({...response.this_block}, await block),
+                                traces: await traces,
+                                deltas: await deltas
+                            });
                         } catch (e) {
                             // abort reader if error is thrown
                             this.blocksQueue.clear();
