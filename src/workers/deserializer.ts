@@ -24,7 +24,7 @@ const types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), args.abi
 
 function deserialize(type: string, data: Uint8Array): any {
     if (args.options.ds_experimental && abieos) {
-        logger.info('type', type);
+        logger.info('type' + type);
         logger.info('hex deserialize', abieos.hex_to_json('0', type, Buffer.from(data).toString('hex')));
         logger.info('buffer deserialize', abieos.bin_to_json('0', type, Buffer.from(data)));
         return abieos.bin_to_json('0', type, Buffer.from(data));
