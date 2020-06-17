@@ -19,7 +19,7 @@ export class AssetFiller {
         return assetIDs.map((assetID) => this.assets[String(assetID)] || String(assetID));
     }
 
-    private async query(): Promise<void> {
+    async query(): Promise<void> {
         if (this.assets !== null) {
             return;
         }
@@ -52,6 +52,7 @@ export async function fillOffers(
     }
 
     const filler = new AssetFiller(connection, contract, assetIDs, formatter, view);
+    await filler.query();
 
     return await Promise.all(offers.map(async (offer) => {
         offer.sender_assets = await filler.fill(offer.sender_assets);
@@ -71,6 +72,7 @@ export async function fillTransfers(
     }
 
     const filler = new AssetFiller(connection, contract, assetIDs, formatter, view);
+    await filler.query();
 
     return await Promise.all(transfers.map(async (transfer) => {
         transfer.assets = await filler.fill(transfer.assets);

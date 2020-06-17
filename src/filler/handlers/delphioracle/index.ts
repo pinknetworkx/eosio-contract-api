@@ -41,6 +41,8 @@ export default class DelphiOracleHandler extends ContractHandler {
         version: string
     };
 
+    pairs: string[] = [];
+
     constructor(connection: ConnectionManager, events: PromiseEventHandler, args: {[key: string]: any}) {
         super(connection, events, args);
 
@@ -168,6 +170,12 @@ export default class DelphiOracleHandler extends ContractHandler {
     }
 
     private async savePair(db: ContractDBTransaction, _: ShipBlock, row: PairsTableRow): Promise<void> {
+        if (this.pairs.indexOf(row.name) >= 0) {
+            return;
+        }
+
+        this.pairs.push(row.name);
+
         await db.replace('delphioracle_pairs', this.getDatabaseRow(row), ['contract', 'delphi_pair_name'], ['median']);
     }
 

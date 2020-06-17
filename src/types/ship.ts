@@ -11,13 +11,17 @@ export interface BlockRequestType {
 
 export interface IBlockReaderOptions {
     min_block_confirmation: number;
+    ds_threads: number;
 }
 
-export type ShipHeader = {
+export type ShipBlockResponse = {
     head: {block_num: number, block_id: string},
     last_irreversible: {block_num: number, block_id: string},
     this_block: {block_num: number, block_id: string},
-    prev_block: {block_num: number, block_id: string}
+    prev_block: {block_num: number, block_id: string},
+    block: ShipBlock,
+    traces: ShipTransactionTrace[],
+    deltas: ShipTableDelta[]
 };
 
 export type ShipBlock = {
@@ -110,7 +114,7 @@ export type ShipTableDelta = [
     'table_delta_v0',
     {
         name: string,
-        rows: Array<{present: boolean, data: {[key: string]: number}}>
+        rows: Array<{present: boolean, data: [string, {[key: string]: number}]}>
     }
 ];
 

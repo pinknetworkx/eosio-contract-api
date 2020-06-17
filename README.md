@@ -68,6 +68,7 @@ This file is used to configure the filler
 
     "ship_prefetch_blocks": 50, // How much unconfirmed blocks ship will send
     "ship_min_block_confirmation": 30, // After how much blocks the reader will confirm the blocks
+    "ds_threads": 4, // How much threads should be used to deserialize traces and table deltas
 
     "delete_data": false, // Truncate all rows which were created by these readers
 

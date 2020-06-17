@@ -3,20 +3,15 @@ import { Serialize } from 'eosjs';
 import { Abi } from 'eosjs/dist/eosjs-rpc-interfaces';
 import * as WebSocket from 'ws';
 import { TextDecoder, TextEncoder } from 'text-encoding';
+import { StaticPool } from 'node-worker-threads-pool';
 
 import logger from '../utils/winston';
 import {
     BlockRequestType,
-    IBlockReaderOptions,
-    ShipHeader
+    IBlockReaderOptions, ShipBlockResponse
 } from '../types/ship';
 
-export type BlockConsumer = (
-    header: ShipHeader,
-    block: Uint8Array,
-    traces: Uint8Array,
-    deltas: Uint8Array
-) => any;
+export type BlockConsumer = (block: ShipBlockResponse) => any;
 
 export default class StateHistoryBlockReader {
     abi: Abi;
@@ -30,6 +25,8 @@ export default class StateHistoryBlockReader {
     private stopped: boolean;
 
     private blocksQueue: PQueue;
+    private deserializeWorkers: StaticPool;
+
     private unconfirmed: number;
     private consumer: BlockConsumer;
 
@@ -37,13 +34,15 @@ export default class StateHistoryBlockReader {
 
     constructor(
         private readonly endpoint: string,
-        private options: IBlockReaderOptions = {min_block_confirmation: 1}
+        private options: IBlockReaderOptions = {min_block_confirmation: 1, ds_threads: 4}
     ) {
         this.connected = false;
         this.connecting = false;
         this.stopped = true;
 
         this.blocksQueue = new PQueue({concurrency: 1, autoStart: true});
+        this.deserializeWorkers = undefined;
+
         this.consumer = null;
 
         this.abi = null;
@@ -130,6 +129,12 @@ export default class StateHistoryBlockReader {
                 this.abi = JSON.parse(data);
                 this.types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), this.abi);
 
+                this.deserializeWorkers = new StaticPool({
+                    size: this.options.ds_threads,
+                    task: './build/workers/deserializer.js',
+                    workerData: this.abi
+                });
+
                 for (const table of this.abi.tables) {
                     this.tables.set(table.name, table.type);
                 }
@@ -141,9 +146,11 @@ export default class StateHistoryBlockReader {
                 const [type, response] = this.deserialize('result', data, this.types);
 
                 if (type === 'get_blocks_result_v0') {
+                    const blockData = this.deserializeWorkers.exec(response);
+
                     this.blocksQueue.add(async () => {
                         try {
-                            await this.processBlock(response);
+                            await this.processBlock(await blockData);
                         } catch (e) {
                             // abort reader if error is thrown
                             this.blocksQueue.clear();
@@ -231,8 +238,8 @@ export default class StateHistoryBlockReader {
         this.blocksQueue.pause();
     }
 
-    async processBlock(response: any): Promise<void> {
-        if (!response.this_block) {
+    async processBlock(block: ShipBlockResponse): Promise<void> {
+        if (!block.this_block) {
             if (this.currentArgs.start_block_num >= this.currentArgs.end_block_num) {
                 logger.warn(
                     'Empty block #' + this.currentArgs.start_block_num + ' received. Reader finished reading.'
@@ -248,10 +255,8 @@ export default class StateHistoryBlockReader {
             return;
         }
 
-        const {head, last_irreversible, this_block, prev_block} = response;
-
         if (this.consumer) {
-            await this.consumer({head, last_irreversible, this_block, prev_block}, response.block, response.traces, response.deltas);
+            await this.consumer(block);
         }
 
         return;

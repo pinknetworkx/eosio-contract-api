@@ -10,6 +10,7 @@ CREATE TABLE atomictools_links (
     link_id bigint NOT NULL,
     asset_contract character varying(12) NOT NULL,
     creator character varying(64) NOT NULL,
+    claimer character varying(64),
     state integer NOT NULL,
     key_type integer NOT NULL,
     key_data bytea NOT NULL,

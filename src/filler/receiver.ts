@@ -5,7 +5,7 @@ import logger from '../utils/winston';
 import ConnectionManager from '../connections/manager';
 import StateHistoryBlockReader from '../connections/ship';
 import { IReaderConfig } from '../types/config';
-import { ShipActionTrace, ShipBlock, ShipContractRow, ShipHeader, ShipTableDelta, ShipTransactionTrace } from '../types/ship';
+import { ShipActionTrace, ShipBlock, ShipBlockResponse, ShipContractRow, ShipTableDelta, ShipTransactionTrace } from '../types/ship';
 import { EosioAction, EosioActionTrace, EosioTableRow, EosioTransaction } from '../types/eosio';
 import { ContractDB, ContractDBTransaction } from './database';
 import { ContractHandler } from './handlers/interfaces';
@@ -36,7 +36,8 @@ export default class StateReceiver {
         private readonly handlers: ContractHandler[]
     ) {
         this.ship = connection.createShipBlockReader({
-            min_block_confirmation: config.ship_min_block_confirmation
+            min_block_confirmation: config.ship_min_block_confirmation,
+            ds_threads: config.ds_threads
         });
 
         this.database = new ContractDB(this.config.name, this.connection);
@@ -72,68 +73,63 @@ export default class StateReceiver {
         });
     }
 
-    private async consumer(header: ShipHeader, rawBlock: Uint8Array, rawTraces: Uint8Array, rawDeltas: Uint8Array): Promise<void> {
+    private async consumer(block: ShipBlockResponse): Promise<void> {
         // process deltas of first block because it could be started from a snapshot
         let processDeltas = this.currentBlock === 0;
 
-        const block: ShipBlock = { ...header.this_block, ...this.ship.deserialize('signed_block', rawBlock) };
-        const traces: ShipTransactionTrace[] = this.ship.deserialize('transaction_trace[]', rawTraces);
+        const db = await this.database.startTransaction(block.this_block.block_num, block.last_irreversible.block_num);
 
-        const db = await this.database.startTransaction(header.this_block.block_num, header.last_irreversible.block_num);
-
-        if (header.this_block.block_num <= this.currentBlock) {
+        if (block.this_block.block_num <= this.currentBlock) {
             logger.info('Chain fork detected. Reverse all blocks which were affected');
 
-            await db.rollbackReversibleBlocks(header.this_block.block_num);
+            await db.rollbackReversibleBlocks(block.this_block.block_num);
 
             const channelName = ['eosio-contract-api', this.connection.chain.name, 'chain'].join(':');
             await this.connection.redis.ioRedis.publish(channelName, JSON.stringify({
-                action: 'fork', block_num: header.this_block.block_num
+                action: 'fork', block_num: block.this_block.block_num
             }));
         }
 
-        const actionTraces = this.extractTransactionTraces(traces);
+        const actionTraces = this.extractTransactionTraces(block.traces);
 
         for (const row of actionTraces) {
-            processDeltas = await this.handleActionTrace(db, block, row.trace, row.tx) || processDeltas;
+            processDeltas = await this.handleActionTrace(db, block.block, row.trace, row.tx) || processDeltas;
         }
 
         if (processDeltas) {
-            const deltas: ShipTableDelta[] = this.ship.deserialize('table_delta[]', rawDeltas);
-
-            for (const delta of deltas) {
-                await this.handleDelta(db, block, delta);
+            for (const delta of block.deltas) {
+                await this.handleDelta(db, block.block, delta);
             }
 
-            await db.updateReaderPosition(block);
+            await db.updateReaderPosition(block.block);
         }
 
-        if (header.this_block.block_num > header.last_irreversible.block_num) {
-            await db.updateReaderPosition(block);
+        if (block.this_block.block_num > block.last_irreversible.block_num) {
+            await db.updateReaderPosition(block.block);
 
             await db.insert('reversible_blocks', {
                 reader: this.config.name,
-                block_id: Buffer.from(header.this_block.block_id, 'hex'),
-                block_num: header.this_block.block_num
+                block_id: Buffer.from(block.this_block.block_id, 'hex'),
+                block_num: block.this_block.block_num
             }, ['reader', 'block_num']);
 
             await db.clearForkDatabase();
-        } else if (header.this_block.block_num % 100 === 0) {
-            await db.updateReaderPosition(block);
+        } else if (block.this_block.block_num % 100 === 0) {
+            await db.updateReaderPosition(block.block);
         }
 
         for (const handler of this.handlers) {
-            await handler.onBlockComplete(db, block);
+            await handler.onBlockComplete(db, block.block);
         }
 
-        this.currentBlock = header.this_block.block_num;
-        this.headBlock = header.head.block_num;
-        this.lastIrreversibleBlock = header.last_irreversible.block_num;
+        this.currentBlock = block.this_block.block_num;
+        this.headBlock = block.head.block_num;
+        this.lastIrreversibleBlock = block.last_irreversible.block_num;
 
         await db.commit();
 
         for (const handler of this.handlers) {
-            await handler.onCommit(block);
+            await handler.onCommit(block.block);
         }
     }
 
@@ -256,20 +252,9 @@ export default class StateReceiver {
 
     private async handleDelta(db: ContractDBTransaction, block: ShipBlock, delta: ShipTableDelta): Promise<void> {
         if (delta[0] === 'table_delta_v0') {
-            const whitelist = ['contract_row'];
-
-            if (whitelist.indexOf(delta[1].name) >= 0) {
-                const rows = delta[1].rows.map((row) => {
-                    return {
-                        present: row.present,
-                        data: this.ship.deserialize(delta[1].name, row.data)
-                    };
-                });
-
-                if (delta[1].name === 'contract_row') {
-                    for (const row of rows) {
-                        await this.handleContractRow(db, block, row.data, row.present);
-                    }
+            if (delta[1].name === 'contract_row') {
+                for (const row of delta[1].rows) {
+                    await this.handleContractRow(db, block, <ShipContractRow>(<unknown>row.data), row.present);
                 }
             }
 
