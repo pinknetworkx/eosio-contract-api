@@ -9,6 +9,7 @@
     "ship_prefetch_blocks": 50,
     "ship_min_block_confirmation": 30,
     "ds_threads": 4,
+    "ds_experimental": false,
 
     "delete_data": false,
 
@@ -17,13 +18,6 @@
         "handler": "atomicassets",
         "args": {
           "atomicassets_account": "atomicassets"
-        }
-      },
-      {
-        "handler": "atomicmarket",
-        "args": {
-          "atomicassets_account": "atomicassets",
-          "atomicmarket_account": "atomicmarket"
         }
       }
     ]
