@@ -2,20 +2,23 @@ CREATE TABLE contract_abis (
     account character varying(12) NOT NULL,
     abi bytea NOT NULL,
     block_num bigint NOT NULL,
-    block_time bigint NOT NULL
+    block_time bigint NOT NULL,
+    CONSTRAINT contract_abis_pkey PRIMARY KEY (account, block_num)
 );
 
 CREATE TABLE contract_codes (
     account character varying(12) NOT NULL,
     block_num bigint NOT NULL,
-    block_time bigint NOT NULL
+    block_time bigint NOT NULL,
+    CONSTRAINT contract_codes_pkey PRIMARY KEY (account, block_num)
 );
 
 CREATE TABLE contract_readers (
     name character varying(64) NOT NULL,
     block_num bigint NOT NULL,
     block_time bigint NOT NULL,
-    updated bigint NOT NULL
+    updated bigint NOT NULL,
+    CONSTRAINT contract_readers_pkey PRIMARY KEY (name)
 );
 
 CREATE SEQUENCE reversible_queries_id_seq;
@@ -27,21 +30,17 @@ CREATE TABLE reversible_queries
     "table" character varying(64) NOT NULL,
     "values" json NOT NULL,
     condition json NOT NULL,
-    block_num bigint NOT NULL
+    block_num bigint NOT NULL,
+    CONSTRAINT reversible_queries_pkey PRIMARY KEY (id)
 );
 
 CREATE TABLE reversible_blocks
 (
     reader character varying(64) NOT NULL,
     block_id bytea NOT NULL,
-    block_num bigint NOT NULL
+    block_num bigint NOT NULL,
+    CONSTRAINT reversible_blocks_pkey PRIMARY KEY (reader, block_num)
 );
-
-ALTER TABLE ONLY contract_abis ADD CONSTRAINT contract_abis_pkey PRIMARY KEY (account, block_num);
-ALTER TABLE ONLY contract_codes ADD CONSTRAINT contract_codes_pkey PRIMARY KEY (account, block_num);
-ALTER TABLE ONLY contract_readers ADD CONSTRAINT contract_readers_pkey PRIMARY KEY (name);
-ALTER TABLE ONLY reversible_queries ADD CONSTRAINT reversible_queries_pkey PRIMARY KEY (id);
-ALTER TABLE ONLY reversible_blocks ADD CONSTRAINT reversible_blocks_pkey PRIMARY KEY (reader, block_num);
 
 CREATE INDEX contract_abis_account ON contract_abis USING hash (account);
 CREATE INDEX contract_abis_block_num ON contract_abis USING btree (block_num);

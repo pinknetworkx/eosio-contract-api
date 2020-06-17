@@ -14,6 +14,7 @@ import ConnectionManager from '../connections/manager';
 import { IServerConfig } from '../types/config';
 import logger from '../utils/winston';
 import { expressRedisCache, ExpressRedisCacheHandler } from '../utils/cache';
+import { eosioTimestampToDate } from '../utils/eosio';
 
 const packageJson: any = require('../../package.json');
 
@@ -132,12 +133,20 @@ export class WebServer {
                 const info = await this.server.connection.chain.rpc.get_info();
 
                 if (Date.now() - 20 * 1000 < new Date(info.head_block_time + '+0000').getTime()) {
-                    chainHealth = {status: 'OK', head_block: info.head_block_num};
+                    chainHealth = {
+                        status: 'OK',
+                        head_block: info.head_block_num,
+                        head_time: eosioTimestampToDate(info.head_block_time).getTime()
+                    };
                 } else {
-                    chainHealth = {status: 'BEHIND', head_block: info.head_block_num};
+                    chainHealth = {
+                        status: 'BEHIND',
+                        head_block: info.head_block_num,
+                        head_time: eosioTimestampToDate(info.head_block_time).getTime()
+                    };
                 }
             } catch (e) {
-                chainHealth = {status: 'ERROR', head_block: 0};
+                chainHealth = {status: 'ERROR', head_block: 0, head_time: 0};
             }
 
             res.json({
