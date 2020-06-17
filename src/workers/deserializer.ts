@@ -2,7 +2,7 @@ import { parentPort, workerData } from 'worker_threads';
 import { TextDecoder, TextEncoder } from 'text-encoding';
 import { Serialize } from 'eosjs';
 import { Abi } from 'eosjs/dist/eosjs-rpc-interfaces';
-import * as abieos from '@eosrio/node-abieos';
+import * as nodeAbieos from '@eosrio/node-abieos';
 
 import logger from '../utils/winston';
 import { IBlockReaderOptions } from '../types/ship';
@@ -14,12 +14,13 @@ logger.info('Launching deserialization worker...');
 let useAbiEOS = false;
 
 if (args.options.ds_experimental) {
-    if (!abieos) {
+    if (!nodeAbieos) {
         logger.warn('C abi deserializer not supported on this platform. Using eosjs instead');
-    } else if (!abieos.load_abi('0', JSON.stringify(args.abi))) {
+    } else if (!nodeAbieos.load_abi('0', JSON.stringify(args.abi))) {
         logger.warn('Failed to load ship ABI in abieos');
     } else {
         useAbiEOS = true;
+        logger.info('Ship ABI loaded in deserializer worker thread');
     }
 }
 
@@ -27,7 +28,7 @@ const types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), args.abi
 
 function deserialize(type: string, data: Uint8Array): any {
     if (useAbiEOS) {
-        return abieos.bin_to_json('0', type, Buffer.from(data));
+        return nodeAbieos.bin_to_json('0', type, Buffer.from(data));
     }
 
     const buffer = new Serialize.SerialBuffer({ textEncoder: new TextEncoder, textDecoder: new TextDecoder, array: data });
