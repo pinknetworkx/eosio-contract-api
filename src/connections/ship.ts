@@ -198,6 +198,9 @@ export default class StateHistoryBlockReader {
         this.connected = false;
         this.connecting = false;
 
+        this.deserializeWorkers.destroy();
+        this.deserializeWorkers = null;
+
         this.blocksQueue.clear();
 
         this.reconnect();
