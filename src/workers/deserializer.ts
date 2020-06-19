@@ -25,13 +25,13 @@ if (args.options.ds_experimental) {
 const eosjsTypes: any = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), JSON.parse(args.abi));
 
 function deserialize(type: string, data: Uint8Array | string): any {
-    /*if (abieosSupported) {
+    if (args.options.ds_experimental && abieosSupported) {
         if (typeof data === 'string') {
             return nodeAbieos.hex_to_json('0', type, data);
-        } else {
-            return nodeAbieos.bin_to_json('0', type, Buffer.from(data));
         }
-    }*/
+
+        return nodeAbieos.bin_to_json('0', type, Buffer.from(data));
+    }
 
     let dataArray;
     if (typeof data === 'string') {

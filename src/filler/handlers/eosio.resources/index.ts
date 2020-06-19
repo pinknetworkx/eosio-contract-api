@@ -9,35 +9,29 @@ import ConnectionManager from '../../../connections/manager';
 import { PromiseEventHandler } from '../../../utils/event';
 import logger from '../../../utils/winston';
 
-export type EosioTokenArgs = {
-    token_account: string,
-    store_transfers: boolean,
-    store_balances: boolean,
-    store_supply_deltas: boolean
+export type ResourcesArgs = {
+    store_rammarket: boolean,
+    store_bandwidth_deltas: boolean,
+    store_bandwidth_balance: boolean
 };
 
-export default class EosioTokenHandler extends ContractHandler {
-    static handlerName = 'eosio.token';
+export default class ResourcesHandler extends ContractHandler {
+    static handlerName = 'eosio.resources';
 
-    readonly args: EosioTokenArgs;
+    readonly args: ResourcesArgs;
 
     constructor(connection: ConnectionManager, events: PromiseEventHandler, args: {[key: string]: any}) {
         super(connection, events, args);
 
-        if (typeof args.token_account !== 'string') {
-            throw new Error('eosio.token: Argument missing in eosio.token handler: token_account');
-        }
-
         this.scope = {
-            actions: [
-                {
-                    filter: this.args.token_account + ':transfer',
-                    deserialize: true
-                }
-            ],
+            actions: [ ],
             tables: [
                 {
-                    filter: this.args.token_account + ':*',
+                    filter: 'eosio:rammarket',
+                    deserialize: true
+                },
+                {
+                    filter: 'eosio:resources',
                     deserialize: true
                 }
             ]
@@ -47,30 +41,27 @@ export default class EosioTokenHandler extends ContractHandler {
     async init(client: PoolClient): Promise<void> {
         const existsQuery = await client.query(
             'SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2)',
-            [await this.connection.database.schema(), 'token_stats']
+            [await this.connection.database.schema(), 'ressource_balances']
         );
 
         if (!existsQuery.rows[0].exists) {
-            logger.info('Could not find eosio.token tables. Create them now...');
+            logger.info('Could not find resource tables. Create them now...');
 
-            await client.query(fs.readFileSync('./definitions/tables/token_tables.sql', {
+            await client.query(fs.readFileSync('./definitions/tables/wax_tables.sql', {
                 encoding: 'utf8'
             }));
 
-            logger.info('eosio.token tables successfully created');
+            logger.info('Resource tables successfully created');
         }
     }
 
     async deleteDB(client: PoolClient): Promise<void> {
         const tables = [
-            'token_stats', 'token_supply_deltas', 'token_transfers', 'token_balances'
+            'ressource_balances', 'ressource_rammarket', 'ressource_deltas'
         ];
 
         for (const table of tables) {
-            await client.query(
-                'DELETE FROM ' + client.escapeIdentifier(table) + ' WHERE contract = $1',
-                [this.args.token_account]
-            );
+            await client.query('DELETE FROM ' + client.escapeIdentifier(table));
         }
     }
 

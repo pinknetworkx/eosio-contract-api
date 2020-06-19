@@ -69,6 +69,7 @@ This file is used to configure the filler
     "ship_prefetch_blocks": 50, // How much unconfirmed blocks ship will send
     "ship_min_block_confirmation": 30, // After how much blocks the reader will confirm the blocks
     "ds_threads": 4, // How much threads should be used to deserialize traces and table deltas
+    "ds_experimental": false, // Use abieos as deserializer. There are maybe some bugs since its not fully tested yet
 
     "delete_data": false, // Truncate all rows which were created by these readers
 
@@ -79,6 +80,7 @@ This file is used to configure the filler
         "start_on": 100, // Define the block after which actions and deltas are important
         "args": {
           "atomicassets_account": "assetstest55" // Account where the contract is deployed
+          "store_transfers": true // store the transfer history
         }
       }
     ]
@@ -177,6 +179,8 @@ Readers are used to fill the database for a specific contract.
   "handler": "atomicassets",
   "args": {
     "atomicassets_account": "atomicassets" // account where the atomicassets contract is deployed
+    "store_transfers": true // store the transfer history  
+    "store_logs": true // store data structure logs
   }
 }
 ```

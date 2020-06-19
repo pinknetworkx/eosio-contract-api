@@ -62,8 +62,10 @@ CREATE TABLE atomicmarket_config
     version character varying(64) NOT NULL,
     maker_market_fee double precision NOT NULL,
     taker_market_fee double precision NOT NULL,
+    minimum_auction_duration integer NOT NULL,
     maximum_auction_duration integer NOT NULL,
     minimum_bid_increase double precision NOT NULL,
+    auction_reset_duration integer NOT NULL,
     CONSTRAINT atomicmarket_config_pkey PRIMARY KEY (market_contract)
 );
 

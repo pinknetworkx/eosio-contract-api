@@ -9,14 +9,14 @@ import ConnectionManager from '../../../connections/manager';
 import { PromiseEventHandler } from '../../../utils/event';
 import logger from '../../../utils/winston';
 
-export type DelphiOracleArgs = {
+export type AtomicToolsArgs = {
     atomictools_account: string
 };
 
-export default class DelphiOracleHandler extends ContractHandler {
-    static handlerName = 'delphioracle';
+export default class AtomicToolsHandler extends ContractHandler {
+    static handlerName = 'atomictools';
 
-    readonly args: DelphiOracleArgs;
+    readonly args: AtomicToolsArgs;
 
     config: {
         version: string
@@ -25,8 +25,8 @@ export default class DelphiOracleHandler extends ContractHandler {
     constructor(connection: ConnectionManager, events: PromiseEventHandler, args: {[key: string]: any}) {
         super(connection, events, args);
 
-        if (typeof args.delphioracle_account !== 'string') {
-            throw new Error('DelphiOracle: Argument missing in atomicmarket handler: delphioracle_account');
+        if (typeof this.args.atomictools_account !== 'string') {
+            throw new Error('AtomicTools: Argument missing in handler: atomictools_account');
         }
 
         this.scope = {
@@ -68,15 +68,13 @@ export default class DelphiOracleHandler extends ContractHandler {
         }
     }
 
-    async onTableChange(db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow): Promise<void> {
+    async onTableChange(_db: ContractDBTransaction, _block: ShipBlock, _delta: EosioTableRow): Promise<void> {
 
     }
 
     async onAction(): Promise<void> { }
 
-    async onBlockComplete(db: ContractDBTransaction, _: ShipBlock): Promise<void> {
-
-    }
+    async onBlockComplete(_db: ContractDBTransaction, _block: ShipBlock): Promise<void> { }
 
     async onCommit(): Promise<void> { }
 }

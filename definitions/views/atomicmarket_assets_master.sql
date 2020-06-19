@@ -23,5 +23,14 @@ CREATE OR REPLACE VIEW atomicmarket_assets_master AS
             WHERE auction_a.market_contract = asset_o.market_contract AND auction_a.auction_id = asset_o.auction_id AND
                 asset_o.asset_contract = asset_a.contract AND asset_o.asset_id = asset_a.asset_id AND
                 auction_a.state = 0
-        ) auction
+        ) auction,
+
+        EXISTS (
+            SELECT * FROM atomicmarket_blacklist_collections list
+            WHERE list.asset_contract = asset_a.contract AND list.collection_name = asset_a.collection_name
+        ) collection_blacklisted,
+        EXISTS (
+            SELECT * FROM atomicmarket_whitelist_collections list
+            WHERE list.asset_contract = asset_a.contract AND list.collection_name = asset_a.collection_name
+        ) collection_whitelisted
     FROM atomicassets_assets_master asset_a

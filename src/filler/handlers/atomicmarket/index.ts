@@ -139,8 +139,13 @@ export default class AtomicMarketHandler extends ContractHandler {
 
             await client.query(
                 'INSERT INTO atomicmarket_config ' +
-                '(market_contract, asset_contract, delphi_contract, version, maker_market_fee, taker_market_fee, maximum_auction_duration, minimum_bid_increase) ' +
-                'VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+                '(' +
+                    'market_contract, asset_contract, delphi_contract, ' +
+                    'version, maker_market_fee, taker_market_fee, ' +
+                    'minimum_auction_duration, maximum_auction_duration, ' +
+                    'minimum_bid_increase, auction_reset_duration' +
+                ') ' +
+                'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
                 [
                     this.args.atomicmarket_account,
                     this.args.atomicassets_account,
@@ -148,8 +153,10 @@ export default class AtomicMarketHandler extends ContractHandler {
                     config.version,
                     config.maker_market_fee,
                     config.taker_market_fee,
+                    config.minimum_auction_duration,
                     config.maximum_auction_duration,
-                    config.minimum_bid_increase
+                    config.minimum_bid_increase,
+                    config.auction_reset_duration
                 ]
             );
 

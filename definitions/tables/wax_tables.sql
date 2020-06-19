@@ -7,11 +7,19 @@ CREATE TABLE wax_gbm_balances (
     CONSTRAINT wax_gbm_balances_pkey PRIMARY KEY (account)
 );
 
+CREATE TABLE wax_votes (
+    account character varying(12) NOT NULL,
+    last_vote_time bigint NOT NULL,
+    vote_weight double precision NOT NULL,
+    CONSTRAINT wax_gbm_balances_pkey PRIMARY KEY (account)
+);
+
 CREATE TABLE wax_gbm_deltas (
+    account bigint NOT NULL,
     block_num bigint NOT NULL,
     block_time bigint NOT NULL,
     gbm bigint NOT NULL,
-    CONSTRAINT wax_gbm_deltas_pkey PRIMARY KEY (block_num)
+    CONSTRAINT wax_gbm_deltas_pkey PRIMARY KEY (account, block_num)
 );
 
 CREATE INDEX wax_gbm_balances_balance ON wax_gbm_balances USING btree (balance);

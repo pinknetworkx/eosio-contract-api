@@ -21,7 +21,9 @@ export const atomicmarketComponents = {
                     market_contract: {type: 'string'},
                     auction_id: {type: 'integer'}
                 }
-            }
+            },
+            collection_whitelisted: {type: 'boolean'},
+            collection_blacklisted: {type: 'boolean'}
         }
     },
     ListingOffer: generateOfferSchema('ListingAsset'),

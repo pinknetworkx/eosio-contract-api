@@ -40,7 +40,9 @@ export enum JobPriority {
 }
 
 export type AtomicAssetsReaderArgs = {
-    atomicassets_account: string
+    atomicassets_account: string,
+    store_transfers: boolean,
+    store_logs: boolean
 };
 
 export default class AtomicAssetsHandler extends ContractHandler {

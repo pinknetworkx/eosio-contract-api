@@ -171,14 +171,18 @@ export default class AtomicMarketTableHandler {
             this.core.config.maker_market_fee !== data.maker_market_fee ||
             this.core.config.taker_market_fee !== data.taker_market_fee ||
             this.core.config.maximum_auction_duration !== data.maximum_auction_duration ||
-            this.core.config.minimum_bid_increase !== data.minimum_bid_increase
+            this.core.config.minimum_bid_increase !== data.minimum_bid_increase ||
+            this.core.config.minimum_auction_duration !== data.minimum_auction_duration ||
+            this.core.config.auction_reset_duration !== data.auction_reset_duration
         ) {
             await db.update('atomicmarket_config', {
                 version: data.version,
                 maker_market_fee: data.maker_market_fee,
                 taker_market_fee: data.taker_market_fee,
+                minimum_auction_duration: data.minimum_auction_duration,
                 maximum_auction_duration: data.maximum_auction_duration,
-                minimum_bid_increase: data.minimum_bid_increase
+                minimum_bid_increase: data.minimum_bid_increase,
+                auction_reset_duration: data.auction_reset_duration
             }, {
                 str: 'market_contract = $1',
                 values: [this.core.args.atomicmarket_account]

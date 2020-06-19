@@ -4,6 +4,7 @@ import { Abi } from 'eosjs/dist/eosjs-rpc-interfaces';
 import * as WebSocket from 'ws';
 import { TextDecoder, TextEncoder } from 'text-encoding';
 import { StaticPool } from 'node-worker-threads-pool';
+import * as fs from 'fs';
 
 import logger from '../utils/winston';
 import {
@@ -108,7 +109,8 @@ export default class StateHistoryBlockReader {
         }
 
         const buffer = new Serialize.SerialBuffer({ textEncoder: new TextEncoder, textDecoder: new TextDecoder, array: dataArray });
-        const result = Serialize.getType(serializeTypes, type).deserialize(buffer, new Serialize.SerializerState({ bytesAsUint8Array: true }));
+        const result = Serialize.getType(serializeTypes, type)
+            .deserialize(buffer, new Serialize.SerializerState({ bytesAsUint8Array: true }));
 
         if (buffer.readPos !== data.length && checkLength) {
             throw new Error('Deserialization error: ' + type);
@@ -154,9 +156,15 @@ export default class StateHistoryBlockReader {
                 const [type, response] = this.deserialize('result', data, this.types);
 
                 if (type === 'get_blocks_result_v0') {
-                    const block = this.deserializeWorkers.exec({type: 'signed_block', data: response.block});
-                    const traces = this.deserializeWorkers.exec({type: 'transaction_trace[]', data: response.traces});
-                    const deltas = this.deserializeWorkers.exec({type: 'table_delta[]', data: response.deltas});
+                    let block: any = null;
+                    let traces: any = null;
+                    let deltas: any = null;
+
+                    if (response.this_block) {
+                        block = this.deserializeWorkers.exec({type: 'signed_block', data: response.block});
+                        traces = this.deserializeWorkers.exec({type: 'transaction_trace[]', data: response.traces});
+                        deltas = this.deserializeWorkers.exec({type: 'table_delta[]', data: response.deltas});
+                    }
 
                     this.blocksQueue.add(async () => {
                         try {
@@ -174,7 +182,8 @@ export default class StateHistoryBlockReader {
                             this.blocksQueue.clear();
                             this.blocksQueue.pause();
 
-                            throw e;
+                            logger.error('Ship blocks queue stopped duo to an error');
+                            logger.error(e);
                         }
 
                         this.unconfirmed += 1;

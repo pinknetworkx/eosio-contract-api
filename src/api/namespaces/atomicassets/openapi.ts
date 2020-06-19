@@ -58,7 +58,7 @@ export const atomicassetsComponents = {
                     allow_notify: {type: 'boolean'},
                     authorized_accounts: {type: 'array', items: {type: 'string'}},
                     notify_accounts: {type: 'array', items: {type: 'string'}},
-                    market_fee: {type: 'boolean'},
+                    market_fee: {type: 'number'},
                     created_at_block: {type: 'integer'},
                     created_at_time: {type: 'integer'}
                 }
@@ -165,7 +165,7 @@ export const atomicassetsComponents = {
                     allow_notify: {type: 'boolean'},
                     authorized_accounts: {type: 'array', items: {type: 'string'}},
                     notify_accounts: {type: 'array', items: {type: 'string'}},
-                    market_fee: {type: 'boolean'},
+                    market_fee: {type: 'number'},
 
                     created_at_block: {type: 'integer'},
                     created_at_time: {type: 'integer'}
@@ -215,7 +215,7 @@ export const atomicassetsComponents = {
                     allow_notify: {type: 'boolean'},
                     authorized_accounts: {type: 'array', items: {type: 'string'}},
                     notify_accounts: {type: 'array', items: {type: 'string'}},
-                    market_fee: {type: 'boolean'},
+                    market_fee: {type: 'number'},
 
                     created_at_block: {type: 'integer'},
                     created_at_time: {type: 'integer'}

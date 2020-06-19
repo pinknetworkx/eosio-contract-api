@@ -384,6 +384,10 @@ export default class AtomicAssetsActionHandler {
         db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, globalSequence: string,
         name: string, relationName: string, relationId: string | number, data: any
     ): Promise<void> {
+        if (!this.core.args.store_logs) {
+            return;
+        }
+
         await db.insert('atomicassets_logs', {
             log_id: globalSequence,
             contract: this.contractName,

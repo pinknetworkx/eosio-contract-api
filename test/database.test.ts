@@ -76,4 +76,18 @@ describe('database tests', () => {
 
         await transaction.commit();
     });
+
+    it('Concurrency', async () => {
+        const transaction = await connection.database.begin();
+
+        const promises = [];
+
+        for (let i = 0; i < 10; i++) {
+            promises.push(transaction.query('SELECT pg_sleep(1)'));
+        }
+
+        await Promise.all(promises);
+
+        await transaction.query('COMMIT');
+    }).timeout(20000);
 });

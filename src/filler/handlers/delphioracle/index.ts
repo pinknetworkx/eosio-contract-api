@@ -47,7 +47,7 @@ export default class DelphiOracleHandler extends ContractHandler {
         super(connection, events, args);
 
         if (typeof args.delphioracle_account !== 'string') {
-            throw new Error('DelphiOracle: Argument missing in atomicmarket handler: delphioracle_account');
+            throw new Error('DelphiOracle: Argument missing in handler: delphioracle_account');
         }
 
         this.scope = {
