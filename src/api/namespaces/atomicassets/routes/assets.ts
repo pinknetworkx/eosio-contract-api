@@ -7,6 +7,7 @@ import { filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import { assetFilterParameters } from '../openapi';
+import { atomicDataFilter } from '../../atomicmarket/openapi';
 
 export type SocketAssetSubscriptionArgs = {
     asset_ids: string[],
@@ -125,13 +126,13 @@ export class AssetApi {
                 '/v1/assets': {
                     get: {
                         tags: ['assets'],
-                        summary: 'Fetch assets',
+                        summary: 'Fetch assets.' + atomicDataFilter,
                         parameters: [
                             ...assetFilterParameters,
                             {
                                 name: 'authorized_account',
                                 in: 'query',
-                                description: 'Filter for assets the provided account can edit',
+                                description: 'Filter for assets the provided account can edit. ',
                                 required: false,
                                 schema: {
                                     type: 'string'

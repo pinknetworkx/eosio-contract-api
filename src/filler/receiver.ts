@@ -74,63 +74,71 @@ export default class StateReceiver {
         });
     }
 
-    private async consumer(block: ShipBlockResponse): Promise<void> {
+    private async consumer(resp: ShipBlockResponse): Promise<void> {
         // process deltas of first block because it could be started from a snapshot
         let processDeltas = this.currentBlock === 0;
 
-        const db = await this.database.startTransaction(block.this_block.block_num, block.last_irreversible.block_num);
+        const db = await this.database.startTransaction(resp.this_block.block_num, resp.last_irreversible.block_num);
 
-        if (block.this_block.block_num <= this.currentBlock) {
-            logger.info('Chain fork detected. Reverse all blocks which were affected');
+        try {
+            if (resp.this_block.block_num <= this.currentBlock) {
+                logger.info('Chain fork detected. Reverse all blocks which were affected');
 
-            await db.rollbackReversibleBlocks(block.this_block.block_num);
+                await db.rollbackReversibleBlocks(resp.this_block.block_num);
 
-            const channelName = ['eosio-contract-api', this.connection.chain.name, 'chain'].join(':');
-            await this.connection.redis.ioRedis.publish(channelName, JSON.stringify({
-                action: 'fork', block_num: block.this_block.block_num
-            }));
-        }
-
-        const actionTraces = this.extractTransactionTraces(block.traces);
-
-        for (const row of actionTraces) {
-            processDeltas = await this.handleActionTrace(db, block.block, row.trace, row.tx) || processDeltas;
-        }
-
-        if (processDeltas) {
-            for (const delta of block.deltas) {
-                await this.handleDelta(db, block.block, delta);
+                const channelName = ['eosio-contract-api', this.connection.chain.name, 'chain'].join(':');
+                await this.connection.redis.ioRedis.publish(channelName, JSON.stringify({
+                    action: 'fork', block_num: resp.this_block.block_num
+                }));
             }
 
-            await db.updateReaderPosition(block.block);
-        }
+            const actionTraces = this.extractTransactionTraces(resp.traces);
 
-        if (block.this_block.block_num > block.last_irreversible.block_num) {
-            await db.updateReaderPosition(block.block);
+            for (const row of actionTraces) {
+                processDeltas = await this.handleActionTrace(db, resp.block, row.trace, row.tx) || processDeltas;
+            }
 
-            await db.insert('reversible_blocks', {
-                reader: this.config.name,
-                block_id: Buffer.from(block.this_block.block_id, 'hex'),
-                block_num: block.this_block.block_num
-            }, ['reader', 'block_num']);
+            if (processDeltas) {
+                for (const delta of resp.deltas) {
+                    await this.handleDelta(db, resp.block, delta);
+                }
 
-            await db.clearForkDatabase();
-        } else if (block.this_block.block_num % 100 === 0) {
-            await db.updateReaderPosition(block.block);
+                await db.updateReaderPosition(resp.block);
+            }
+
+            if (resp.this_block.block_num > resp.last_irreversible.block_num) {
+                await db.updateReaderPosition(resp.block);
+
+                await db.insert('reversible_blocks', {
+                    reader: this.config.name,
+                    block_id: Buffer.from(resp.this_block.block_id, 'hex'),
+                    block_num: resp.this_block.block_num
+                }, ['reader', 'block_num']);
+
+                await db.clearForkDatabase();
+            } else if (resp.this_block.block_num % 100 === 0) {
+                await db.updateReaderPosition(resp.block);
+            }
+
+            for (const handler of this.handlers) {
+                await handler.onBlockComplete(db, resp.block);
+            }
+
+            this.currentBlock = resp.this_block.block_num;
+            this.headBlock = resp.head.block_num;
+            this.lastIrreversibleBlock = resp.last_irreversible.block_num;
+
+            await db.commit();
+        } catch (e) {
+            logger.error('Error occurred while processing block #' + resp.this_block.block_num);
+
+            await db.abort();
+
+            throw e;
         }
 
         for (const handler of this.handlers) {
-            await handler.onBlockComplete(db, block.block);
-        }
-
-        this.currentBlock = block.this_block.block_num;
-        this.headBlock = block.head.block_num;
-        this.lastIrreversibleBlock = block.last_irreversible.block_num;
-
-        await db.commit();
-
-        for (const handler of this.handlers) {
-            await handler.onCommit(block.block);
+            await handler.onCommit(resp.block);
         }
     }
 
@@ -226,8 +234,6 @@ export default class StateReceiver {
             return this.areDeltasNeeded(actionTrace[1].act.account);
         }
 
-        await db.abort();
-
         throw new Error('Unsupported trace response received: ' + actionTrace[0]);
     }
 
@@ -261,8 +267,6 @@ export default class StateReceiver {
 
             return;
         }
-
-        await db.abort();
 
         throw new Error('Unsupported table delta response received: ' + delta[0]);
     }
@@ -303,8 +307,6 @@ export default class StateReceiver {
 
             return;
         }
-
-        await db.abort();
 
         throw new Error('Unsupported contract row response received: ' + contractRow[0]);
     }

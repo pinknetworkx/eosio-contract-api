@@ -4,7 +4,6 @@ import { Abi } from 'eosjs/dist/eosjs-rpc-interfaces';
 import * as WebSocket from 'ws';
 import { TextDecoder, TextEncoder } from 'text-encoding';
 import { StaticPool } from 'node-worker-threads-pool';
-import * as fs from 'fs';
 
 import logger from '../utils/winston';
 import {

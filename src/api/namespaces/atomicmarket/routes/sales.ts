@@ -9,7 +9,7 @@ import { assetFilterParameters } from '../../atomicassets/openapi';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import logger from '../../../../utils/winston';
 import { filterQueryArgs } from '../../utils';
-import { listingFilterParameters } from '../openapi';
+import { atomicDataFilter, listingFilterParameters } from '../openapi';
 
 export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/sales', server.web.caching(), async (req, res) => {
@@ -47,7 +47,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 core.connection, core.args.atomicassets_account, query.rows.map((row) => formatSale(row))
             );
 
-            res.json({status: true, data: sales});
+            res.json({success: true, data: sales});
         } catch (e) {
             logger.error(e);
 
@@ -69,7 +69,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                     core.connection, core.args.atomicassets_account, query.rows.map((row) => formatSale(row))
                 );
 
-                res.json({status: true, data: sales[0]});
+                res.json({success: true, data: sales[0]});
             }
         } catch (e) {
             logger.error(e);
@@ -87,7 +87,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             '/v1/sales': {
                 get: {
                     tags: ['sales'],
-                    summary: 'Get all sales',
+                    summary: 'Get all sales. ' + atomicDataFilter,
                     parameters: [
                         {
                             name: 'state',

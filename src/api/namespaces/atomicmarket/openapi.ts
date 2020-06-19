@@ -245,3 +245,7 @@ export const listingFilterParameters = [
         schema: {type: 'number'}
     }
 ];
+
+export const atomicDataFilter =
+    'You can filter the result by specific asset / template data fields. You need to define collection_name and schema_name to enable this filter.' +
+    'You can add for example add &data.rarity=sketch to only receive results which have an attribute "rarity" with the value "sketch"';

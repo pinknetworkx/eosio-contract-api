@@ -9,7 +9,7 @@ import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import { assetFilterParameters } from '../../atomicassets/openapi';
 import logger from '../../../../utils/winston';
 import { filterQueryArgs } from '../../utils';
-import { listingFilterParameters } from '../openapi';
+import { atomicDataFilter, listingFilterParameters } from '../openapi';
 
 export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/auctions', server.web.caching(), async (req, res) => {
@@ -48,7 +48,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                 core.connection, core.args.atomicassets_account, query.rows.map((row) => formatAuction(row))
             );
 
-            res.json({status: true, data: auctions});
+            res.json({success: true, data: auctions});
         } catch (e) {
             logger.error(e);
 
@@ -70,7 +70,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                     core.connection, core.args.atomicassets_account, query.rows.map((row) => formatAuction(row))
                 );
 
-                res.json({status: true, data: auctions[0]});
+                res.json({success: true, data: auctions[0]});
             }
         } catch (e) {
             logger.error(e);
@@ -89,7 +89,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             '/v1/auctions': {
                 get: {
                     tags: ['auctions'],
-                    summary: 'Get all auctions',
+                    summary: 'Get all auctions.' + atomicDataFilter,
                     parameters: [
                         {
                             name: 'state',

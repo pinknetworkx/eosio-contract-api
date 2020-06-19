@@ -1,10 +1,13 @@
 import { PoolClient, QueryResult } from 'pg';
 import AwaitLock from 'await-lock';
+// @ts-ignore
+import * as exitHook from 'async-exit-hook';
 
 import ConnectionManager from '../connections/manager';
 import { ShipBlock } from '../types/ship';
 import { eosioTimestampToDate } from '../utils/eosio';
 import { arraysEqual } from '../utils';
+import logger from '../utils/winston';
 
 export type Condition = {
     str: string,
@@ -17,6 +20,8 @@ type SerializedValue = {
 };
 
 export class ContractDB {
+    static transactions: ContractDBTransaction[] = [];
+
     constructor(readonly name: string, readonly connection: ConnectionManager) { }
 
     async startTransaction(currentBlock: number, lastIrreversibleBlock: number): Promise<ContractDBTransaction> {
@@ -97,6 +102,8 @@ export class ContractDBTransaction {
         this.inTransaction = true;
 
         await this.client.query('BEGIN');
+
+        ContractDB.transactions.push(this);
     }
 
     async query(queryStr: string, values: any[] = [], lock: boolean = true): Promise<QueryResult> {
@@ -460,6 +467,11 @@ export class ContractDBTransaction {
         } finally {
             this.releaseLock();
             this.client.release();
+
+            const index = ContractDB.transactions.indexOf(this);
+            if (index >= 0) {
+                ContractDB.transactions.splice(index, 1);
+            }
         }
     }
 
@@ -473,6 +485,11 @@ export class ContractDBTransaction {
         } finally {
             this.releaseLock();
             this.client.release();
+
+            const index = ContractDB.transactions.indexOf(this);
+            if (index >= 0) {
+                ContractDB.transactions.splice(index, 1);
+            }
         }
     }
 
@@ -591,3 +608,17 @@ export class ContractDBTransaction {
         this.lock.release();
     }
 }
+
+exitHook(async (callback: () => void) => {
+    logger.info('Process stopping - cleaning up transactions...');
+
+    for (const transaction of ContractDB.transactions) {
+        await transaction.abort();
+    }
+
+    logger.info('All transactions aborted');
+
+    ContractDB.transactions = [];
+
+    callback();
+});
