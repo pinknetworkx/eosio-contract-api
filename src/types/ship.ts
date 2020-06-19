@@ -30,6 +30,8 @@ export type ShipBlockResponse = {
 export type ShipBlock = {
     block_num: number,
     block_id: string,
+    head: {block_num: number, block_id: string},
+    last_irreversible: {block_num: number, block_id: string},
     timestamp?: string,
     producer?: string,
     confirmed?: number,

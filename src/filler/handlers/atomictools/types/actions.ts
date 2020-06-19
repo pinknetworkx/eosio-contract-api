@@ -12,7 +12,8 @@ export type LogNewLinkActionData = {
     link_id: string,
     creator: string,
     key: string,
-    asset_ids: string[]
+    asset_ids: string[],
+    memo: string
 };
 
 export type LogLinkStart = {

@@ -44,5 +44,5 @@ if (cluster.isMaster) {
     const connection = new ConnectionManager(connectionConfig);
     const reader = new Reader(readerConfigs[parseInt(process.env.config_index, 10)], connection);
 
-    reader.startFiller(2).then();
+    reader.startFiller(5).then();
 }

@@ -31,8 +31,10 @@ export function configEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 version: config.version,
                 maker_market_fee: config.maker_market_fee,
                 taker_market_fee: config.taker_market_fee,
+                minimum_auction_duration: config.minimum_auction_duration,
                 maximum_auction_duration: config.maximum_auction_duration,
                 minimum_bid_increase: config.minimum_bid_increase,
+                auction_reset_duration: config.auction_reset_duration,
                 supported_tokens: tokensQuery.rows,
                 supported_pairs: pairsQuery.rows
             }, query_time: Date.now()
@@ -58,8 +60,10 @@ export function configEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                             version: {type: 'string'},
                             maker_market_fee: {type: 'number'},
                             taker_market_fee: {type: 'number'},
+                            minimum_auction_duration: {type: 'integer'},
                             maximum_auction_duration: {type: 'integer'},
                             minimum_bid_increase: {type: 'number'},
+                            auction_reset_duration: {type: 'integer'},
                             supported_tokens: {
                                 type: 'array',
                                 items: {

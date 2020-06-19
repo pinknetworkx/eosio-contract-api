@@ -1,5 +1,4 @@
 import * as fs from 'fs';
-import PQueue from 'p-queue';
 import { PoolClient } from 'pg';
 
 import { ContractHandler } from '../interfaces';
@@ -52,15 +51,19 @@ export default class AtomicAssetsHandler extends ContractHandler {
     config: ConfigTableRow;
     tokenconfigs: TokenConfigsTableRow;
 
-    reversible = false;
-
-    updateQueue: PQueue;
-    updateJobs: any[] = [];
+    notifications: Array<{
+        index: number,
+        trace: any,
+        fn: () => any
+    }> = [];
+    jobs: Array<{
+        priority: number,
+        index: number,
+        trace: any,
+        fn: () => any
+    }> = [];
 
     offerState: {assets: string[], offers: string[]} = {assets: [], offers: []};
-
-    notificationQueue: PQueue;
-    notificationJobs: any[] = [];
 
     tableHandler: AtomicAssetsTableHandler;
     actionHandler: AtomicAssetsActionHandler;
@@ -79,12 +82,6 @@ export default class AtomicAssetsHandler extends ContractHandler {
         if (!this.args.store_transfers) {
             logger.warn('AtomicAssets: disabled store_transfers');
         }
-
-        this.updateQueue = new PQueue({concurrency: 1, autoStart: false});
-        this.updateQueue.pause();
-
-        this.notificationQueue = new PQueue({concurrency: 1, autoStart: false});
-        this.notificationQueue.pause();
 
         this.scope = {
             actions: [
@@ -223,27 +220,49 @@ export default class AtomicAssetsHandler extends ContractHandler {
         await this.tableHandler.handleUpdate(db, block, delta);
     }
 
-    async onBlockComplete(db: ContractDBTransaction, block: ShipBlock): Promise<void> {
-        this.reversible = db.currentBlock > db.lastIrreversibleBlock;
+    async onBlockStart(db: ContractDBTransaction): Promise<void> {
+        this.jobs = [];
+        this.notifications = [];
 
-        this.updateQueue.start();
-        await Promise.all(this.updateJobs);
-        this.updateQueue.pause();
-        this.updateJobs = [];
-
-        await this.updateOfferStates(db, block, this.offerState.offers, this.offerState.assets);
         this.offerState.offers = [];
         this.offerState.assets = [];
     }
 
-    async onCommit(): Promise<void> {
-        this.notificationQueue.start();
-        await Promise.all(this.notificationJobs);
-        this.notificationQueue.pause();
-        this.notificationJobs = [];
+    async onBlockComplete(db: ContractDBTransaction, block: ShipBlock): Promise<void> {
+        this.jobs.sort((a, b) => {
+            if (a.priority === b.priority) {
+                return a.index - b.index;
+            }
+
+            return b.priority - a.priority;
+        });
+
+        for (const job of this.jobs) {
+            try {
+                await job.fn();
+            } catch (e) {
+                logger.error('Error while processing update job', job.trace);
+
+                throw e;
+            }
+        }
+
+        this.jobs = [];
+
+        await this.updateOfferStates(db, block, this.offerState.offers, this.offerState.assets);
     }
 
-    async onBlockStart(): Promise<void> { }
+    async onCommit(): Promise<void> {
+        for (const notification of this.notifications) {
+            try {
+                await notification.fn();
+            } catch (e) {
+                logger.warn('Error while pushing notification', e);
+            }
+        }
+
+        this.notifications = [];
+    }
 
     checkOfferState(offerIDs: string[], assetIDs: string[]): void {
         for (const offerID of offerIDs) {
@@ -341,28 +360,24 @@ export default class AtomicAssetsHandler extends ContractHandler {
         }
     }
 
-    addUpdateJob(fn: () => any, priority: number): void {
-        const trace = getStackTrace();
-
-        this.updateJobs.push(this.updateQueue.add(async () => {
-            try {
-                await fn();
-            } catch (e) {
-                logger.error(trace);
-                throw e;
-            }
-        }, {priority}));
+    addUpdateJob(fn: () => any, priority: JobPriority): void {
+        this.jobs.push({
+            priority: priority.valueOf(),
+            index: this.jobs.length,
+            trace: getStackTrace(),
+            fn: fn
+        });
     }
 
     pushNotificiation(block: ShipBlock, tx: EosioTransaction | null, prefix: string, name: string, data: any): void {
-        if (!this.reversible) {
+        if (block.block_num < block.last_irreversible.block_num) {
             return;
         }
 
-        const trace = getStackTrace();
-
-        this.notificationJobs.push(this.notificationQueue.add(async () => {
-            try {
+        this.notifications.push({
+            index: this.notifications.length,
+            trace: getStackTrace(),
+            fn: async () => {
                 const channelName = [
                     'eosio-contract-api', this.connection.chain.name, this.reader.name,
                     'atomicassets', this.args.atomicassets_account, prefix
@@ -373,9 +388,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
                     block: {block_num: block.block_num, block_id: block.block_id},
                     action: name, data
                 }));
-            } catch (e) {
-                logger.warn('Error while pushing notification', trace);
             }
-        }));
+        });
     }
 }

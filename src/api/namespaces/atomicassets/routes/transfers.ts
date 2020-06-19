@@ -39,29 +39,30 @@ export class TransferApi {
                 });
 
                 let varCounter = 1;
-                let queryString = 'SELECT * FROM ' + this.transferView + ' WHERE contract = $1 ';
+                let queryString = 'SELECT * FROM ' + this.transferView + ' transfer WHERE contract = $1 ';
 
                 const queryValues: any[] = [this.core.args.atomicassets_account];
 
                 if (args.account) {
-                    queryString += 'AND (sender_name = ANY $' + ++varCounter + ' OR recipient_name = ANY $' + varCounter + ') ';
+                    queryString += 'AND (sender_name = ANY ($' + ++varCounter + ') OR recipient_name = ANY ($' + varCounter + ')) ';
                     queryValues.push(args.account.split(','));
                 }
 
                 if (args.sender) {
-                    queryString += 'AND sender_name = ANY $' + ++varCounter + ' ';
+                    queryString += 'AND sender_name = ANY ($' + ++varCounter + ') ';
                     queryValues.push(args.sender.split(','));
                 }
 
                 if (args.recipient) {
-                    queryString += 'AND recipient_name = ANY $' + ++varCounter + ' ';
+                    queryString += 'AND recipient_name = ANY ($' + ++varCounter + ') ';
                     queryValues.push(args.recipient.split(','));
                 }
 
                 if (args.asset_id) {
-                    queryString += 'AND transfer_id IN(' +
-                        'SELECT DISTINCT ON (contract, transfer_id) transfer_id FROM atomicassets_transfers_assets ' +
-                        'WHERE contract = $1 AND asset_id = ANY $' + ++varCounter + '' +
+                    queryString += 'AND transfer_id EXISTS(' +
+                        'SELECT transfer_id FROM atomicassets_transfers_assets asset' +
+                        'WHERE transfer.contract = asset.contract AND transfer.transfer_id = asset.transfer_id AND ' +
+                        'asset_id = ANY ($' + ++varCounter + ')' +
                         ') ';
                     queryValues.push(args.asset_id.split(','));
                 }

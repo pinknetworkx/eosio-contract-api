@@ -2,7 +2,7 @@ CREATE TABLE atomictools_config (
     tools_contract character varying(12) NOT NULL,
     version character varying(64) NOT NULL,
     asset_contract character varying(12) NOT NULL,
-    CONSTRAINT atomictools_config_pkey PRIMARY KEY (contract)
+    CONSTRAINT atomictools_config_pkey PRIMARY KEY (tools_contract)
 );
 
 CREATE TABLE atomictools_links (
@@ -15,16 +15,17 @@ CREATE TABLE atomictools_links (
     key_type integer NOT NULL,
     key_data bytea NOT NULL,
     txid bytea,
+    memo character varying(256) NOT NULL,
     created_at_block bigint NOT NULL,
     created_at_time bigint NOT NULL,
-    CONSTRAINT atomictools_links_pkey PRIMARY KEY (contract, link_id)
+    CONSTRAINT atomictools_links_pkey PRIMARY KEY (tools_contract, link_id)
 );
 
 CREATE TABLE atomictools_links_assets (
     tools_contract character varying(12) NOT NULL,
     link_id bigint NOT NULL,
     asset_contract character varying(12) NOT NULL,
-    asset_id character varying(12) NOT NULL,
+    asset_id bigint NOT NULL,
     CONSTRAINT atomictools_links_assets_pkey PRIMARY KEY (tools_contract, link_id, asset_contract, asset_id)
 );
 

@@ -172,7 +172,12 @@ export default class StateHistoryBlockReader {
                                 head: response.head,
                                 last_irreversible: response.last_irreversible,
                                 prev_block: response.prev_block,
-                                block: Object.assign({...response.this_block}, await block),
+                                block: Object.assign(
+                                    {...response.this_block},
+                                    await block,
+                                    {last_irreversible: response.last_irreversible},
+                                    {head: response.head}
+                                ),
                                 traces: await traces,
                                 deltas: await deltas
                             });
