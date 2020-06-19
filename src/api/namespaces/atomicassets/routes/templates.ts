@@ -7,7 +7,7 @@ import { filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { formatTemplate } from '../format';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
-import { atomicDataFilter } from '../../atomicmarket/openapi';
+import { atomicDataFilter } from '../openapi';
 
 export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     async function templateRequestHandler(req: express.Request, res: express.Response): Promise<any> {

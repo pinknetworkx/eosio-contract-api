@@ -17,7 +17,8 @@ import { TransferApi } from './routes/transfers';
 import { OfferApi } from './routes/offers';
 
 export type AtomicAssetsNamespaceArgs = {
-    atomicassets_account: string
+    atomicassets_account: string,
+    connected_reader: string
 };
 
 export class AtomicAssetsNamespace extends ApiNamespace {

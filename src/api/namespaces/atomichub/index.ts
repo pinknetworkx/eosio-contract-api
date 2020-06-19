@@ -17,6 +17,8 @@ export type AtomicHubNamespaceArgs = {
     atomicassets_account: string,
     atomicmarket_account: string,
 
+    connected_reader: string
+
     ipfs_node: string,
 
     vapid_keys: {

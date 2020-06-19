@@ -219,6 +219,7 @@ A namespace provides an API for a specific contract or use case and is based on 
   "handler": "atomicassets",
   "args": {
     "atomicassets_account": "atomicassets" // account where the atomicassets contract is deployed
+    "connected_reader": "atomic" // reader to which the API connects for live data
   }
 }
 ```
@@ -230,7 +231,8 @@ A namespace provides an API for a specific contract or use case and is based on 
   "handler": "atomicmarket",
   "args": {
     "atomicmarket_account": "atomicmarket", // account where the atomicmarket contract is deployed
-    "admin_token": "changeme" // auth token which is used to add or remove elements from the blacklist / whitelist
+    "admin_token": ["changeme"] // auth token which is used to add or remove elements from the blacklist / whitelist
+    "connected_reader": "atomic" // reader to which the API connects for live data
   }
 }
 ```

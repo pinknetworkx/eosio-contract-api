@@ -161,7 +161,9 @@ export function notificationsSockets(core: AtomicHubNamespace, server: HTTPServe
         });
     });
 
-    const chainChannelName = ['eosio-contract-api', core.connection.chain.name, 'chain'].join(':');
+    const chainChannelName = [
+        'eosio-contract-api', core.connection.chain.name, core.args.connected_reader, 'chain'
+    ].join(':');
     core.connection.redis.ioRedisSub.subscribe(chainChannelName, () => {
         core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
             if (channel !== chainChannelName) {

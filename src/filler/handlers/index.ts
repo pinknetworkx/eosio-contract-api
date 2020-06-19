@@ -1,13 +1,10 @@
-import ConnectionManager from '../../connections/manager';
 import { IContractConfig } from '../../types/config';
-import { PromiseEventHandler } from '../../utils/event';
 import { ContractHandler } from './interfaces';
 
 import { handlers } from './loader';
+import StateReceiver from '../receiver';
 
-export function getHandlers(
-    configs: IContractConfig[], connection: ConnectionManager, events: PromiseEventHandler
-): ContractHandler[] {
+export function getHandlers(reader: StateReceiver, configs: IContractConfig[]): ContractHandler[] {
     const configHandlers = [];
 
     for (const config of configs) {
@@ -20,10 +17,10 @@ export function getHandlers(
 
             if (config.start_on) {
                 // @ts-ignore
-                configHandlers.push(new handler(connection, events, config.args, config.start_on));
+                configHandlers.push(new handler(reader, config.args, config.start_on));
             } else {
                 // @ts-ignore
-                configHandlers.push(new handler(connection, events, config.args));
+                configHandlers.push(new handler(reader, config.args));
             }
 
             handlerFound = true;

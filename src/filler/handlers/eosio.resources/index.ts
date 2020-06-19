@@ -5,9 +5,8 @@ import { ContractHandler } from '../interfaces';
 import { ShipBlock } from '../../../types/ship';
 import { EosioActionTrace, EosioTableRow, EosioTransaction } from '../../../types/eosio';
 import { ContractDBTransaction } from '../../database';
-import ConnectionManager from '../../../connections/manager';
-import { PromiseEventHandler } from '../../../utils/event';
 import logger from '../../../utils/winston';
+import StateReceiver from '../../receiver';
 
 export type ResourcesArgs = {
     store_rammarket: boolean,
@@ -20,8 +19,20 @@ export default class ResourcesHandler extends ContractHandler {
 
     readonly args: ResourcesArgs;
 
-    constructor(connection: ConnectionManager, events: PromiseEventHandler, args: {[key: string]: any}) {
-        super(connection, events, args);
+    constructor(reader: StateReceiver, args: {[key: string]: any}, minBlock: number = 0) {
+        super(reader, args, minBlock);
+
+        if (!this.args.store_rammarket) {
+            logger.warn('eosio.resources: disabled store_rammarket');
+        }
+
+        if (!this.args.store_bandwidth_deltas) {
+            logger.warn('eosio.resources: disabled store_bandwidth_deltas');
+        }
+
+        if (!this.args.store_bandwidth_balance) {
+            logger.warn('eosio.resources: disabled store_bandwidth_balance');
+        }
 
         this.scope = {
             actions: [ ],
@@ -73,6 +84,7 @@ export default class ResourcesHandler extends ContractHandler {
 
     }
 
+    async onBlockStart(): Promise<void> { }
     async onBlockComplete(): Promise<void> { }
     async onCommit(): Promise<void> { }
 }

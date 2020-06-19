@@ -5,9 +5,8 @@ import { ContractHandler } from '../interfaces';
 import { ShipBlock } from '../../../types/ship';
 import { EosioActionTrace, EosioTableRow, EosioTransaction } from '../../../types/eosio';
 import { ContractDBTransaction } from '../../database';
-import ConnectionManager from '../../../connections/manager';
-import { PromiseEventHandler } from '../../../utils/event';
 import logger from '../../../utils/winston';
+import StateReceiver from '../../receiver';
 
 export type EosioTokenArgs = {
     token_account: string,
@@ -21,11 +20,23 @@ export default class EosioTokenHandler extends ContractHandler {
 
     readonly args: EosioTokenArgs;
 
-    constructor(connection: ConnectionManager, events: PromiseEventHandler, args: {[key: string]: any}) {
-        super(connection, events, args);
+    constructor(reader: StateReceiver, args: {[key: string]: any}, minBlock: number = 0) {
+        super(reader, args, minBlock);
 
         if (typeof args.token_account !== 'string') {
             throw new Error('eosio.token: Argument missing in eosio.token handler: token_account');
+        }
+
+        if (!this.args.store_transfers) {
+            logger.warn('eosio.token: disabled store_transfers');
+        }
+
+        if (!this.args.store_balances) {
+            logger.warn('eosio.token: disabled store_balances');
+        }
+
+        if (!this.args.store_supply_deltas) {
+            logger.warn('eosio.token: disabled store_supply_deltas');
         }
 
         this.scope = {
@@ -82,6 +93,7 @@ export default class EosioTokenHandler extends ContractHandler {
 
     }
 
+    async onBlockStart(): Promise<void> { }
     async onBlockComplete(): Promise<void> { }
     async onCommit(): Promise<void> { }
 }

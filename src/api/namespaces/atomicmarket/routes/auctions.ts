@@ -6,10 +6,10 @@ import { formatAuction } from '../format';
 import { fillAuctions } from '../filler';
 import { buildAuctionFilter } from '../utils';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
-import { assetFilterParameters } from '../../atomicassets/openapi';
+import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/openapi';
 import logger from '../../../../utils/winston';
 import { filterQueryArgs } from '../../utils';
-import { atomicDataFilter, listingFilterParameters } from '../openapi';
+import { listingFilterParameters } from '../openapi';
 
 export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/auctions', server.web.caching(), async (req, res) => {

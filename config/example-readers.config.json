@@ -17,7 +17,9 @@
       {
         "handler": "atomicassets",
         "args": {
-          "atomicassets_account": "atomicassets"
+          "atomicassets_account": "atomicassets",
+          "store_transfers": true,
+          "store_logs": true
         }
       }
     ]

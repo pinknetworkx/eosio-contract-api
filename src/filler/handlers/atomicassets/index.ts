@@ -8,11 +8,10 @@ import { EosioActionTrace, EosioTableRow, EosioTransaction } from '../../../type
 import { ContractDBTransaction } from '../../database';
 import logger from '../../../utils/winston';
 import AtomicAssetsTableHandler from './tables';
-import ConnectionManager from '../../../connections/manager';
-import { PromiseEventHandler } from '../../../utils/event';
 import AtomicAssetsActionHandler from './actions';
 import { getStackTrace } from '../../../utils';
 import { ConfigTableRow, TokenConfigsTableRow } from './types/tables';
+import StateReceiver from '../../receiver';
 
 export enum OfferState {
     PENDING = 0,
@@ -66,11 +65,19 @@ export default class AtomicAssetsHandler extends ContractHandler {
     tableHandler: AtomicAssetsTableHandler;
     actionHandler: AtomicAssetsActionHandler;
 
-    constructor(connection: ConnectionManager, events: PromiseEventHandler, args: {[key: string]: any}) {
-        super(connection, events, args);
+    constructor(reader: StateReceiver, args: {[key: string]: any}, minBlock: number = 0) {
+        super(reader, args, minBlock);
 
         if (typeof args.atomicassets_account !== 'string') {
             throw new Error('AtomicAssets: Argument missing in atomicassets handler: atomicassets_account');
+        }
+
+        if (!this.args.store_logs) {
+            logger.warn('AtomicAssets: disabled store_logs');
+        }
+
+        if (!this.args.store_transfers) {
+            logger.warn('AtomicAssets: disabled store_transfers');
         }
 
         this.updateQueue = new PQueue({concurrency: 1, autoStart: false});
@@ -236,6 +243,8 @@ export default class AtomicAssetsHandler extends ContractHandler {
         this.notificationJobs = [];
     }
 
+    async onBlockStart(): Promise<void> { }
+
     checkOfferState(offerIDs: string[], assetIDs: string[]): void {
         for (const offerID of offerIDs) {
             if (this.offerState.offers.indexOf(offerID) >= 0) {
@@ -355,8 +364,8 @@ export default class AtomicAssetsHandler extends ContractHandler {
         this.notificationJobs.push(this.notificationQueue.add(async () => {
             try {
                 const channelName = [
-                    'eosio-contract-api', this.connection.chain.name, 'atomicassets',
-                    this.args.atomicassets_account, prefix
+                    'eosio-contract-api', this.connection.chain.name, this.reader.name,
+                    'atomicassets', this.args.atomicassets_account, prefix
                 ].join(':');
 
                 await this.connection.redis.ioRedis.publish(channelName, JSON.stringify({

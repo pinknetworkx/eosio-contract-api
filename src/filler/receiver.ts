@@ -12,6 +12,7 @@ import { ContractHandler } from './handlers/interfaces';
 import { binToHex } from '../utils/binary';
 import { eosioTimestampToDate } from '../utils/eosio';
 import { PromiseEventHandler } from '../utils/event';
+import { getHandlers } from './handlers';
 
 type AbiCache = {
     types: Map<string, Serialize.Type>,
@@ -24,25 +25,30 @@ export default class StateReceiver {
     headBlock = 0;
     lastIrreversibleBlock = 0;
 
-    private readonly ship: StateHistoryBlockReader;
-    private readonly database: ContractDB;
+    readonly name: string;
 
+    readonly ship: StateHistoryBlockReader;
+    readonly handlers: ContractHandler[];
+
+    private readonly database: ContractDB;
     private readonly abis: {[key: string]: AbiCache};
 
     constructor(
-        private readonly config: IReaderConfig,
-        private readonly connection: ConnectionManager,
-        private readonly events: PromiseEventHandler,
-        private readonly handlers: ContractHandler[]
+        readonly config: IReaderConfig,
+        readonly connection: ConnectionManager,
+        readonly events: PromiseEventHandler
     ) {
+        this.name = config.name;
+        this.database = new ContractDB(this.config.name, this.connection);
+        this.abis = {};
+
+        this.handlers = getHandlers(this, config.contracts);
+
         this.ship = connection.createShipBlockReader({
             min_block_confirmation: config.ship_min_block_confirmation,
             ds_threads: config.ds_threads,
             ds_experimental: config.ds_experimental
         });
-
-        this.database = new ContractDB(this.config.name, this.connection);
-        this.abis = {};
 
         this.ship.consume(this.consumer.bind(this));
     }
@@ -86,10 +92,14 @@ export default class StateReceiver {
 
                 await db.rollbackReversibleBlocks(resp.this_block.block_num);
 
-                const channelName = ['eosio-contract-api', this.connection.chain.name, 'chain'].join(':');
+                const channelName = ['eosio-contract-api', this.connection.chain.name, this.name, 'chain'].join(':');
                 await this.connection.redis.ioRedis.publish(channelName, JSON.stringify({
                     action: 'fork', block_num: resp.this_block.block_num
                 }));
+            }
+
+            for (const handler of this.handlers) {
+                await handler.onBlockStart(db, resp.block);
             }
 
             const actionTraces = this.extractTransactionTraces(resp.traces);

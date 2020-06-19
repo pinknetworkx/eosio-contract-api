@@ -5,12 +5,11 @@ import { ContractHandler } from '../interfaces';
 import { ShipBlock } from '../../../types/ship';
 import { EosioActionTrace, EosioTransaction } from '../../../types/eosio';
 import { ContractDBTransaction } from '../../database';
-import ConnectionManager from '../../../connections/manager';
-import { PromiseEventHandler } from '../../../utils/event';
 import logger from '../../../utils/winston';
 import AtomicAssetsActionHandler from './atomicassets';
 import AtomicMarketActionHandler from './atomicmarket';
 import { eosioTimestampToDate } from '../../../utils/eosio';
+import StateReceiver from '../../receiver';
 
 export type AtomicMarketArgs = {
     atomicassets_account: string,
@@ -25,7 +24,9 @@ export default class AtomicHubHandler extends ContractHandler {
     readonly atomicassetsHandler: AtomicAssetsActionHandler;
     readonly atomicmarketHandler: AtomicMarketActionHandler;
 
-    constructor(connection: ConnectionManager, events: PromiseEventHandler, args: {[key: string]: any}) {
+    constructor(reader: StateReceiver, args: {[key: string]: any}, minBlock: number = 0) {
+        super(reader, args, minBlock);
+
         if (typeof args.atomicassets_account !== 'string') {
             throw new Error('AtomicHub: Argument missing in atomichub reader handler: atomicassets_account');
         }
@@ -33,8 +34,6 @@ export default class AtomicHubHandler extends ContractHandler {
         if (typeof args.atomicmarket_account !== 'string') {
             throw new Error('AtomicHub: Argument missing in atomichub reader handler: atomicmarket_account');
         }
-
-        super(connection, events, args);
 
         this.scope = {
             actions: [
@@ -79,6 +78,7 @@ export default class AtomicHubHandler extends ContractHandler {
     }
 
     async onTableChange(): Promise<void> { }
+    async onBlockStart(): Promise<void> { }
     async onBlockComplete(): Promise<void> { }
 
     async onCommit(block: ShipBlock): Promise<void> {
@@ -100,7 +100,10 @@ export default class AtomicHubHandler extends ContractHandler {
             block_num: block.block_num, block_time: eosioTimestampToDate(block.timestamp).getTime()
         }, ['id']);
 
-        const channelName = ['eosio-contract-api', this.connection.chain.name, 'atomichub', contract, 'notifications'].join(':');
+        const channelName = [
+            'eosio-contract-api', this.connection.chain.name, this.reader.name,
+            'atomichub', contract, 'notifications'
+        ].join(':');
 
         await this.connection.redis.ioRedis.publish(channelName, JSON.stringify({
             account: account,

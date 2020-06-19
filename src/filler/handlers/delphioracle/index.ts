@@ -5,10 +5,9 @@ import { ContractHandler } from '../interfaces';
 import { ShipBlock } from '../../../types/ship';
 import { EosioTableRow } from '../../../types/eosio';
 import { ContractDBTransaction } from '../../database';
-import ConnectionManager from '../../../connections/manager';
-import { PromiseEventHandler } from '../../../utils/event';
 import logger from '../../../utils/winston';
 import { eosioTimestampToDate } from '../../../utils/eosio';
+import StateReceiver from '../../receiver';
 
 export type DelphiOracleArgs = {
     delphioracle_account: string
@@ -43,8 +42,8 @@ export default class DelphiOracleHandler extends ContractHandler {
 
     pairs: string[] = [];
 
-    constructor(connection: ConnectionManager, events: PromiseEventHandler, args: {[key: string]: any}) {
-        super(connection, events, args);
+    constructor(reader: StateReceiver, args: {[key: string]: any}, minBlock: number = 0) {
+        super(reader, args, minBlock);
 
         if (typeof args.delphioracle_account !== 'string') {
             throw new Error('DelphiOracle: Argument missing in handler: delphioracle_account');
@@ -145,6 +144,7 @@ export default class DelphiOracleHandler extends ContractHandler {
 
     async onAction(): Promise<void> { }
 
+    async onBlockStart(): Promise<void> { }
     async onBlockComplete(db: ContractDBTransaction, _: ShipBlock): Promise<void> {
         if (db.currentBlock > db.lastIrreversibleBlock && this.scope.tables.length === 1) {
             this.scope.tables.push({

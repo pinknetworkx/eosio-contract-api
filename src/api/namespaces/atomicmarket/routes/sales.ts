@@ -5,11 +5,11 @@ import { HTTPServer } from '../../../server';
 import { buildSaleFilter } from '../utils';
 import { fillSales } from '../filler';
 import { formatSale } from '../format';
-import { assetFilterParameters } from '../../atomicassets/openapi';
+import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/openapi';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import logger from '../../../../utils/winston';
 import { filterQueryArgs } from '../../utils';
-import { atomicDataFilter, listingFilterParameters } from '../openapi';
+import { listingFilterParameters } from '../openapi';
 
 export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/sales', server.web.caching(), async (req, res) => {

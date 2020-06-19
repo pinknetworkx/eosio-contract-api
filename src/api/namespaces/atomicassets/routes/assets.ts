@@ -6,8 +6,7 @@ import { buildAssetFilter, getLogs } from '../utils';
 import { filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
-import { assetFilterParameters } from '../openapi';
-import { atomicDataFilter } from '../../atomicmarket/openapi';
+import { assetFilterParameters, atomicDataFilter } from '../openapi';
 
 export type SocketAssetSubscriptionArgs = {
     asset_ids: string[],
@@ -279,8 +278,8 @@ export class AssetApi {
         });
 
         const assetChannelName = [
-            'eosio-contract-api', this.core.connection.chain.name, 'atomicassets',
-            this.core.args.atomicassets_account, 'assets'
+            'eosio-contract-api', this.core.connection.chain.name, this.core.args.connected_reader,
+            'atomicassets', this.core.args.atomicassets_account, 'assets'
         ].join(':');
         this.core.connection.redis.ioRedisSub.subscribe(assetChannelName, () => {
             this.core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
@@ -349,7 +348,9 @@ export class AssetApi {
             });
         });
 
-        const chainChannelName = ['eosio-contract-api', this.core.connection.chain.name, 'chain'].join(':');
+        const chainChannelName = [
+            'eosio-contract-api', this.core.connection.chain.name, this.core.args.connected_reader, 'chain'
+        ].join(':');
         this.core.connection.redis.ioRedisSub.subscribe(chainChannelName, () => {
             this.core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
                 if (channel !== chainChannelName) {

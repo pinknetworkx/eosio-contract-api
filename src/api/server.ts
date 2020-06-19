@@ -76,7 +76,7 @@ export class WebServer {
                 res.json({success: false, message: 'Rate limit'});
             },
             keyGenerator(req: express.Request): string {
-                logger.debug('Rate limit increase for ' + req.ip);
+                logger.debug('Rate limit increase for ip: ' + req.ip);
 
                 return req.ip;
             },
@@ -105,7 +105,7 @@ export class WebServer {
         this.express.use(cors());
 
         this.express.use((req, _, next) => {
-            logger.debug(req.method + ' ' + req.url, req.body);
+            logger.debug(req.method + ' ' + req.originalUrl, req.body);
 
             next();
         });
@@ -140,7 +140,7 @@ export class WebServer {
                     };
                 } else {
                     chainHealth = {
-                        status: 'BEHIND',
+                        status: 'ERROR',
                         head_block: info.head_block_num,
                         head_time: eosioTimestampToDate(info.head_block_time).getTime()
                     };

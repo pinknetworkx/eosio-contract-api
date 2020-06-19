@@ -13,7 +13,7 @@ function adminAuth(core: AtomicMarketNamespace): express.RequestHandler {
         if (typeof header === 'string') {
             const token = header.split(' ');
 
-            if (core.args.admin_token && token.length >= 2 && token[0] === 'Bearer' && token[1] === core.args.admin_token) {
+            if (token.length >= 2 && token[0] === 'Bearer' && core.args.admin_tokens.indexOf(token[1]) >= 0) {
                 return next();
             }
         }

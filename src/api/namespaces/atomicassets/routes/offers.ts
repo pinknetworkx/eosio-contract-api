@@ -299,8 +299,8 @@ export class OfferApi {
         });
 
         const offerChannelName = [
-            'eosio-contract-api', this.core.connection.chain.name, 'atomicassets',
-            this.core.args.atomicassets_account, 'offers'
+            'eosio-contract-api', this.core.connection.chain.name, this.core.args.connected_reader,
+            'atomicassets', this.core.args.atomicassets_account, 'offers'
         ].join(':');
         this.core.connection.redis.ioRedisSub.subscribe(offerChannelName, () => {
             this.core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
@@ -355,7 +355,9 @@ export class OfferApi {
             });
         });
 
-        const chainChannelName = ['eosio-contract-api', this.core.connection.chain.name, 'chain'].join(':');
+        const chainChannelName = [
+            'eosio-contract-api', this.core.connection.chain.name, this.core.args.connected_reader, 'chain'
+        ].join(':');
         this.core.connection.redis.ioRedisSub.subscribe(chainChannelName, () => {
             this.core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
                 if (channel !== chainChannelName) {

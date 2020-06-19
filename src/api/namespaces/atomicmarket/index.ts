@@ -20,10 +20,12 @@ import { formatListingAsset } from './format';
 
 export type AtomicMarketNamespaceArgs = {
     atomicmarket_account: string,
-    admin_token: string
+    admin_tokens: string[]
     // optional
     atomicassets_account: string,
-    delphioracle_account: string
+    delphioracle_account: string,
+
+    connected_reader: string
 };
 
 export enum SaleApiState {
@@ -52,8 +54,14 @@ export class AtomicMarketNamespace extends ApiNamespace {
             throw new Error('Argument missing in atomicmarket api namespace: atomicmarket_account');
         }
 
-        if (typeof this.args.admin_token !== 'string') {
-            throw new Error('Argument missing in atomicmarket api namespace: admin_token');
+        if (!Array.isArray(this.args.admin_tokens)) {
+            throw new Error('Argument missing in atomicmarket api namespace: admin_tokens');
+        }
+
+        for (const token of this.args.admin_tokens) {
+            if (typeof token !== 'string') {
+                throw new Error('Invalid admin token type in atomicmarket api namespace');
+            }
         }
 
         const query = await this.connection.database.query(

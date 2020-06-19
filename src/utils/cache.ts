@@ -52,7 +52,7 @@ export function expressRedisCache(
                         redis.set(key, res.getHeader('content-type') + '::' + content, () => {
                             redis.expire(key, Math.round(cacheLife));
 
-                            logger.debug('Cache API request');
+                            logger.debug('Cache request for url: ' + req.originalUrl);
                         });
 
                         return res;
@@ -60,7 +60,7 @@ export function expressRedisCache(
 
                     next();
                 } else {
-                    logger.debug('API request was cached, returning cached version');
+                    logger.debug('Request was cached; returning cached version for url: ' + req.originalUrl);
 
                     const split = reply.split('::');
 

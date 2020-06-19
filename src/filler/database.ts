@@ -618,7 +618,5 @@ exitHook(async (callback: () => void) => {
 
     logger.info('All transactions aborted');
 
-    ContractDB.transactions = [];
-
     callback();
 });

@@ -5,9 +5,8 @@ import { ContractHandler } from '../interfaces';
 import { ShipBlock } from '../../../types/ship';
 import { EosioTableRow } from '../../../types/eosio';
 import { ContractDBTransaction } from '../../database';
-import ConnectionManager from '../../../connections/manager';
-import { PromiseEventHandler } from '../../../utils/event';
 import logger from '../../../utils/winston';
+import StateReceiver from '../../receiver';
 
 export type AtomicToolsArgs = {
     atomictools_account: string
@@ -22,8 +21,8 @@ export default class AtomicToolsHandler extends ContractHandler {
         version: string
     };
 
-    constructor(connection: ConnectionManager, events: PromiseEventHandler, args: {[key: string]: any}) {
-        super(connection, events, args);
+    constructor(reader: StateReceiver, args: {[key: string]: any}, minBlock: number = 0) {
+        super(reader, args, minBlock);
 
         if (typeof this.args.atomictools_account !== 'string') {
             throw new Error('AtomicTools: Argument missing in handler: atomictools_account');
@@ -74,7 +73,7 @@ export default class AtomicToolsHandler extends ContractHandler {
 
     async onAction(): Promise<void> { }
 
+    async onBlockStart(): Promise<void> { }
     async onBlockComplete(_db: ContractDBTransaction, _block: ShipBlock): Promise<void> { }
-
     async onCommit(): Promise<void> { }
 }

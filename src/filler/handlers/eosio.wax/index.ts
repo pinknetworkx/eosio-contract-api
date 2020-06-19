@@ -5,9 +5,8 @@ import { ContractHandler } from '../interfaces';
 import { ShipBlock } from '../../../types/ship';
 import { EosioActionTrace, EosioTableRow, EosioTransaction } from '../../../types/eosio';
 import { ContractDBTransaction } from '../../database';
-import ConnectionManager from '../../../connections/manager';
-import { PromiseEventHandler } from '../../../utils/event';
 import logger from '../../../utils/winston';
+import StateReceiver from '../../receiver';
 
 export type WaxArgs = {
     store_vote_weight: boolean,
@@ -20,8 +19,20 @@ export default class WaxHandler extends ContractHandler {
 
     readonly args: WaxArgs;
 
-    constructor(connection: ConnectionManager, events: PromiseEventHandler, args: {[key: string]: any}) {
-        super(connection, events, args);
+    constructor(reader: StateReceiver, args: {[key: string]: any}, minBlock: number = 0) {
+        super(reader, args, minBlock);
+
+        if (!this.args.store_vote_weight) {
+            logger.warn('eosio.wax: disabled store_vote_weight');
+        }
+
+        if (!this.args.store_gbm_balances) {
+            logger.warn('eosio.wax: disabled store_gbm_balances');
+        }
+
+        if (!this.args.store_gbm_deltas) {
+            logger.warn('eosio.wax: disabled store_gbm_deltas');
+        }
 
         this.scope = {
             actions: [ ],
@@ -73,6 +84,7 @@ export default class WaxHandler extends ContractHandler {
 
     }
 
+    async onBlockStart(): Promise<void> { }
     async onBlockComplete(): Promise<void> { }
     async onCommit(): Promise<void> { }
 }

@@ -6,13 +6,12 @@ import { ContractHandler } from '../interfaces';
 import { ShipBlock } from '../../../types/ship';
 import { EosioActionTrace, EosioTableRow, EosioTransaction } from '../../../types/eosio';
 import { ContractDBTransaction } from '../../database';
-import ConnectionManager from '../../../connections/manager';
-import { PromiseEventHandler } from '../../../utils/event';
 import logger from '../../../utils/winston';
 import { getStackTrace } from '../../../utils';
 import { ConfigTableRow } from './types/tables';
 import AtomicMarketTableHandler from './tables';
 import AtomicMarketActionHandler from './actions';
+import StateReceiver from '../../receiver';
 
 export type AtomicMarketArgs = {
     atomicmarket_account: string,
@@ -63,8 +62,8 @@ export default class AtomicMarketHandler extends ContractHandler {
     tableHandler: AtomicMarketTableHandler;
     actionHandler: AtomicMarketActionHandler;
 
-    constructor(connection: ConnectionManager, events: PromiseEventHandler, args: {[key: string]: any}) {
-        super(connection, events, args);
+    constructor(reader: StateReceiver, args: {[key: string]: any}, minBlock: number = 0) {
+        super(reader, args, minBlock);
 
         if (typeof args.atomicmarket_account !== 'string') {
             throw new Error('AtomicMarket: Argument missing in atomicmarket handler: atomicmarket_account');
@@ -238,6 +237,8 @@ export default class AtomicMarketHandler extends ContractHandler {
         this.notificationJobs = [];
     }
 
+    async onBlockStart(): Promise<void> { }
+
     addUpdateJob(fn: () => any, priority: JobPriority): void {
         const trace = getStackTrace();
 
@@ -263,8 +264,8 @@ export default class AtomicMarketHandler extends ContractHandler {
         this.notificationJobs.push(this.notificationQueue.add(async () => {
             try {
                 const channelName = [
-                    'eosio-contract-api', this.connection.chain.name, 'atomicmarket',
-                    this.args.atomicmarket_account, prefix
+                    'eosio-contract-api', this.connection.chain.name, this.reader.name,
+                    'atomicmarket', this.args.atomicmarket_account, prefix
                 ].join(':');
 
                 await this.connection.redis.ioRedis.publish(channelName, JSON.stringify({
