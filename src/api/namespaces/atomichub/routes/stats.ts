@@ -7,9 +7,14 @@ import { getOpenAPI3Responses } from '../../../docs';
 import { formatListingAsset, formatSale } from '../../atomicmarket/format';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
+import { fillSales } from '../../atomicmarket/filler';
 
 export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/stats', server.web.caching({expire: 60, ignoreQueryString: true}), async (_, res) => {
+    router.get('/v1/stats', server.web.caching({expire: 60, ignoreQueryString: true}), async (req, res) => {
+        const args = filterQueryArgs(req, {
+            symbol: {type: 'string', min: 1, max: 12, default: core.args.default_symbol}
+        });
+
         const nftsQuery = await core.connection.database.query(
             'SELECT COUNT(*) as nfts FROM atomicassets_assets WHERE contract = $1',
             [core.args.atomicassets_account]
@@ -20,6 +25,12 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             [core.args.atomicassets_account, Date.now() - 3600 * 24 * 1000]
         );
 
+        const salesQuery = await core.connection.database.query(
+            'SELECT COUNT(*) sales, SUM(final_price) volume FROM atomicmarket_sales ' +
+            'WHERE market_contract = $1 AND state = $2 AND settlement_symbol = $3 AND updated_at_time >= $4',
+            [core.args.atomicmarket_account, SaleState.SOLD.valueOf(), args.symbol.toUpperCase(), Date.now() - 3600 * 24 * 1000]
+        );
+
         res.json({
             success: true,
             data: {
@@ -28,8 +39,8 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 },
                 today: {
                     transactions: transfersQuery.rows[0]['transfers'],
-                    sales_count: 0,
-                    sales_volume: 0
+                    sales_count: salesQuery.rows[0]['sales'],
+                    sales_volume: salesQuery.rows[0]['volume']
                 }
             },
             query_time: Date.now()
@@ -43,18 +54,21 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
 
         const query = await core.connection.database.query(
             'SELECT * from atomicmarket_sales_master ' +
-            'WHERE sale_state = $1 AND offer_state = $2 AND market_contract = $3 AND asset_contract = $4 LIMIT $5',
+            'WHERE sale_state = $1 AND offer_state = $2 AND market_contract = $3 AND raw_token_symbol = $4 ' +
+            'ORDER BY created_at_block DESC LIMIT $5',
             [
                 SaleState.LISTED.valueOf(), OfferState.PENDING.valueOf(),
-                core.args.atomicmarket_account, core.args.atomicassets_account, args.limit
+                core.args.atomicmarket_account, core.args.default_symbol, args.limit
             ]
         );
 
         // TODO do some market magic to find trending assets
 
+        const sales = await fillSales(core.connection, core.args.atomicassets_account, query.rows.map(row => formatSale(row)));
+
         res.json({
             success: true,
-            data: query.rows.map(row => formatSale(row)),
+            data: sales,
             query_time: Date.now()
         });
     });
@@ -69,12 +83,44 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             asset_id: {type: 'int', min: 1}
         });
 
-        // TODO filter for only relevant NFTs
+        if (args.asset_id) {
+            const assets = await core.connection.database.query(
+                'SELECT template_id, collection_name, schema_name FROM atomicassets_assets ' +
+                'WHERE contract = $1 AND asset_id = $2',
+                [core.args.atomicassets_account, args.asset_id]
+            );
 
-        const query = await core.connection.database.query(
-            'SELECT * from atomicmarket_assets_master WHERE contract = $1 LIMIT $2',
-            [core.args.atomicassets_account, args.limit]
-        );
+            if (assets.rowCount === 0) {
+                return res.status(416).json({success: false, message: 'Asset ID not found'});
+            }
+
+            args.template_id = assets.rows[0].template_id;
+            args.collection_name = assets.rows[0].collection_name;
+            args.schema_name = assets.rows[0].schema_name;
+        }
+
+        const queryValues = [core.args.atomicassets_account];
+        let queryString = 'SELECT * from atomicmarket_assets_master WHERE contract = $1 ';
+
+        if (args.template_id) {
+            queryValues.push(args.template_id);
+            queryString += 'AND template_id = $' + queryValues.length + ' ';
+        }
+
+        if (args.collection_name) {
+            queryValues.push(args.collection_name);
+            queryString += 'AND collection_name = $' + queryValues.length + ' ';
+        }
+
+        if (args.schema_name) {
+            queryValues.push(args.schema_name);
+            queryString += 'AND schema_name = $' + queryValues.length + ' ';
+        }
+
+        queryValues.push(args.limit);
+        queryString += 'ORDER BY minted_at_block DESC LIMIT $' + queryValues.length;
+
+        const query = await core.connection.database.query(queryString, queryValues);
 
         res.json({
             success: true,

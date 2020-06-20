@@ -89,7 +89,7 @@ export default class AtomicMarketActionHandler {
             buyer: null,
             price: trace.act.data.starting_bid.split(' ')[0].replace('.', ''),
             token_symbol: trace.act.data.starting_bid.split(' ')[1],
-            asset_contract: this.core.args.atomicassets_account,
+            assets_contract: this.core.args.atomicassets_account,
             maker_marketplace: trace.act.data.maker_marketplace,
             taker_marketplace: null,
             collection_name: trace.act.data.collection_name,
@@ -108,12 +108,12 @@ export default class AtomicMarketActionHandler {
         const rows = trace.act.data.asset_ids.map(row => ({
             market_contract: this.core.args.atomicmarket_account,
             auction_id: trace.act.data.auction_id,
-            asset_contract: this.core.args.atomicassets_account,
+            assets_contract: this.core.args.atomicassets_account,
             asset_id: row
         }));
 
         await db.insert('atomicmarket_auctions_assets', rows, [
-            'market_contract', 'auction_id', 'asset_contract', 'asset_id'
+            'market_contract', 'auction_id', 'assets_contract', 'asset_id'
         ]);
 
         this.core.pushNotificiation(block, tx, 'auctions', 'create', {
@@ -241,7 +241,7 @@ export default class AtomicMarketActionHandler {
             final_price: null,
             listing_symbol: trace.act.data.listing_price.split(' ')[1],
             settlement_symbol: trace.act.data.settlement_symbol.split(',')[1],
-            asset_contract: this.core.args.atomicassets_account,
+            assets_contract: this.core.args.atomicassets_account,
             offer_id: null,
             maker_marketplace: trace.act.data.maker_marketplace,
             taker_marketplace: null,

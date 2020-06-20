@@ -1,7 +1,7 @@
 CREATE OR REPLACE VIEW atomictools_links_master AS
     SELECT
-        link.tools_contract, link.link_id, link.asset_contract,
-        link.creator, link.claimer, link.state, link.memo
+        link.tools_contract, link.link_id, link.assets_contract,
+        link.creator, link.claimer, link.state, link.memo,
         encode(link.txid::bytea, 'hex') txid,
         ARRAY(
             SELECT asset_id

@@ -49,7 +49,7 @@ export function expressRedisCache(
                             content = data.toString('base64');
                         }
 
-                        redis.set(key, res.getHeader('content-type') + '::' + content, () => {
+                        redis.set(key, res.getHeader('content-type') + '::' + res.statusCode + '::' + content, () => {
                             redis.expire(key, Math.round(cacheLife));
 
                             logger.debug('Cache request for url: ' + req.originalUrl);
@@ -64,13 +64,17 @@ export function expressRedisCache(
 
                     const split = reply.split('::');
 
-                    const buffer = Buffer.from(split[1], 'base64');
-
                     if (split[0]) {
                         res.contentType(split[0]);
                     }
 
-                    res.status(200).send(buffer);
+                    if (split[1]) {
+                        res.status(parseInt(split[1], 10));
+                    }
+
+                    const buffer = Buffer.from(split[2], 'base64');
+
+                    res.send(buffer);
                 }
             });
         };

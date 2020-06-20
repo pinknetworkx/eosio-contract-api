@@ -3,10 +3,12 @@ import { AtomicAssetsNamespace } from './atomicassets';
 import { AtomicMarketNamespace } from './atomicmarket';
 import { AuthenticationNamespace } from './authentication';
 import { AtomicHubNamespace } from './atomichub';
+import { AtomicToolsNamespace } from './atomictools';
 
 export const namespaces: (typeof ApiNamespace)[] = [
     AtomicAssetsNamespace,
     AtomicMarketNamespace,
-    AuthenticationNamespace,
-    AtomicHubNamespace
+    AtomicHubNamespace,
+    AtomicToolsNamespace,
+    AuthenticationNamespace
 ];

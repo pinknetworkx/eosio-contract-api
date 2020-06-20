@@ -53,7 +53,7 @@ export default class AtomicToolsTableHandler {
         await db.replace('atomictools_links', {
             tools_contract: this.core.args.atomictools_account,
             link_id: data.link_id,
-            asset_contract: this.core.args.atomicassets_account,
+            assets_contract: this.core.args.atomicassets_account,
             creator: data.creator,
             claimer: null,
             state: data.assets_transferred ? LinkState.CREATED.valueOf() : LinkState.WAITING.valueOf(),
@@ -76,12 +76,12 @@ export default class AtomicToolsTableHandler {
             const rows = data.asset_ids.map(row => ({
                 tools_contract: this.core.args.atomictools_account,
                 link_id: data.link_id,
-                asset_contract: this.core.args.atomicassets_account,
+                assets_contract: this.core.args.atomicassets_account,
                 asset_id: row
             }));
 
             await db.insert('atomictools_links_assets', rows, [
-                'tools_contract', 'link_id', 'asset_contract', 'asset_id'
+                'tools_contract', 'link_id', 'assets_contract', 'asset_id'
             ]);
         }
     }

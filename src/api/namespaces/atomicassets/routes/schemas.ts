@@ -80,7 +80,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
             );
 
             if (query.rowCount === 0) {
-                return res.status(500).json({success: false, message: 'Schema not found'});
+                return res.status(416).json({success: false, message: 'Schema not found'});
             }
 
             return res.json({success: true, data: formatSchema(query.rows[0])});
@@ -199,12 +199,12 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                             schema: {type: 'string'}
                         }
                     ],
-                    responses: getOpenAPI3Responses([200, 500], {'$ref': '#/components/schemas/Schema'})
+                    responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/Schema'})
                 }
             },
             '/v1/schemas/{collection_name}/{template_id}/stats': {
                 get: {
-                    tags: ['templates'],
+                    tags: ['schemas'],
                     summary: 'Get stats about a specific schema',
                     parameters: [
                         {

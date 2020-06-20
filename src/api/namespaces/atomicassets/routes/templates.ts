@@ -90,12 +90,12 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
     router.get('/v1/templates/:collection_name/:template_id', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
             const query = await core.connection.database.query(
-                'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND collection_name = $2 AND template_id = $3',
+                'SELECT template_id FROM atomicassets_templates_master WHERE contract = $1 AND collection_name = $2 AND template_id = $3 LIMIT 1',
                 [core.args.atomicassets_account, req.params.collection_name, req.params.template_id]
             );
 
             if (query.rowCount === 0) {
-                return res.status(500).json({success: false, message: 'Template not found'});
+                return res.status(416).json({success: false, message: 'Template not found'});
             }
 
             return res.json({success: true, data: formatTemplate(query.rows[0]), query_time: Date.now()});
@@ -110,7 +110,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
         try {
             const query = await core.connection.database.query(
                 'SELECT ' +
-                '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND template_id = $3) assets ' +
+                '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND template_id = $3) assets ',
                 [core.args.atomicassets_account, req.params.collection_name, req.params.template_id]
             );
 
@@ -154,7 +154,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             '/v1/templates': {
                 get: {
                     tags: ['templates'],
-                    summary: 'Fetch templates.' + atomicDataFilter,
+                    summary: 'Fetch templates.',
+                    description: atomicDataFilter,
                     parameters: [
                         {
                             name: 'collection_name',
@@ -213,7 +214,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                             schema: {type: 'integer'}
                         }
                     ],
-                    responses: getOpenAPI3Responses([200, 500], {'$ref': '#/components/schemas/Template'})
+                    responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/Template'})
                 }
             },
             '/v1/templates/{collection_name}/{template_id}/stats': {

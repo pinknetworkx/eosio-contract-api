@@ -17,7 +17,8 @@ export type AtomicHubNamespaceArgs = {
     atomicassets_account: string,
     atomicmarket_account: string,
 
-    connected_reader: string
+    default_symbol: string,
+    connected_reader: string,
 
     ipfs_node: string,
 
@@ -52,6 +53,10 @@ export class AtomicHubNamespace extends ApiNamespace {
 
         if (typeof this.args.atomicmarket_account !== 'string') {
             throw new Error('Argument missing in atomichub api namespace: atomicmarket_account');
+        }
+
+        if (typeof this.args.default_symbol !== 'string') {
+            throw new Error('Argument missing in atomichub api namespace: default_symbol');
         }
 
         if (

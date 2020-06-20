@@ -90,6 +90,12 @@ export default class AtomicToolsHandler extends ContractHandler {
             logger.info('AtomicTools tables successfully created');
         }
 
+        const views = ['atomictools_links_master'];
+
+        for (const view of views) {
+            await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
+        }
+
         const configQuery = await client.query(
             'SELECT * FROM atomictools_config WHERE tools_contract = $1',
             [this.args.atomictools_account]
@@ -111,13 +117,13 @@ export default class AtomicToolsHandler extends ContractHandler {
 
             await client.query(
                 'INSERT INTO atomictools_config ' +
-                '(tools_contract, asset_contract, version) VALUES ($1, $2, $3)',
+                '(tools_contract, assets_contract, version) VALUES ($1, $2, $3)',
                 [this.args.atomictools_account, this.args.atomicassets_account, config.version]
             );
 
             this.config = {...config};
         } else {
-            this.args.atomicassets_account = configQuery.rows[0].asset_contract;
+            this.args.atomicassets_account = configQuery.rows[0].assets_contract;
 
             this.config = {
                 ...configQuery.rows[0],

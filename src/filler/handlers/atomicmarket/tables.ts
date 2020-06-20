@@ -69,7 +69,7 @@ export default class AtomicMarketTableHandler {
             final_price: null,
             listing_symbol: data.listing_price.split(' ')[1],
             settlement_symbol: data.settlement_symbol.split(',')[1],
-            asset_contract: this.core.args.atomicassets_account,
+            assets_contract: this.core.args.atomicassets_account,
             offer_id: parseInt(data.offer_id, 10) === -1 ? null : data.offer_id,
             maker_marketplace: data.maker_marketplace,
             taker_marketplace: null,
@@ -100,7 +100,7 @@ export default class AtomicMarketTableHandler {
             buyer: null,
             price: data.current_bid.split(' ')[0].replace('.', ''),
             token_symbol: data.current_bid.split(' ')[1],
-            asset_contract: this.core.args.atomicassets_account,
+            assets_contract: this.core.args.atomicassets_account,
             maker_marketplace: data.maker_marketplace,
             taker_marketplace: null,
             collection_name: data.collection_name,
@@ -127,12 +127,12 @@ export default class AtomicMarketTableHandler {
             const rows = data.asset_ids.map(row => ({
                 market_contract: this.core.args.atomicmarket_account,
                 auction_id: data.auction_id,
-                asset_contract: this.core.args.atomicassets_account,
+                assets_contract: this.core.args.atomicassets_account,
                 asset_id: row
             }));
 
             await db.insert('atomicmarket_auctions_assets', rows, [
-                'market_contract', 'auction_id', 'asset_contract', 'asset_id'
+                'market_contract', 'auction_id', 'assets_contract', 'asset_id'
             ]);
         }
     }

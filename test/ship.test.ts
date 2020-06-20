@@ -14,7 +14,7 @@ describe('Ship Test', () => {
             const ship = connection.createShipBlockReader({
                 min_block_confirmation: 1,
                 ds_threads: 1,
-                ds_experimental: true
+                ds_experimental: false
             });
 
             ship.consume( (block: ShipBlockResponse) => {

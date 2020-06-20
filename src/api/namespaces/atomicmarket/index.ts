@@ -74,7 +74,7 @@ export class AtomicMarketNamespace extends ApiNamespace {
                 throw new Error('AtomicMarket API is not initialized yet (reader not running)');
             }
         } else {
-            this.args.atomicassets_account = query.rows[0].asset_contract;
+            this.args.atomicassets_account = query.rows[0].assets_contract;
             this.args.delphioracle_account = query.rows[0].delphi_contract;
         }
     }
@@ -126,7 +126,7 @@ export class AtomicMarketNamespace extends ApiNamespace {
         );
         const offerApi = new OfferApi(
             this, server, 'ListingOffer',
-            'atomicassets_offers_master', formatOffer,
+            'atomicmarket_offers_master', formatOffer,
             'atomicmarket_assets_master', formatListingAsset
         );
 

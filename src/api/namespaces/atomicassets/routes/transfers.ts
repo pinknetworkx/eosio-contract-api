@@ -59,8 +59,8 @@ export class TransferApi {
                 }
 
                 if (args.asset_id) {
-                    queryString += 'AND transfer_id EXISTS(' +
-                        'SELECT transfer_id FROM atomicassets_transfers_assets asset' +
+                    queryString += 'AND EXISTS(' +
+                        'SELECT transfer_id FROM atomicassets_transfers_assets asset ' +
                         'WHERE transfer.contract = asset.contract AND transfer.transfer_id = asset.transfer_id AND ' +
                         'asset_id = ANY ($' + ++varCounter + ')' +
                         ') ';

@@ -79,7 +79,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
             );
 
             if (query.rowCount === 0) {
-                return res.status(500).json({success: false, message: 'Collection not found'});
+                return res.status(416).json({success: false, message: 'Collection not found'});
             }
 
             return res.json({success: true, data: formatCollection(query.rows[0]), query_time: Date.now()});
@@ -180,7 +180,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
                             schema: {type: 'string'}
                         }
                     ],
-                    responses: getOpenAPI3Responses([200, 500], {'$ref': '#/components/schemas/Collection'})
+                    responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/Collection'})
                 }
             },
             '/v1/collections/{collection_name}/logs': {

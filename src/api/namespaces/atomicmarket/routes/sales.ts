@@ -1,6 +1,6 @@
 import * as express from 'express';
 
-import { AtomicMarketNamespace } from '../index';
+import { AtomicMarketNamespace, SaleApiState } from '../index';
 import { HTTPServer } from '../../../server';
 import { buildSaleFilter } from '../utils';
 import { fillSales } from '../filler';
@@ -47,7 +47,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 core.connection, core.args.atomicassets_account, query.rows.map((row) => formatSale(row))
             );
 
-            res.json({success: true, data: sales});
+            res.json({success: true, data: sales, query_time: Date.now()});
         } catch (e) {
             logger.error(e);
 
@@ -63,13 +63,13 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             );
 
             if (query.rowCount === 0) {
-                res.status(500).json({success: false, message: 'Sale not found'});
+                res.status(416).json({success: false, message: 'Sale not found'});
             } else {
                 const sales = await fillSales(
                     core.connection, core.args.atomicassets_account, query.rows.map((row) => formatSale(row))
                 );
 
-                res.json({success: true, data: sales[0]});
+                res.json({success: true, data: sales[0], query_time: Date.now()});
             }
         } catch (e) {
             logger.error(e);
@@ -87,17 +87,18 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             '/v1/sales': {
                 get: {
                     tags: ['sales'],
-                    summary: 'Get all sales. ' + atomicDataFilter,
+                    summary: 'Get all sales. ',
+                    description: atomicDataFilter,
                     parameters: [
                         {
                             name: 'state',
                             in: 'query',
                             description: 'Filter by sale state (' +
-                                '0: WAITING - Sale created but offer was not send yet, ' +
-                                '1: LISTED - Assets for sale, ' +
-                                '2: CANCELED - Sale was canceled, ' +
-                                '3: SOLD - Sale was bought' +
-                                '4: INVALID - Sale is still listed but offer is currently invalid (can become valid again if the user owns all assets again)' +
+                                SaleApiState.WAITING.valueOf() + ': WAITING - Sale created but offer was not send yet, ' +
+                                SaleApiState.LISTED.valueOf() + ': LISTED - Assets for sale, ' +
+                                SaleApiState.CANCELED.valueOf() + ': CANCELED - Sale was canceled, ' +
+                                SaleApiState.SOLD.valueOf() + ': SOLD - Sale was bought' +
+                                SaleApiState.INVALID.valueOf() + ': INVALID - Sale is still listed but offer is currently invalid (can become valid again if the user owns all assets again)' +
                                 ') - separate multiple with ","',
                             required: false,
                             schema: {type: 'string'}
@@ -117,7 +118,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             }
                         }
                     ],
-                    responses: getOpenAPI3Responses([200], {
+                    responses: getOpenAPI3Responses([200, 500], {
                         type: 'array',
                         items: {'$ref': '#/components/schemas/Sale'}
                     })
@@ -136,7 +137,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             schema: {type: 'integer'}
                         }
                     ],
-                    responses: getOpenAPI3Responses([200, 500], {'$ref': '#/components/schemas/Sale'})
+                    responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/Sale'})
                 }
             }
         }

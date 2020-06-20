@@ -38,6 +38,20 @@ export function getOpenAPI3Responses(codes: number[], data: any): {[key: string]
                 }
             }
         },
+        '416': {
+            description: 'Element not found',
+            content: {
+                'application/json': {
+                    schema: {
+                        type: 'object',
+                        properties: {
+                            success: {type: 'boolean', default: false},
+                            message: {type: 'string'}
+                        }
+                    }
+                }
+            }
+        },
         '500': {
             description: 'Internal Server Error',
             content: {

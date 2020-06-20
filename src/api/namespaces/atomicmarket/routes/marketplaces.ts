@@ -21,7 +21,7 @@ export function marketplacesEndpoints(core: AtomicMarketNamespace, server: HTTPS
         );
 
         if (query.rowCount === 0) {
-            res.json({success: false, message: 'Marketplace not found'});
+            res.status(416).json({success: false, message: 'Marketplace not found'});
         } else {
             res.json({success: true, data: query.rows[0], query_time: Date.now()});
         }
@@ -56,7 +56,7 @@ export function marketplacesEndpoints(core: AtomicMarketNamespace, server: HTTPS
                             schema: {type: 'string'}
                         }
                     ],
-                    responses: getOpenAPI3Responses([200, 500], {'$ref': '#/components/schemas/Marketplace'})
+                    responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/Marketplace'})
                 }
             }
         }

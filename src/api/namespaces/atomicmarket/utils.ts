@@ -135,7 +135,7 @@ export function buildSaleFilter(req: express.Request, varOffset: number): {str: 
                 '), atomicassets_offers_assets asset_o ' +
                 'WHERE ' +
                     'asset.contract = asset_o.contract AND asset.asset_id = asset_o.asset_id AND ' +
-                    'asset_o.offer_id = listing.offer_id AND asset_o.contract = listing.asset_contract ' + filter.str + ' ' +
+                    'asset_o.offer_id = listing.offer_id AND asset_o.contract = listing.assets_contract ' + filter.str + ' ' +
             ') ';
 
         queryValues.push(...filter.values);
@@ -143,10 +143,10 @@ export function buildSaleFilter(req: express.Request, varOffset: number): {str: 
     }
 
     if (args.max_assets) {
-        queryString += `COUNT(
-            SELECT * FROM atomicassets_offers_assets asset 
-            WHERE asset.contract = listing.asset_contract AND asset.offer_id = listing.offer_id
-        ) <= ${args.max_assets}`;
+        queryString += `AND (
+            SELECT COUNT(*) FROM atomicassets_offers_assets asset 
+            WHERE asset.contract = listing.assets_contract AND asset.offer_id = listing.offer_id
+        ) <= ${args.max_assets} `;
     }
 
     if (args.state) {
@@ -172,7 +172,7 @@ export function buildSaleFilter(req: express.Request, varOffset: number): {str: 
             stateConditions.push(`(listing.offer_state != ${OfferState.PENDING.valueOf()} AND listing.sale_state = ${SaleState.LISTED.valueOf()})`);
         }
 
-        queryString += 'AND ' + stateConditions.join(' OR ') + ' ';
+        queryString += 'AND (' + stateConditions.join(' OR ') + ') ';
     }
 
     return {
@@ -207,7 +207,7 @@ export function buildAuctionFilter(req: express.Request, varOffset: number): {st
                     'template.contract = asset.contract AND template.template_id = asset.template_id ' +
                 '), atomicmarket_auctions_assets asset_a ' +
                 'WHERE ' +
-                    'asset.contract = asset_a.asset_contract AND asset.asset_id = asset_a.asset_id AND ' +
+                    'asset.contract = asset_a.assets_contract AND asset.asset_id = asset_a.asset_id AND ' +
                     'asset_a.auction_id = listing.auction_id AND asset_a.market_contract = listing.market_contract ' + filter.str + ' ' +
             ') ';
 
@@ -216,10 +216,10 @@ export function buildAuctionFilter(req: express.Request, varOffset: number): {st
     }
 
     if (args.max_assets) {
-        queryString += `COUNT(
-            SELECT * FROM atomicmarket_auctions_assets asset 
+        queryString += `AND (
+            SELECT COUNT(*) FROM atomicmarket_auctions_assets asset 
             WHERE asset.market_contract = listing.market_contract AND asset.auction_id = listing.auction_id
-        ) <= ${args.max_assets}`;
+        ) <= ${args.max_assets} `;
     }
 
     if (args.state) {
@@ -234,18 +234,18 @@ export function buildAuctionFilter(req: express.Request, varOffset: number): {st
         }
 
         if (args.state.split(',').indexOf(String(AuctionApiState.CANCELED.valueOf())) >= 0) {
-            stateConditions.push(`(listing.auction_sate = ${AuctionState.CANCELED.valueOf()})`);
+            stateConditions.push(`(listing.auction_state = ${AuctionState.CANCELED.valueOf()})`);
         }
 
         if (args.state.split(',').indexOf(String(AuctionApiState.SOLD.valueOf())) >= 0) {
-            stateConditions.push(`(listing.auction_sate = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Date.now()} AND listing.buyer IS NOT NULL)`);
+            stateConditions.push(`(listing.auction_state = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Date.now()} AND listing.buyer IS NOT NULL)`);
         }
 
         if (args.state.split(',').indexOf(String(AuctionApiState.INVALID.valueOf())) >= 0) {
-            stateConditions.push(`(listing.auction_sate = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Date.now()} AND listing.buyer IS NULL)`);
+            stateConditions.push(`(listing.auction_state = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Date.now()} AND listing.buyer IS NULL)`);
         }
 
-        queryString += 'AND ' + stateConditions.join(' OR ') + ' ';
+        queryString += 'AND (' + stateConditions.join(' OR ') + ') ';
     }
 
     return {

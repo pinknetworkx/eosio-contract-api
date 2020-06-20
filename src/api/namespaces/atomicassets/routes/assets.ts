@@ -83,7 +83,7 @@ export class AssetApi {
                 );
 
                 if (query.rowCount === 0) {
-                    return res.status(500).json({success: false, message: 'Asset not found'});
+                    return res.status(416).json({success: false, message: 'Asset not found'});
                 }
 
                 return res.json({success: true, data: this.assetFormatter(query.rows[0]), query_time: Date.now()});
@@ -125,7 +125,8 @@ export class AssetApi {
                 '/v1/assets': {
                     get: {
                         tags: ['assets'],
-                        summary: 'Fetch assets.' + atomicDataFilter,
+                        summary: 'Fetch assets.',
+                        description: atomicDataFilter,
                         parameters: [
                             ...assetFilterParameters,
                             {
@@ -166,7 +167,7 @@ export class AssetApi {
                                 schema: {type: 'string'}
                             }
                         ],
-                        responses: getOpenAPI3Responses([200, 500], {'$ref': '#/components/schemas/' + this.schema})
+                        responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/' + this.schema})
                     }
                 },
                 '/v1/assets/{asset_id}/logs': {

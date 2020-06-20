@@ -55,7 +55,7 @@ export default class AtomicToolsActionHandler {
         await db.insert('atomictools_links', {
             tools_contract: this.core.args.atomictools_account,
             link_id: trace.act.data.link_id,
-            asset_contract: this.core.args.atomicassets_account,
+            assets_contract: this.core.args.atomicassets_account,
             creator: trace.act.data.creator,
             claimer: null,
             state: LinkState.WAITING.valueOf(),
@@ -70,11 +70,11 @@ export default class AtomicToolsActionHandler {
         const rows = trace.act.data.asset_ids.map((assetID) => ({
             tools_contract: this.core.args.atomictools_account,
             link_id: trace.act.data.link_id,
-            asset_contract: this.core.args.atomicassets_account,
+            assets_contract: this.core.args.atomicassets_account,
             asset_id: assetID
         }));
 
-        await db.insert('atomictools_links_assets', rows, ['tools_contract', 'link_id', 'asset_contract', 'asset_id']);
+        await db.insert('atomictools_links_assets', rows, ['tools_contract', 'link_id', 'assets_contract', 'asset_id']);
     }
 
     async loglinkstart(

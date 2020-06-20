@@ -107,7 +107,7 @@ export default class AtomicMarketHandler extends ContractHandler {
             logger.info('AtomicMarket tables successfully created');
         }
 
-        const views = ['atomicmarket_assets_master', 'atomicmarket_auctions_master', 'atomicmarket_sales_master'];
+        const views = ['atomicmarket_assets_master', 'atomicmarket_auctions_master', 'atomicmarket_sales_master', 'atomicmarket_offers_master'];
 
         for (const view of views) {
             await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
@@ -136,7 +136,7 @@ export default class AtomicMarketHandler extends ContractHandler {
             await client.query(
                 'INSERT INTO atomicmarket_config ' +
                 '(' +
-                    'market_contract, asset_contract, delphi_contract, ' +
+                    'market_contract, assets_contract, delphi_contract, ' +
                     'version, maker_market_fee, taker_market_fee, ' +
                     'minimum_auction_duration, maximum_auction_duration, ' +
                     'minimum_bid_increase, auction_reset_duration' +
@@ -163,7 +163,7 @@ export default class AtomicMarketHandler extends ContractHandler {
             };
         } else {
             this.args.delphioracle_account = configQuery.rows[0].delphi_contract;
-            this.args.atomicassets_account = configQuery.rows[0].asset_contract;
+            this.args.atomicassets_account = configQuery.rows[0].assets_contract;
 
             const tokensQuery = await this.connection.database.query(
                 'SELECT * FROM atomicmarket_tokens WHERE market_contract = $1',

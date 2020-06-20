@@ -6,6 +6,7 @@ import logger from '../../../../utils/winston';
 import { filterQueryArgs } from '../../utils';
 import { fillOffers } from '../filler';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
+import { OfferState } from '../../../../filler/handlers/atomicassets';
 
 export type SocketOfferSubscriptionArgs = {
     offer_ids: string[],
@@ -43,7 +44,7 @@ export class OfferApi {
                 });
 
                 let varCounter = 1;
-                let queryString = 'SELECT * FROM ' + this.offerView + ' WHERE contract = $1 ';
+                let queryString = 'SELECT * FROM ' + this.offerView + ' offer WHERE contract = $1 ';
 
                 const queryValues: any[] = [this.core.args.atomicassets_account];
 
@@ -74,9 +75,11 @@ export class OfferApi {
                 }
 
                 if (args.asset_id) {
-                    queryString += 'AND offer_id IN(' +
-                        'SELECT DISTINCT ON (contract, offer_id) offer_id FROM atomicassets_offers_assets ' +
-                        'WHERE contract = $1 AND asset_id = ANY $' + ++varCounter +
+                    queryString += 'AND EXISTS(' +
+                        'SELECT offer_id FROM atomicassets_offers_assets asset ' +
+                        'WHERE asset.contract = offer.contract AND ' +
+                        'asset.offer_id = offer.offer_id AND ' +
+                        'asset.asset_id = ANY ($' + ++varCounter + ')' +
                         ') ';
                     queryValues.push(args.asset_id.split(','));
                 }
@@ -116,7 +119,7 @@ export class OfferApi {
                 );
 
                 if (query.rowCount === 0) {
-                    return res.status(500).json({success: false, message: 'Offer not found'});
+                    return res.status(416).json({success: false, message: 'Offer not found'});
                 }
 
                 const offers = await fillOffers(
@@ -168,7 +171,14 @@ export class OfferApi {
                             {
                                 name: 'state',
                                 in: 'query',
-                                description: 'Offer State (0: Pending; 1: Invalid; 2: Unknown [not valid anymore]; 3: Accepted; 4: Declined; 5: Canceled) - separate multiple with ","',
+                                description: 'Filter by Offer State (' +
+                                    OfferState.PENDING.valueOf() + ': PENDING - Offer created and valid, ' +
+                                    OfferState.INVALID.valueOf() + ': INVALID - Assets are missing because ownership has changed, ' +
+                                    OfferState.UNKNOWN.valueOf() + ': UNKNOWN - Offer is not valid anymore, ' +
+                                    OfferState.ACCEPTED.valueOf() + ': ACCEPTED - Offer was accepted, ' +
+                                    OfferState.DECLINED.valueOf() + ': DECLINED - Offer was declined by recipient, ' +
+                                    OfferState.CANCELLED.valueOf() + ': CANCELLED - Offer was canceled by sender' +
+                                    ') - separate multiple with ","',
                                 required: false,
                                 schema: {type: 'string'}
                             },
@@ -215,7 +225,7 @@ export class OfferApi {
                                 schema: {type: 'integer'}
                             }
                         ],
-                        responses: getOpenAPI3Responses([200, 500], {'$ref': '#/components/schemas/' + this.schema})
+                        responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/' + this.schema})
                     }
                 }
             }

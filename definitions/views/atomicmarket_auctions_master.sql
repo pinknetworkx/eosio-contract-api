@@ -1,7 +1,7 @@
 CREATE OR REPLACE VIEW atomicmarket_auctions_master AS
     SELECT DISTINCT ON (market_contract, auction_id)
         auction.market_contract,
-        auction.asset_contract,
+        auction.assets_contract,
         auction.auction_id,
 
         auction.seller,
@@ -62,12 +62,12 @@ CREATE OR REPLACE VIEW atomicmarket_auctions_master AS
 
         EXISTS (
             SELECT * FROM atomicmarket_blacklist_collections list
-            WHERE list.market_contract = auction.market_contract AND list.asset_contract = auction.asset_contract AND
+            WHERE list.market_contract = auction.market_contract AND list.assets_contract = auction.assets_contract AND
                 list.collection_name = auction.collection_name
         ) collection_blacklisted,
         EXISTS (
             SELECT * FROM atomicmarket_whitelist_collections list
-            WHERE list.market_contract = auction.market_contract AND list.asset_contract = auction.asset_contract AND
+            WHERE list.market_contract = auction.market_contract AND list.assets_contract = auction.assets_contract AND
                 list.collection_name = auction.collection_name
         ) collection_whitelisted,
         EXISTS (
@@ -88,4 +88,4 @@ CREATE OR REPLACE VIEW atomicmarket_auctions_master AS
         encode(auction.created_at_txid::bytea, 'hex') created_at_txid
     FROM atomicmarket_auctions auction, atomicassets_collections collection, atomicmarket_tokens token
     WHERE auction.market_contract = token.market_contract AND auction.token_symbol = token.token_symbol AND
-        auction.asset_contract = collection.contract AND auction.collection_name = collection.collection_name
+        auction.assets_contract = collection.contract AND auction.collection_name = collection.collection_name

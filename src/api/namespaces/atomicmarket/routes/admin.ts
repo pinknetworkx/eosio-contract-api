@@ -34,9 +34,9 @@ export function adminEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
     router.get('/v1/blacklist/collections', server.web.caching(), async (_, res) => {
         const query = await core.connection.database.query(
-            'SELECT collection.* FROM atomicassets_collections_master collection, atomicmarket_blacklist_collections clist' +
-            'WHERE collection.contract = clist.asset_contract AND collection.collection_name = clist.collection_name AND ' +
-            'clist.market_contract = $1 AND clist.asset_contract = $2',
+            'SELECT collection.* FROM atomicassets_collections_master collection, atomicmarket_blacklist_collections clist ' +
+            'WHERE collection.contract = clist.assets_contract AND collection.collection_name = clist.collection_name AND ' +
+            'clist.market_contract = $1 AND clist.assets_contract = $2',
             [core.args.atomicmarket_account, core.args.atomicassets_account]
         );
 
@@ -54,7 +54,7 @@ export function adminEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
         try {
             await core.connection.database.query(
-                'INSERT INTO atomicmarket_blacklist_collections (market_contract, asset_contract, collection_name) VALUES ($1, $2, $3)',
+                'INSERT INTO atomicmarket_blacklist_collections (market_contract, assets_contract, collection_name) VALUES ($1, $2, $3)',
                 [core.args.atomicmarket_account, core.args.atomicassets_account, args.collection_name]
             );
 
@@ -67,7 +67,7 @@ export function adminEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
     router.delete('/v1/blacklist/collections/:collection_name', adminAuth(core), async (req, res) => {
         const query = await core.connection.database.query(
             'DELETE FROM atomicmarket_blacklist_collections ' +
-            'WHERE market_contract = $1 AND asset_contract = $2 AND collection_name = $3 ' +
+            'WHERE market_contract = $1 AND assets_contract = $2 AND collection_name = $3 ' +
             'RETURNING collection_name',
             [core.args.atomicmarket_account, core.args.atomicassets_account, req.params.collection_name]
         );
@@ -81,7 +81,7 @@ export function adminEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
     router.get('/v1/blacklist/accounts', server.web.caching(), async (_, res) => {
         const query = await core.connection.database.query(
-            'SELECT account FROM atomicmarket_blacklist_accounts' +
+            'SELECT account FROM atomicmarket_blacklist_accounts ' +
             'WHERE market_contract = $1',
             [core.args.atomicmarket_account]
         );
@@ -122,9 +122,9 @@ export function adminEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
     router.get('/v1/whitelist/collections', server.web.caching(), async (_, res) => {
         const query = await core.connection.database.query(
-            'SELECT collection.* FROM atomicassets_collections_master collection, atomicmarket_whitelist_collections clist' +
-            'WHERE collection.contract = clist.asset_contract AND collection.collection_name = clist.collection_name AND ' +
-            'clist.market_contract = $1 AND clist.asset_contract = $2',
+            'SELECT collection.* FROM atomicassets_collections_master collection, atomicmarket_whitelist_collections clist ' +
+            'WHERE collection.contract = clist.assets_contract AND collection.collection_name = clist.collection_name AND ' +
+            'clist.market_contract = $1 AND clist.assets_contract = $2',
             [core.args.atomicmarket_account, core.args.atomicassets_account]
         );
 
@@ -142,7 +142,7 @@ export function adminEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
         try {
             await core.connection.database.query(
-                'INSERT INTO atomicmarket_whitelist_collections (market_contract, asset_contract, collection_name) VALUES ($1, $2, $3)',
+                'INSERT INTO atomicmarket_whitelist_collections (market_contract, assets_contract, collection_name) VALUES ($1, $2, $3)',
                 [core.args.atomicmarket_account, core.args.atomicassets_account, args.collection_name]
             );
 
@@ -155,7 +155,7 @@ export function adminEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
     router.delete('/v1/whitelist/collections/:collection_name', adminAuth(core), async (req, res) => {
         const query = await core.connection.database.query(
             'DELETE FROM atomicmarket_whitelist_collections ' +
-            'WHERE market_contract = $1 AND asset_contract = $2 AND collection_name = $3 ' +
+            'WHERE market_contract = $1 AND assets_contract = $2 AND collection_name = $3 ' +
             'RETURNING collection_name',
             [core.args.atomicmarket_account, core.args.atomicassets_account, req.params.collection_name]
         );
@@ -169,7 +169,7 @@ export function adminEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
     router.get('/v1/whitelist/accounts', server.web.caching(), async (_, res) => {
         const query = await core.connection.database.query(
-            'SELECT account FROM atomicmarket_whitelist_accounts' +
+            'SELECT account FROM atomicmarket_whitelist_accounts ' +
             'WHERE market_contract = $1',
             [core.args.atomicmarket_account]
         );

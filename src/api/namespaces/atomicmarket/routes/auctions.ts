@@ -1,6 +1,6 @@
 import * as express from 'express';
 
-import { AtomicMarketNamespace } from '../index';
+import { AtomicMarketNamespace, AuctionApiState } from '../index';
 import { HTTPServer } from '../../../server';
 import { formatAuction } from '../format';
 import { fillAuctions } from '../filler';
@@ -48,7 +48,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                 core.connection, core.args.atomicassets_account, query.rows.map((row) => formatAuction(row))
             );
 
-            res.json({success: true, data: auctions});
+            res.json({success: true, data: auctions, query_time: Date.now()});
         } catch (e) {
             logger.error(e);
 
@@ -64,13 +64,13 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             );
 
             if (query.rowCount === 0) {
-                res.status(500).json({success: false, message: 'Auction not found'});
+                res.status(416).json({success: false, message: 'Auction not found'});
             } else {
                 const auctions = await fillAuctions(
                     core.connection, core.args.atomicassets_account, query.rows.map((row) => formatAuction(row))
                 );
 
-                res.json({success: true, data: auctions[0]});
+                res.json({success: true, data: auctions[0], query_time: Date.now()});
             }
         } catch (e) {
             logger.error(e);
@@ -89,17 +89,18 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             '/v1/auctions': {
                 get: {
                     tags: ['auctions'],
-                    summary: 'Get all auctions.' + atomicDataFilter,
+                    summary: 'Get all auctions.',
+                    description: atomicDataFilter,
                     parameters: [
                         {
                             name: 'state',
                             in: 'query',
                             description: 'Filter by auction state (' +
-                                '0: WAITING: Auction created but assets were not transferred yet, ' +
-                                '1: LISTED - Auction pending and open to bids, ' +
-                                '2: CANCELED - Auction was canceled, ' +
-                                '3: SOLD - Auction has been sold, ' +
-                                '4: INVALID - Auction ended but no bid was made' +
+                                AuctionApiState.WAITING.valueOf() + ': WAITING: Auction created but assets were not transferred yet, ' +
+                                AuctionApiState.LISTED.valueOf() + ': LISTED - Auction pending and open to bids, ' +
+                                AuctionApiState.CANCELED.valueOf() + ': CANCELED - Auction was canceled, ' +
+                                AuctionApiState.SOLD.valueOf() + ': SOLD - Auction has been sold, ' +
+                                AuctionApiState.INVALID.valueOf() + ': INVALID - Auction ended but no bid was made' +
                                 ') - separate multiple with ","',
                             required: false,
                             schema: {type: 'string'}
@@ -119,7 +120,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                             }
                         }
                     ],
-                    responses: getOpenAPI3Responses([200], {
+                    responses: getOpenAPI3Responses([200, 500], {
                         type: 'array',
                         items: {'$ref': '#/components/schemas/Auction'}
                     })
@@ -138,7 +139,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                             schema: {type: 'integer'}
                         }
                     ],
-                    responses: getOpenAPI3Responses([200, 500], {'$ref': '#/components/schemas/Auction'})
+                    responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/Auction'})
                 }
             }
         }

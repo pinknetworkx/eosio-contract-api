@@ -1,7 +1,7 @@
 CREATE OR REPLACE VIEW atomicmarket_sales_master AS
     SELECT DISTINCT ON (market_contract, sale_id)
         sale.market_contract,
-        sale.asset_contract,
+        sale.assets_contract,
         sale.sale_id,
 
         sale.seller,
@@ -32,7 +32,7 @@ CREATE OR REPLACE VIEW atomicmarket_sales_master AS
         ARRAY(
             SELECT asset.asset_id
             FROM atomicassets_offers_assets asset
-            WHERE sale.asset_contract = asset.contract AND asset.offer_id = sale.offer_id
+            WHERE sale.assets_contract = asset.contract AND asset.offer_id = sale.offer_id
         ) assets,
 
         sale.maker_marketplace,
@@ -56,12 +56,12 @@ CREATE OR REPLACE VIEW atomicmarket_sales_master AS
 
         EXISTS (
             SELECT * FROM atomicmarket_blacklist_collections list
-            WHERE list.market_contract = sale.market_contract AND list.asset_contract = sale.asset_contract AND
+            WHERE list.market_contract = sale.market_contract AND list.assets_contract = sale.assets_contract AND
                 list.collection_name = sale.collection_name
         ) collection_blacklisted,
         EXISTS (
             SELECT * FROM atomicmarket_whitelist_collections list
-            WHERE list.market_contract = sale.market_contract AND list.asset_contract = sale.asset_contract AND
+            WHERE list.market_contract = sale.market_contract AND list.assets_contract = sale.assets_contract AND
                 list.collection_name = sale.collection_name
         ) collection_whitelisted,
         (EXISTS (
@@ -92,6 +92,6 @@ CREATE OR REPLACE VIEW atomicmarket_sales_master AS
         ),
         atomicassets_offers offer, atomicassets_collections collection, atomicmarket_tokens token
     WHERE
-        sale.asset_contract = offer.contract AND sale.offer_id = offer.offer_id AND
-        collection.contract = sale.asset_contract AND collection.collection_name = sale.collection_name AND
+        sale.assets_contract = offer.contract AND sale.offer_id = offer.offer_id AND
+        collection.contract = sale.assets_contract AND collection.collection_name = sale.collection_name AND
         sale.market_contract = token.market_contract AND sale.settlement_symbol = token.token_symbol

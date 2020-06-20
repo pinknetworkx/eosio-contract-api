@@ -33,7 +33,7 @@ export const atomicmarketComponents = {
         type: 'object',
         properties: {
             market_contract: {type: 'string'},
-            asset_contract: {type: 'string'},
+            assets_contract: {type: 'string'},
             sale_id: {type: 'integer'},
 
             seller: {type: 'string'},
@@ -82,7 +82,7 @@ export const atomicmarketComponents = {
         type: 'object',
         properties: {
             market_contract: {type: 'string'},
-            asset_contract: {type: 'string'},
+            assets_contract: {type: 'string'},
             auction_id: {type: 'integer'},
 
             seller: {type: 'string'},
