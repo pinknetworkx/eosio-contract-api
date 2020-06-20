@@ -220,7 +220,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
         await this.tableHandler.handleUpdate(db, block, delta);
     }
 
-    async onBlockStart(db: ContractDBTransaction): Promise<void> {
+    async onBlockStart(): Promise<void> {
         this.jobs = [];
         this.notifications = [];
 

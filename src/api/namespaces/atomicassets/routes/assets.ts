@@ -69,7 +69,7 @@ export class AssetApi {
 
                 return res.json({success: true, data: query.rows.map((row) => this.assetFormatter(row)), query_time: Date.now()});
             } catch (e) {
-                logger.error(e);
+                logger.error(req.originalUrl + ' ', e);
 
                 return res.status(500).json({success: false, message: 'Internal Server Error'});
             }
@@ -88,7 +88,7 @@ export class AssetApi {
 
                 return res.json({success: true, data: this.assetFormatter(query.rows[0]), query_time: Date.now()});
             } catch (e) {
-                logger.error(e);
+                logger.error(req.originalUrl + ' ', e);
 
                 return res.status(500).json({success: false, message: 'Internal Server Error'});
             }

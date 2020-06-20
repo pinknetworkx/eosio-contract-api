@@ -3,42 +3,49 @@ import * as express from 'express';
 import { AtomicMarketNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { getOpenAPI3Responses } from '../../../docs';
+import logger from '../../../../utils/winston';
 
 export function configEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/config', server.web.caching(), async (_, res) => {
-        const configQuery = await core.connection.database.query(
-            'SELECT * FROM atomicmarket_config WHERE market_contract = $1',
-            [core.args.atomicmarket_account]
-        );
+    router.get('/v1/config', server.web.caching(), async (req, res) => {
+        try {
+            const configQuery = await core.connection.database.query(
+                'SELECT * FROM atomicmarket_config WHERE market_contract = $1',
+                [core.args.atomicmarket_account]
+            );
 
-        const config = configQuery.rows[0];
+            const config = configQuery.rows[0];
 
-        const pairsQuery = await core.connection.database.query(
-            'SELECT listing_symbol, settlement_symbol, delphi_pair_name, invert_delphi_pair FROM atomicmarket_symbol_pairs WHERE market_contract = $1',
-            [core.args.atomicmarket_account]
-        );
+            const pairsQuery = await core.connection.database.query(
+                'SELECT listing_symbol, settlement_symbol, delphi_pair_name, invert_delphi_pair FROM atomicmarket_symbol_pairs WHERE market_contract = $1',
+                [core.args.atomicmarket_account]
+            );
 
-        const tokensQuery = await core.connection.database.query(
-            'SELECT token_contract, token_symbol, token_precision FROM atomicmarket_tokens WHERE market_contract = $1',
-            [core.args.atomicmarket_account]
-        );
+            const tokensQuery = await core.connection.database.query(
+                'SELECT token_contract, token_symbol, token_precision FROM atomicmarket_tokens WHERE market_contract = $1',
+                [core.args.atomicmarket_account]
+            );
 
-        res.json({
-            success: true, data: {
-                atomicassets_contract: core.args.atomicassets_account,
-                atomicmarket_contract: core.args.atomicmarket_account,
-                delphioracle_contract: core.args.delphioracle_account,
-                version: config.version,
-                maker_market_fee: config.maker_market_fee,
-                taker_market_fee: config.taker_market_fee,
-                minimum_auction_duration: config.minimum_auction_duration,
-                maximum_auction_duration: config.maximum_auction_duration,
-                minimum_bid_increase: config.minimum_bid_increase,
-                auction_reset_duration: config.auction_reset_duration,
-                supported_tokens: tokensQuery.rows,
-                supported_pairs: pairsQuery.rows
-            }, query_time: Date.now()
-        });
+            res.json({
+                success: true, data: {
+                    atomicassets_contract: core.args.atomicassets_account,
+                    atomicmarket_contract: core.args.atomicmarket_account,
+                    delphioracle_contract: core.args.delphioracle_account,
+                    version: config.version,
+                    maker_market_fee: config.maker_market_fee,
+                    taker_market_fee: config.taker_market_fee,
+                    minimum_auction_duration: config.minimum_auction_duration,
+                    maximum_auction_duration: config.maximum_auction_duration,
+                    minimum_bid_increase: config.minimum_bid_increase,
+                    auction_reset_duration: config.auction_reset_duration,
+                    supported_tokens: tokensQuery.rows,
+                    supported_pairs: pairsQuery.rows
+                }, query_time: Date.now()
+            });
+        } catch (e) {
+            logger.error(req.originalUrl + ' ', e);
+
+            res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
     });
 
     return {

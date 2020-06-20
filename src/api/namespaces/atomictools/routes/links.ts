@@ -74,7 +74,7 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
 
             res.json({success: true, data: links, query_time: Date.now()});
         } catch (e) {
-            logger.error(req.originalUrl, e);
+            logger.error(req.originalUrl + ' ', e);
 
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
@@ -97,7 +97,7 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
                 res.json({success: true, data: links[0], query_time: Date.now()});
             }
         } catch (e) {
-            logger.error(req.originalUrl, e);
+            logger.error(req.originalUrl + ' ', e);
 
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }

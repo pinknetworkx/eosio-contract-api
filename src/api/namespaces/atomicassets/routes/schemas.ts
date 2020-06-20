@@ -63,7 +63,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
 
             return res.json({success: true, data: query.rows.map((row) => formatSchema(row)), query_time: Date.now()});
         } catch (e) {
-            logger.error(e);
+            logger.error(req.originalUrl + ' ', e);
 
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
@@ -85,7 +85,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
 
             return res.json({success: true, data: formatSchema(query.rows[0])});
         } catch (e) {
-            logger.error(e);
+            logger.error(req.originalUrl + ' ', e);
 
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
@@ -102,7 +102,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
 
             return res.json({success: true, data: query.rows[0]});
         } catch (e) {
-            logger.error(e);
+            logger.error(req.originalUrl + ' ', e);
 
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
@@ -125,7 +125,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                 ), query_time: Date.now()
             });
         } catch (e) {
-            logger.error(e);
+            logger.error(req.originalUrl + ' ', e);
 
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }

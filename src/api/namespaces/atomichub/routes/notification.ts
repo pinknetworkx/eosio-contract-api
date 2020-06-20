@@ -30,7 +30,9 @@ export function notificationsEndpoints(core: AtomicHubNamespace, server: HTTPSer
 
             return res.json({success: true, data: query.rowCount});
         } catch (e) {
-            res.status(500).json({success: false, message: 'Database error'});
+            logger.error(req.originalUrl + ' ', e);
+
+            res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
 
@@ -38,7 +40,9 @@ export function notificationsEndpoints(core: AtomicHubNamespace, server: HTTPSer
         try {
             res.json({success: true, data: await getNotifications(server, req.params.account, 100), query_time: Date.now()});
         } catch (e) {
-            res.status(500).json({success: false, message: 'Database error'});
+            logger.error(req.originalUrl + ' ', e);
+
+            res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
 

@@ -88,7 +88,7 @@ export class TransferApi {
 
                 return res.json({success: true, data: transfers, query_time: Date.now()});
             } catch (e) {
-                logger.error(e);
+                logger.error(req.originalUrl + ' ', e);
 
                 res.status(500).json({success: false, message: 'Internal Server Error'});
             }

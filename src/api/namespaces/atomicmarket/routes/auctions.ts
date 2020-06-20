@@ -50,7 +50,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
 
             res.json({success: true, data: auctions, query_time: Date.now()});
         } catch (e) {
-            logger.error(e);
+            logger.error(req.originalUrl + ' ', e);
 
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
@@ -73,7 +73,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                 res.json({success: true, data: auctions[0], query_time: Date.now()});
             }
         } catch (e) {
-            logger.error(e);
+            logger.error(req.originalUrl + ' ', e);
 
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }

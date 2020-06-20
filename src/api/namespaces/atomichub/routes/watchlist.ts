@@ -12,24 +12,31 @@ import { formatListingAsset } from '../../atomicmarket/format';
 
 export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
     router.put('/v1/watchlist', bearerToken(core.connection), async (req, res) => {
-        const body = filterQueryArgs(req, {
-            asset_id: {type: 'int', min: 1}
-        }, 'body');
-
-        if (!body.asset_id) {
-            return res.status(500).json({success: false, message: 'Input missing'});
-        }
-
         try {
-            await core.connection.database.query(
-                'INSERT INTO atomichub_watchlist (account, contract, asset_id, created) VALUES ($1, $2, $3, $4)',
-                [req.authorizedAccount, core.args.atomicassets_account, body.asset_id, Date.now()]
-            );
+            const body = filterQueryArgs(req, {
+                asset_id: {type: 'int', min: 1}
+            }, 'body');
 
-            return res.json({success: true, data: null});
+            if (!body.asset_id) {
+                return res.status(500).json({success: false, message: 'Input missing'});
+            }
+
+            try {
+                await core.connection.database.query(
+                    'INSERT INTO atomichub_watchlist (account, contract, asset_id, created) VALUES ($1, $2, $3, $4)',
+                    [req.authorizedAccount, core.args.atomicassets_account, body.asset_id, Date.now()]
+                );
+
+                return res.json({success: true, data: null});
+            } catch (e) {
+                return res.json({success: false, message: 'Entry already exists or asset id not found'});
+            }
         } catch (e) {
-            return res.json({success: false, message: 'Entry already exists or asset id not found'});
+            logger.error(req.originalUrl + ' ', e);
+
+            return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
+
     });
 
     router.delete('/v1/watchlist', bearerToken(core.connection), async (req, res) => {
@@ -53,49 +60,57 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
 
             return res.json({success: false, message: 'Item not found on watchlist'});
         } catch (e) {
-            return res.json({success: false, message: 'Unknown error'});
+            logger.error(req.originalUrl + ' ', e);
+
+            return res.json({success: false, message: 'Internal Server Error'});
         }
     });
 
     router.get('/v1/watchlist/:account', server.web.caching(), async (req, res) => {
-        const args = filterQueryArgs(req, {
-            page: {type: 'int', min: 1, default: 1},
-            limit: {type: 'int', min: 1, max: 1000, default: 100},
-            sort: {type: 'string', values: ['added', 'asset_id'], default: 'added'},
-            order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
-        });
+        try {
+            const args = filterQueryArgs(req, {
+                page: {type: 'int', min: 1, default: 1},
+                limit: {type: 'int', min: 1, max: 1000, default: 100},
+                sort: {type: 'string', values: ['added', 'asset_id'], default: 'added'},
+                order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
+            });
 
-        let varCounter = 2;
-        let queryString = 'SELECT asset.* ' +
-            'FROM atomicmarket_assets_master asset JOIN atomichub_watchlist wlist ON (' +
+            let varCounter = 2;
+            let queryString = 'SELECT asset.* ' +
+                'FROM atomicmarket_assets_master asset JOIN atomichub_watchlist wlist ON (' +
                 'wlist.contract = asset.contract AND wlist.asset_id = asset.asset_id' +
-            ')' +
-            'WHERE asset.contract = $1 AND wlist.account = $2 ';
+                ')' +
+                'WHERE asset.contract = $1 AND wlist.account = $2 ';
 
-        let queryValues: any[] = [core.args.atomicassets_account, req.params.account];
+            let queryValues: any[] = [core.args.atomicassets_account, req.params.account];
 
-        const filter = buildAssetFilter(req, varCounter);
+            const filter = buildAssetFilter(req, varCounter);
 
-        queryValues = queryValues.concat(filter.values);
-        varCounter += filter.values.length;
-        queryString += filter.str;
+            queryValues = queryValues.concat(filter.values);
+            varCounter += filter.values.length;
+            queryString += filter.str;
 
-        const sortColumnMapping = {
-            asset_id: 'asset.asset_id',
-            added: 'wlist.created'
-        };
+            const sortColumnMapping = {
+                asset_id: 'asset.asset_id',
+                added: 'wlist.created'
+            };
 
-        // @ts-ignore
-        queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' ';
-        queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
-        queryValues.push(args.limit);
-        queryValues.push((args.page - 1) * args.limit);
+            // @ts-ignore
+            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' ';
+            queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
+            queryValues.push(args.limit);
+            queryValues.push((args.page - 1) * args.limit);
 
-        logger.debug(queryString);
+            logger.debug(queryString);
 
-        const query = await core.connection.database.query(queryString, queryValues);
+            const query = await core.connection.database.query(queryString, queryValues);
 
-        return res.json({success: true, data: query.rows.map((row) => formatListingAsset(row)), query_time: Date.now()});
+            return res.json({success: true, data: query.rows.map((row) => formatListingAsset(row)), query_time: Date.now()});
+        } catch (e) {
+            logger.error(req.originalUrl + ' ', e);
+
+            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
     });
 
     return {

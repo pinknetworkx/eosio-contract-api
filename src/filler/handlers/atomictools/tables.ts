@@ -87,7 +87,7 @@ export default class AtomicToolsTableHandler {
     }
 
     async handleConfigUpdate(
-        db: ContractDBTransaction, block: ShipBlock, data: ConfigTableRow, deleted: boolean
+        db: ContractDBTransaction, _: ShipBlock, data: ConfigTableRow, deleted: boolean
     ): Promise<void> {
         if (deleted) {
             throw new Error('AtomicTools: Config should not be deleted');

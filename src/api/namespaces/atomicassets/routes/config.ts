@@ -6,7 +6,7 @@ import logger from '../../../../utils/winston';
 import { getOpenAPI3Responses } from '../../../docs';
 
 export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/config', server.web.caching({ignoreQueryString: true}), (async (_, res) => {
+    router.get('/v1/config', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
             const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_config WHERE contract = $1',
@@ -33,7 +33,7 @@ export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                 }, query_time: Date.now()
             });
         } catch (e) {
-            logger.error(e);
+            logger.error(req.originalUrl + ' ', e);
 
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
