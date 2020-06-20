@@ -33,9 +33,19 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 [core.args.atomicmarket_account, SaleState.SOLD.valueOf(), args.symbol.toUpperCase(), Date.now() - 3600 * 24 * 1000]
             );
 
+            const symbolQuery = await core.connection.database.query(
+                'SELECT token_contract, token_symbol, token_precision FROM atomicmarket_tokens WHERE market_contract = $1 AND token_symbol = $2',
+                [core.args.atomicmarket_account, args.symbol]
+            );
+
+            if (symbolQuery.rowCount === 0) {
+                return res.status(416).json({success: false, message: 'Symbol not found'});
+            }
+
             res.json({
                 success: true,
                 data: {
+                    symbol: symbolQuery.rows[0],
                     total: {
                         nfts: nftsQuery.rows[0]['nfts']
                     },
@@ -84,7 +94,6 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
 
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
-
     });
 
     router.get('/v1/suggestions', server.web.caching({expire: 60}), async (req, res) => {
@@ -159,6 +168,15 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 get: {
                     tags: ['stats'],
                     summary: 'Get general atomicassets / atomicmarket stats',
+                    parameters: [
+                        {
+                            in: 'query',
+                            name: 'symbol',
+                            required: false,
+                            schema: {type: 'string'},
+                            description: 'Token symbol'
+                        }
+                    ],
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'object',
                         properties: {

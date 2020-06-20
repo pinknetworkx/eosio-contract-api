@@ -17,6 +17,7 @@ import { configEndpoints } from './routes/config';
 import { marketplacesEndpoints } from './routes/marketplaces';
 import { formatOffer, formatTransfer } from '../atomicassets/format';
 import { formatListingAsset } from './format';
+import { pricesEndpoints } from './routes/prices';
 
 export type AtomicMarketNamespaceArgs = {
     atomicmarket_account: string,
@@ -113,6 +114,7 @@ export class AtomicMarketNamespace extends ApiNamespace {
         docs.push(auctionsEndpoints(this, server, router));
         docs.push(salesEndpoints(this, server, router));
         docs.push(marketplacesEndpoints(this, server, router));
+        docs.push(pricesEndpoints(this, server, router));
         docs.push(configEndpoints(this, server, router));
 
         const assetApi = new AssetApi(
