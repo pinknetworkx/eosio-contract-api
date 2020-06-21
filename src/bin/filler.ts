@@ -41,8 +41,13 @@ if (cluster.isMaster) {
 } else {
     logger.info('Worker ' + process.pid + ' started');
 
-    const connection = new ConnectionManager(connectionConfig);
-    const reader = new Reader(readerConfigs[parseInt(process.env.config_index, 10)], connection);
+    const index = parseInt(process.env.config_index, 10);
 
-    reader.startFiller(5).then();
+    // delay startup for each reader to avoid startup transaction conflicts
+    setTimeout(async () => {
+        const connection = new ConnectionManager(connectionConfig);
+        const reader = new Reader(readerConfigs[index], connection);
+
+        await reader.startFiller(5);
+    }, index * 1000);
 }

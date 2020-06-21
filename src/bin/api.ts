@@ -24,5 +24,6 @@ const connection = new ConnectionManager(connectionConfig);
     }
 
     const server = new Api(serverConfig, connection);
+    
     await server.listen();
 })();
