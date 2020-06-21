@@ -45,7 +45,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
             }
 
             if (args.match) {
-                queryString += 'AND (name LIKE $' + ++varCounter + ' OR collection_name LIKE $' + varCounter + ')';
+                queryString += 'AND (name ILIKE $' + ++varCounter + ' OR collection_name LIKE $' + varCounter + ')';
                 queryValues.push('%' + args.match + '%');
             }
 

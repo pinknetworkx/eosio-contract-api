@@ -76,8 +76,6 @@ export class WebServer {
                 res.json({success: false, message: 'Rate limit'});
             },
             keyGenerator(req: express.Request): string {
-                logger.debug('Rate limit increase for ip: ' + req.ip);
-
                 return req.ip;
             },
             store: new expressRedisStore({
@@ -105,7 +103,7 @@ export class WebServer {
         this.express.use(cors());
 
         this.express.use((req, _, next) => {
-            logger.debug(req.method + ' ' + req.originalUrl, req.body);
+            logger.debug(req.ip + ': ' + req.method + ' ' + req.originalUrl, req.body);
 
             next();
         });

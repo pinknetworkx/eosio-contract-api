@@ -19,6 +19,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
 
                 authorized_account: {type: 'string', min: 1, max: 12},
                 collection_name: {type: 'string', min: 1, max: 12},
+                schema_name: {type: 'string', min: 1, max: 12},
 
                 match: {type: 'string', min: 1, max: 12}
             });
@@ -37,13 +38,18 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                 queryValues.push(args.collection_name);
             }
 
+            if (args.schema_name) {
+                queryString += 'AND schema_name = $' + ++varCounter + ' ';
+                queryValues.push(args.schema_name);
+            }
+
             if (args.authorized_account) {
                 queryString += 'AND $' + ++varCounter + ' = ANY(authorized_accounts) ';
                 queryValues.push(args.authorized_account);
             }
 
             if (args.match) {
-                queryString += 'AND schema_name LIKE $' + ++varCounter + ' ';
+                queryString += 'AND schema_name ILIKE $' + ++varCounter + ' ';
                 queryValues.push('%' + args.match + '%');
             }
 
@@ -153,6 +159,13 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                             name: 'authorized_account',
                             in: 'query',
                             description: 'Filter for schemas the provided account can edit',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'schema_name',
+                            in: 'query',
+                            description: 'Schema name',
                             required: false,
                             schema: {type: 'string'}
                         },

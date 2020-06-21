@@ -1,4 +1,5 @@
 import * as express from 'express';
+import PQueue from 'p-queue';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
@@ -7,13 +8,6 @@ import { filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import { assetFilterParameters, atomicDataFilter } from '../openapi';
-
-export type SocketAssetSubscriptionArgs = {
-    asset_ids: string[],
-    owners: string[],
-    new_assets: boolean,
-    updates: boolean
-};
 
 export class AssetApi {
     constructor(
@@ -204,78 +198,16 @@ export class AssetApi {
                 verifiedConnection = true;
             }
 
-            socket.on('subscribe', (options: SocketAssetSubscriptionArgs) => {
-                if (typeof options !== 'object') {
-                    return;
-                }
-
-                logger.debug('asset socket subscription', options);
-
-                socket.leaveAll();
-
-                const subscribeLimit = this.server.config.socket_limit.subscriptions_per_connection;
-                let subscribeCounter = 0;
-
-                if (Array.isArray(options.asset_ids)) {
-                    for (const assetId of options.asset_ids) {
-                        if (typeof assetId === 'string') {
-                            if (subscribeCounter > subscribeLimit) {
-                                socket.emit('subscribe_limit', {max_subscriptions: subscribeLimit});
-
-                                return;
-                            }
-
-                            socket.join('assets:asset_id:' + assetId);
-                            subscribeCounter++;
-                        }
-                    }
-                }
-
-                if (Array.isArray(options.owners)) {
-                    for (const owner of options.owners) {
-                        if (typeof owner === 'string') {
-                            if (subscribeCounter > subscribeLimit) {
-                                socket.emit('subscribe_limit', {max_subscriptions: subscribeLimit});
-
-                                return;
-                            }
-
-                            socket.join('assets:owner:' + owner);
-                            subscribeCounter++;
-                        }
-                    }
-                }
-
-                if (options.new_assets) {
-                    if (subscribeCounter > subscribeLimit) {
-                        socket.emit('subscribe_limit', {max_subscriptions: subscribeLimit});
-
-                        return;
-                    }
-
-                    socket.join('assets:new_assets');
-                    subscribeCounter++;
-                }
-
-                if (options.updates) {
-                    if (subscribeCounter > subscribeLimit) {
-                        socket.emit('subscribe_limit', {max_subscriptions: subscribeLimit});
-
-                        return;
-                    }
-
-                    socket.join('assets:updates');
-                    subscribeCounter++;
-                }
-
-                logger.debug('socket rooms updated', socket.adapter.rooms);
-            });
-
             socket.on('disconnect', async () => {
                 if (verifiedConnection) {
                     await this.server.socket.releaseConnection(socket);
                 }
             });
+        });
+
+        const queue = new PQueue({
+            autoStart: true,
+            concurrency: 1
         });
 
         const assetChannelName = [
@@ -290,79 +222,48 @@ export class AssetApi {
 
                 const msg = JSON.parse(message);
 
-                const query = await this.core.connection.database.query(
-                    'SELECT * FROM atomicassets_assets_master WHERE contract = $1 AND asset_id = $2',
-                    [this.core.args.atomicassets_account, msg.data.asset_id]
-                );
+                await queue.add(async () => {
+                    const query = await this.core.connection.database.query(
+                        'SELECT * FROM atomicassets_assets_master WHERE contract = $1 AND asset_id = $2',
+                        [this.core.args.atomicassets_account, msg.data.asset_id]
+                    );
 
-                if (query.rowCount === 0) {
-                    logger.error('Received asset notification but did not find it in database');
+                    if (query.rowCount === 0) {
+                        logger.error('Received asset notification but did not find it in database');
 
-                    return;
-                }
+                        return;
+                    }
 
-                const asset = query.rows[0];
+                    const asset = query.rows[0];
 
-                const rooms = [
-                    'assets:owner:' + asset.owner, 'assets:asset_id:' + asset.asset_id
-                ];
-
-                if (msg.action === 'mint') {
-                    rooms.push('assets:new_assets');
-
-                    rooms.reduce((previousValue, currentValue) => previousValue.to(currentValue), namespace)
-                        .emit('new_asset', {
+                    if (msg.action === 'mint') {
+                        namespace.emit('new_asset', {
                             transaction: msg.transaction,
                             block: msg.block,
                             asset: this.assetFormatter(asset)
                         });
-                } else if (msg.action === 'burn') {
-                    rooms.push('assets:updates');
-
-                    rooms.reduce((previousValue, currentValue) => previousValue.to(currentValue), namespace)
-                        .emit('burn', {
+                    } else if (msg.action === 'burn') {
+                        namespace.emit('burn', {
                             transaction: msg.transaction,
                             block: msg.block,
                             asset: this.assetFormatter(asset)
                         });
-                } else if (msg.action === 'back') {
-                    rooms.push('assets:updates');
-
-                    rooms.reduce((previousValue, currentValue) => previousValue.to(currentValue), namespace)
-                        .emit('back', {
+                    } else if (msg.action === 'back') {
+                        namespace.emit('back', {
                             transaction: msg.transaction,
                             block: msg.block,
                             asset: this.assetFormatter(asset),
                             trace: msg.data.trace
                         });
-                } else if (msg.action === 'update') {
-                    rooms.push('assets:updates');
-
-                    rooms.reduce((previousValue, currentValue) => previousValue.to(currentValue), namespace)
-                        .emit('update', {
+                    } else if (msg.action === 'update') {
+                        namespace.emit('update', {
                             transaction: msg.transaction,
                             block: msg.block,
                             asset: this.assetFormatter(asset),
                             delta: msg.data.delta
                         });
-                }
-            });
-        });
-
-        const chainChannelName = [
-            'eosio-contract-api', this.core.connection.chain.name, this.core.args.connected_reader, 'chain'
-        ].join(':');
-        this.core.connection.redis.ioRedisSub.subscribe(chainChannelName, () => {
-            this.core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
-                if (channel !== chainChannelName) {
-                    return;
-                }
-
-                const msg = JSON.parse(message);
-
-                if (msg.action === 'fork') {
-                    namespace.emit('fork', {block_num: msg.block_num});
-                }
+                    }
+                });
             });
         });
     }

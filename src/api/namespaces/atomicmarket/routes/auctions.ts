@@ -1,4 +1,5 @@
 import * as express from 'express';
+import PQueue from 'p-queue';
 
 import { AtomicMarketNamespace, AuctionApiState } from '../index';
 import { HTTPServer } from '../../../server';
@@ -144,4 +145,123 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             }
         }
     };
+}
+
+export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer): void {
+    const namespace = server.socket.io.of(core.path + '/v1/auctions');
+
+    namespace.on('connection', async (socket) => {
+        logger.debug('socket auction client connected');
+
+        let verifiedConnection = false;
+        if (!(await server.socket.reserveConnection(socket))) {
+            socket.disconnect(true);
+        } else {
+            verifiedConnection = true;
+        }
+
+        socket.on('disconnect', async () => {
+            if (verifiedConnection) {
+                await server.socket.releaseConnection(socket);
+            }
+        });
+    });
+
+    const queue = new PQueue({
+        autoStart: true,
+        concurrency: 1
+    });
+
+    async function checkAuction(auctionID: string): Promise<void> {
+        await queue.add(async () => {
+            const query = await core.connection.database.query(
+                'SELECT * FROM atomicmarket_auctions_master WHERE market_contract = $1 AND auction_id = $2',
+                [core.args.atomicmarket_account, auctionID]
+            );
+
+            const auction = formatAuction(query.rows[0]);
+
+            if ([AuctionApiState.SOLD.valueOf(), AuctionApiState.INVALID.valueOf()].indexOf(parseInt(auction.state, 10))) {
+                const filledAuction = (await fillAuctions(core.connection, core.args.atomicassets_account, [auction]))[0];
+
+                namespace.emit('state_change', {
+                    transaction: null,
+                    block: null,
+                    auction_id: auction.auction_id,
+                    state: auction.state,
+                    auction: filledAuction
+                });
+            }
+        });
+    }
+
+    const auctionChannelName = [
+        'eosio-contract-api', core.connection.chain.name, core.args.connected_reader,
+        'atomicmarket', core.args.atomicmarket_account, 'auctions'
+    ].join(':');
+    core.connection.redis.ioRedisSub.subscribe(auctionChannelName, () => {
+        core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
+            if (channel !== auctionChannelName) {
+                return;
+            }
+
+            const msg = JSON.parse(message);
+
+            await queue.add(async () => {
+                const query = await core.connection.database.query(
+                    'SELECT * FROM atomicmarket_auctions_master WHERE market_contract = $1 AND auction_id = $2',
+                    [core.args.atomicmarket_account, msg.data.auction_id]
+                );
+
+                if (query.rowCount === 0) {
+                    logger.error('Received auction notification but did not find auction in database');
+
+                    return;
+                }
+
+                const auctions = await fillAuctions(
+                    core.connection, core.args.atomicassets_account,
+                    query.rows.map((row: any) => formatAuction(row))
+                );
+
+                const auction = auctions[0];
+
+                if (msg.action === 'create') {
+                    namespace.emit('new_auction', {
+                        transaction: msg.transaction,
+                        block: msg.block,
+                        auction_id: auction.auction_id,
+                        auction: auction
+                    });
+                } else if (msg.action === 'state_change') {
+                    namespace.emit('state_change', {
+                        transaction: msg.transaction,
+                        block: msg.block,
+                        auction_id: auction.auction_id,
+                        state: auction.state,
+                        auction: auction
+                    });
+                } else if (msg.action === 'bid') {
+                    namespace.emit('new_bid', {
+                        transaction: msg.transaction,
+                        block: msg.block,
+                        auction_id: auction.auction_id,
+                        bid: {
+                            number: msg.data.bid.bid_number,
+                            account: msg.data.bid.account,
+                            amount: msg.data.bid.amount,
+                            created_at_block: msg.data.bid.created_at_block,
+                            created_at_time: msg.data.bid.created_at_time,
+                            txid: msg.transaction.id
+                        },
+                        auction: auction
+                    });
+
+                    setTimeout(() => {
+                        checkAuction(auction.auction_id);
+                    }, Date.now() + 1000 - auction.end_time * 1000);
+                }
+            });
+        });
+    });
 }

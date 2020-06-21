@@ -119,8 +119,8 @@ export function buildAssetFilter(
 
     if (args.match) {
         queryString += 'AND (' +
-                assetReadableNameColumn + ' LIKE $' + ++varCounter + ' OR ' +
-                templateReadableNameColumn + ' LIKE $' + varCounter +
+                assetReadableNameColumn + ' ILIKE $' + ++varCounter + ' OR ' +
+                templateReadableNameColumn + ' ILIKE $' + varCounter +
             ') ';
         queryValues.push('%' + args.match + '%');
     }

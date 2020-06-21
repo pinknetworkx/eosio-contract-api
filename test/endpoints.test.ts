@@ -185,6 +185,9 @@ describe('Endpoints Test', () => {
         // config
         expect(await testEndpoint(namespace, '/v1/config', {})).to.equal(200);
 
+        // prices
+        expect(await testEndpoint(namespace, '/v1/prices', {})).to.equal(200);
+
         // admin
         expect(await testEndpoint(namespace, '/v1/blacklist/collections', {})).to.equal(200);
         expect(await testEndpoint(namespace, '/v1/whitelist/collections', {})).to.equal(200);

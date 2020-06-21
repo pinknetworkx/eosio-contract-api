@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Socket API | AtomicAssets API Documentation</title>
+    <title>Socket API | AtomicMarket API Documentation</title>
 
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -124,115 +124,138 @@
     "minted_at_time": number
 }</code></pre>
                             </div>
-                            <div id="section-objects-offer" class="section-block">
-                                <h3 class="block-title">Offer</h3>
+                            <div id="section-objects-sale" class="section-block">
+                                <h3 class="block-title">Sale</h3>
                                 <pre><code class="language-javascript">{
-    "contract": string,
-    "offer_id": string,
-    "sender_name": string,
-    "recipient_name": string,
-    "memo": string,
-    "state": number,
-    "is_sender_contract": boolean,
-    "is_recipient_contract": boolean,
-    "sender_assets": Asset[],
-    "recipient_assets": Asset[],
-    "updated_at_block": number,
-    "updated_at_time": number,
-    "created_at_block": number,
-    "created_at_time": number
+  "market_contract": string,
+  "asset_contract": string,
+  "sale_id": string,
+  "seller": string,
+  "buyer": string,
+  "offer_id": string,
+  "price": {
+    "amount": string,
+    "token_precision": number,
+    "token_contract": string,
+    "token_symbol": string
+  },
+  "listing_symbol": string,
+  "assets": Asset[],
+  "maker_marketplace": string,
+  "taker_marketplace": string,
+  "collection": {
+    "collection_name": string,
+    "name": string,
+    "author": string,
+    "allow_notify": boolean,
+    "authorized_accounts": string[],
+    "notify_accounts": string[],
+    "market_fee": number,
+    "created_at_block": string,
+    "created_at_time": string
+  },
+  "sale_state": number,
+  "offer_state": number,
+  "collection_blacklisted": boolean,
+  "collection_whitelisted": boolean,
+  "seller_blacklisted": boolean,
+  "seller_whitelisted": boolean,
+  "updated_at_block": string,
+  "updated_at_time": string,
+  "created_at_block": string,
+  "created_at_time": string,
+  "created_at_txid": string
 }</code></pre>
                             </div>
-                            <div id="section-objects-transfer" class="section-block">
-                                <h3 class="block-title">Transfer</h3>
+                            <div id="section-objects-auction" class="section-block">
+                                <h3 class="block-title">Auction</h3>
                                 <pre><code class="language-javascript">{
-    "contract": string,
-    "sender_name": string,
-    "recipient_name": string,
-    "memo": string,
-    "assets": Asset[],
-    "created_at_block": number,
-    "created_at_time": number
+  "market_contract": string,
+  "asset_contract": string,
+  "auction_id": string,
+  "seller": string,
+  "buyer": string,
+  "price": {
+    "amount": string,
+    "token_precision": number,
+    "token_contract": string,
+    "token_symbol": string
+  },
+  "assets": Asset[],
+  "bids": [
+    {
+      "number": number,
+      "account": string,
+      "amount": number,
+      "created_at_block": number,
+      "created_at_time": number,
+      "txid": string
+    }
+  ],
+  "maker_marketplace": string,
+  "taker_marketplace": string,
+  "collection": {
+    "collection_name": string,
+    "name": string,
+    "author": string,
+    "allow_notify": boolean,
+    "authorized_accounts": string[],
+    "notify_accounts": string[],
+    "market_fee": number,
+    "created_at_block": string,
+    "created_at_time": string
+  },
+  "state": number,
+  "collection_blacklisted": boolean,
+  "collection_whitelisted": boolean,
+  "seller_blacklisted": boolean,
+  "seller_whitelisted": boolean,
+  "end_time": string,
+  "updated_at_block": string,
+  "updated_at_time": string,
+  "created_at_block": string,
+  "created_at_time": string,
+  "created_at_txid": string
+}</code></pre>
+                            </div>
+                            <div id="section-objects-auction-bid" class="section-block">
+                                <h3 class="block-title">Bid</h3>
+                                <pre><code class="language-javascript">{
+  "number": number,
+  "account": string,
+  "amount": string,
+  "created_at_block": string,
+  "created_at_time": string,
+  "txid": string
 }</code></pre>
                             </div>
                         </section>
-                        <section id="section-endpoint-assets" class="doc-section">
-                            <h2 class="section-title">v1/assets</h2>
+                        <section id="section-endpoint-sales" class="doc-section">
+                            <h2 class="section-title">v1/sales</h2>
                             <div class="section-block">
                                 <p>
-                                    Endpoint: <strong><span class="api-base-path"></span>/v1/assets</strong>
+                                    Endpoint: <strong><span class="api-base-path"></span>/v1/sales</strong>
                                 </p>
                             </div>
-                            <div id="section-endpoint-assets-subscribe" class="section-block">
+                            <div id="section-endpoint-sales-subscribe" class="section-block">
                                 <h3 class="block-title">Subscribe Events</h3>
-                                <h6>Event: new_asset</h6>
-                                <i>Fired when a new asset is created</i>
+                                <h6>Event: new_sale</h6>
+                                <i>Fired when a new sale is created</i>
                                 <pre><code class="language-javascript">{
     "transaction": Transaction,
     "block": Block,
-    "asset": Asset
-}</code></pre>
-                                <hr />
-                                <h6>Event: burn</h6>
-                                <i>Fired when a asset is burned</i>
-                                <pre><code class="language-javascript">{
-    "transaction": Transaction,
-    "block": Block,
-    "asset": Asset
-}</code></pre>
-                                <hr />
-                                <h6>Event: back</h6>
-                                <i>Fired when the asset is backed by a token</i>
-                                <pre><code class="language-javascript">{
-    "transaction": Transaction,
-    "block": Block,
-    "asset": Asset,
-    "trace": EosioTrace
-}</code></pre>
-                                <hr />
-                                <h6>Event: update</h6>
-                                <i>Fired when the asset data is updated</i>
-                                <pre><code class="language-javascript">{
-    "transaction": Transaction,
-    "block": Block,
-    "asset": Asset,
-    "delta": Array<{
-        "action": string,
-        "key": string,
-        "before": any,
-        "after": any
-    }>
-}</code></pre>
-                                <h6>Event: fork</h6>
-                                <i>Fired when a fork is detected on the blockchain</i>
-                                <pre><code class="language-javascript">{
-    "block_num": number
-}</code></pre>
-                            </div>
-                        </section>
-                        <section id="section-endpoint-offers" class="doc-section">
-                            <h2 class="section-title">v1/offers</h2>
-                            <div class="section-block">
-                                <p>
-                                    Endpoint: <strong><span class="api-base-path"></span>/v1/offers</strong>
-                                </p>
-                            </div>
-                            <div id="section-endpoint-offers-subscribe" class="section-block">
-                                <h3 class="block-title">Subscribe Events</h3>
-                                <h6>Event: new_offer</h6>
-                                <i>Fired when a new offer is created</i>
-                                <pre><code class="language-javascript">{
-    "transaction": Transaction,
-    "block": Block,
-    "offer": Offer
+    "sale_id": string,
+    "sale": Sale
 }</code></pre>
                                 <hr />
                                 <h6>Event: state_change</h6>
-                                <i>Offers can change the state when they become invalid or are accepted / canceled or declined</i>
+                                <i>Fired when the sale state changes</i>
                                 <pre><code class="language-javascript">{
     "transaction": Transaction,
     "block": Block,
-    "offer": Offer
+    "sale_id": string
+    "state": number
+    "sale": Sale
 }</code></pre>
                                 <hr />
                                 <h6>Event: fork</h6>
@@ -240,23 +263,45 @@
                                 <pre><code class="language-javascript">{
     "block_num": number
 }</code></pre>
+                                <hr />
                             </div>
                         </section>
-                        <section id="section-endpoint-transfers" class="doc-section">
-                            <h2 class="section-title">v1/transfers</h2>
+                        <section id="section-endpoint-auctions" class="doc-section">
+                            <h2 class="section-title">v1/auctions</h2>
                             <div class="section-block">
                                 <p>
-                                    Endpoint: <strong><span class="api-base-path"></span>/v1/offers</strong>
+                                    Endpoint: <strong><span class="api-base-path"></span>/v1/auctions</strong>
                                 </p>
                             </div>
-                            <div  id="section-endpoint-transfers-subscribe" class="section-block">
+                            <div id="section-endpoint-auctions-subscribe" class="section-block">
                                 <h3 class="block-title">Subscribe Events</h3>
-                                <h6>Event: new_transfer</h6>
-                                <i>Fired each time a new transfer is created</i>
+                                <h6>Event: new_auction</h6>
+                                <i>Fired when a new auction is created</i>
                                 <pre><code class="language-javascript">{
     "transaction": Transaction,
     "block": Block,
-    "transfer": Transfer
+    "auction_id": string
+    "auction": Auction
+}</code></pre>
+                                <hr />
+                                <h6>Event: state_change</h6>
+                                <i>Fired when auction state changes</i>
+                                <pre><code class="language-javascript">{
+    "transaction": Transaction,
+    "block": Block,
+    "auction_id": string,
+    "state": number,
+    "auction": Auction
+}</code></pre>
+                                <hr />
+                                <h6>Event: new_bid</h6>
+                                <i>Fired when a when a new bid is submitted</i>
+                                <pre><code class="language-javascript">{
+    "transaction": Transaction,
+    "block": Block,
+    "auction_id": string,
+    "bid": Bid,
+    "auction": Auction
 }</code></pre>
                                 <hr />
                                 <h6>Event: fork</h6>
@@ -279,20 +324,17 @@
                                 <a class="nav-link scrollto" href="#section-objects-transaction">Transaction</a>
                                 <a class="nav-link scrollto" href="#section-objects-block">Block</a>
                                 <a class="nav-link scrollto" href="#section-objects-asset">Asset</a>
-                                <a class="nav-link scrollto" href="#section-objects-offer">Offer</a>
-                                <a class="nav-link scrollto" href="#section-objects-transfer">Transfer</a>
+                                <a class="nav-link scrollto" href="#section-objects-sale">Sales</a>
+                                <a class="nav-link scrollto" href="#section-objects-auction">Auction</a>
+                                <a class="nav-link scrollto" href="#section-objects-auction-bid">Bid</a>
                             </nav>
-                            <a class="nav-link scrollto" href="#section-endpoint-assets">v1/assets</a>
+                            <a class="nav-link scrollto" href="#section-endpoint-sales">v1/sales</a>
                             <nav class="doc-sub-menu nav flex-column">
-                                <a class="nav-link scrollto" href="#section-endpoint-assets-subscribe">Subscribe Events</a>
+                                <a class="nav-link scrollto" href="#section-endpoint-sales-subscribe">Subscribe Events</a>
                             </nav>
-                            <a class="nav-link scrollto" href="#section-endpoint-offers">v1/offers</a>
+                            <a class="nav-link scrollto" href="#section-endpoint-auctions">v1/auctions</a>
                             <nav class="doc-sub-menu nav flex-column">
-                                <a class="nav-link scrollto" href="#section-endpoint-offers-subscribe">Subscribe Events</a>
-                            </nav>
-                            <a class="nav-link scrollto" href="#section-endpoint-transfers">v1/transfers</a>
-                            <nav class="doc-sub-menu nav flex-column">
-                                <a class="nav-link scrollto" href="#section-endpoint-transfers-subscribe">Subscribe Events</a>
+                                <a class="nav-link scrollto" href="#section-endpoint-auctions-subscribe">Subscribe Events</a>
                             </nav>
                         </nav>
                     </div>

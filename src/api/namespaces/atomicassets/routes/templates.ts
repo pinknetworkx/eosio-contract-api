@@ -18,6 +18,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                 sort: {type: 'string', values: ['created'], default: 'created'},
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
+                template_id: {type: 'int', min: 1},
                 collection_name: {type: 'string', min: 1, max: 12},
                 schema_name: {type: 'string', min: 1, max: 12},
                 authorized_account: {type: 'string', min: 1, max: 12}
@@ -50,6 +51,11 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             if (args.collection_name) {
                 queryString += 'AND collection_name = $' + ++varCounter + ' ';
                 queryValues.push(args.collection_name);
+            }
+
+            if (args.template_id) {
+                queryString += 'AND template_id = $' + ++varCounter + ' ';
+                queryValues.push(args.template_id);
             }
 
             if (args.schema_name) {
@@ -175,6 +181,13 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                             name: 'authorized_account',
                             in: 'query',
                             description: 'Filter for templates the provided account can use',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'template_id',
+                            in: 'query',
+                            description: 'Template id',
                             required: false,
                             schema: {type: 'string'}
                         },

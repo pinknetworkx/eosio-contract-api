@@ -185,7 +185,7 @@ export default class AtomicMarketActionHandler {
             [this.core.args.atomicmarket_account, trace.act.data.auction_id]
         );
 
-        await db.insert('atomicmarket_auctions_bids', {
+        const bidData = {
             market_contract: this.core.args.atomicmarket_account,
             auction_id: trace.act.data.auction_id,
             bid_number: parseInt(bidCount.rows[0].count, 10) + 1,
@@ -194,11 +194,17 @@ export default class AtomicMarketActionHandler {
             txid: Buffer.from(tx.id, 'hex'),
             created_at_block: block.block_num,
             created_at_time: eosioTimestampToDate(block.timestamp).getTime()
-        }, ['market_contract', 'auction_id', 'bid_number']);
+        };
+
+        await db.insert('atomicmarket_auctions_bids', bidData, ['market_contract', 'auction_id', 'bid_number']);
 
         await this.core.events.emit('atomicmarket_auction_bid', {
             db, block, contract: this.core.args.atomicmarket_account,
             auction_id: trace.act.data.auction_id, bid_number: parseInt(bidCount.rows[0].count, 10) + 1
+        });
+
+        this.core.pushNotificiation(block, tx, 'auctions', 'bid', {
+            auction_id: trace.act.data.auction_id, bid: bidData, trace
         });
     }
 

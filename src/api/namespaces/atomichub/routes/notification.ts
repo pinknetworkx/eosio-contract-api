@@ -164,21 +164,4 @@ export function notificationsSockets(core: AtomicHubNamespace, server: HTTPServe
             await sendPushMessage(core, msg.account, core.args.notification_title, msg.notification.message);
         });
     });
-
-    const chainChannelName = [
-        'eosio-contract-api', core.connection.chain.name, core.args.connected_reader, 'chain'
-    ].join(':');
-    core.connection.redis.ioRedisSub.subscribe(chainChannelName, () => {
-        core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
-            if (channel !== chainChannelName) {
-                return;
-            }
-
-            const msg = JSON.parse(message);
-
-            if (msg.action === 'fork') {
-                namespace.emit('fork', {block_num: msg.block_num});
-            }
-        });
-    });
 }

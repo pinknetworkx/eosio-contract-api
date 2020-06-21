@@ -1,4 +1,5 @@
 import * as express from 'express';
+import PQueue from 'p-queue';
 
 import { AtomicMarketNamespace, SaleApiState } from '../index';
 import { HTTPServer } from '../../../server';
@@ -10,6 +11,7 @@ import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import logger from '../../../../utils/winston';
 import { filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
+import { OfferState } from '../../../../filler/handlers/atomicassets';
 
 export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/sales', server.web.caching(), async (req, res) => {
@@ -142,4 +144,118 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             }
         }
     };
+}
+
+export function salesSockets(core: AtomicMarketNamespace, server: HTTPServer): void {
+    const namespace = server.socket.io.of(core.path + '/v1/sales');
+
+    namespace.on('connection', async (socket) => {
+        logger.debug('socket sale client connected');
+
+        let verifiedConnection = false;
+        if (!(await server.socket.reserveConnection(socket))) {
+            socket.disconnect(true);
+        } else {
+            verifiedConnection = true;
+        }
+
+        socket.on('disconnect', async () => {
+            if (verifiedConnection) {
+                await server.socket.releaseConnection(socket);
+            }
+        });
+    });
+
+    const queue = new PQueue({
+        autoStart: true,
+        concurrency: 1
+    });
+
+    const saleChannelName = [
+        'eosio-contract-api', core.connection.chain.name, core.args.connected_reader,
+        'atomicmarket', core.args.atomicmarket_account, 'sales'
+    ].join(':');
+    core.connection.redis.ioRedisSub.subscribe(saleChannelName, () => {
+        core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
+            if (channel !== saleChannelName) {
+                return;
+            }
+
+            const msg = JSON.parse(message);
+
+            await queue.add(async () => {
+                const query = await core.connection.database.query(
+                    'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = $2',
+                    [core.args.atomicmarket_account, msg.data.sale_id]
+                );
+
+                if (query.rowCount === 0) {
+                    logger.error('Received sale notification but did not find sale in database');
+
+                    return;
+                }
+
+                const sales = await fillSales(
+                    core.connection, core.args.atomicassets_account,
+                    query.rows.map((row: any) => formatSale(row))
+                );
+
+                const sale = sales[0];
+
+                if (msg.action === 'create') {
+                    namespace.emit('new_sale', {
+                        transaction: msg.transaction,
+                        block: msg.block,
+                        sale_id: sale.sale_id,
+                        sale: sale
+                    });
+                } else if (msg.action === 'state_change') {
+                    namespace.emit('state_change', {
+                        transaction: msg.transaction,
+                        block: msg.block,
+                        sale_id: sale.sale_id,
+                        state: sale.state,
+                        sale: sale
+                    });
+                }
+            });
+        });
+    });
+
+    const offerChannelName = [
+        'eosio-contract-api', core.connection.chain.name, core.args.connected_reader,
+        'atomicassets', core.args.atomicassets_account, 'offers'
+    ].join(':');
+    core.connection.redis.ioRedisSub.subscribe(offerChannelName, () => {
+        core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
+            if (channel !== offerChannelName) {
+                return;
+            }
+
+            const msg = JSON.parse(message);
+
+            if (msg.action === 'state_change') {
+                if ([OfferState.PENDING.valueOf(), OfferState.INVALID.valueOf()].indexOf(parseInt(msg.data.state, 10)) === -1) {
+                    return;
+                }
+
+                await queue.add(async () => {
+                    const sales = await core.connection.database.query(
+                        'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND offer_id = $2',
+                        [core.args.atomicmarket_account, msg.data.offer_id]
+                    );
+
+                    for (const sale of sales.rows) {
+                        namespace.emit('state_change', {
+                            transaction: msg.transaction,
+                            block: msg.block,
+                            sale_id: msg.data.sale_id,
+                            state: sale.state,
+                            sale: formatSale(sale)
+                        });
+                    }
+                });
+            }
+        });
+    });
 }

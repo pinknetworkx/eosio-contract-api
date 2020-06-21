@@ -1,4 +1,5 @@
 import * as express from 'express';
+import PQueue from 'p-queue';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
@@ -6,11 +7,6 @@ import { filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { fillTransfers } from '../filler';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
-
-export type SocketTransferSubscriptionArgs = {
-    accounts: string[],
-    new_transfers: boolean
-};
 
 export class TransferApi {
     constructor(
@@ -166,52 +162,16 @@ export class TransferApi {
                 verifiedConnection = true;
             }
 
-            socket.on('subscribe', (options: SocketTransferSubscriptionArgs) => {
-                if (typeof options !== 'object') {
-                    return;
-                }
-
-                logger.debug('transfer socket subscription', options);
-
-                socket.leaveAll();
-
-                const subscribeLimit = this.server.config.socket_limit.subscriptions_per_connection;
-                let subscribeCounter = 0;
-
-                if (Array.isArray(options.accounts)) {
-                    for (const account of options.accounts) {
-                        if (typeof account === 'string') {
-                            if (subscribeCounter > subscribeLimit) {
-                                socket.emit('subscribe_limit', {max_subscriptions: subscribeLimit});
-
-                                return;
-                            }
-
-                            socket.join('transfers:account:' + account);
-                            subscribeCounter++;
-                        }
-                    }
-                }
-
-                if (options.new_transfers) {
-                    if (subscribeCounter > subscribeLimit) {
-                        socket.emit('subscribe_limit', {max_subscriptions: subscribeLimit});
-
-                        return;
-                    }
-
-                    socket.join('transfers:new_transfers');
-                    subscribeCounter++;
-                }
-
-                logger.debug('socket rooms updated', this.server.socket.io.sockets.adapter.sids[socket.id]);
-            });
-
             socket.on('disconnect', async () => {
                 if (verifiedConnection) {
                     await this.server.socket.releaseConnection(socket);
                 }
             });
+        });
+
+        const queue = new PQueue({
+            autoStart: true,
+            concurrency: 1
         });
 
         const transferChannelName = [
@@ -226,55 +186,33 @@ export class TransferApi {
 
                 const msg = JSON.parse(message);
 
-                const query = await this.core.connection.database.query(
-                    'SELECT * FROM ' + this.transferView + ' WHERE contract = $1 AND transfer_id = $2',
-                    [this.core.args.atomicassets_account, msg.data.transfer_id]
-                );
+                await queue.add(async () => {
+                    const query = await this.core.connection.database.query(
+                        'SELECT * FROM ' + this.transferView + ' WHERE contract = $1 AND transfer_id = $2',
+                        [this.core.args.atomicassets_account, msg.data.transfer_id]
+                    );
 
-                if (query.rowCount === 0) {
-                    logger.error('Received transfer notification but did not find transfer in database');
+                    if (query.rowCount === 0) {
+                        logger.error('Received transfer notification but did not find transfer in database');
 
-                    return;
-                }
+                        return;
+                    }
 
-                const transfers = await fillTransfers(
-                    this.core.connection, this.core.args.atomicassets_account,
-                    query.rows.map((row) => this.transferFormatter(row)),
-                    this.assetFormatter, this.assetView
-                );
-                const transfer = transfers[0];
+                    const transfers = await fillTransfers(
+                        this.core.connection, this.core.args.atomicassets_account,
+                        query.rows.map((row) => this.transferFormatter(row)),
+                        this.assetFormatter, this.assetView
+                    );
+                    const transfer = transfers[0];
 
-                const rooms = [
-                    'transfers:account:' + transfer.sender_name, 'transfers:account:' + transfer.recipient_name
-                ];
-
-                if (msg.action === 'create') {
-                    rooms.push('transfers:new_transfers');
-
-                    rooms.reduce((previousValue, currentValue) => previousValue.to(currentValue), namespace)
-                        .emit('new_transfer', {
+                    if (msg.action === 'create') {
+                        namespace.emit('new_transfer', {
                             transaction: msg.transaction,
                             block: msg.block,
                             transfer: transfer
                         });
-                }
-            });
-        });
-
-        const chainChannelName = [
-            'eosio-contract-api', this.core.connection.chain.name, this.core.args.connected_reader, 'chain'
-        ].join(':');
-        this.core.connection.redis.ioRedisSub.subscribe(chainChannelName, () => {
-            this.core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
-                if (channel !== chainChannelName) {
-                    return;
-                }
-
-                const msg = JSON.parse(message);
-
-                if (msg.action === 'fork') {
-                    namespace.emit('fork', {block_num: msg.block_num});
-                }
+                    }
+                });
             });
         });
     }

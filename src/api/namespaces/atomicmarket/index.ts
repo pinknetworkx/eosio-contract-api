@@ -9,8 +9,8 @@ import { AssetApi } from '../atomicassets/routes/assets';
 import { OfferApi } from '../atomicassets/routes/offers';
 import { TransferApi } from '../atomicassets/routes/transfers';
 import logger from '../../../utils/winston';
-import { auctionsEndpoints } from './routes/auctions';
-import { salesEndpoints } from './routes/sales';
+import { auctionsEndpoints, auctionSockets } from './routes/auctions';
+import { salesEndpoints, salesSockets } from './routes/sales';
 import { atomicmarketComponents } from './openapi';
 import { adminEndpoints } from './routes/admin';
 import { configEndpoints } from './routes/config';
@@ -111,8 +111,8 @@ export class AtomicMarketNamespace extends ApiNamespace {
 
         const docs = [];
 
-        docs.push(auctionsEndpoints(this, server, router));
         docs.push(salesEndpoints(this, server, router));
+        docs.push(auctionsEndpoints(this, server, router));
         docs.push(marketplacesEndpoints(this, server, router));
         docs.push(pricesEndpoints(this, server, router));
         docs.push(configEndpoints(this, server, router));
@@ -158,7 +158,25 @@ export class AtomicMarketNamespace extends ApiNamespace {
         return router;
     }
 
-    async socket(_: HTTPServer): Promise<void> {
+    async socket(server: HTTPServer): Promise<void> {
+        salesSockets(this, server);
+        auctionSockets(this, server);
 
+        const chainChannelName = [
+            'eosio-contract-api', this.connection.chain.name, this.args.connected_reader, 'chain'
+        ].join(':');
+        this.connection.redis.ioRedisSub.subscribe(chainChannelName, () => {
+            this.connection.redis.ioRedisSub.on('message', async (channel, message) => {
+                if (channel !== chainChannelName) {
+                    return;
+                }
+
+                const msg = JSON.parse(message);
+
+                if (msg.action === 'fork') {
+                    server.socket.io.sockets.emit('fork', {block_num: msg.block_num});
+                }
+            });
+        });
     }
 }
