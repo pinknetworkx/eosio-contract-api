@@ -120,7 +120,14 @@ export default class AtomicAssetsTableHandler {
             throw new Error('AtomicAssets: A collection was deleted. Should not be possible by contract');
         }
 
-        const deserializedData = deserialize(new Uint8Array(data.serialized_data), ObjectSchema(this.core.config.collection_format));
+        let byteData;
+        if (typeof data.serialized_data === 'string') {
+            byteData = Uint8Array.from(Buffer.from(data.serialized_data, 'hex'));
+        } else {
+            byteData = new Uint8Array(data.serialized_data);
+        }
+
+        const deserializedData = deserialize(byteData, ObjectSchema(this.core.config.collection_format));
 
         await db.replace('atomicassets_collections', {
             contract: this.contractName,
@@ -161,7 +168,14 @@ export default class AtomicAssetsTableHandler {
             throw new Error('AtomicAssets: Schema of template not found. Should not be possible by contract');
         }
 
-        const immutableData = deserialize(new Uint8Array(data.immutable_serialized_data), ObjectSchema(schemaQuery.rows[0].format));
+        let byteData;
+        if (typeof data.immutable_serialized_data === 'string') {
+            byteData = Uint8Array.from(Buffer.from(data.immutable_serialized_data, 'hex'));
+        } else {
+            byteData = new Uint8Array(data.immutable_serialized_data);
+        }
+
+        const immutableData = deserialize(byteData, ObjectSchema(schemaQuery.rows[0].format));
 
         await db.replace('atomicassets_templates', {
             contract: this.contractName,

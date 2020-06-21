@@ -22,12 +22,23 @@ export async function saveAssetTableRow(
 
     const schema = ObjectSchema(schemaQuery.rows[0].format);
 
-    const mutableData = mutableDataMap
-        ? convertAttributeMapToObject(mutableDataMap)
-        : deserialize(new Uint8Array(data.mutable_serialized_data), schema);
-    const immutableData = immutableDataMap
-        ? convertAttributeMapToObject(immutableDataMap)
-        : deserialize(new Uint8Array(data.immutable_serialized_data), schema);
+    let mutableData;
+    if (mutableDataMap) {
+        mutableData = convertAttributeMapToObject(mutableDataMap);
+    } else if (typeof data.mutable_serialized_data === 'string') {
+        mutableData = deserialize(Uint8Array.from(Buffer.from(data.mutable_serialized_data, 'hex')), schema);
+    } else {
+        mutableData = deserialize(new Uint8Array(data.mutable_serialized_data), schema);
+    }
+
+    let immutableData;
+    if (immutableDataMap) {
+        immutableData = convertAttributeMapToObject(immutableDataMap);
+    } else if (typeof data.immutable_serialized_data === 'string') {
+        immutableData = deserialize(Uint8Array.from(Buffer.from(data.immutable_serialized_data, 'hex')), schema);
+    } else {
+        immutableData = deserialize(new Uint8Array(data.immutable_serialized_data), schema);
+    }
 
     await db.replace('atomicassets_assets', {
         contract: contractName,

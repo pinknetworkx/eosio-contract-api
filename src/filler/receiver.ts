@@ -252,9 +252,9 @@ export default class StateReceiver {
     ): Promise<void> {
         if (trace.act.account === 'eosio') {
             if (trace.act.name === 'setcode') {
-                await this.handleCodeUpdate(db, block, trace.act);
+                await this.handleCodeUpdate(block, trace.act);
             } else if (trace.act.name === 'setabi') {
-                await this.handleAbiUpdate(db, block, trace.act);
+                await this.handleAbiUpdate(block, trace.act);
             }
         }
 
@@ -333,7 +333,7 @@ export default class StateReceiver {
         }
     }
 
-    private async handleAbiUpdate(db: ContractDBTransaction, block: ShipBlock, action: EosioAction): Promise<void> {
+    private async handleAbiUpdate(block: ShipBlock, action: EosioAction): Promise<void> {
         if (typeof action.data !== 'string') {
             let abiJson;
 
@@ -349,46 +349,38 @@ export default class StateReceiver {
 
             this.abis[action.data.account] = { json: abiJson, types, block_num: block.block_num };
 
-            const query = await db.client.query(
-                'SELECT account FROM contract_abis WHERE account = $1 AND block_num = $2',
-                [action.data.account, block.block_num]
-            );
+            try {
+                await this.connection.database.query(
+                    'INSERT into contract_abis (account, abi, block_num, block_time) VALUES ($1, $2, $3)',
+                    [
+                        action.data.account,
+                        typeof action.data.abi === 'string' ? Buffer.from(action.data.abi, 'hex') : action.data.abi,
+                        block.block_num,
+                        eosioTimestampToDate(block.timestamp).getTime()
+                    ]
+                );
 
-            if (query.rows.length === 0) {
-                await db.insert('contract_abis', {
-                    account: action.data.account,
-                    abi: action.data.abi,
-                    block_num: block.block_num,
-                    block_time: eosioTimestampToDate(block.timestamp).getTime()
-                }, ['account', 'block_num']);
-            } else {
+                logger.info('ABI updated for contract ' + action.data.account);
+            } catch (e) {
                 logger.info('ABI ' + action.data.account + ' already in cache. Ignoring ABI update');
             }
-
-            logger.info('ABI updated for contract ' + action.data.account);
         } else {
             logger.error('Could not update ABI for contract because action could not be deserialized');
         }
     }
 
-    private async handleCodeUpdate(db: ContractDBTransaction, block: ShipBlock, action: EosioAction): Promise<void> {
+    private async handleCodeUpdate(block: ShipBlock, action: EosioAction): Promise<void> {
         if (typeof action.data !== 'string') {
-            const query = await db.client.query(
-                'SELECT account FROM contract_codes WHERE account = $1 AND block_num = $2',
-                [action.data.account, block.block_num]
-            );
+            try {
+                await this.connection.database.query(
+                    'INSERT into contract_codes (account, block_num, block_time) VALUES ($1, $2, $3)',
+                    [action.data.account, block.block_num, eosioTimestampToDate(block.timestamp).getTime()]
+                );
 
-            if (query.rows.length === 0) {
-                await db.insert('contract_codes', {
-                    account: action.data.account,
-                    block_num: block.block_num,
-                    block_time: eosioTimestampToDate(block.timestamp).getTime()
-                }, ['account', 'block_num']);
-            } else {
+                logger.info('Code updated for contract ' + action.data.account);
+            } catch (e) {
                 logger.info('Code ' + action.data.account + ' already in cache. Ignoring code update');
             }
-
-            logger.info('Code updated for contract ' + action.data.account);
         } else {
             logger.error('Could not update contract code because action could not be deserialized');
         }

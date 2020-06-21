@@ -370,12 +370,13 @@ asynckit@^0.4.0:
   resolved "https://registry.yarnpkg.com/asynckit/-/asynckit-0.4.0.tgz#c79ed97f7f34cb8f2ba1bc9790bcc366474b4b79"
   integrity sha1-x57Zf380y48robyXkLzDZkdLS3k=
 
-atomicassets@^0.8.1:
-  version "0.8.1"
-  resolved "https://registry.yarnpkg.com/atomicassets/-/atomicassets-0.8.1.tgz#1175e324c4aa6e9a33f4329946b1391dfb9a35e6"
-  integrity sha512-8EBh8ed0f6KYRKloLe5tuX2v8kDRh0s3K/s1px1P2x6l4rl0vMk4/HdcGB5dHbfS/BvDBUVUGaRK9B660uomFg==
+atomicassets@^0.9.0:
+  version "0.9.0"
+  resolved "https://registry.yarnpkg.com/atomicassets/-/atomicassets-0.9.0.tgz#43cf208fd5be247ec935da841c848a2206aff658"
+  integrity sha512-NN18IuV8ztNSE+loQ8cDFOdFBUT35Bk4lngl8FTf//E+wpkWby6rG6D5zFonE4zk31XQPLiVcsgv73yoK/9pbw==
   dependencies:
     big-integer "^1.6.48"
+    pure-cache "^1.0.5"
 
 await-lock@^2.0.1:
   version "2.0.1"
@@ -1752,6 +1753,11 @@ minimist@^1.2.0, minimist@^1.2.5:
   resolved "https://registry.yarnpkg.com/minimist/-/minimist-1.2.5.tgz#67d66014b66a6a8aaa0c083c5fd58df4e4e97602"
   integrity sha512-FM9nNUYrRBAELZQT3xeZQ7fmMOBg6nWNmJKTcgsJeaLstP/UODVpGsr5OhXhhXg6f+qtJ8uiZ+PUxkDWcgIXLw==
 
+mitt@^1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/mitt/-/mitt-1.2.0.tgz#cb24e6569c806e31bd4e3995787fe38a04fdf90d"
+  integrity sha512-r6lj77KlwqLhIUku9UWYes7KJtsczvolZkzp8hbaDPPaE24OmWl5s539Mytlj22siEQKosZ26qCBgda2PKwoJw==
+
 mkdirp@^0.5.1:
   version "0.5.5"
   resolved "https://registry.yarnpkg.com/mkdirp/-/mkdirp-0.5.5.tgz#d91cefd62d1436ca0f41620e251288d420099def"
@@ -2081,6 +2087,13 @@ prr@~1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/prr/-/prr-1.0.1.tgz#d3fc114ba06995a45ec6893f484ceb1d78f5f476"
   integrity sha1-0/wRS6BplaRexok/SEzrHXj19HY=
+
+pure-cache@^1.0.5:
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/pure-cache/-/pure-cache-1.0.5.tgz#870c1e9f289de01c27cec42ffb4950d48386dcad"
+  integrity sha512-DH42Hwq0wHzQczXM6f4wZe4o0hvBomF8ef2hBFYEFeOt/tfycDK3n14oJEftx/nrk8ZJaaI0ZPv3z7uBTb3DuA==
+  dependencies:
+    mitt "^1.2.0"
 
 qs@6.7.0:
   version "6.7.0"
