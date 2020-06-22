@@ -71,6 +71,8 @@ export function authenticationEndpoints(core: AuthenticationNamespace, server: H
                 ref_block_prefix: block.ref_block_prefix
             };
 
+            logger.debug('transaction to sign ', transaction);
+
             const tx = await core.connection.chain.api.transact(transaction, {broadcast: false, sign: false});
             const plaintext = Buffer.concat([
                 Buffer.from(core.connection.chain.chainId, 'hex'),
@@ -78,11 +80,15 @@ export function authenticationEndpoints(core: AuthenticationNamespace, server: H
                 Buffer.from(new Uint8Array(32))
             ]);
 
+            logger.debug('raw transaction to sign ', [...plaintext]);
+
             const availableKeys = [];
 
             for (const signature of signatures) {
                 availableKeys.push(ecc.recover(signature, plaintext));
             }
+
+            logger.debug('recovered public keys ', availableKeys);
 
             const resp = await server.connection.chain.post('/v1/chain/get_required_keys', {transaction, available_keys: availableKeys});
 
