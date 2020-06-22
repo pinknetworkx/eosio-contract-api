@@ -19,6 +19,7 @@ CREATE SEQUENCE atomichub_browsers_id_seq
     CACHE 1;
 
 ALTER SEQUENCE atomichub_browsers_id_seq OWNED BY atomichub_browsers.id;
+ALTER TABLE ONLY atomichub_browsers ALTER COLUMN id SET DEFAULT nextval('atomichub_browsers_id_seq'::regclass);
 
 CREATE TABLE atomichub_watchlist
 (
