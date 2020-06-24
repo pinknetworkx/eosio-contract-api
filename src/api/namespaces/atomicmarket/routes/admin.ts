@@ -25,7 +25,7 @@ function adminAuth(core: AtomicMarketNamespace): express.RequestHandler {
 export function adminEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     async function collectionExists(collectionName: string): Promise<boolean> {
         const query = await core.connection.database.query(
-            'SELECT collection_name FROM atomicassets_collection WHERE contract = $1 AND collection_name = $2',
+            'SELECT collection_name FROM atomicassets_collections WHERE contract = $1 AND collection_name = $2',
             [core.args.atomicassets_account, collectionName]
         );
 

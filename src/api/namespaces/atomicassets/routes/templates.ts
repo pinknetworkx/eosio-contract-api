@@ -18,10 +18,11 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                 sort: {type: 'string', values: ['created'], default: 'created'},
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
-                template_id: {type: 'int', min: 1},
                 collection_name: {type: 'string', min: 1, max: 12},
                 schema_name: {type: 'string', min: 1, max: 12},
-                authorized_account: {type: 'string', min: 1, max: 12}
+                authorized_account: {type: 'string', min: 1, max: 12},
+
+                match: {type: 'string', min: 1}
             });
 
             if (typeof req.params.collection_name === 'string' && req.params.collection_name.length > 0) {
@@ -53,11 +54,6 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                 queryValues.push(args.collection_name);
             }
 
-            if (args.template_id) {
-                queryString += 'AND template_id = $' + ++varCounter + ' ';
-                queryValues.push(args.template_id);
-            }
-
             if (args.schema_name) {
                 queryString += 'AND schema_name = $' + ++varCounter + ' ';
                 queryValues.push(args.schema_name);
@@ -66,6 +62,18 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             if (args.authorized_account) {
                 queryString += 'AND $' + ++varCounter + ' = ANY(authorized_accounts) ';
                 queryValues.push(args.authorized_account);
+            }
+
+            if (args.match) {
+                const parsedMatch = parseInt(args.match, 10);
+
+                if (isNaN(parsedMatch)) {
+                    queryString += 'AND (name ILIKE $' + ++varCounter + ') ';
+                    queryValues.push('%' + args.match + '%');
+                } else {
+                    queryString += 'AND (name ILIKE $' + ++varCounter + ' OR template_id = $' + ++varCounter + ') ';
+                    queryValues.push('%' + args.match + '%', args.match);
+                }
             }
 
             const sortColumnMapping = {
@@ -185,9 +193,9 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                             schema: {type: 'string'}
                         },
                         {
-                            name: 'template_id',
+                            name: 'match',
                             in: 'query',
-                            description: 'Template id',
+                            description: 'Search for template id or',
                             required: false,
                             schema: {type: 'string'}
                         },

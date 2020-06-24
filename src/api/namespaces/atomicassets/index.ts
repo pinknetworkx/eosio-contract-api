@@ -15,6 +15,7 @@ import { getOpenApiDescription } from '../../docs';
 import { formatAsset, formatOffer, formatTransfer } from './format';
 import { TransferApi } from './routes/transfers';
 import { OfferApi } from './routes/offers';
+import { accountsEndpoints } from './routes/accounts';
 
 export type AtomicAssetsNamespaceArgs = {
     atomicassets_account: string,
@@ -79,6 +80,7 @@ export class AtomicAssetsNamespace extends ApiNamespace {
 
         endpointsDocs.push(offerApi.endpoints(router));
         endpointsDocs.push(transferApi.endpoints(router));
+        endpointsDocs.push(accountsEndpoints(this, server, router));
         endpointsDocs.push(configEndpoints(this, server, router));
 
         for (const doc of endpointsDocs) {

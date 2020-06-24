@@ -124,6 +124,7 @@ describe('Endpoints Test', () => {
         expect(await testEndpoint(namespace, '/v1/auctions', {
             state: '0,1,2,3,4',
             max_assets: 1,
+            asset_id: '1',
             show_blacklisted: false,
             whitelisted_seller_only: false,
             whitelisted_collections_only: false,
@@ -153,6 +154,7 @@ describe('Endpoints Test', () => {
         expect(await testEndpoint(namespace, '/v1/sales', {
             state: '0,1,2,3,4',
             max_assets: 1,
+            asset_id: '1',
             show_blacklisted: false,
             whitelisted_seller_only: false,
             whitelisted_collections_only: false,
@@ -269,13 +271,22 @@ describe('Endpoints Test', () => {
 
         expect(await testEndpoint(namespace, '/v1/watchlist/stats', {})).to.equal(200);
         expect(await testEndpoint(namespace, '/v1/sales/trending', {})).to.equal(200);
-        expect(await testEndpoint(namespace, '/v1/suggestions', {
+        expect(await testEndpoint(namespace, '/v1/assets/suggestions', {
             asset_id: 10
         })).to.equal(416);
-        expect(await testEndpoint(namespace, '/v1/suggestions', {
+        expect(await testEndpoint(namespace, '/v1/assets/suggestions', {
             collection_name: 'test',
             template_id: 1,
             schema_name: 'test'
+        })).to.equal(200);
+        expect(await testEndpoint(namespace, '/v1/sales/suggestions', {
+            sale_id: 10000
+        })).to.equal(416);
+        expect(await testEndpoint(namespace, '/v1/sales/suggestions', {
+            collection_name: 'test',
+            template_id: 1,
+            schema_name: 'test',
+            asset_id: 1
         })).to.equal(200);
         expect(await testEndpoint(namespace, '/v1/avatar/test', {})).to.equal(200);
     }).timeout(10000);

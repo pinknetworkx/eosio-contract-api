@@ -96,7 +96,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
         }
     });
 
-    router.get('/v1/suggestions', server.web.caching({expire: 60}), async (req, res) => {
+    router.get('/v1/assets/suggestions', server.web.caching({expire: 60}), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 limit: {type: 'int', min: 1, max: 100, default: 10},
@@ -108,47 +108,139 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             });
 
             if (args.asset_id) {
-                const assets = await core.connection.database.query(
+                const asset = await core.connection.database.query(
                     'SELECT template_id, collection_name, schema_name FROM atomicassets_assets ' +
                     'WHERE contract = $1 AND asset_id = $2',
                     [core.args.atomicassets_account, args.asset_id]
                 );
 
-                if (assets.rowCount === 0) {
+                if (asset.rowCount === 0) {
                     return res.status(416).json({success: false, message: 'Asset ID not found'});
                 }
 
-                args.template_id = assets.rows[0].template_id;
-                args.collection_name = assets.rows[0].collection_name;
-                args.schema_name = assets.rows[0].schema_name;
+                args.template_id = asset.rows[0].template_id;
+                args.collection_name = asset.rows[0].collection_name;
+                args.schema_name = asset.rows[0].schema_name;
             }
 
-            const queryValues = [core.args.atomicassets_account];
-            let queryString = 'SELECT * from atomicmarket_assets_master WHERE contract = $1 ';
+            let assets = [];
+            for (let i = 0; i <= 3 && assets.length === 0; i++) {
+                const queryValues = [core.args.atomicassets_account];
+                let queryString = 'SELECT * from atomicmarket_assets_master WHERE contract = $1 ';
 
-            if (args.template_id) {
-                queryValues.push(args.template_id);
-                queryString += 'AND template_id = $' + queryValues.length + ' ';
+                if (args.template_id && i <= 0) {
+                    queryValues.push(args.template_id);
+                    queryString += 'AND template_id = $' + queryValues.length + ' ';
+                }
+
+                if (args.schema_name && i <= 1) {
+                    queryValues.push(args.schema_name);
+                    queryString += 'AND schema_name = $' + queryValues.length + ' ';
+                }
+
+                if (args.collection_name && i <= 2) {
+                    queryValues.push(args.collection_name);
+                    queryString += 'AND collection_name = $' + queryValues.length + ' ';
+                }
+
+                if (args.asset_id) {
+                    queryValues.push(args.asset_id);
+                    queryString += 'AND asset_id != $' + queryValues.length + ' ';
+                }
+
+                queryValues.push(args.limit);
+                queryString += 'ORDER BY minted_at_block DESC LIMIT $' + queryValues.length;
+
+                const query = await core.connection.database.query(queryString, queryValues);
+
+                assets = query.rows.map(row => formatListingAsset(row));
             }
-
-            if (args.collection_name) {
-                queryValues.push(args.collection_name);
-                queryString += 'AND collection_name = $' + queryValues.length + ' ';
-            }
-
-            if (args.schema_name) {
-                queryValues.push(args.schema_name);
-                queryString += 'AND schema_name = $' + queryValues.length + ' ';
-            }
-
-            queryValues.push(args.limit);
-            queryString += 'ORDER BY minted_at_block DESC LIMIT $' + queryValues.length;
-
-            const query = await core.connection.database.query(queryString, queryValues);
 
             res.json({
                 success: true,
-                data: query.rows.map(row => formatListingAsset(row)),
+                data: assets,
+                query_time: Date.now()
+            });
+        } catch (e) {
+            logger.error(req.originalUrl + ' ', e);
+
+            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
+    });
+
+    router.get('/v1/sales/suggestions', server.web.caching({expire: 60}), async (req, res) => {
+        try {
+            const args = filterQueryArgs(req, {
+                limit: {type: 'int', min: 1, max: 100, default: 10},
+
+                template_id: {type: 'int', min: 0},
+                collection_name: {type: 'string', min: 1, max: 12},
+                schema_name: {type: 'string', min: 1, max: 12},
+                asset_id: {type: 'int', min: 1},
+
+                sale_id: {type: 'int', min: 1}
+            });
+
+            if (args.sale_id) {
+                const query = await core.connection.database.query(
+                    'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = $2',
+                    [core.args.atomicmarket_account, req.params.sale_id]
+                );
+
+                if (query.rowCount === 0) {
+                    return res.status(416).json({success: false, message: 'Sale not found'});
+                }
+
+                const sale = await fillSales(core.connection, core.args.atomicassets_account, query.rows.map((row) => formatSale(row)));
+
+                if (sale[0].assets[0].template) {
+                    args.template_id = sale[0].assets[0].template.template_id;
+                }
+
+                args.collection_name = sale[0].assets[0].collection.collection_name;
+                args.schema_name = sale[0].assets[0].schema.schema_name;
+                args.asset_id = sale[0].assets[0].asset_id;
+            }
+
+            let sales: any[] = [];
+            for (let i = 0; i <= 4 && sales.length === 0; i++) {
+                const queryValues = [core.args.atomicassets_account, args.sale_id ? args.sale_id : null];
+                let queryString = 'SELECT * from atomicmarket_sales_master listing WHERE market_contract = $1 AND sale_id != $2 AND EXISTS (' +
+                    'SELECT * FROM atomicassets_offers_assets asset_o, atomicassets_assets asset_a ' +
+                    'WHERE asset_o.offer_id = listing.offer_id AND asset_o.contract = listing.assets_contract AND ' +
+                    'asset_o.contract = asset_a.contract AND asset_o.asset_id = asset_a.asset_id ';
+
+                if (args.asset_id && i <= 0) {
+                    queryValues.push(args.asset_id);
+                    queryString += 'AND asset_a.asset_id = $' + queryValues.length + ' ';
+                }
+
+                if (args.template_id && i <= 1) {
+                    queryValues.push(args.template_id);
+                    queryString += 'AND asset_a.template_id = $' + queryValues.length + ' ';
+                }
+
+                if (args.schema_name && i <= 2) {
+                    queryValues.push(args.schema_name);
+                    queryString += 'AND asset_a.schema_name = $' + queryValues.length + ' ';
+                }
+
+                if (args.collection_name && i <= 3) {
+                    queryValues.push(args.collection_name);
+                    queryString += 'AND asset_a.collection_name = $' + queryValues.length + ' ';
+                }
+
+                queryValues.push(args.limit);
+                queryString += ') ORDER BY raw_price ASC LIMIT $' + queryValues.length;
+
+                const query = await core.connection.database.query(queryString, queryValues);
+
+                sales = query.rows.map(row => formatSale(row));
+            }
+
+            res.json({
+                success: true,
+                data: await fillSales(core.connection, core.args.atomicassets_account, sales),
                 query_time: Date.now()
             });
         } catch (e) {
@@ -217,7 +309,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                     })
                 }
             },
-            '/v1/suggestions': {
+            '/v1/assets/suggestions': {
                 get: {
                     tags: ['stats'],
                     summary: 'Get suggestions for the input. More detailed if more info is provided',
@@ -256,6 +348,60 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                             required: false,
                             schema: {type: 'integer'},
                             description: 'Get suggestions for a specific asset'
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'array',
+                        items: {'$ref': '#/components/schemas/ListingAsset'}
+                    })
+                }
+            },
+            '/v1/sales/suggestions': {
+                get: {
+                    tags: ['stats'],
+                    summary: 'Get suggestions for the input. More detailed if more info is provided',
+                    parameters: [
+                        {
+                            in: 'query',
+                            name: 'limit',
+                            required: false,
+                            schema: {type: 'integer'},
+                            description: 'Size of the result'
+                        },
+                        {
+                            in: 'query',
+                            name: 'collection_name',
+                            required: false,
+                            schema: {type: 'string'},
+                            description: 'Filter by collection'
+                        },
+                        {
+                            in: 'query',
+                            name: 'schema_name',
+                            required: false,
+                            schema: {type: 'string'},
+                            description: 'Filter by schema'
+                        },
+                        {
+                            in: 'query',
+                            name: 'template_id',
+                            required: false,
+                            schema: {type: 'integer'},
+                            description: 'Filter by template'
+                        },
+                        {
+                            in: 'query',
+                            name: 'asset_id',
+                            required: false,
+                            schema: {type: 'integer'},
+                            description: 'Get suggestions for a specific asset'
+                        },
+                        {
+                            in: 'query',
+                            name: 'sale_id',
+                            required: false,
+                            schema: {type: 'integer'},
+                            description: 'Get suggestions for a sale id'
                         }
                     ],
                     responses: getOpenAPI3Responses([200, 500], {

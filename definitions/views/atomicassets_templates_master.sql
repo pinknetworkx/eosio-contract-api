@@ -3,6 +3,7 @@ CREATE OR REPLACE VIEW atomicassets_templates_master AS
         template_a.contract, template_a.template_id, template_a.transferable,
         template_a.burnable, template_a.issued_supply, template_a.max_supply,
         collection_a.collection_name, collection_a.authorized_accounts,
+        template_a.readable_name "name",
         json_build_object(
             'collection_name', collection_a.collection_name,
             'name', collection_a.readable_name,
