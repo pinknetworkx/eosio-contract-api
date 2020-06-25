@@ -68,4 +68,4 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
             template_a.contract = asset_a.contract AND template_a.template_id = asset_a.template_id
         )
         JOIN atomicassets_collections collection_a ON (collection_a.contract = asset_a.contract AND collection_a.collection_name = asset_a.collection_name)
-        JOIN atomicassets_schemas schema_a ON (schema_a.contract = asset_a.contract AND schema_a.schema_name = asset_a.schema_name)
+        JOIN atomicassets_schemas schema_a ON (schema_a.contract = asset_a.contract AND schema_a.collection_name = asset_a.collection_name AND schema_a.schema_name = asset_a.schema_name)
