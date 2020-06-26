@@ -72,7 +72,7 @@ export class AssetApi {
         router.get('/v1/assets/:asset_id', this.server.web.caching({ignoreQueryString: true}), (async (req, res) => {
             try {
                 const query = await this.core.connection.database.query(
-                    'SELECT * FROM atomicassets_assets_master WHERE contract = $1 AND asset_id = $2',
+                    'SELECT * FROM ' + this.assetView + ' WHERE contract = $1 AND asset_id = $2',
                     [this.core.args.atomicassets_account, req.params.asset_id]
                 );
 

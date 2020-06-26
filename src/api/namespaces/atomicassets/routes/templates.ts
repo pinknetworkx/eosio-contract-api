@@ -104,7 +104,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
     router.get('/v1/templates/:collection_name/:template_id', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
             const query = await core.connection.database.query(
-                'SELECT template_id FROM atomicassets_templates_master WHERE contract = $1 AND collection_name = $2 AND template_id = $3 LIMIT 1',
+                'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND collection_name = $2 AND template_id = $3 LIMIT 1',
                 [core.args.atomicassets_account, req.params.collection_name, req.params.template_id]
             );
 

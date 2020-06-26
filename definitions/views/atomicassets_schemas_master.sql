@@ -1,10 +1,11 @@
 CREATE OR REPLACE VIEW atomicassets_schemas_master AS
-    SELECT DISTINCT ON (schema_a.contract, schema_a.schema_name)
+    SELECT DISTINCT ON (schema_a.contract, schema_a.collection_name, schema_a.schema_name)
         schema_a.contract, schema_a.schema_name, schema_a.format,
-        collection_a.collection_name, collection_a.authorized_accounts,
+        schema_a.collection_name, collection_a.authorized_accounts,
         json_build_object(
             'collection_name', collection_a.collection_name,
             'name', collection_a.readable_name,
+            'img', collection_a.data->'img',
             'author', collection_a.author,
             'allow_notify', collection_a.allow_notify,
             'authorized_accounts', collection_a.authorized_accounts,
