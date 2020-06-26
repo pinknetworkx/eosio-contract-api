@@ -68,7 +68,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                         collection: lookupCollections[row.collection_name],
                         assets: row.assets
                     })),
-                    assets: query.rows.reduce((prev, current) => prev + current.assets, 0)
+                    assets: query.rows.reduce((prev, current) => prev + parseInt(current.assets, 10), 0)
                 }
             });
         } catch (e) {

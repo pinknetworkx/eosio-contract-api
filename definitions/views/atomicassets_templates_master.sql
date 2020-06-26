@@ -1,7 +1,7 @@
 CREATE OR REPLACE VIEW atomicassets_templates_master AS
     SELECT DISTINCT ON (template_a.contract, template_a.template_id)
-        template_a.contract, template_a.template_id, template_a.transferable,
-        template_a.burnable, template_a.issued_supply, template_a.max_supply,
+        template_a.contract, template_a.template_id, template_a.transferable is_transferable,
+        template_a.burnable is_burnable, template_a.issued_supply, template_a.max_supply,
         collection_a.collection_name, collection_a.authorized_accounts,
         template_a.readable_name "name",
         json_build_object(
