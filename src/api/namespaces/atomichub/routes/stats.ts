@@ -184,7 +184,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             if (args.sale_id) {
                 const query = await core.connection.database.query(
                     'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = $2',
-                    [core.args.atomicmarket_account, req.params.sale_id]
+                    [core.args.atomicmarket_account, args.sale_id]
                 );
 
                 if (query.rowCount === 0) {
