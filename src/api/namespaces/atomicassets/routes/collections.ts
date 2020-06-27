@@ -95,7 +95,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
             const query = await core.connection.database.query(
                 'SELECT ' +
                 '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2) assets, ' +
-                '(SELECT COUNT(*) FROM atomicassets_templates WHERE contract = $1 AND collection_name = $2) templates' +
+                '(SELECT COUNT(*) FROM atomicassets_templates WHERE contract = $1 AND collection_name = $2) templates, ' +
                 '(SELECT COUNT(*) FROM atomicassets_schemas WHERE contract = $1 AND collection_name = $2) schemas',
                 [core.args.atomicassets_account, req.params.collection_name]
             );
