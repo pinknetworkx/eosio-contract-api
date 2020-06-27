@@ -2,6 +2,7 @@ import * as express from 'express';
 
 import PostgresConnection from '../../../connections/postgres';
 import { filterQueryArgs } from '../utils';
+import logger from '../../../utils/winston';
 
 export async function getLogs(
     db: PostgresConnection, contract: string, relationName: string, relationId: string,
@@ -10,7 +11,9 @@ export async function getLogs(
     const queryStr = 'SELECT log_id, name, data, encode(txid::bytea, \'hex\') txid, created_at_block, created_at_time ' +
         'FROM atomicassets_logs ' +
         'WHERE contract = $1 AND relation_name = $2 AND relation_id = $3 ' +
-        'ORDER BY created_at_block, log_id ' + (order === 'asc' ? 'ASC' : 'DESC') + ' LIMIT $4 OFFSET $5';
+        'ORDER BY created_at_block ' + (order === 'asc' ? 'ASC' : 'DESC') + ' LIMIT $4 OFFSET $5';
+
+    logger.debug(queryStr);
 
     const query = await db.query(queryStr, [contract, relationName, relationId, limit, offset]);
 

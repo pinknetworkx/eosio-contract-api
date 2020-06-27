@@ -15,10 +15,15 @@ export function configEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
 
             const config = configQuery.rows[0];
 
-            const pairsQuery = await core.connection.database.query(
-                'SELECT listing_symbol, settlement_symbol, delphi_pair_name, invert_delphi_pair FROM atomicmarket_symbol_pairs WHERE market_contract = $1',
-                [core.args.atomicmarket_account]
-            );
+            const queryString =
+                'SELECT pair.listing_symbol, pair.settlement_symbol, pair.delphi_pair_name, pair.invert_delphi_pair, row_to_json(delphi.*) "data" ' +
+                'FROM atomicmarket_symbol_pairs pair, delphioracle_pairs delphi ' +
+                'WHERE pair.market_contract = $1 ' +
+                'AND pair.delphi_contract = delphi.contract AND pair.delphi_pair_name = delphi.delphi_pair_name';
+
+            logger.debug(queryString);
+
+            const pairsQuery = await core.connection.database.query(queryString, [core.args.atomicmarket_account]);
 
             const tokensQuery = await core.connection.database.query(
                 'SELECT token_contract, token_symbol, token_precision FROM atomicmarket_tokens WHERE market_contract = $1',

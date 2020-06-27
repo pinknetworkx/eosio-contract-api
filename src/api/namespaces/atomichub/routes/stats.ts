@@ -203,35 +203,32 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             }
 
             let sales: any[] = [];
-            for (let i = 0; i <= 4 && sales.length === 0; i++) {
-                const queryValues = [core.args.atomicassets_account, args.sale_id ? args.sale_id : null];
+            for (let i = 0; i <= 3 && sales.length === 0; i++) {
+                const queryValues = [core.args.atomicmarket_account, args.sale_id ? args.sale_id : null];
                 let queryString = 'SELECT * from atomicmarket_sales_master listing WHERE market_contract = $1 AND sale_id != $2 AND EXISTS (' +
                     'SELECT * FROM atomicassets_offers_assets asset_o, atomicassets_assets asset_a ' +
                     'WHERE asset_o.offer_id = listing.offer_id AND asset_o.contract = listing.assets_contract AND ' +
                     'asset_o.contract = asset_a.contract AND asset_o.asset_id = asset_a.asset_id ';
 
-                if (args.asset_id && i <= 0) {
-                    queryValues.push(args.asset_id);
-                    queryString += 'AND asset_a.asset_id = $' + queryValues.length + ' ';
-                }
-
-                if (args.template_id && i <= 1) {
+                if (args.template_id && i <= 0) {
                     queryValues.push(args.template_id);
                     queryString += 'AND asset_a.template_id = $' + queryValues.length + ' ';
                 }
 
-                if (args.schema_name && i <= 2) {
+                if (args.schema_name && i <= 1) {
                     queryValues.push(args.schema_name);
                     queryString += 'AND asset_a.schema_name = $' + queryValues.length + ' ';
                 }
 
-                if (args.collection_name && i <= 3) {
+                if (args.collection_name && i <= 2) {
                     queryValues.push(args.collection_name);
                     queryString += 'AND asset_a.collection_name = $' + queryValues.length + ' ';
                 }
 
                 queryValues.push(args.limit);
                 queryString += ') ORDER BY raw_price ASC LIMIT $' + queryValues.length;
+
+                console.log(queryString);
 
                 const query = await core.connection.database.query(queryString, queryValues);
 
