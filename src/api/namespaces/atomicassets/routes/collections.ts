@@ -90,6 +90,24 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
         }
     }));
 
+    router.get('/v1/collections/:collection_name/stats', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+        try {
+            const query = await core.connection.database.query(
+                'SELECT ' +
+                '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2) assets, ' +
+                '(SELECT COUNT(*) FROM atomicassets_templates WHERE contract = $1 AND collection_name = $2) templates' +
+                '(SELECT COUNT(*) FROM atomicassets_schemas WHERE contract = $1 AND collection_name = $2) schemas',
+                [core.args.atomicassets_account, req.params.collection_name]
+            );
+
+            return res.json({success: true, data: query.rows[0]});
+        } catch (e) {
+            logger.error(req.originalUrl + ' ', e);
+
+            res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
+    }));
+
     router.get('/v1/collections/:collection_name/logs', server.web.caching(), (async (req, res) => {
         const args = filterQueryArgs(req, {
             page: {type: 'int', min: 1, default: 1},
@@ -181,6 +199,29 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
                         }
                     ],
                     responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/Collection'})
+                }
+            },
+            '/v1/collections/{collection_name}/stats': {
+                get: {
+                    tags: ['collections'],
+                    summary: 'Get stats about collection',
+                    parameters: [
+                        {
+                            name: 'collection_name',
+                            in: 'path',
+                            description: 'Name of collection',
+                            required: true,
+                            schema: {type: 'string'}
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'object',
+                        properties: {
+                            assets: {type: 'integer'},
+                            templates: {type: 'integer'},
+                            schemas: {type: 'integer'}
+                        }
+                    })
                 }
             },
             '/v1/collections/{collection_name}/logs': {

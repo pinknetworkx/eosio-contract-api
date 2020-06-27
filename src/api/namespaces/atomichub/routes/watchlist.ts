@@ -39,19 +39,11 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
 
     });
 
-    router.delete('/v1/watchlist', bearerToken(core.connection), async (req, res) => {
-        const body = filterQueryArgs(req, {
-            asset_id: {type: 'int', min: 1}
-        }, 'body');
-
-        if (!body.asset_id) {
-            return res.status(500).json({success: false, message: 'Input missing'});
-        }
-
+    router.delete('/v1/watchlist/:asset_id', bearerToken(core.connection), async (req, res) => {
         try {
             const query = await core.connection.database.query(
                 'DELETE FROM atomichub_watchlist WHERE account = $1 AND contract = $2 AND asset_id = $3 RETURNING *',
-                [req.authorizedAccount, core.args.atomicassets_account, body.asset_id]
+                [req.authorizedAccount, core.args.atomicassets_account, req.params.asset_id]
             );
 
             if (query.rowCount > 0) {

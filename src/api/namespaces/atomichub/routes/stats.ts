@@ -228,7 +228,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 queryValues.push(args.limit);
                 queryString += ') ORDER BY raw_price ASC LIMIT $' + queryValues.length;
 
-                console.log(queryString);
+                logger.debug(queryString);
 
                 const query = await core.connection.database.query(queryString, queryValues);
 
