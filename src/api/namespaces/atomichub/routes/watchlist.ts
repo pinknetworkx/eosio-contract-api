@@ -105,6 +105,21 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
         }
     });
 
+    router.get('/v1/watchlist/:account/:asset_id', server.web.caching(), async (req, res) => {
+        try {
+            const query = await core.connection.database.query(
+                'SELECT asset_id FROM atomichub_watchlist WHERE contract = $1 AND account = $2 AND asset_id = $3',
+                [core.args.atomicassets_account, req.params.account, req.params.asset_id]
+            );
+
+            return res.json({success: query.rowCount > 0, data: null, query_time: Date.now()});
+        } catch (e) {
+            logger.error(req.originalUrl + ' ', e);
+
+            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
+    });
+
     return {
         tag: {
             name: 'watchlist',
