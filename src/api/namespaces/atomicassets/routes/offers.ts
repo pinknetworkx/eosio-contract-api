@@ -35,7 +35,7 @@ export class OfferApi {
                     state: {type: 'string', min: 1},
 
                     asset_id: {type: 'string', min: 1},
-                    is_recipient_contract: {type: 'string'}
+                    is_recipient_contract: {type: 'bool'}
                 });
 
                 let varCounter = 1;
@@ -65,7 +65,7 @@ export class OfferApi {
 
                 if (args.is_recipient_contract === true) {
                     queryString += 'AND recipient_contract_account IS NOT NULL ';
-                } else if (args.is_recipient_contract === true) {
+                } else if (args.is_recipient_contract === false) {
                     queryString += 'AND recipient_contract_account IS NULL ';
                 }
 

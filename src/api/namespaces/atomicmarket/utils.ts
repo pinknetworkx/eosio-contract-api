@@ -92,12 +92,12 @@ export function buildListingFilter(req: express.Request, varOffset: number): {st
         queryValues.push(args.symbol);
 
         if (args.min_price) {
-            queryString += 'AND listing.raw_price >= 1.0 * $' + ++varCounter + ' / listing.raw_token_precision ';
+            queryString += 'AND listing.raw_price >= 1.0 * $' + ++varCounter + ' * POWER(10, listing.raw_token_precision) ';
             queryValues.push(args.min_price);
         }
 
         if (args.max_price) {
-            queryString += 'AND listing.raw_price <= 1.0 * $' + ++varCounter + ' / listing.raw_token_precision ';
+            queryString += 'AND listing.raw_price <= 1.0 * $' + ++varCounter + ' * POWER(10, listing.raw_token_precision) ';
             queryValues.push(args.max_price);
         }
     }
