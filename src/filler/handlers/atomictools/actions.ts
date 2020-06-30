@@ -64,7 +64,9 @@ export default class AtomicToolsActionHandler {
             memo: trace.act.data.memo.substr(0, 256),
             txid: Buffer.from(tx.id, 'hex'),
             created_at_block: block.block_num,
-            created_at_time: eosioTimestampToDate(block.timestamp).getTime()
+            created_at_time: eosioTimestampToDate(block.timestamp).getTime(),
+            updated_at_block: block.block_num,
+            updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
         }, ['tools_contract', 'link_id']);
 
         const rows = trace.act.data.asset_ids.map((assetID) => ({
@@ -78,10 +80,12 @@ export default class AtomicToolsActionHandler {
     }
 
     async loglinkstart(
-        db: ContractDBTransaction, _: ShipBlock, trace: EosioActionTrace<LogLinkStart>
+        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace<LogLinkStart>
     ): Promise<void> {
         await db.update('atomictools_links', {
-            state: LinkState.CREATED.valueOf()
+            state: LinkState.CREATED.valueOf(),
+            updated_at_block: block.block_num,
+            updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
         }, {
             str: 'tools_contract = $1 AND link_id = $2',
             values: [this.core.args.atomictools_account, trace.act.data.link_id]
@@ -89,10 +93,12 @@ export default class AtomicToolsActionHandler {
     }
 
     async cancellink(
-        db: ContractDBTransaction, _: ShipBlock, trace: EosioActionTrace<CancelLinkActionData>
+        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace<CancelLinkActionData>
     ): Promise<void> {
         await db.update('atomictools_links', {
-            state: LinkState.CANCELED.valueOf()
+            state: LinkState.CANCELED.valueOf(),
+            updated_at_block: block.block_num,
+            updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
         }, {
             str: 'tools_contract = $1 AND link_id = $2',
             values: [this.core.args.atomictools_account, trace.act.data.link_id]
@@ -100,11 +106,13 @@ export default class AtomicToolsActionHandler {
     }
 
     async claimlink(
-        db: ContractDBTransaction, _: ShipBlock, trace: EosioActionTrace<ClaimLinkActionData>
+        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace<ClaimLinkActionData>
     ): Promise<void> {
         await db.update('atomictools_links', {
             state: LinkState.CLAIMED.valueOf(),
-            claimer: trace.act.data.claimer
+            claimer: trace.act.data.claimer,
+            updated_at_block: block.block_num,
+            updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
         }, {
             str: 'tools_contract = $1 AND link_id = $2',
             values: [this.core.args.atomictools_account, trace.act.data.link_id]
