@@ -3,7 +3,7 @@ import * as webpush from 'web-push';
 import { AtomicHubNamespace } from './index';
 
 export async function sendPushMessage(core: AtomicHubNamespace, account: string, title: string, body: string): Promise<void> {
-    webpush.setVapidDetails('', core.args.vapid_keys.public, core.args.vapid_keys.private);
+    webpush.setVapidDetails('https://atomichub.io', core.args.vapid_keys.public, core.args.vapid_keys.private);
 
     const query = await core.connection.database.query(
         'SELECT id, url, public_key, secret FROM atomichub_browsers WHERE account = $1',

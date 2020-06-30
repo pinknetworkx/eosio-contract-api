@@ -128,8 +128,8 @@ export function notificationsSockets(core: AtomicHubNamespace, server: HTTPServe
     });
 
     const atomicassetsChannelName = [
-        'eosio-contract-api', core.connection.chain.name, 'atomichub',
-        'atomicassets', core.args.atomicassets_account, 'notifications'
+        'eosio-contract-api', core.connection.chain.name, core.args.connected_reader, 'atomichub',
+        core.args.atomicassets_account, 'notifications'
     ].join(':');
 
     core.connection.redis.ioRedisSub.subscribe(atomicassetsChannelName, () => {
@@ -140,6 +140,8 @@ export function notificationsSockets(core: AtomicHubNamespace, server: HTTPServe
 
             const msg = JSON.parse(message);
 
+            logger.debug('notification', msg);
+
             namespace.to('notification:' + msg.account).emit('notification', msg.notification);
 
             await sendPushMessage(core, msg.account, core.args.notification_title, msg.notification.message);
@@ -147,8 +149,8 @@ export function notificationsSockets(core: AtomicHubNamespace, server: HTTPServe
     });
 
     const atomicmarketChannelName = [
-        'eosio-contract-api', core.connection.chain.name, 'atomichub',
-        'atomicmarket', core.args.atomicassets_account, 'notifications'
+        'eosio-contract-api', core.connection.chain.name, core.args.connected_reader, 'atomichub',
+        core.args.atomicmarket_account, 'notifications'
     ].join(':');
 
     core.connection.redis.ioRedisSub.subscribe(atomicmarketChannelName, () => {
