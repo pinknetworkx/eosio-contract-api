@@ -28,7 +28,7 @@ export type ConfigTableRow = {
     asset_counter: number,
     offer_counter: number,
     collection_format: Array<{ name: string, type: string }>,
-    supported_tokens: Array<{ token_contract: string, token_symbol: string } >
+    supported_tokens: Array<{ contract: string, sym: string } >
 };
 
 export type OffersTableRow = {

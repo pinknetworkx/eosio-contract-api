@@ -170,8 +170,8 @@ export default class AtomicAssetsHandler extends ContractHandler {
 
             this.config = {
                 supported_tokens: tokensQuery.rows.map(row => ({
-                    token_contract: row.token_contract,
-                    token_symbol: row.token_precision + ',' + row.token_symbol
+                    contract: row.token_contract,
+                    sym: row.token_precision + ',' + row.token_symbol
                 })),
                 asset_counter: 0,
                 offer_counter: 0,

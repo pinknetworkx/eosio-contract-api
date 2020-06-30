@@ -235,17 +235,17 @@ export default class AtomicAssetsTableHandler {
         }
 
         if (this.core.config.supported_tokens.length !== data.supported_tokens.length) {
-            const tokens = this.core.config.supported_tokens.map(row => row.token_symbol);
+            const tokens = this.core.config.supported_tokens.map(row => row.sym);
 
             for (const token of data.supported_tokens) {
-                const index = tokens.indexOf(token.token_symbol);
+                const index = tokens.indexOf(token.sym);
 
                 if (index === -1) {
                     await db.insert('atomicassets_tokens', {
                         contract: this.contractName,
-                        token_symbol: token.token_symbol.split(',')[1],
-                        token_contract: token.token_contract,
-                        token_precision: token.token_symbol.split(',')[0]
+                        token_symbol: token.sym.split(',')[1],
+                        token_contract: token.contract,
+                        token_precision: token.sym.split(',')[0]
                     }, ['contract', 'token_symbol']);
                 } else {
                     tokens.splice(index, 1);
