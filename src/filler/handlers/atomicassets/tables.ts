@@ -207,7 +207,9 @@ export default class AtomicAssetsTableHandler {
             });
         }
 
-        await db.insert('atomicassets_templates_data', values, ['contract', 'template_id', 'key']);
+        if (values.length > 0) {
+            await db.insert('atomicassets_templates_data', values, ['contract', 'template_id', 'key']);
+        }
     }
 
     async handleSchemasUpdate(

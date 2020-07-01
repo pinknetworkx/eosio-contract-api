@@ -351,7 +351,7 @@ export default class StateReceiver {
 
             try {
                 await this.connection.database.query(
-                    'INSERT into contract_abis (account, abi, block_num, block_time) VALUES ($1, $2, $3)',
+                    'INSERT into contract_abis (account, abi, block_num, block_time) VALUES ($1, $2, $3, $4)',
                     [
                         action.data.account,
                         typeof action.data.abi === 'string' ? Buffer.from(action.data.abi, 'hex') : action.data.abi,
