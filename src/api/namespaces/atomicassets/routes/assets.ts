@@ -48,7 +48,7 @@ export class AssetApi {
                 const sortColumnMapping = {
                     asset_id: 'asset_id',
                     updated: 'updated_at_block',
-                    minted: 'minted_at_block'
+                    minted: 'asset_id'
                 };
 
                 // @ts-ignore
@@ -85,6 +85,35 @@ export class AssetApi {
                 logger.error(req.originalUrl + ' ', e);
 
                 return res.status(500).json({success: false, message: 'Internal Server Error'});
+            }
+        }));
+
+        router.get('/v1/assets/:asset_id/stats', this.server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+            try {
+                const assetQuery = await this.core.connection.database.query(
+                    'SELECT * FROM atomicassets_assets WHERE contract = $1 AND asset_id = $2',
+                    [this.core.args.atomicassets_account, req.params.asset_id]
+                );
+
+                if (assetQuery.rowCount === 0) {
+                    return res.status(416).json({success: false, message: 'Asset not found'});
+                }
+
+                const asset = assetQuery.rows[0];
+
+                const query = await this.core.connection.database.query(
+                    'SELECT ' +
+                    '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND asset_id <= $2 AND template_id = $3 AND schema_name = $4 AND collection_name = $5) template_mint, ' +
+                    '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND asset_id <= $2 AND schema_name = $4 AND collection_name = $5) schema_mint' +
+                    '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND asset_id <= $2 AND collection_name = $5) collection_mint',
+                    [this.core.args.atomicassets_account, asset.asset_id, asset.template_id, asset.schema_name, asset.collection_name]
+                );
+
+                return res.json({success: true, data: query.rows[0]});
+            } catch (e) {
+                logger.error(req.originalUrl + ' ', e);
+
+                res.status(500).json({success: false, message: 'Internal Server Error'});
             }
         }));
 
@@ -162,6 +191,29 @@ export class AssetApi {
                             }
                         ],
                         responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/' + this.schema})
+                    }
+                },
+                '/v1/assets/{asset_id}/stats': {
+                    get: {
+                        tags: ['assets'],
+                        summary: 'Fetch asset stats',
+                        parameters: [
+                            {
+                                name: 'asset_id',
+                                in: 'path',
+                                description: 'ID of asset',
+                                required: true,
+                                schema: {type: 'integer'}
+                            }
+                        ],
+                        responses: getOpenAPI3Responses([200, 500], {
+                            type: 'object',
+                            properties: {
+                                collection_mint: {type: 'integer'},
+                                schema_mint: {type: 'integer'},
+                                template_mint: {type: 'integer'}
+                            }
+                        })
                     }
                 },
                 '/v1/assets/{asset_id}/logs': {

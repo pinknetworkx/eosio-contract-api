@@ -77,7 +77,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             }
 
             const sortColumnMapping = {
-                created: 'created_at_block'
+                created: 'template_id'
             };
 
             // @ts-ignore

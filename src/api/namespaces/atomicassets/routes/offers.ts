@@ -26,7 +26,7 @@ export class OfferApi {
                 const args = filterQueryArgs(req, {
                     page: {type: 'int', min: 1, default: 1},
                     limit: {type: 'int', min: 1, max: 100, default: 100},
-                    sort: {type: 'string', values: ['created'], default: 'created'},
+                    sort: {type: 'string', values: ['created', 'updated'], default: 'created'},
                     order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
                     account: {type: 'string', min: 1},
@@ -80,7 +80,8 @@ export class OfferApi {
                 }
 
                 const sortColumnMapping = {
-                    created: 'created_at_block'
+                    created: 'offer_id',
+                    updated: 'updated_at_block'
                 };
 
                 // @ts-ignore
@@ -199,7 +200,7 @@ export class OfferApi {
                                 required: false,
                                 schema: {
                                     type: 'string',
-                                    enum: ['created'],
+                                    enum: ['created', 'updated'],
                                     default: 'created'
                                 }
                             }

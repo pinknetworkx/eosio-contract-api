@@ -14,7 +14,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100},
-                sort: {type: 'string', values: ['created'], default: 'created'},
+                sort: {type: 'string', values: ['created', 'collection_name'], default: 'created'},
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
                 author: {type: 'string', min: 1, max: 12},
@@ -50,7 +50,8 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
             }
 
             const sortColumnMapping = {
-                created: 'created_at_block'
+                created: 'created_at_block',
+                collection_name: 'collection_name'
             };
 
             // @ts-ignore
@@ -177,7 +178,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
                             required: false,
                             schema: {
                                 type: 'string',
-                                enum: ['created'],
+                                enum: ['created', 'collection_name'],
                                 default: 'created'
                             }
                         }

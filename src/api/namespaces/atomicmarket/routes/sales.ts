@@ -31,7 +31,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             const sortColumnMapping = {
                 sale_id: 'sale_id',
-                created: 'created_at_block',
+                created: 'sale_id',
                 price: 'raw_price'
             };
 

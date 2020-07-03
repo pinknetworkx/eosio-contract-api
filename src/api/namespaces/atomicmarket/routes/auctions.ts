@@ -31,7 +31,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             const sortColumnMapping = {
                 auction_id: 'auction_id',
                 ending: 'end_time',
-                created: 'created_at_block',
+                created: 'auction_id',
                 price: 'raw_price'
             };
 

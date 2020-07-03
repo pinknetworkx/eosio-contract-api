@@ -14,7 +14,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100},
-                sort: {type: 'string', values: ['created'], default: 'created'},
+                sort: {type: 'string', values: ['created', 'schema_name'], default: 'created'},
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
                 authorized_account: {type: 'string', min: 1, max: 12},
@@ -54,7 +54,8 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
             }
 
             const sortColumnMapping = {
-                created: 'created_at_block'
+                created: 'created_at_block',
+                schema_name: 'schema_name'
             };
 
             // @ts-ignore
@@ -184,7 +185,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                             required: false,
                             schema: {
                                 type: 'string',
-                                enum: ['created'],
+                                enum: ['created', 'schema_name'],
                                 default: 'created'
                             }
                         }

@@ -98,6 +98,12 @@ export type LogNewTemplateActionData = {
     immuntable_data: AttributeMap
 };
 
+export type LockTemplateActionData = {
+    authorized_editor: string,
+    collection_name: string,
+    template_id: number
+};
+
 export type CreateSchemaActionData = {
     authorized_creator: string,
     collection_name: string,

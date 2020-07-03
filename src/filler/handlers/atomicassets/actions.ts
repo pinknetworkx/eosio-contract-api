@@ -11,7 +11,7 @@ import {
     CreateColActionData,
     CreateSchemaActionData, DeclineOfferActionData,
     ExtendSchemaActionData,
-    ForbidNotifyActionData,
+    ForbidNotifyActionData, LockTemplateActionData,
     LogBackAssetActionData,
     LogBurnAssetActionData,
     LogMintAssetActionData, LogNewOfferActionData,
@@ -65,7 +65,7 @@ export default class AtomicAssetsActionHandler {
             this.core.addUpdateJob(async () => {
                 await this.handleAssetUpdateTrace(db, block, trace, tx);
             }, JobPriority.INDEPENDENT);
-        } else if (['lognewtempl'].indexOf(trace.act.name) >= 0) {
+        } else if (['lognewtempl', 'locktemplate'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleTemplateTrace(db, block, trace, tx);
             }, JobPriority.INDEPENDENT);
@@ -357,6 +357,15 @@ export default class AtomicAssetsActionHandler {
                 'create', 'template', data.collection_name + ':' + data.template_id,
                 {creator: data.authorized_creator}
                 );
+        } else if (trace.act.name === 'locktemplate') {
+            // @ts-ignore
+            const data: LockTemplateActionData = trace.act.data;
+
+            await this.createLogMessage(
+                db, block, tx, trace.global_sequence,
+                'locktemplate', 'template', data.collection_name + ':' + data.template_id,
+                {creator: data.authorized_editor}
+            );
         }
     }
 

@@ -64,7 +64,7 @@ export class TransferApi {
                 }
 
                 const sortColumnMapping = {
-                    created: 'created_at_block'
+                    created: 'transfer_id'
                 };
 
                 // @ts-ignore
