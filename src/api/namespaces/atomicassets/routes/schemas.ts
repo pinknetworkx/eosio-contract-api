@@ -103,6 +103,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
             const query = await core.connection.database.query(
                 'SELECT ' +
                 '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND schema_name = $3) assets, ' +
+                '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND schema_name = $3 AND owner IS NULL) burned, ' +
                 '(SELECT COUNT(*) FROM atomicassets_templates WHERE contract = $1 AND collection_name = $2 AND schema_name = $3) templates',
                 [core.args.atomicassets_account, req.params.collection_name, req.params.schema_name]
             );
@@ -240,6 +241,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                         type: 'object',
                         properties: {
                             assets: {type: 'integer'},
+                            burned: {type: 'integer'},
                             templates: {type: 'integer'}
                         }
                     })

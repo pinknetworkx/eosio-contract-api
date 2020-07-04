@@ -124,7 +124,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
         try {
             const query = await core.connection.database.query(
                 'SELECT ' +
-                '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND template_id = $3) assets ',
+                '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND template_id = $3) assets, ' +
+                '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND template_id = $3 AND owner IS NULL) burned ',
                 [core.args.atomicassets_account, req.params.collection_name, req.params.template_id]
             );
 
@@ -261,7 +262,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'object',
                         properties: {
-                            assets: {type: 'integer'}
+                            assets: {type: 'integer'},
+                            burned: {type: 'integer'}
                         }
                     })
                 }

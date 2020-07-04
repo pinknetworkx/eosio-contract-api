@@ -205,14 +205,14 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             let sales: any[] = [];
             for (let i = 0; i <= 3 && sales.length === 0; i++) {
                 const queryValues = [core.args.atomicmarket_account, args.sale_id ? args.sale_id : null];
-                let queryString = 'SELECT * from atomicmarket_sales_master listing ' +
+                let queryString = 'SELECT * FROM atomicmarket_sales_master listing ' +
                     'WHERE listing.market_contract = $1 AND listing.sale_id != $2 AND ' +
-                    'listing.state = ' + SaleState.LISTED.valueOf() + ' AND ' +
+                    'listing.sale_state = ' + SaleState.LISTED.valueOf() + ' AND ' +
                     'listing.offer_state = ' + OfferState.PENDING.valueOf() + ' AND ' +
                     'EXISTS (' +
                     'SELECT * FROM atomicassets_offers_assets asset_o, atomicassets_assets asset_a ' +
                     'WHERE asset_o.offer_id = listing.offer_id AND asset_o.contract = listing.assets_contract AND ' +
-                    'asset_o.contract = asset_a.contract AND asset_o.asset_id = asset_a.asset_id) ';
+                    'asset_o.contract = asset_a.contract AND asset_o.asset_id = asset_a.asset_id ';
 
                 if (args.template_id && i <= 0) {
                     queryValues.push(args.template_id);
