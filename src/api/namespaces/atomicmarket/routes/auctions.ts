@@ -32,6 +32,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                 auction_id: 'auction_id',
                 ending: 'end_time',
                 created: 'auction_id',
+                updated: 'updated_at_block',
                 price: 'raw_price'
             };
 
@@ -116,7 +117,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                             required: false,
                             schema: {
                                 type: 'string',
-                                enum: ['created', 'ending', 'auction_id', 'price'],
+                                enum: ['created', 'updated', 'ending', 'auction_id', 'price'],
                                 default: 'created'
                             }
                         }

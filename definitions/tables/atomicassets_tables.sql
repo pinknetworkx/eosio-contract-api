@@ -213,6 +213,7 @@ ALTER TABLE ONLY atomicassets_transfers_assets
 
 -- INDEXES --
 CREATE INDEX atomicassets_assets_contract ON atomicassets_assets USING hash (contract);
+CREATE INDEX atomicassets_assets_asset_id ON atomicassets_assets USING btree (asset_id);
 CREATE INDEX atomicassets_assets_collection_name ON atomicassets_assets USING btree (collection_name);
 CREATE INDEX atomicassets_assets_template_id ON atomicassets_assets USING btree (template_id);
 CREATE INDEX atomicassets_assets_schema_name ON atomicassets_assets USING btree (schema_name);
