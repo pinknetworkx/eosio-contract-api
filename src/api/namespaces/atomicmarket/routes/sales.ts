@@ -19,7 +19,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100},
-                sort: {type: 'string', values: ['created', 'sale_id', 'price'], default: 'created'},
+                sort: {type: 'string', values: ['created', 'updated', 'sale_id', 'price'], default: 'created'},
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
             });
 

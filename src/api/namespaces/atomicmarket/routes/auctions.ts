@@ -18,7 +18,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100},
-                sort: {type: 'string', values: ['created', 'ending', 'auction_id', 'price'], default: 'created'},
+                sort: {type: 'string', values: ['created', 'updated', 'ending', 'auction_id', 'price'], default: 'created'},
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
             });
 
