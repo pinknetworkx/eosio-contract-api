@@ -29,14 +29,14 @@ export function buildDataConditions(args: any, varCounter: number = 0): {conditi
         if (key.startsWith('data.')) {
             const conditionKeys = key.substring(5).split('.');
 
-            let condition = '(data."key" = $' + ++varCounter + ' AND ';
+            let condition = '("data"."key" = $' + ++varCounter + ' AND ';
             queryValues.push(conditionKeys[0]);
 
             let column;
             if (conditionKeys.length > 1 && !isNaN(parseInt(conditionKeys[1], 10))) {
-                column = 'data."value"->>' + parseInt(conditionKeys[1], 10);
+                column = '"data"."value"->>' + parseInt(conditionKeys[1], 10);
             } else {
-                column = 'data."value"::text';
+                column = '"data"."value"::text';
             }
 
             const possibleValues = [column + ' = $' + ++varCounter];
@@ -80,20 +80,13 @@ export function buildAssetFilter(
 
         if (data.conditions.length > 0) {
             queryString += 'AND (' +
-                'EXISTS (' +
-                'SELECT "key" ' +
-                'FROM atomicassets_assets_data data ' +
-                'WHERE data.contract = asset.contract AND data.asset_id = asset.asset_id AND ' +
-                '(' + data.conditions.join(' OR ') + ')' +
-                ') ';
-
-            queryString += 'OR ' +
-                'EXISTS (' +
-                'SELECT "key" ' +
-                'FROM atomicassets_templates_data data ' +
-                'WHERE data.contract = asset.contract AND data.template_id = asset.template_id AND ' +
-                '(' + data.conditions.join(' OR ') + ')' +
-                ')) ';
+                    'SELECT COUNT(DISTINCT "key") FROM (' +
+                        'SELECT "key", "value" FROM atomicassets_assets_data data_t1 WHERE data_t1.contract = asset.contract AND data_t1.asset_id = asset.asset_id ' +
+                        'UNION ALL ' +
+                        'SELECT "key", "value" FROM atomicassets_templates_data data_t2 WHERE data_t2.contract = asset.contract AND data_t2.template_id = asset.template_id ' +
+                    ') "data" ' +
+                    'WHERE ' + data.conditions.join(' OR ') +
+                ') >= ' + data.conditions.length + ' ';
 
             queryValues = queryValues.concat(data.values);
             varCounter += data.values.length;
