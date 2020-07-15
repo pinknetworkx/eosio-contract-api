@@ -109,6 +109,8 @@ export default class AtomicAssetsActionHandler {
                 trace: data
             });
         }
+
+        await this.createLogMessage(db, block, tx, trace.global_sequence, 'create', 'offer', data.offer_id, null);
     }
 
     async handleOfferUpdateTrace(
@@ -200,6 +202,7 @@ export default class AtomicAssetsActionHandler {
             }, true, data.old_immutable_data, data.old_mutable_data);
 
             await this.createLogMessage(db, block, tx, trace.global_sequence, 'burn', 'asset', data.asset_id, {
+                owner: data.asset_owner,
                 backed_tokens: data.backed_tokens
             });
 
@@ -364,7 +367,7 @@ export default class AtomicAssetsActionHandler {
             await this.createLogMessage(
                 db, block, tx, trace.global_sequence,
                 'locktemplate', 'template', data.collection_name + ':' + data.template_id,
-                {creator: data.authorized_editor}
+                {authorized_editor: data.authorized_editor}
             );
         }
     }
@@ -377,15 +380,16 @@ export default class AtomicAssetsActionHandler {
             await this.createLogMessage(db, block, tx, trace.global_sequence,
                 'create', 'schema', data.collection_name + ':' + data.schema_name,
                 {authorized_creator: data.authorized_creator, schema_format: data.schema_format}
-                );
+            );
         } else if (trace.act.name === 'extendschema') {
             // @ts-ignore
             const data: ExtendSchemaActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, trace.global_sequence,
+            await this.createLogMessage(
+                db, block, tx, trace.global_sequence,
                 'extend', 'schema', data.collection_name + ':' + data.schema_name,
                 {authorized_editor: data.authorized_editor, schema_format_extension: data.schema_format_extension}
-                );
+            );
         }
     }
 

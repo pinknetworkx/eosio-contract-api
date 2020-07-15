@@ -15,7 +15,9 @@ import StateReceiver from '../../receiver';
 export type AtomicMarketArgs = {
     atomicmarket_account: string,
     atomicassets_account: string,
-    delphioracle_account: string
+    delphioracle_account: string,
+
+    store_logs: boolean
 };
 
 export enum SaleState {

@@ -8,6 +8,7 @@ import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { fillOffers } from '../filler';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
+import { getLogs } from '../utils';
 
 export class OfferApi {
     constructor(
@@ -140,6 +141,28 @@ export class OfferApi {
             }
         }));
 
+        router.get('/v1/offers/:offer_id/logs', this.server.web.caching(), (async (req, res) => {
+            const args = filterQueryArgs(req, {
+                page: {type: 'int', min: 1, default: 1},
+                limit: {type: 'int', min: 1, max: 100, default: 100},
+                order: {type: 'string', values: ['asc', 'desc'], default: 'asc'}
+            });
+
+            try {
+                res.json({
+                    success: true,
+                    data: await getLogs(
+                        this.core.connection.database, this.core.args.atomicassets_account, 'offer', req.params.offer_id,
+                        (args.page - 1) * args.limit, args.limit, args.order
+                    ), query_time: Date.now()
+                });
+            } catch (e) {
+                logger.error(e);
+
+                return res.status(500).json({success: false, message: 'Internal Server Error'});
+            }
+        }));
+
         return {
             tag: {
                 name: 'offers',
@@ -230,6 +253,23 @@ export class OfferApi {
                             }
                         ],
                         responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/' + this.schema})
+                    }
+                },
+                '/v1/offers/{offer_id}/logs': {
+                    get: {
+                        tags: ['offers'],
+                        summary: 'Fetch offer logs',
+                        parameters: [
+                            {
+                                name: 'offer_id',
+                                in: 'path',
+                                description: 'ID of offer',
+                                required: true,
+                                schema: {type: 'integer'}
+                            },
+                            ...paginationParameters
+                        ],
+                        responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Log'}})
                     }
                 }
             }

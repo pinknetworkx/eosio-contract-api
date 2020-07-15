@@ -116,6 +116,11 @@ export default class AtomicMarketActionHandler {
             'market_contract', 'auction_id', 'assets_contract', 'asset_id'
         ]);
 
+        await this.createLogMessage(
+            db, block, tx, trace.global_sequence,
+            'create', 'auction', trace.act.data.auction_id, null
+        );
+
         this.core.pushNotificiation(block, tx, 'auctions', 'create', {
             auction_id: trace.act.data.auction_id, trace
         });
@@ -138,6 +143,11 @@ export default class AtomicMarketActionHandler {
             auction_id: trace.act.data.auction_id, state: AuctionState.LISTED.valueOf()
         });
 
+        await this.createLogMessage(
+            db, block, tx, trace.global_sequence,
+            'start', 'auction', trace.act.data.auction_id, null
+        );
+
         this.core.pushNotificiation(block, tx, 'auctions', 'state_change', {
             auction_id: trace.act.data.auction_id, state: AuctionState.LISTED.valueOf(), trace
         });
@@ -159,6 +169,11 @@ export default class AtomicMarketActionHandler {
             db, block, contract: this.core.args.atomicmarket_account,
             auction_id: trace.act.data.auction_id, state: AuctionState.CANCELED.valueOf()
         });
+
+        await this.createLogMessage(
+            db, block, tx, trace.global_sequence,
+            'cancel', 'auction', trace.act.data.auction_id, null
+        );
 
         this.core.pushNotificiation(block, tx, 'auctions', 'state_change', {
             auction_id: trace.act.data.auction_id, state: AuctionState.CANCELED.valueOf(), trace
@@ -203,13 +218,19 @@ export default class AtomicMarketActionHandler {
             auction_id: trace.act.data.auction_id, bid_number: parseInt(bidCount.rows[0].count, 10) + 1
         });
 
+        await this.createLogMessage(
+            db, block, tx, trace.global_sequence,
+            'bid', 'auction', trace.act.data.auction_id,
+            {bid_number: bidData.bid_number, account: bidData.account, amount: bidData.amount}
+        );
+
         this.core.pushNotificiation(block, tx, 'auctions', 'bid', {
             auction_id: trace.act.data.auction_id, bid: bidData, trace
         });
     }
 
     async auctclaimbuy(
-        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace<AuctionClaimBuyerActionData>, _: EosioTransaction
+        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace<AuctionClaimBuyerActionData>, tx: EosioTransaction
     ): Promise<void> {
         await db.update('atomicmarket_auctions', {
             claimed_by_buyer: true,
@@ -219,10 +240,15 @@ export default class AtomicMarketActionHandler {
             str: 'market_contract = $1 AND auction_id = $2',
             values: [this.core.args.atomicmarket_account, trace.act.data.auction_id]
         }, ['market_contract', 'auction_id']);
+
+        await this.createLogMessage(
+            db, block, tx, trace.global_sequence,
+            'buyer_claim', 'auction', trace.act.data.auction_id, null
+        );
     }
 
     async auctclaimsel(
-        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace<AuctionClaimSellerActionData>, _: EosioTransaction
+        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace<AuctionClaimSellerActionData>, tx: EosioTransaction
     ): Promise<void> {
         await db.update('atomicmarket_auctions', {
             claimed_by_seller: true,
@@ -232,6 +258,11 @@ export default class AtomicMarketActionHandler {
             str: 'market_contract = $1 AND auction_id = $2',
             values: [this.core.args.atomicmarket_account, trace.act.data.auction_id]
         }, ['market_contract', 'auction_id']);
+
+        await this.createLogMessage(
+            db, block, tx, trace.global_sequence,
+            'seller_claim', 'auction', trace.act.data.auction_id, null
+        );
     }
 
     /* SALES */
@@ -261,6 +292,11 @@ export default class AtomicMarketActionHandler {
             created_at_txid: Buffer.from(tx.id, 'hex')
         }, ['market_contract', 'sale_id']);
 
+        await this.createLogMessage(
+            db, block, tx, trace.global_sequence,
+            'create', 'sale', trace.act.data.sale_id, null
+        );
+
         this.core.pushNotificiation(block, tx, 'sales', 'create', {
             sale_id: trace.act.data.sale_id, trace
         });
@@ -284,6 +320,11 @@ export default class AtomicMarketActionHandler {
             sale_id: trace.act.data.sale_id, state: SaleState.LISTED.valueOf()
         });
 
+        await this.createLogMessage(
+            db, block, tx, trace.global_sequence,
+            'start', 'sale', trace.act.data.sale_id, null
+        );
+
         this.core.pushNotificiation(block, tx, 'sales', 'state_change', {
             sale_id: trace.act.data.sale_id, state: SaleState.LISTED.valueOf(), trace
         });
@@ -305,6 +346,11 @@ export default class AtomicMarketActionHandler {
             db, block, contract: this.core.args.atomicmarket_account,
             sale_id: trace.act.data.sale_id, state: SaleState.CANCELED.valueOf()
         });
+
+        await this.createLogMessage(
+            db, block, tx, trace.global_sequence,
+            'cancel', 'sale', trace.act.data.sale_id, null
+        );
 
         this.core.pushNotificiation(block, tx, 'sales', 'state_change', {
             sale_id: trace.act.data.sale_id, state: SaleState.CANCELED.valueOf(), trace
@@ -369,8 +415,35 @@ export default class AtomicMarketActionHandler {
             sale_id: trace.act.data.sale_id, state: SaleState.SOLD.valueOf()
         });
 
+        await this.createLogMessage(
+            db, block, tx, trace.global_sequence,
+            'purchase', 'sale', trace.act.data.sale_id,
+            {buyer: trace.act.data.buyer, final_price: finalPrice, taker_marketplace: trace.act.data.taker_marketplace}
+        );
+
         this.core.pushNotificiation(block, tx, 'sales', 'state_change', {
             sale_id: trace.act.data.sale_id, state: SaleState.SOLD.valueOf(), trace
         });
+    }
+
+    private async createLogMessage(
+        db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, globalSequence: string,
+        name: string, relationName: string, relationId: string | number, data: any
+    ): Promise<void> {
+        if (!this.core.args.store_logs) {
+            return;
+        }
+
+        await db.insert('atomicassets_logs', {
+            log_id: globalSequence,
+            contract: this.contractName,
+            name: String(name).substr(0, 64),
+            relation_name: String(relationName).substr(0, 64),
+            relation_id: String(relationId).substr(0, 256),
+            data: JSON.stringify(data),
+            txid: Buffer.from(tx.id, 'hex'),
+            created_at_block: block.block_num,
+            created_at_time: eosioTimestampToDate(block.timestamp).getTime()
+        }, ['log_id']);
     }
 }

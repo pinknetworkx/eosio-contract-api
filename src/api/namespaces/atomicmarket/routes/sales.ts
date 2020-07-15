@@ -12,7 +12,7 @@ import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
-import { buildBlacklistFilter } from '../../atomicassets/utils';
+import { buildBlacklistFilter, getLogs } from '../../atomicassets/utils';
 
 export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/sales', server.web.caching(), async (req, res) => {
@@ -95,6 +95,28 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     });
 
+    router.get('/v1/sales/:sale_id/logs', this.server.web.caching(), (async (req, res) => {
+        const args = filterQueryArgs(req, {
+            page: {type: 'int', min: 1, default: 1},
+            limit: {type: 'int', min: 1, max: 100, default: 100},
+            order: {type: 'string', values: ['asc', 'desc'], default: 'asc'}
+        });
+
+        try {
+            res.json({
+                success: true,
+                data: await getLogs(
+                    this.core.connection.database, this.core.args.atomicassets_account, 'sale', req.params.sale_id,
+                    (args.page - 1) * args.limit, args.limit, args.order
+                ), query_time: Date.now()
+            });
+        } catch (e) {
+            logger.error(e);
+
+            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
+    }));
+
     return {
         tag: {
             name: 'sales',
@@ -157,6 +179,23 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                         }
                     ],
                     responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/Sale'})
+                }
+            },
+            '/v1/sales/{sale_id}/logs': {
+                get: {
+                    tags: ['sales'],
+                    summary: 'Fetch sale logs',
+                    parameters: [
+                        {
+                            name: 'sale_id',
+                            in: 'path',
+                            description: 'ID of sale',
+                            required: true,
+                            schema: {type: 'integer'}
+                        },
+                        ...paginationParameters
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Log'}})
                 }
             }
         }

@@ -11,7 +11,7 @@ import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/open
 import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
-import { buildBlacklistFilter } from '../../atomicassets/utils';
+import { buildBlacklistFilter, getLogs } from '../../atomicassets/utils';
 
 export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/auctions', server.web.caching(), async (req, res) => {
@@ -93,8 +93,29 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
 
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
-
     });
+
+    router.get('/v1/auctions/:auction_id/logs', this.server.web.caching(), (async (req, res) => {
+        const args = filterQueryArgs(req, {
+            page: {type: 'int', min: 1, default: 1},
+            limit: {type: 'int', min: 1, max: 100, default: 100},
+            order: {type: 'string', values: ['asc', 'desc'], default: 'asc'}
+        });
+
+        try {
+            res.json({
+                success: true,
+                data: await getLogs(
+                    this.core.connection.database, this.core.args.atomicassets_account, 'auction', req.params.auction_id,
+                    (args.page - 1) * args.limit, args.limit, args.order
+                ), query_time: Date.now()
+            });
+        } catch (e) {
+            logger.error(e);
+
+            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
+    }));
 
     return {
         tag: {
@@ -158,6 +179,23 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                         }
                     ],
                     responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/Auction'})
+                }
+            },
+            '/v1/auctions/{auction_id}/logs': {
+                get: {
+                    tags: ['auctions'],
+                    summary: 'Fetch auction logs',
+                    parameters: [
+                        {
+                            name: 'auction_id',
+                            in: 'path',
+                            description: 'ID of auction',
+                            required: true,
+                            schema: {type: 'integer'}
+                        },
+                        ...paginationParameters
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Log'}})
                 }
             }
         }
