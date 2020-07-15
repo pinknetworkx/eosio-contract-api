@@ -43,7 +43,7 @@ export class AssetFiller {
 
 export async function fillAssets(
     connection: ConnectionManager, contract: string, assetIDs: any[], formatter: (_: any) => any, view: string
-) {
+): Promise<any[]> {
     const filler = new AssetFiller(connection, contract, assetIDs, formatter, view);
     await filler.query();
 
