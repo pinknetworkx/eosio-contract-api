@@ -132,6 +132,7 @@ export function notificationsSockets(core: AtomicHubNamespace, server: HTTPServe
         core.args.atomicassets_account, 'notifications'
     ].join(':');
 
+    core.connection.redis.ioRedisSub.setMaxListeners(core.connection.redis.ioRedisSub.getMaxListeners() + 1);
     core.connection.redis.ioRedisSub.subscribe(atomicassetsChannelName, () => {
         core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
             if (channel !== atomicassetsChannelName) {
@@ -153,6 +154,7 @@ export function notificationsSockets(core: AtomicHubNamespace, server: HTTPServe
         core.args.atomicmarket_account, 'notifications'
     ].join(':');
 
+    core.connection.redis.ioRedisSub.setMaxListeners(core.connection.redis.ioRedisSub.getMaxListeners() + 1);
     core.connection.redis.ioRedisSub.subscribe(atomicmarketChannelName, () => {
         core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
             if (channel !== atomicmarketChannelName) {

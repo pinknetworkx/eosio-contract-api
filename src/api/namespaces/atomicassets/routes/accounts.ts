@@ -1,8 +1,8 @@
 import * as express from 'express';
 
 import logger from '../../../../utils/winston';
-import { filterQueryArgs } from '../../utils';
-import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
+import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
+import { getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { formatCollection } from '../format';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
@@ -25,6 +25,13 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                 queryString += 'AND owner ILIKE $' + ++varCounter + ' ';
                 queryValues.push('%' + args.match + '%');
             }
+
+            const boundaryFilter = buildBoundaryFilter(
+                req, varCounter, 'owner', 'string', null, null
+            );
+            queryValues.push(...boundaryFilter.values);
+            varCounter += boundaryFilter.values.length;
+            queryString += boundaryFilter.str;
 
             queryString += 'GROUP BY owner ORDER BY assets DESC LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
             queryValues.push(args.limit);
@@ -96,6 +103,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                             required: false,
                             schema: {type: 'string'}
                         },
+                        ...primaryBoundaryParameters,
                         ...paginationParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {

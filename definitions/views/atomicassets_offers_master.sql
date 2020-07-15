@@ -1,5 +1,5 @@
 CREATE OR REPLACE VIEW atomicassets_offers_master AS
-    SELECT DISTINCT ON (offer_a.contract, offer_a.offer_id)
+    SELECT
         offer_a.contract, offer_a.offer_id,
         offer_a.sender sender_name, offer_a.recipient recipient_name, offer_a.memo,
         offer_a.state,

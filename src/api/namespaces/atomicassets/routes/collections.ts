@@ -2,11 +2,11 @@ import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { filterQueryArgs } from '../../utils';
+import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { getLogs } from '../utils';
 import logger from '../../../../utils/winston';
 import { formatCollection } from '../format';
-import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
+import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 
 export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/collections', server.web.caching(), (async (req, res) => {
@@ -48,6 +48,14 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
                 queryString += 'AND collection_name LIKE $' + ++varCounter + ' ';
                 queryValues.push('%' + args.match + '%');
             }
+
+            const boundaryFilter = buildBoundaryFilter(
+                req, varCounter, 'collection_name', 'string',
+                'created_at_time', 'created_at_block'
+            );
+            queryValues.push(...boundaryFilter.values);
+            varCounter += boundaryFilter.values.length;
+            queryString += boundaryFilter.str;
 
             const sortColumnMapping = {
                 created: 'created_at_block',
@@ -171,6 +179,8 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
                             required: false,
                             schema: {type: 'string'}
                         },
+                        ...primaryBoundaryParameters,
+                        ...dateBoundaryParameters,
                         ...paginationParameters,
                         {
                             name: 'sort',

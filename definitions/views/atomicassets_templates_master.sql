@@ -2,8 +2,8 @@ CREATE OR REPLACE VIEW atomicassets_templates_master AS
     SELECT DISTINCT ON (template_a.contract, template_a.template_id)
         template_a.contract, template_a.template_id, template_a.transferable is_transferable,
         template_a.burnable is_burnable, template_a.issued_supply, template_a.max_supply,
-        collection_a.collection_name, collection_a.authorized_accounts,
         template_a.readable_name "name",
+        template_a.collection_name, collection_a.authorized_accounts,
         json_build_object(
             'collection_name', collection_a.collection_name,
             'name', collection_a.readable_name,
@@ -16,7 +16,7 @@ CREATE OR REPLACE VIEW atomicassets_templates_master AS
             'created_at_block', collection_a.created_at_block,
             'created_at_time', collection_a.created_at_time
         ) collection,
-        schema_a.schema_name,
+        template_a.schema_name,
         json_build_object(
             'schema_name', schema_a.schema_name,
             'format', schema_a.format,

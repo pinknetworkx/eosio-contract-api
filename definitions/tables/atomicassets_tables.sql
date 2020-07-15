@@ -165,6 +165,8 @@ CREATE TABLE atomicassets_transfers_assets (
     CONSTRAINT atomicassets_transfers_assets_pkey PRIMARY KEY (transfer_id, contract, asset_id)
 );
 
+
+
 -- FOREIGN KEYS --
 ALTER TABLE ONLY atomicassets_assets_backed_tokens
     ADD CONSTRAINT atomicassets_assets_backed_tokens_assets_fkey FOREIGN KEY (asset_id, contract) REFERENCES atomicassets_assets(asset_id, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
@@ -260,6 +262,7 @@ CREATE INDEX atomicassets_offers_sender ON atomicassets_offers USING hash (sende
 CREATE INDEX atomicassets_offers_recipient ON atomicassets_offers USING hash (recipient);
 CREATE INDEX atomicassets_offers_state ON atomicassets_offers USING btree (state);
 CREATE INDEX atomicassets_offers_updated_at_block ON atomicassets_offers USING btree (updated_at_block);
+CREATE INDEX atomicassets_offers_updated_at_time ON atomicassets_offers USING btree (updated_at_time);
 CREATE INDEX atomicassets_offers_created_at_block ON atomicassets_offers USING btree (created_at_block);
 CREATE INDEX atomicassets_offers_created_at_time ON atomicassets_offers USING btree (created_at_time);
 

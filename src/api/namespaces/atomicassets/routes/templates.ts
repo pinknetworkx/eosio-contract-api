@@ -3,10 +3,10 @@ import * as express from 'express';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { buildDataConditions, getLogs } from '../utils';
-import { filterQueryArgs } from '../../utils';
+import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { formatTemplate } from '../format';
-import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
+import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { atomicDataFilter } from '../openapi';
 
 export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
@@ -75,6 +75,14 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                     queryValues.push('%' + args.match + '%', args.match);
                 }
             }
+
+            const boundaryFilter = buildBoundaryFilter(
+                req, varCounter, 'template_id', 'int',
+                'created_at_time', 'created_at_block'
+            );
+            queryValues.push(...boundaryFilter.values);
+            varCounter += boundaryFilter.values.length;
+            queryString += boundaryFilter.str;
 
             const sortColumnMapping = {
                 created: 'template_id'
@@ -200,6 +208,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                             required: false,
                             schema: {type: 'string'}
                         },
+                        ...primaryBoundaryParameters,
+                        ...dateBoundaryParameters,
                         ...paginationParameters,
                         {
                             name: 'sort',

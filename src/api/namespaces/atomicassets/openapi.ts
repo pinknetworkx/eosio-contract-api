@@ -27,6 +27,7 @@ export function generateTransferSchema(assetSchema: string): any {
         type: 'object',
         properties: {
             contract: {type: 'string'},
+            transfer_id: {type: 'integer'},
             sender_name: {type: 'string'},
             recipient_name: {type: 'string'},
             memo: {type: 'string'},

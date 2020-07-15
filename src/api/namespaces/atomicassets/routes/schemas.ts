@@ -2,11 +2,11 @@ import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { filterQueryArgs } from '../../utils';
+import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { getLogs } from '../utils';
 import logger from '../../../../utils/winston';
 import { formatSchema } from '../format';
-import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
+import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 
 export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     async function schemaRequestHandler(req: express.Request, res: express.Response): Promise<any> {
@@ -52,6 +52,14 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                 queryString += 'AND schema_name ILIKE $' + ++varCounter + ' ';
                 queryValues.push('%' + args.match + '%');
             }
+
+            const boundaryFilter = buildBoundaryFilter(
+                req, varCounter, 'schema_name', 'string',
+                'created_at_time', 'created_at_block'
+            );
+            queryValues.push(...boundaryFilter.values);
+            varCounter += boundaryFilter.values.length;
+            queryString += boundaryFilter.str;
 
             const sortColumnMapping = {
                 created: 'created_at_block',
@@ -178,6 +186,8 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                             required: false,
                             schema: {type: 'string'}
                         },
+                        ...primaryBoundaryParameters,
+                        ...dateBoundaryParameters,
                         ...paginationParameters,
                         {
                             name: 'sort',

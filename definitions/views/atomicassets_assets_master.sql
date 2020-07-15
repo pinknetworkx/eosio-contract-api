@@ -10,7 +10,6 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
         CASE WHEN template_a.template_id IS NULL THEN true ELSE template_a.burnable END AS is_burnable,
 
         asset_a.collection_name,
-        collection_a.authorized_accounts,
         json_build_object(
             'collection_name', collection_a.collection_name,
             'name', collection_a.readable_name,

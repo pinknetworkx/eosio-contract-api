@@ -7,9 +7,9 @@ import { buildSaleFilter } from '../utils';
 import { fillSales } from '../filler';
 import { formatSale } from '../format';
 import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/openapi';
-import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
+import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import logger from '../../../../utils/winston';
-import { filterQueryArgs } from '../../utils';
+import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
 
@@ -28,6 +28,14 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             let queryString = 'SELECT * FROM atomicmarket_sales_master listing WHERE market_contract = $1 ' + filter.str;
             const queryValues = [core.args.atomicmarket_account, ...filter.values];
             let varCounter = queryValues.length;
+
+            const boundaryFilter = buildBoundaryFilter(
+                req, varCounter, 'sale_id', 'int',
+                args.sort === 'updated' ? 'updated_at_time' : 'created_at_time', args.sort === 'updated' ? 'updated_at_block' : 'created_at_block'
+            );
+            queryValues.push(...boundaryFilter.values);
+            varCounter += boundaryFilter.values.length;
+            queryString += boundaryFilter.str;
 
             const sortColumnMapping = {
                 sale_id: 'sale_id',
@@ -108,6 +116,8 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                         },
                         ...listingFilterParameters,
                         ...assetFilterParameters,
+                        ...primaryBoundaryParameters,
+                        ...dateBoundaryParameters,
                         ...paginationParameters,
                         {
                             name: 'sort',
@@ -176,6 +186,7 @@ export function salesSockets(core: AtomicMarketNamespace, server: HTTPServer): v
         'eosio-contract-api', core.connection.chain.name, core.args.connected_reader,
         'atomicmarket', core.args.atomicmarket_account, 'sales'
     ].join(':');
+    core.connection.redis.ioRedisSub.setMaxListeners(core.connection.redis.ioRedisSub.getMaxListeners() + 1);
     core.connection.redis.ioRedisSub.subscribe(saleChannelName, () => {
         core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
             if (channel !== saleChannelName) {
@@ -227,6 +238,7 @@ export function salesSockets(core: AtomicMarketNamespace, server: HTTPServer): v
         'eosio-contract-api', core.connection.chain.name, core.args.connected_reader,
         'atomicassets', core.args.atomicassets_account, 'offers'
     ].join(':');
+    core.connection.redis.ioRedisSub.setMaxListeners(core.connection.redis.ioRedisSub.getMaxListeners() + 1);
     core.connection.redis.ioRedisSub.subscribe(offerChannelName, () => {
         core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
             if (channel !== offerChannelName) {

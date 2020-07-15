@@ -3,7 +3,7 @@ import PQueue from 'p-queue';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { filterQueryArgs } from '../../utils';
+import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { fillTransfers } from '../filler';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
@@ -62,6 +62,14 @@ export class TransferApi {
                         ') ';
                     queryValues.push(args.asset_id.split(','));
                 }
+
+                const boundaryFilter = buildBoundaryFilter(
+                    req, varCounter, 'transfer_id', 'int',
+                    'created_at_time', 'created_at_block'
+                );
+                queryValues.push(...boundaryFilter.values);
+                varCounter += boundaryFilter.values.length;
+                queryString += boundaryFilter.str;
 
                 const sortColumnMapping = {
                     created: 'transfer_id'
@@ -178,6 +186,7 @@ export class TransferApi {
             'eosio-contract-api', this.core.connection.chain.name, this.core.args.connected_reader,
             'atomicassets', this.core.args.atomicassets_account, 'transfers'
         ].join(':');
+        this.core.connection.redis.ioRedisSub.setMaxListeners(this.core.connection.redis.ioRedisSub.getMaxListeners() + 1);
         this.core.connection.redis.ioRedisSub.subscribe(transferChannelName, () => {
             this.core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
                 if (channel !== transferChannelName) {

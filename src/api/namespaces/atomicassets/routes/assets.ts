@@ -4,9 +4,9 @@ import PQueue from 'p-queue';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { buildAssetFilter, getLogs } from '../utils';
-import { filterQueryArgs } from '../../utils';
+import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
-import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
+import { primaryBoundaryParameters, getOpenAPI3Responses, paginationParameters, dateBoundaryParameters } from '../../../docs';
 import { assetFilterParameters, atomicDataFilter } from '../openapi';
 import { fillAssets } from '../filler';
 
@@ -45,11 +45,20 @@ export class AssetApi {
                     queryValues.push(args.authorized_account);
                 }
 
-                const filter = buildAssetFilter(req, varCounter);
+                const assetFilter = buildAssetFilter(req, varCounter);
+                queryValues = queryValues.concat(assetFilter.values);
+                varCounter += assetFilter.values.length;
+                queryString += assetFilter.str;
 
-                queryValues = queryValues.concat(filter.values);
-                varCounter += filter.values.length;
-                queryString += filter.str;
+                const boundaryFilter = buildBoundaryFilter(
+                    req, varCounter,
+                    'asset.asset_id', 'int',
+                    args.sort === 'updated' ? 'asset.updated_at_time' : 'asset.minted_at_time',
+                    args.sort === 'updated' ? 'asset.updated_at_block' : 'asset.minted_at_block'
+                );
+                queryValues = queryValues.concat(boundaryFilter.values);
+                varCounter += boundaryFilter.values.length;
+                queryString += boundaryFilter.str;
 
                 const sortColumnMapping = {
                     asset_id: 'asset_id',
@@ -173,6 +182,8 @@ export class AssetApi {
                                     type: 'string'
                                 }
                             },
+                            ...primaryBoundaryParameters,
+                            ...dateBoundaryParameters,
                             ...paginationParameters,
                             {
                                 name: 'sort',
@@ -278,6 +289,7 @@ export class AssetApi {
             'eosio-contract-api', this.core.connection.chain.name, this.core.args.connected_reader,
             'atomicassets', this.core.args.atomicassets_account, 'assets'
         ].join(':');
+        this.core.connection.redis.ioRedisSub.setMaxListeners(this.core.connection.redis.ioRedisSub.getMaxListeners() + 1);
         this.core.connection.redis.ioRedisSub.subscribe(assetChannelName, () => {
             this.core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
                 if (channel !== assetChannelName) {

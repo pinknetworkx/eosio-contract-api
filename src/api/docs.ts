@@ -110,3 +110,54 @@ export const paginationParameters = [
         }
     }
 ];
+
+export const primaryBoundaryParameters = [
+    {
+        name: 'ids',
+        in: 'query',
+        description: 'seperate multiple ids with ","',
+        required: false,
+        schema: {
+            type: 'string'
+        }
+    },
+    {
+        name: 'lower_bound',
+        in: 'query',
+        description: 'lower bound of primary key (value included)',
+        required: false,
+        schema: {
+            type: 'string'
+        }
+    },
+    {
+        name: 'upper_bound',
+        in: 'query',
+        description: 'upper bound of primary key (value excluded)',
+        required: false,
+        schema: {
+            type: 'string'
+        }
+    }
+];
+
+export const dateBoundaryParameters = [
+    {
+        name: 'before',
+        in: 'query',
+        description: 'Only show results before this timestamp (value excluded)',
+        required: false,
+        schema: {
+            type: 'integer'
+        }
+    },
+    {
+        name: 'after',
+        in: 'query',
+        description: 'Only show results after this timestamp (value excluded)',
+        required: false,
+        schema: {
+            type: 'integer'
+        }
+    }
+];

@@ -63,9 +63,5 @@ export function formatOffer(row: any): any {
 }
 
 export function formatTransfer(row: any): any {
-    const data = {...row};
-
-    delete data['transfer_id'];
-
-    return data;
+    return {...row};
 }

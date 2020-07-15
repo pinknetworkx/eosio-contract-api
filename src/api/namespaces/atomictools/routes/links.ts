@@ -3,11 +3,11 @@ import { Numeric } from 'eosjs/dist';
 
 import { AtomicToolsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
+import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import logger from '../../../../utils/winston';
 import { fillLinks } from '../filler';
 import { formatLink } from '../format';
-import { filterQueryArgs } from '../../utils';
+import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { LinkState } from '../../../../filler/handlers/atomictools';
 
 export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, router: express.Router): any {
@@ -54,8 +54,17 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
                 queryValues.push(args.state.split(','));
             }
 
+            const boundaryFilter = buildBoundaryFilter(
+                req, varCounter, 'link_id', 'int',
+                args.sort === 'updated' ? 'updated_at_time' : 'created_at_time', args.sort === 'updated' ? 'updated_at_block' : 'created_at_block'
+            );
+            queryValues.push(...boundaryFilter.values);
+            varCounter += boundaryFilter.values.length;
+            queryString += boundaryFilter.str;
+
             const sortColumnMapping = {
-                created: 'created_at_block'
+                created: 'created_at_block',
+                updated: 'updated_at_block'
             };
 
             // @ts-ignore
@@ -147,6 +156,8 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
                             required: false,
                             schema: {type: 'string'}
                         },
+                        ...primaryBoundaryParameters,
+                        ...dateBoundaryParameters,
                         ...paginationParameters,
                         {
                             name: 'sort',

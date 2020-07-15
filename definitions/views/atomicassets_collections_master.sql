@@ -1,5 +1,5 @@
 CREATE OR REPLACE VIEW atomicassets_collections_master AS
-    SELECT DISTINCT ON (collection_a.contract, collection_a.collection_name)
+    SELECT
         collection_a.contract, collection_a.collection_name,
         collection_a.readable_name "name",
         collection_a.data->'img' img,
