@@ -239,6 +239,16 @@ export const atomicassetsComponents = {
     }
 };
 
+export const blacklistFilterParameters = [
+    {
+        name: 'collection_blacklist',
+        in: 'query',
+        description: 'Hide collections from result. Split multiple with ","',
+        required: false,
+        schema: {type: 'string'}
+    }
+];
+
 export const assetFilterParameters = [
     {
         name: 'owner',
@@ -274,7 +284,8 @@ export const assetFilterParameters = [
         description: 'Search for input in asset name',
         required: false,
         schema: {type: 'string'}
-    }
+    },
+    ...blacklistFilterParameters
 ];
 
 export const atomicDataFilter =

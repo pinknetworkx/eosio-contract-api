@@ -121,6 +121,42 @@ export function buildAssetFilter(
         queryValues.push('%' + args.match + '%');
     }
 
+    const blacklistFilter = buildBlacklistFilter(req, varCounter, 'asset.collection_name');
+    queryValues.push(...blacklistFilter.values);
+    queryString += blacklistFilter.str;
+
+    return {
+        values: queryValues,
+        str: queryString
+    };
+}
+
+export function buildBlacklistFilter(
+    req: express.Request, varOffset: number, collectionColumn: string = 'collection_name', accountColumns: string[] = []
+): {str: string, values: any[]} {
+    const args = filterQueryArgs(req, {
+        collection_blacklist: {type: 'string', min: 1},
+        account_blacklist: {type: 'string', min: 1}
+    });
+
+    let queryString = '';
+    const queryValues: any[] = [];
+    let varCounter = varOffset;
+
+    if (args.collection_blacklist) {
+        queryString += 'AND NOT (' + collectionColumn + ' = ANY ($' + ++varCounter + ')) ';
+        queryValues.push(args.collection_blacklist.split(','));
+    }
+
+    if (args.account_blacklist) {
+        const varCount = ++varCounter;
+        queryValues.push(args.account_blacklist.split(','));
+
+        for (const column of accountColumns) {
+            queryString += 'AND NOT (' + column + ' = ANY ($' + varCount + ')) ';
+        }
+    }
+
     return {
         values: queryValues,
         str: queryString

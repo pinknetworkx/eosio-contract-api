@@ -11,6 +11,7 @@ import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/open
 import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
+import { buildBlacklistFilter } from '../../atomicassets/utils';
 
 export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/auctions', server.web.caching(), async (req, res) => {
@@ -22,11 +23,16 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
             });
 
-            const filter = buildAuctionFilter(req, 1);
+            const auctionFilter = buildAuctionFilter(req, 1);
 
-            let queryString = 'SELECT * FROM atomicmarket_auctions_master listing WHERE market_contract = $1 ' + filter.str;
-            const queryValues = [core.args.atomicmarket_account, ...filter.values];
+            let queryString = 'SELECT * FROM atomicmarket_auctions_master listing WHERE market_contract = $1 ' + auctionFilter.str;
+            const queryValues = [core.args.atomicmarket_account, ...auctionFilter.values];
             let varCounter = queryValues.length;
+
+            const blacklistFilter = buildBlacklistFilter(req, varCounter, 'listing.collection_name');
+            queryValues.push(...blacklistFilter.values);
+            varCounter += blacklistFilter.values.length;
+            queryString += blacklistFilter.str;
 
             const boundaryFilter = buildBoundaryFilter(
                 req, varCounter, 'auction_id', 'int',

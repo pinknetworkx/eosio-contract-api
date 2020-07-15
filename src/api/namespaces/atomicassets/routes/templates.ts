@@ -2,12 +2,12 @@ import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { buildDataConditions, getLogs } from '../utils';
+import { buildBlacklistFilter, buildDataConditions, getLogs } from '../utils';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { formatTemplate } from '../format';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
-import { atomicDataFilter } from '../openapi';
+import { atomicDataFilter, blacklistFilterParameters } from '../openapi';
 
 export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     async function templateRequestHandler(req: express.Request, res: express.Response): Promise<any> {
@@ -83,6 +83,11 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             queryValues.push(...boundaryFilter.values);
             varCounter += boundaryFilter.values.length;
             queryString += boundaryFilter.str;
+
+            const blacklistFilter = buildBlacklistFilter(req, varCounter, 'collection_name');
+            queryValues.push(...blacklistFilter.values);
+            varCounter += blacklistFilter.values.length;
+            queryString += blacklistFilter.str;
 
             const sortColumnMapping = {
                 created: 'template_id'
@@ -208,6 +213,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                             required: false,
                             schema: {type: 'string'}
                         },
+                        ...blacklistFilterParameters,
                         ...primaryBoundaryParameters,
                         ...dateBoundaryParameters,
                         ...paginationParameters,

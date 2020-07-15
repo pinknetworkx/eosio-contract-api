@@ -12,6 +12,7 @@ import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
+import { buildBlacklistFilter } from '../../atomicassets/utils';
 
 export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/sales', server.web.caching(), async (req, res) => {
@@ -28,6 +29,11 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             let queryString = 'SELECT * FROM atomicmarket_sales_master listing WHERE market_contract = $1 ' + filter.str;
             const queryValues = [core.args.atomicmarket_account, ...filter.values];
             let varCounter = queryValues.length;
+
+            const blacklistFilter = buildBlacklistFilter(req, varCounter, 'listing.collection_name');
+            queryValues.push(...blacklistFilter.values);
+            varCounter += blacklistFilter.values.length;
+            queryString += blacklistFilter.str;
 
             const boundaryFilter = buildBoundaryFilter(
                 req, varCounter, 'sale_id', 'int',

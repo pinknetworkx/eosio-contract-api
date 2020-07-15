@@ -3,10 +3,11 @@ import * as express from 'express';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
-import { getLogs } from '../utils';
+import { buildBlacklistFilter, getLogs } from '../utils';
 import logger from '../../../../utils/winston';
 import { formatSchema } from '../format';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
+import { blacklistFilterParameters } from '../openapi';
 
 export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     async function schemaRequestHandler(req: express.Request, res: express.Response): Promise<any> {
@@ -60,6 +61,11 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
             queryValues.push(...boundaryFilter.values);
             varCounter += boundaryFilter.values.length;
             queryString += boundaryFilter.str;
+
+            const blacklistFilter = buildBlacklistFilter(req, varCounter, 'collection_name');
+            queryValues.push(...blacklistFilter.values);
+            varCounter += blacklistFilter.values.length;
+            queryString += blacklistFilter.str;
 
             const sortColumnMapping = {
                 created: 'created_at_block',
@@ -186,6 +192,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                             required: false,
                             schema: {type: 'string'}
                         },
+                        ...blacklistFilterParameters,
                         ...primaryBoundaryParameters,
                         ...dateBoundaryParameters,
                         ...paginationParameters,
