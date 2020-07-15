@@ -41,6 +41,15 @@ export class AssetFiller {
     }
 }
 
+export async function fillAssets(
+    connection: ConnectionManager, contract: string, assetIDs: any[], formatter: (_: any) => any, view: string
+) {
+    const filler = new AssetFiller(connection, contract, assetIDs, formatter, view);
+    await filler.query();
+
+    return await filler.fill(assetIDs);
+}
+
 export async function fillOffers(
     connection: ConnectionManager, contract: string, offers: any[], formatter: (_: any) => any, view: string
 ): Promise<any[]> {

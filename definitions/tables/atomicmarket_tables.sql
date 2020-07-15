@@ -211,8 +211,9 @@ ALTER TABLE ONLY atomicmarket_blacklist_collections
     REFERENCES atomicassets_collections (contract, collection_name) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 -- Indexes
-CREATE INDEX atomicmarket_auctions_market_contract ON atomicmarket_auctions USING hash (market_contract);
-CREATE INDEX atomicmarket_auctions_assets_contract ON atomicmarket_auctions USING hash (assets_contract);
+CREATE INDEX atomicmarket_auctions_market_contract ON atomicmarket_auctions USING btree (market_contract);
+CREATE INDEX atomicmarket_auctions_assets_contract ON atomicmarket_auctions USING btree (assets_contract);
+CREATE INDEX atomicmarket_auctions_auction_id ON atomicmarket_auctions USING btree (auction_id);
 CREATE INDEX atomicmarket_auctions_seller ON atomicmarket_auctions USING hash (seller);
 CREATE INDEX atomicmarket_auctions_buyer ON atomicmarket_auctions USING hash (buyer);
 CREATE INDEX atomicmarket_auctions_price ON atomicmarket_auctions USING btree (price);
@@ -224,7 +225,7 @@ CREATE INDEX atomicmarket_auctions_created_at_block ON atomicmarket_auctions USI
 CREATE INDEX atomicmarket_auctions_created_at_time ON atomicmarket_auctions USING btree (created_at_time);
 CREATE INDEX atomicmarket_auctions_end_time ON atomicmarket_auctions USING btree (end_time);
 
-CREATE INDEX atomicmarket_auctions_bids_market_contract ON atomicmarket_auctions_bids USING hash (market_contract);
+CREATE INDEX atomicmarket_auctions_bids_market_contract ON atomicmarket_auctions_bids USING btree (market_contract);
 CREATE INDEX atomicmarket_auctions_bids_account ON atomicmarket_auctions_bids USING btree (account);
 CREATE INDEX atomicmarket_auctions_bids_amount ON atomicmarket_auctions_bids USING btree (amount);
 CREATE INDEX atomicmarket_auctions_bids_created_at_block ON atomicmarket_auctions_bids USING btree (created_at_block);
@@ -232,12 +233,13 @@ CREATE INDEX atomicmarket_auctions_bids_created_at_block ON atomicmarket_auction
 CREATE INDEX atomicmarket_auctions_assets_market_contract ON atomicmarket_auctions_assets USING hash (market_contract);
 CREATE INDEX atomicmarket_auctions_assets_assets_contract ON atomicmarket_auctions_assets USING hash (assets_contract);
 
-CREATE INDEX atomicmarket_balances_market_contract ON atomicmarket_balances USING hash (market_contract);
+CREATE INDEX atomicmarket_balances_market_contract ON atomicmarket_balances USING btree (market_contract);
 CREATE INDEX atomicmarket_balances_owner ON atomicmarket_balances USING hash (owner);
 CREATE INDEX atomicmarket_balances_updated_at_block ON atomicmarket_balances USING btree (updated_at_block);
 
 CREATE INDEX atomicmarket_sales_market_contract ON atomicmarket_sales USING hash (market_contract);
 CREATE INDEX atomicmarket_sales_assets_contract ON atomicmarket_sales USING hash (assets_contract);
+CREATE INDEX atomicmarket_sales_sale_id ON atomicmarket_sales USING hash (sale_id);
 CREATE INDEX atomicmarket_sales_seller ON atomicmarket_sales USING hash (seller);
 CREATE INDEX atomicmarket_sales_buyer ON atomicmarket_sales USING hash (buyer);
 CREATE INDEX atomicmarket_sales_listing_price ON atomicmarket_sales USING btree (listing_price);

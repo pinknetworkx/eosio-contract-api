@@ -1,5 +1,5 @@
 CREATE OR REPLACE VIEW atomicassets_assets_master AS
-    SELECT DISTINCT ON (asset_a.contract, asset_a.asset_id)
+    SELECT
         asset_a.contract, asset_a.asset_id, asset_a.owner,
 
         template_a.readable_name template_readable_name,
@@ -9,7 +9,8 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
         CASE WHEN template_a.template_id IS NULL THEN true ELSE template_a.transferable END AS is_transferable,
         CASE WHEN template_a.template_id IS NULL THEN true ELSE template_a.burnable END AS is_burnable,
 
-        collection_a.collection_name, collection_a.authorized_accounts,
+        asset_a.collection_name,
+        collection_a.authorized_accounts,
         json_build_object(
             'collection_name', collection_a.collection_name,
             'name', collection_a.readable_name,
@@ -23,7 +24,7 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
             'created_at_time', collection_a.created_at_time
         ) collection,
 
-        schema_a.schema_name,
+        asset_a.schema_name,
         json_build_object(
             'schema_name', schema_a.schema_name,
             'format', schema_a.format,
@@ -31,7 +32,7 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
             'created_at_time', schema_a.created_at_time
         ) "schema",
 
-        template_a.template_id,
+        asset_a.template_id,
         CASE WHEN template_a.template_id IS NULL THEN null ELSE
         json_build_object(
             'template_id', template_a.template_id,

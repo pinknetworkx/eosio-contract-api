@@ -8,6 +8,7 @@ import { filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import { assetFilterParameters, atomicDataFilter } from '../openapi';
+import { fillAssets } from '../filler';
 
 export class AssetApi {
     constructor(
@@ -31,11 +32,16 @@ export class AssetApi {
                 });
 
                 let varCounter = 1;
-                let queryString = 'SELECT * FROM ' + this.assetView + ' asset WHERE contract = $1 ';
+                let queryString = 'SELECT asset_id FROM atomicassets_assets asset ' +
+                    'LEFT JOIN atomicassets_template template ON (asset.contract = template.contract AND asset.template_id = template.template_id) ' +
+                    'WHERE contract = $1 ';
                 let queryValues: any[] = [this.core.args.atomicassets_account];
 
                 if (args.authorized_account) {
-                    queryString += 'AND $' + ++varCounter + ' = ANY(authorized_accounts) ';
+                    queryString += 'AND EXISTS(' +
+                        'SELECT * FROM atomicassets_collections collection ' +
+                        'WHERE collection.collection_name = asset.collection_name AND $' + ++varCounter + ' = ANY(collection.authorized_accounts)' +
+                        ') ';
                     queryValues.push(args.authorized_account);
                 }
 
@@ -61,7 +67,13 @@ export class AssetApi {
 
                 const query = await this.core.connection.database.query(queryString, queryValues);
 
-                return res.json({success: true, data: query.rows.map((row) => this.assetFormatter(row)), query_time: Date.now()});
+                const assets = fillAssets(
+                    this.core.connection, this.core.args.atomicassets_account,
+                    query.rows.map(row => row.asset_id),
+                    this.assetFormatter, this.assetView
+                );
+
+                return res.json({success: true, data: assets, query_time: Date.now()});
             } catch (e) {
                 logger.error(req.originalUrl + ' ', e);
 

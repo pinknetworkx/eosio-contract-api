@@ -127,7 +127,7 @@ export function buildSaleFilter(req: express.Request, varOffset: number): {str: 
     varCounter += listingFilter.values.length;
 
     if (hasAssetFilter(req)) {
-        const filter = buildAssetFilter(req, varCounter, 'template.readable_name', 'asset.readable_name');
+        const filter = buildAssetFilter(req, varCounter);
 
         queryString += 'AND EXISTS(' +
                 'SELECT asset.asset_id ' +
@@ -211,7 +211,7 @@ export function buildAuctionFilter(req: express.Request, varOffset: number): {st
     varCounter += listingFilter.values.length;
 
     if (hasAssetFilter(req)) {
-        const filter = buildAssetFilter(req, varCounter, 'template.readable_name', 'asset.readable_name');
+        const filter = buildAssetFilter(req, varCounter);
 
         queryString += 'AND EXISTS(' +
                 'SELECT asset.asset_id ' +
