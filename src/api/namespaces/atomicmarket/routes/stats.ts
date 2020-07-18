@@ -6,8 +6,8 @@ import logger from '../../../../utils/winston';
 import { filterQueryArgs } from '../../utils';
 import { formatCollection } from '../../atomicassets/format';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
-import { assetFilterParameters, atomicassetsComponents, atomicDataFilter } from '../../atomicassets/openapi';
-import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
+import { atomicassetsComponents } from '../../atomicassets/openapi';
+import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 
 export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     function getCollectionStatsQuery(): string {
@@ -550,7 +550,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                         }
                     })
                 }
-            },
+            }
         }
     };
 }
