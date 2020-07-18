@@ -27,7 +27,7 @@
       "path": "/atomicassets",
       "args": {
         "atomicassets_account": "atomicassets",
-        "connected_reader": "atomic",
+        "connected_reader": "atomic"
       }
     }
   ]

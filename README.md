@@ -193,6 +193,7 @@ This reader requires a atomicassets and a delphioracle reader with the same cont
   "args": {
     "atomicassets_account": "atomicassets" // account where the atomicassets contract is deployed
     "atomicmarket_account": "atomicmarket" // account where the atomicmarket contract is deployed
+    "store_logs": true // Store logs of sales / auctions
   }
 }
 ```

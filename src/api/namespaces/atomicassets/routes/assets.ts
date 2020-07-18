@@ -34,8 +34,12 @@ export class AssetApi {
 
                 let varCounter = 1;
                 let queryString = 'SELECT asset_id FROM atomicassets_assets asset ' +
-                    'LEFT JOIN atomicassets_templates template ON (asset.contract = template.contract AND asset.template_id = template.template_id) ' +
-                    'LEFT JOIN atomicassets_mints mint ON (asset.contract = mint.contract AND asset.template_id = mint.template_id) ' +
+                    'LEFT JOIN atomicassets_templates template ON (' +
+                        'asset.contract = template.contract AND asset.template_id = template.template_id' +
+                    ') ' +
+                    'LEFT JOIN atomicassets_assets_mints mint ON (' +
+                        'asset.contract = mint.contract AND asset.template_id = mint.template_id' +
+                    ') ' +
                     'WHERE asset.contract = $1 ';
                 let queryValues: any[] = [this.core.args.atomicassets_account];
 

@@ -72,7 +72,7 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
         LEFT JOIN atomicassets_templates template_a ON (
             template_a.contract = asset_a.contract AND template_a.template_id = asset_a.template_id
         )
-        LEFT JOIN atomicassets_mints mint_a ON (
+        LEFT JOIN atomicassets_assets_mints mint_a ON (
             mint_a.contract = asset_a.contract AND mint_a.asset_id = asset_a.asset_id
         )
         JOIN atomicassets_collections collection_a ON (collection_a.contract = asset_a.contract AND collection_a.collection_name = asset_a.collection_name)

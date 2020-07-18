@@ -117,8 +117,9 @@ export default class AtomicAssetsHandler extends ContractHandler {
             }));
 
             const views = [
-                'atomicassets_assets_master', 'atomicassets_templates_master', 'atomicassets_schemas_master',
-                'atomicassets_collections_master', 'atomicassets_offers_master', 'atomicassets_transfers_master'
+                'atomicassets_assets_master', 'atomicassets_assets_mints_master', 'atomicassets_templates_master',
+                'atomicassets_schemas_master', 'atomicassets_collections_master', 'atomicassets_offers_master',
+                'atomicassets_transfers_master'
             ];
 
             for (const view of views) {
@@ -198,7 +199,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
 
     async deleteDB(client: PoolClient): Promise<void> {
         const tables = [
-            'atomicassets_assets', 'atomicassets_assets_backed_tokens', 'atomicassets_assets_data',
+            'atomicassets_assets', 'atomicassets_assets_backed_tokens', 'atomicassets_assets_data', 'atomicassets_assets_mints',
             'atomicassets_balances', 'atomicassets_collections', 'atomicassets_config',
             'atomicassets_logs', 'atomicassets_offers', 'atomicassets_offers_assets',
             'atomicassets_templates', 'atomicassets_templates_data', 'atomicassets_schemas',
@@ -369,11 +370,12 @@ export default class AtomicAssetsHandler extends ContractHandler {
         }
 
         const pendingQuery = await db.query(
-            'SELECT * FROM atomicassets_assets_mints_master mint_view WHERE contract = $1 AND asset_id IN (SELECT asset_id FROM atomicassets_assets asset ' +
+            'SELECT mint_view.* FROM atomicassets_assets_mints_master mint_view WHERE mint_view.contract = $1 AND asset_id IN (SELECT asset.asset_id FROM atomicassets_assets asset ' +
             'WHERE asset.contract = mint_view.contract AND NOT EXISTS (' +
                 'SELECT * FROM atomicassets_assets_mints mint ' +
                 'WHERE asset.contract = mint.contract AND asset.asset_id = mint.asset_id' +
-            '))'
+            '))',
+            [this.args.atomicassets_account]
         );
 
         await db.insert('atomicassets_assets_mints', pendingQuery.rows, ['contract', 'asset_id']);

@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW atomicassets_mints_master AS
+CREATE OR REPLACE VIEW atomicassets_assets_mints_master AS
     SELECT
         asset.contract, asset.asset_id,
         (
