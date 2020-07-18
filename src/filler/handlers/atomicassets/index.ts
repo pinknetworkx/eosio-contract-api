@@ -64,7 +64,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
     }> = [];
 
     offerState: {assets: string[], offers: string[]} = {assets: [], offers: []};
-    assetsMinted: boolean;
+    assetsMinted: {amount: number, updated: number} = {amount: 0, updated: 0};
 
     tableHandler: AtomicAssetsTableHandler;
     actionHandler: AtomicAssetsActionHandler;
@@ -228,7 +228,6 @@ export default class AtomicAssetsHandler extends ContractHandler {
 
         this.offerState.offers = [];
         this.offerState.assets = [];
-        this.assetsMinted = false;
     }
 
     async onBlockComplete(db: ContractDBTransaction, block: ShipBlock): Promise<void> {
@@ -365,11 +364,13 @@ export default class AtomicAssetsHandler extends ContractHandler {
     }
 
     async updateMints(db: ContractDBTransaction): Promise<void> {
-        if (!this.assetsMinted) {
+        if (this.assetsMinted.amount === 0) {
             return;
         }
 
-        return;
+        if (this.assetsMinted.updated > Date.now() - 30000) {
+            return;
+        }
 
         const pendingQuery = await db.query(
             'SELECT mint_view.* FROM atomicassets_assets_mints_master mint_view WHERE mint_view.contract = $1 AND asset_id IN (SELECT asset.asset_id FROM atomicassets_assets asset ' +
@@ -381,6 +382,9 @@ export default class AtomicAssetsHandler extends ContractHandler {
         );
 
         await db.insert('atomicassets_assets_mints', pendingQuery.rows, ['contract', 'asset_id']);
+
+        this.assetsMinted.amount = 0;
+        this.assetsMinted.updated = Date.now();
     }
 
     addUpdateJob(fn: () => any, priority: JobPriority): void {

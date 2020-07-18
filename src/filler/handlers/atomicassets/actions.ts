@@ -230,7 +230,7 @@ export default class AtomicAssetsActionHandler {
                 trace: data
             });
 
-            this.core.assetsMinted = true;
+            this.core.assetsMinted.amount += 1;
         } else if (trace.act.name === 'logbackasset') {
             // @ts-ignore
             const data: LogBackAssetActionData = trace.act.data;
