@@ -161,6 +161,13 @@ export const listingFilterParameters = [
         schema: {type: 'integer'}
     },
     {
+        name: 'min_assets',
+        in: 'query',
+        description: 'Min assets per listing',
+        required: false,
+        schema: {type: 'integer'}
+    },
+    {
         name: 'show_blacklisted',
         in: 'query',
         description: 'Include blacklisted collections and sellers',
@@ -187,6 +194,13 @@ export const listingFilterParameters = [
         description: 'Only show explicit whitelisted listings',
         required: false,
         schema: {type: 'boolean'}
+    },
+    {
+        name: 'asset_id',
+        in: 'query',
+        description: 'Asset id in the offer',
+        required: false,
+        schema: {type: 'int'}
     },
     {
         name: 'marketplace',

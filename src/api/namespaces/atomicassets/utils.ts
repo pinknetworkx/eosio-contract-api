@@ -121,7 +121,7 @@ export function buildAssetFilter(
         queryValues.push('%' + args.match + '%');
     }
 
-    const blacklistFilter = buildBlacklistFilter(req, varCounter, 'asset.collection_name');
+    const blacklistFilter = buildGreylistFilter(req, varCounter, 'asset.collection_name');
     queryValues.push(...blacklistFilter.values);
     queryString += blacklistFilter.str;
 
@@ -131,11 +131,12 @@ export function buildAssetFilter(
     };
 }
 
-export function buildBlacklistFilter(
+export function buildGreylistFilter(
     req: express.Request, varOffset: number, collectionColumn: string = 'collection_name', accountColumns: string[] = []
 ): {str: string, values: any[]} {
     const args = filterQueryArgs(req, {
         collection_blacklist: {type: 'string', min: 1},
+        collection_whitelist: {type: 'string', min: 1},
         account_blacklist: {type: 'string', min: 1}
     });
 
@@ -146,6 +147,11 @@ export function buildBlacklistFilter(
     if (args.collection_blacklist) {
         queryString += 'AND NOT (' + collectionColumn + ' = ANY ($' + ++varCounter + ')) ';
         queryValues.push(args.collection_blacklist.split(','));
+    }
+
+    if (args.collection_whitelist) {
+        queryString += 'AND ' + collectionColumn + ' = ANY ($' + ++varCounter + ') ';
+        queryValues.push(args.collection_whitelist.split(','));
     }
 
     if (args.account_blacklist) {

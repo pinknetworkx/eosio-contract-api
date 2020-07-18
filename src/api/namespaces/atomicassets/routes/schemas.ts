@@ -3,7 +3,7 @@ import * as express from 'express';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
-import { buildBlacklistFilter, getLogs } from '../utils';
+import { buildGreylistFilter, getLogs } from '../utils';
 import logger from '../../../../utils/winston';
 import { formatSchema } from '../format';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
@@ -62,7 +62,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
             varCounter += boundaryFilter.values.length;
             queryString += boundaryFilter.str;
 
-            const blacklistFilter = buildBlacklistFilter(req, varCounter, 'collection_name');
+            const blacklistFilter = buildGreylistFilter(req, varCounter, 'collection_name');
             queryValues.push(...blacklistFilter.values);
             varCounter += blacklistFilter.values.length;
             queryString += blacklistFilter.str;

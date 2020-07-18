@@ -1,5 +1,5 @@
 CREATE OR REPLACE VIEW atomicassets_assets_master AS
-    SELECT
+    SELECT DISTINCT ON (asset_a.contract, asset_a.asset_id)
         asset_a.contract, asset_a.asset_id, asset_a.owner,
 
         template_a.readable_name template_readable_name,
@@ -47,6 +47,10 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
         (SELECT json_object_agg("key", "value") FROM atomicassets_assets_data WHERE contract = asset_a.contract AND asset_id = asset_a.asset_id AND mutable IS true) mutable_data,
         (SELECT json_object_agg("key", "value") FROM atomicassets_assets_data WHERE contract = asset_a.contract AND asset_id = asset_a.asset_id AND mutable IS false) immutable_data,
 
+        COALESCE(mint_a.template_mint, 0) template_mint,
+        COALESCE(mint_a.schema_mint, 0) schema_mint,
+        COALESCE(mint_a.collection_mint, 0) collection_mint,
+
         ARRAY(
             SELECT DISTINCT ON (backed_b.contract, backed_b.asset_id, backed_b.token_symbol)
                 json_build_object(
@@ -67,6 +71,9 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
         atomicassets_assets asset_a
         LEFT JOIN atomicassets_templates template_a ON (
             template_a.contract = asset_a.contract AND template_a.template_id = asset_a.template_id
+        )
+        LEFT JOIN atomicassets_mints mint_a ON (
+            mint_a.contract = asset_a.contract AND mint_a.asset_id = asset_a.asset_id
         )
         JOIN atomicassets_collections collection_a ON (collection_a.contract = asset_a.contract AND collection_a.collection_name = asset_a.collection_name)
         JOIN atomicassets_schemas schema_a ON (schema_a.contract = asset_a.contract AND schema_a.collection_name = asset_a.collection_name AND schema_a.schema_name = asset_a.schema_name)

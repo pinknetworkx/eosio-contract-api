@@ -2,7 +2,7 @@ import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { buildBlacklistFilter, buildDataConditions, getLogs } from '../utils';
+import { buildGreylistFilter, buildDataConditions, getLogs } from '../utils';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { formatTemplate } from '../format';
@@ -84,7 +84,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             varCounter += boundaryFilter.values.length;
             queryString += boundaryFilter.str;
 
-            const blacklistFilter = buildBlacklistFilter(req, varCounter, 'collection_name');
+            const blacklistFilter = buildGreylistFilter(req, varCounter, 'collection_name');
             queryValues.push(...blacklistFilter.values);
             varCounter += blacklistFilter.values.length;
             queryString += blacklistFilter.str;

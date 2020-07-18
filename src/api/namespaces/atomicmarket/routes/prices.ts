@@ -59,7 +59,8 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
 
             res.json({
                 success: true,
-                data: prices.rows
+                data: prices.rows,
+                query_time: Date.now()
             });
         } catch (e) {
             logger.error(req.originalUrl + ' ', e);

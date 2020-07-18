@@ -67,6 +67,8 @@ export default class AtomicMarketHandler extends ContractHandler {
     tableHandler: AtomicMarketTableHandler;
     actionHandler: AtomicMarketActionHandler;
 
+    materializedViewRefresh = true;
+
     constructor(reader: StateReceiver, args: {[key: string]: any}, minBlock: number = 0) {
         super(reader, args, minBlock);
 
@@ -106,13 +108,23 @@ export default class AtomicMarketHandler extends ContractHandler {
                 encoding: 'utf8'
             }));
 
+            const views = [
+                'atomicmarket_assets_master', 'atomicmarket_auctions_master',
+                'atomicmarket_sales_master', 'atomicmarket_offers_master',
+                'atomicmarket_sale_prices_master'
+            ];
+
+            for (const view of views) {
+                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
+            }
+
+            const materialized = ['atomicmarket_sale_prices'];
+
+            for (const view of materialized) {
+                await client.query(fs.readFileSync('./definitions/materialized/' + view + '.sql', {encoding: 'utf8'}));
+            }
+
             logger.info('AtomicMarket tables successfully created');
-        }
-
-        const views = ['atomicmarket_assets_master', 'atomicmarket_auctions_master', 'atomicmarket_sales_master', 'atomicmarket_offers_master'];
-
-        for (const view of views) {
-            await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
         }
 
         const configQuery = await client.query(
@@ -195,6 +207,31 @@ export default class AtomicMarketHandler extends ContractHandler {
                 atomicassets_account: this.args.atomicassets_account
             };
         }
+
+        setTimeout(async () => {
+            while (true) {
+                try {
+                    if (!this.materializedViewRefresh) {
+                        return;
+                    }
+
+                    const key = 'eosio-contract-api:' + this.connection.chain.name + ':atomicmarket_sale_prices';
+
+                    const updated = JSON.parse(await this.connection.redis.ioRedis.get(key)) || 0;
+
+                    // only update every 90 seconds if multiple processes are running
+                    if (updated < Date.now() - 90000) {
+                        await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY atomicmarket_sale_prices');
+
+                        await this.connection.redis.ioRedis.set(key, JSON.stringify(Date.now()));
+                    }
+                } catch (e) {
+                    logger.error(e);
+                }
+
+                await new Promise((resolve => setTimeout(resolve, 120000)));
+            }
+        }, 5000);
     }
 
     async deleteDB(client: PoolClient): Promise<void> {
@@ -209,6 +246,12 @@ export default class AtomicMarketHandler extends ContractHandler {
                 'DELETE FROM ' + client.escapeIdentifier(table) + ' WHERE market_contract = $1',
                 [this.args.atomicmarket_account]
             );
+        }
+
+        const views = ['atomicmarket_sale_prices'];
+
+        for (const view of views) {
+            await client.query('REFRESH MATERIALIZED VIEW ' + client.escapeIdentifier(view) + '');
         }
     }
 

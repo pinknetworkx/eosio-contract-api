@@ -87,13 +87,13 @@ export default class AtomicToolsHandler extends ContractHandler {
                 encoding: 'utf8'
             }));
 
+            const views = ['atomictools_links_master'];
+
+            for (const view of views) {
+                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
+            }
+
             logger.info('AtomicTools tables successfully created');
-        }
-
-        const views = ['atomictools_links_master'];
-
-        for (const view of views) {
-            await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
         }
 
         const configQuery = await client.query(

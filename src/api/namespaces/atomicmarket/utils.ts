@@ -112,8 +112,10 @@ export function buildListingFilter(req: express.Request, varOffset: number): {st
 export function buildSaleFilter(req: express.Request, varOffset: number): {str: string, values: any[], counter: number} {
     const args = filterQueryArgs(req, {
         state: {type: 'string', min: 0},
+        asset_id: {type: 'int', min: 1},
+
         max_assets: {type: 'int', min: 1},
-        asset_id: {type: 'int', min: 1}
+        min_assets: {type: 'int', min: 1}
     });
 
     let varCounter = varOffset;
@@ -148,6 +150,13 @@ export function buildSaleFilter(req: express.Request, varOffset: number): {str: 
             SELECT COUNT(*) FROM atomicassets_offers_assets asset 
             WHERE asset.contract = listing.assets_contract AND asset.offer_id = listing.offer_id
         ) <= ${args.max_assets} `;
+    }
+
+    if (args.min_assets) {
+        queryString += `AND (
+            SELECT COUNT(*) FROM atomicassets_offers_assets asset 
+            WHERE asset.contract = listing.assets_contract AND asset.offer_id = listing.offer_id
+        ) >= ${args.min_assets} `;
     }
 
     if (args.asset_id) {
@@ -196,8 +205,10 @@ export function buildSaleFilter(req: express.Request, varOffset: number): {str: 
 export function buildAuctionFilter(req: express.Request, varOffset: number): {str: string, values: any[], counter: number} {
     const args = filterQueryArgs(req, {
         state: {type: 'string', min: 0},
-        max_assets: {type: 'int', min: 1},
-        asset_id: {type: 'int', min: 1}
+        asset_id: {type: 'int', min: 1},
+
+        min_assets: {type: 'int', min: 1},
+        max_assets: {type: 'int', min: 1}
     });
 
     let varCounter = varOffset;
@@ -232,6 +243,13 @@ export function buildAuctionFilter(req: express.Request, varOffset: number): {st
             SELECT COUNT(*) FROM atomicmarket_auctions_assets asset 
             WHERE asset.market_contract = listing.market_contract AND asset.auction_id = listing.auction_id
         ) <= ${args.max_assets} `;
+    }
+
+    if (args.min_assets) {
+        queryString += `AND (
+            SELECT COUNT(*) FROM atomicmarket_auctions_assets asset 
+            WHERE asset.market_contract = listing.market_contract AND asset.auction_id = listing.auction_id
+        ) >= ${args.min_assets} `;
     }
 
     if (args.asset_id) {

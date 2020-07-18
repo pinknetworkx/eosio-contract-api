@@ -64,6 +64,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
     }> = [];
 
     offerState: {assets: string[], offers: string[]} = {assets: [], offers: []};
+    assetsMinted: boolean;
 
     tableHandler: AtomicAssetsTableHandler;
     actionHandler: AtomicAssetsActionHandler;
@@ -115,16 +116,16 @@ export default class AtomicAssetsHandler extends ContractHandler {
                 encoding: 'utf8'
             }));
 
+            const views = [
+                'atomicassets_assets_master', 'atomicassets_templates_master', 'atomicassets_schemas_master',
+                'atomicassets_collections_master', 'atomicassets_offers_master', 'atomicassets_transfers_master'
+            ];
+
+            for (const view of views) {
+                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
+            }
+
             logger.info('AtomicAssets tables successfully created');
-        }
-
-        const views = [
-            'atomicassets_assets_master', 'atomicassets_templates_master', 'atomicassets_schemas_master',
-            'atomicassets_collections_master', 'atomicassets_offers_master', 'atomicassets_transfers_master'
-        ];
-
-        for (const view of views) {
-            await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
         }
 
         const configQuery = await client.query(
@@ -226,6 +227,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
 
         this.offerState.offers = [];
         this.offerState.assets = [];
+        this.assetsMinted = false;
     }
 
     async onBlockComplete(db: ContractDBTransaction, block: ShipBlock): Promise<void> {
@@ -250,6 +252,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
         this.jobs = [];
 
         await this.updateOfferStates(db, block, this.offerState.offers, this.offerState.assets);
+        await this.updateMints(db);
     }
 
     async onCommit(): Promise<void> {
@@ -358,6 +361,22 @@ export default class AtomicAssetsHandler extends ContractHandler {
             await this.events.emit('atomicassets_offer_state_change',
                 {db, block, contract: this.args.atomicassets_account, ...notification});
         }
+    }
+
+    async updateMints(db: ContractDBTransaction): Promise<void> {
+        if (!this.assetsMinted) {
+            return;
+        }
+
+        const pendingQuery = await db.query(
+            'SELECT * FROM atomicassets_assets_mints_master mint_view WHERE contract = $1 AND asset_id IN (SELECT asset_id FROM atomicassets_assets asset ' +
+            'WHERE asset.contract = mint_view.contract AND NOT EXISTS (' +
+                'SELECT * FROM atomicassets_assets_mints mint ' +
+                'WHERE asset.contract = mint.contract AND asset.asset_id = mint.asset_id' +
+            '))'
+        );
+
+        await db.insert('atomicassets_assets_mints', pendingQuery.rows, ['contract', 'asset_id']);
     }
 
     addUpdateJob(fn: () => any, priority: JobPriority): void {

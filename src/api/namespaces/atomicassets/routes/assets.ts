@@ -25,15 +25,17 @@ export class AssetApi {
                 const args = filterQueryArgs(req, {
                     page: {type: 'int', min: 1, default: 1},
                     limit: {type: 'int', min: 1, max: 1000, default: 100},
-                    sort: {type: 'string', values: ['asset_id', 'updated', 'minted'], default: 'asset_id'},
+                    sort: {type: 'string', values: ['asset_id', 'updated', 'minted', 'mint_number'], default: 'asset_id'},
                     order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
-                    authorized_account: {type: 'string', min: 1, max: 12}
+                    authorized_account: {type: 'string', min: 1, max: 12},
+                    only_duplicate_templates: {type: 'bool'}
                 });
 
                 let varCounter = 1;
                 let queryString = 'SELECT asset_id FROM atomicassets_assets asset ' +
                     'LEFT JOIN atomicassets_templates template ON (asset.contract = template.contract AND asset.template_id = template.template_id) ' +
+                    'LEFT JOIN atomicassets_mints mint ON (asset.contract = mint.contract AND asset.template_id = mint.template_id) ' +
                     'WHERE asset.contract = $1 ';
                 let queryValues: any[] = [this.core.args.atomicassets_account];
 
@@ -43,6 +45,14 @@ export class AssetApi {
                         'WHERE collection.collection_name = asset.collection_name AND $' + ++varCounter + ' = ANY(collection.authorized_accounts)' +
                         ') ';
                     queryValues.push(args.authorized_account);
+                }
+
+                if (args.only_duplicate_templates) {
+                    queryString += 'AND EXISTS (' +
+                        'SELECT * FROM atomicassets_assets inner_asset ' +
+                        'WHERE inner_asset.contract = asset.contract AND inner_asset.template_id = asset.template_id ' +
+                        'AND inner_asset.assetid < asset.asset_id' +
+                        ') AND template.template_id IS NOT NULL ';
                 }
 
                 const assetFilter = buildAssetFilter(req, varCounter);
@@ -61,13 +71,14 @@ export class AssetApi {
                 queryString += boundaryFilter.str;
 
                 const sortColumnMapping = {
-                    asset_id: 'asset_id',
-                    updated: 'updated_at_block',
-                    minted: 'asset_id'
+                    asset_id: 'asset.asset_id',
+                    updated: 'asset.updated_at_block',
+                    minted: 'asset.asset_id',
+                    mint_number: 'mint.template_mint'
                 };
 
                 // @ts-ignore
-                queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' ';
+                queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' NULLS LAST ';
                 queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
                 queryValues.push(args.limit);
                 queryValues.push((args.page - 1) * args.limit);
@@ -174,6 +185,15 @@ export class AssetApi {
                         parameters: [
                             ...assetFilterParameters,
                             {
+                                name: 'only_duplicate_templates',
+                                in: 'query',
+                                description: 'Show only duplicate assets grouped by template',
+                                required: false,
+                                schema: {
+                                    type: 'boolean'
+                                }
+                            },
+                            {
                                 name: 'authorized_account',
                                 in: 'query',
                                 description: 'Filter for assets the provided account can edit. ',
@@ -192,7 +212,7 @@ export class AssetApi {
                                 required: false,
                                 schema: {
                                     type: 'string',
-                                    enum: ['asset_id', 'minted', 'updated'],
+                                    enum: ['asset_id', 'minted', 'updated', 'mint_number'],
                                     default: 'asset_id'
                                 }
                             }

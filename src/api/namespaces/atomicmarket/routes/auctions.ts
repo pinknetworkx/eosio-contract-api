@@ -11,7 +11,7 @@ import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/open
 import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
-import { buildBlacklistFilter, getLogs } from '../../atomicassets/utils';
+import { buildGreylistFilter, getLogs } from '../../atomicassets/utils';
 
 export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/auctions', server.web.caching(), async (req, res) => {
@@ -29,7 +29,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             const queryValues = [core.args.atomicmarket_account, ...auctionFilter.values];
             let varCounter = queryValues.length;
 
-            const blacklistFilter = buildBlacklistFilter(req, varCounter, 'listing.collection_name');
+            const blacklistFilter = buildGreylistFilter(req, varCounter, 'listing.collection_name');
             queryValues.push(...blacklistFilter.values);
             varCounter += blacklistFilter.values.length;
             queryString += blacklistFilter.str;
