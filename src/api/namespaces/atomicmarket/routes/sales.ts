@@ -26,7 +26,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             const filter = buildSaleFilter(req, 1);
 
-            let queryString = 'SELECT * FROM atomicmarket_sales_master listing WHERE market_contract = $1 ' + filter.str;
+            let queryString = 'SELECT * FROM atomicmarket_sales LEFT JOIN listing WHERE market_contract = $1 ' + filter.str;
             const queryValues = [core.args.atomicmarket_account, ...filter.values];
             let varCounter = queryValues.length;
 

@@ -42,8 +42,6 @@ CREATE TABLE atomicassets_assets_mints (
     contract character varying(12) NOT NULL,
     asset_id bigint NOT NULL,
     template_mint bigint NOT NULL,
-    schema_mint bigint NOT NULL,
-    collection_mint bigint NOT NULL,
     CONSTRAINT atomicassets_assets_mints_pkey PRIMARY KEY (contract, asset_id)
 );
 
@@ -251,8 +249,6 @@ CREATE INDEX atomicassets_assets_data_updated_mutable ON atomicassets_assets_dat
 CREATE INDEX atomicassets_assets_mints_contract ON atomicassets_assets_mints USING btree (contract);
 CREATE INDEX atomicassets_assets_mints_asset_id ON atomicassets_assets_mints USING btree (asset_id);
 CREATE INDEX atomicassets_assets_mints_template_mint ON atomicassets_assets_mints USING btree (template_mint);
-CREATE INDEX atomicassets_assets_mints_collection_mint ON atomicassets_assets_mints USING btree (collection_mint);
-CREATE INDEX atomicassets_assets_mints_schema_mint ON atomicassets_assets_mints USING btree (schema_mint);
 
 CREATE INDEX atomicassets_balances_contract ON atomicassets_balances USING btree (contract);
 CREATE INDEX atomicassets_balances_owner ON atomicassets_balances USING hash (owner);

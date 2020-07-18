@@ -369,6 +369,8 @@ export default class AtomicAssetsHandler extends ContractHandler {
             return;
         }
 
+        return;
+
         const pendingQuery = await db.query(
             'SELECT mint_view.* FROM atomicassets_assets_mints_master mint_view WHERE mint_view.contract = $1 AND asset_id IN (SELECT asset.asset_id FROM atomicassets_assets asset ' +
             'WHERE asset.contract = mint_view.contract AND NOT EXISTS (' +

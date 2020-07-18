@@ -48,8 +48,6 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
         (SELECT json_object_agg("key", "value") FROM atomicassets_assets_data WHERE contract = asset_a.contract AND asset_id = asset_a.asset_id AND mutable IS false) immutable_data,
 
         COALESCE(mint_a.template_mint, 0) template_mint,
-        COALESCE(mint_a.schema_mint, 0) schema_mint,
-        COALESCE(mint_a.collection_mint, 0) collection_mint,
 
         ARRAY(
             SELECT DISTINCT ON (backed_b.contract, backed_b.asset_id, backed_b.token_symbol)

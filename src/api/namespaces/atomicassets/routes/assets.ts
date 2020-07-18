@@ -138,10 +138,7 @@ export class AssetApi {
                 const asset = assetQuery.rows[0];
 
                 const query = await this.core.connection.database.query(
-                    'SELECT ' +
-                    '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND asset_id <= $2 AND template_id = $3 AND schema_name = $4 AND collection_name = $5) template_mint, ' +
-                    '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND asset_id <= $2 AND schema_name = $4 AND collection_name = $5) schema_mint, ' +
-                    '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND asset_id <= $2 AND collection_name = $5) collection_mint',
+                    'SELECT COUNT(*) template_mint FROM atomicassets_assets WHERE contract = $1 AND asset_id <= $2 AND template_id = $3 AND schema_name = $4 AND collection_name = $5',
                     [this.core.args.atomicassets_account, asset.asset_id, asset.template_id, asset.schema_name, asset.collection_name]
                 );
 
@@ -256,8 +253,6 @@ export class AssetApi {
                         responses: getOpenAPI3Responses([200, 500], {
                             type: 'object',
                             properties: {
-                                collection_mint: {type: 'integer'},
-                                schema_mint: {type: 'integer'},
                                 template_mint: {type: 'integer'}
                             }
                         })
