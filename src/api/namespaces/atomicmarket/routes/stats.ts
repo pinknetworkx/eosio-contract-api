@@ -351,7 +351,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             }
 
             const queryString = `
-                SELECT SUM(final_price) volume, COUNT(*) sales FROM atomicmarket_sales WHERE state = ${SaleState.SOLD.valueOf()}
+                SELECT SUM(final_price) volume, COUNT(*) sales FROM atomicmarket_sales 
+                WHERE market_contract = $1 and settlement_symbol = $2 AND state = ${SaleState.SOLD.valueOf()}
             `;
             const queryValues = [core.args.atomicmarket_account, req.query.symbol];
 
