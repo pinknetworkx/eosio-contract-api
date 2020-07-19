@@ -157,6 +157,7 @@ export default class StateReceiver {
 
         for (const transaction of transactions) {
             if (transaction[0] === 'transaction_trace_v0') {
+                // transaction failed
                 if (transaction[1].status !== 0) {
                     continue;
                 }

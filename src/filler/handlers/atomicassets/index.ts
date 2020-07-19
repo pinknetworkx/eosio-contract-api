@@ -373,15 +373,24 @@ export default class AtomicAssetsHandler extends ContractHandler {
         }
 
         const pendingQuery = await db.query(
-            'SELECT mint_view.* FROM atomicassets_assets_mints_master mint_view WHERE mint_view.contract = $1 AND asset_id IN (SELECT asset.asset_id FROM atomicassets_assets asset ' +
-            'WHERE asset.contract = mint_view.contract AND NOT EXISTS (' +
-                'SELECT * FROM atomicassets_assets_mints mint ' +
-                'WHERE asset.contract = mint.contract AND asset.asset_id = mint.asset_id' +
-            '))',
+            `
+            SELECT mint_view.*
+            FROM atomicassets_assets asset, atomicassets_assets_mints_master mint_view
+            WHERE asset.contract = $1
+                AND asset.contract = mint_view.contract AND asset.asset_id = mint_view.asset_id
+                AND asset.template_id IS NOT NULL
+                AND NOT EXISTS (
+                    SELECT *
+                    FROM atomicassets_assets_mints mint
+                    WHERE asset.contract = mint.contract AND asset.asset_id = mint.asset_id 
+                )
+            `,
             [this.args.atomicassets_account]
         );
 
-        await db.insert('atomicassets_assets_mints', pendingQuery.rows, ['contract', 'asset_id']);
+        if (pendingQuery.rowCount > 0) {
+            await db.insert('atomicassets_assets_mints', pendingQuery.rows, ['contract', 'asset_id']);
+        }
 
         this.assetsMinted.amount = 0;
         this.assetsMinted.updated = Date.now();

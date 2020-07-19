@@ -2,9 +2,16 @@ import * as express from 'express';
 
 import { filterQueryArgs } from '../utils';
 import { buildAssetFilter } from '../atomicassets/utils';
-import { AuctionApiState, SaleApiState } from './index';
+import { AtomicMarketNamespace, AuctionApiState, SaleApiState } from './index';
 import { AuctionState, SaleState } from '../../../filler/handlers/atomicmarket';
 import { OfferState } from '../../../filler/handlers/atomicassets';
+
+export interface Greylists {
+    collection_blacklist: string[];
+    collection_whitelist: string[];
+    account_blacklist: string[];
+    account_whitelist: string;
+}
 
 function hasAssetFilter(req: express.Request): boolean {
     const keys = Object.keys(req.query);
@@ -22,7 +29,22 @@ function hasAssetFilter(req: express.Request): boolean {
     return false;
 }
 
-export function buildListingFilter(req: express.Request, varOffset: number): {str: string, values: any[], counter: number} {
+export async function fetchGreylists(core: AtomicMarketNamespace): Promise<Greylists> {
+    const query = await core.connection.database.query(
+        'SELECT ' +
+        'ARRAY(SELECT collection_name FROM atomicmarket_blacklist_collections WHERE market_contract = $1 AND assets_contract = $2) collection_blacklist, ' +
+        'ARRAY(SELECT collection_name FROM atomicmarket_whitelist_collections WHERE market_contract = $1 AND assets_contract = $2) collection_whitelist, ' +
+        'ARRAY(SELECT account FROM atomicmarket_blacklist_accounts WHERE market_contract = $1) account_blacklist, ' +
+        'ARRAY(SELECT account FROM atomicmarket_whitelist_accounts WHERE market_contract = $1) account_whitelist ',
+        [core.args.atomicmarket_account, core.args.atomicassets_account]
+    );
+
+    return query.rows[0];
+}
+
+export function buildListingFilter(
+    req: express.Request, varOffset: number, greylists: Greylists
+): {str: string, values: any[], counter: number} {
     const args = filterQueryArgs(req, {
         show_blacklisted: {type: 'bool', default: false},
         whitelisted_seller_only: {type: 'bool'},
@@ -32,15 +54,11 @@ export function buildListingFilter(req: express.Request, varOffset: number): {st
         maker_marketplace: {type: 'string', min: 1, max: 12},
         taker_marketplace: {type: 'string', min: 1, max: 12},
         marketplace: {type: 'string', min: 1, max: 12},
-        symbol: {type: 'string', min: 1},
 
         seller: {type: 'string', min: 1},
         buyer: {type: 'string', min: 1},
 
-        collection_name: {type: 'string', min: 1, max: 12},
-
-        min_price: {type: 'float', min: 0},
-        max_price: {type: 'float', min: 0}
+        collection_name: {type: 'string', min: 1}
     });
 
     let varCounter = varOffset;
@@ -58,18 +76,23 @@ export function buildListingFilter(req: express.Request, varOffset: number): {st
     }
 
     if (args.collection_name) {
-        queryString += 'AND listing.collection_name = $' + ++varCounter + ' ';
-        queryValues.push(args.collection_name);
+        queryString += 'AND listing.collection_name = ANY ($' + ++varCounter + ') ';
+        queryValues.push(args.collection_name.split(','));
     }
 
     if (args.whitelisted_only) {
-        queryString += 'AND (listing.seller_whitelisted = true OR listing.collection_whitelisted = true) ';
+        queryString += 'AND (listing.seller = ANY ($' + ++varCounter + ') OR listing.collection_name = ANY ($' + ++varCounter + ')) ';
+        queryValues.push(greylists.account_whitelist, greylists.collection_whitelist);
     } else if (args.whitelisted_collections_only) {
-        queryString += 'AND listing.collection_whitelisted = true ';
+        queryString += 'AND listing.collection_name = ANY ($' + ++varCounter + ') ';
+        queryValues.push(greylists.collection_whitelist);
     } else if (args.whitelisted_seller_only) {
-        queryString += 'AND listing.seller_whitelisted = true ';
+        queryString += 'AND listing.seller = ANY ($' + ++varCounter + ') ';
+        queryValues.push(greylists.account_whitelist);
     } else if (!args.show_blacklisted) {
-        queryString += 'AND (listing.seller_blacklisted = false OR listing.seller_whitelisted = true) AND collection_blacklisted = false ';
+        queryString += 'AND ((NOT (listing.seller = ANY($' + ++varCounter + '))) OR listing.seller = ANY($' + ++varCounter + ')) AND ' +
+            '(NOT (listing.collection_name = ANY($' + ++varCounter + '))) ';
+        queryValues.push(greylists.account_blacklist, greylists.account_whitelist, greylists.collection_blacklist);
     }
 
     if (args.marketplace) {
@@ -87,21 +110,6 @@ export function buildListingFilter(req: express.Request, varOffset: number): {st
         }
     }
 
-    if (args.symbol) {
-        queryString += ' AND listing.raw_token_symbol = $' + ++varCounter + ' ';
-        queryValues.push(args.symbol);
-
-        if (args.min_price) {
-            queryString += 'AND listing.raw_price >= 1.0 * $' + ++varCounter + ' * POWER(10, listing.raw_token_precision) ';
-            queryValues.push(args.min_price);
-        }
-
-        if (args.max_price) {
-            queryString += 'AND listing.raw_price <= 1.0 * $' + ++varCounter + ' * POWER(10, listing.raw_token_precision) ';
-            queryValues.push(args.max_price);
-        }
-    }
-
     return {
         values: queryValues,
         str: queryString,
@@ -109,20 +117,26 @@ export function buildListingFilter(req: express.Request, varOffset: number): {st
     };
 }
 
-export function buildSaleFilter(req: express.Request, varOffset: number): {str: string, values: any[], counter: number} {
+export function buildSaleFilter(
+    req: express.Request, varOffset: number, greylists: Greylists
+): {str: string, values: any[], counter: number} {
     const args = filterQueryArgs(req, {
         state: {type: 'string', min: 0},
         asset_id: {type: 'int', min: 1},
 
         max_assets: {type: 'int', min: 1},
-        min_assets: {type: 'int', min: 1}
+        min_assets: {type: 'int', min: 1},
+
+        symbol: {type: 'string', min: 1},
+        min_price: {type: 'float', min: 0},
+        max_price: {type: 'float', min: 0}
     });
 
     let varCounter = varOffset;
     const queryValues: any[] = [];
     let queryString = '';
 
-    const listingFilter = buildListingFilter(req, varOffset);
+    const listingFilter = buildListingFilter(req, varOffset, greylists);
 
     queryString += listingFilter.str;
     queryValues.push(...listingFilter.values);
@@ -133,8 +147,8 @@ export function buildSaleFilter(req: express.Request, varOffset: number): {str: 
 
         queryString += 'AND EXISTS(' +
                 'SELECT asset.asset_id ' +
-                'FROM atomicassets_assets asset LEFT JOIN atomicassets_templates template ON ( ' +
-                    'template.contract = asset.contract AND template.template_id = asset.template_id ' +
+                'FROM atomicassets_assets asset LEFT JOIN atomicassets_templates "template" ON ( ' +
+                    '"template".contract = asset.contract AND "template".template_id = asset.template_id ' +
                 '), atomicassets_offers_assets asset_o ' +
                 'WHERE ' +
                     'asset.contract = asset_o.contract AND asset.asset_id = asset_o.asset_id AND ' +
@@ -169,30 +183,45 @@ export function buildSaleFilter(req: express.Request, varOffset: number): {str: 
         queryValues.push(args.asset_id);
     }
 
+    if (args.symbol) {
+        queryString += ' AND listing.settlement_symbol = $' + ++varCounter + ' ';
+        queryValues.push(args.symbol);
+
+        if (args.min_price) {
+            queryString += 'AND price.price >= 1.0 * $' + ++varCounter + ' * POWER(10, price.settlement_precision) ';
+            queryValues.push(args.min_price);
+        }
+
+        if (args.max_price) {
+            queryString += 'AND price.price <= 1.0 * $' + ++varCounter + ' * POWER(10, price.settlement_precision) ';
+            queryValues.push(args.max_price);
+        }
+    }
+
     if (args.state) {
-        const stateConditions: string[] = [];
+        const stateFilters: string[] = [];
 
         if (args.state.split(',').indexOf(String(SaleApiState.WAITING.valueOf())) >= 0) {
-            stateConditions.push(`(listing.sale_state = ${SaleState.WAITING.valueOf()})`);
+            stateFilters.push(`(listing.state = ${SaleState.WAITING.valueOf()})`);
         }
 
         if (args.state.split(',').indexOf(String(SaleApiState.LISTED.valueOf())) >= 0) {
-            stateConditions.push(`(listing.sale_state = ${SaleState.LISTED.valueOf()} AND listing.offer_state = ${OfferState.PENDING.valueOf()})`);
+            stateFilters.push(`(listing.state = ${SaleState.LISTED.valueOf()} AND offer.state = ${OfferState.PENDING.valueOf()})`);
         }
 
         if (args.state.split(',').indexOf(String(SaleApiState.CANCELED.valueOf())) >= 0) {
-            stateConditions.push(`(listing.sale_state = ${SaleState.CANCELED.valueOf()})`);
+            stateFilters.push(`(listing.state = ${SaleState.CANCELED.valueOf()})`);
         }
 
         if (args.state.split(',').indexOf(String(SaleApiState.SOLD.valueOf())) >= 0) {
-            stateConditions.push(`(listing.sale_state = ${SaleState.SOLD.valueOf()})`);
+            stateFilters.push(`(listing.state = ${SaleState.SOLD.valueOf()})`);
         }
 
         if (args.state.split(',').indexOf(String(SaleApiState.INVALID.valueOf())) >= 0) {
-            stateConditions.push(`(listing.offer_state != ${OfferState.PENDING.valueOf()} AND listing.sale_state = ${SaleState.LISTED.valueOf()})`);
+            stateFilters.push(`(offer.state != ${OfferState.PENDING.valueOf()} AND listing.state = ${SaleState.LISTED.valueOf()})`);
         }
 
-        queryString += 'AND (' + stateConditions.join(' OR ') + ') ';
+        queryString += 'AND (' + stateFilters.join(' OR ') + ') ';
     }
 
     return {
@@ -202,20 +231,26 @@ export function buildSaleFilter(req: express.Request, varOffset: number): {str: 
     };
 }
 
-export function buildAuctionFilter(req: express.Request, varOffset: number): {str: string, values: any[], counter: number} {
+export function buildAuctionFilter(
+    req: express.Request, varOffset: number, greylists: Greylists
+): {str: string, values: any[], counter: number} {
     const args = filterQueryArgs(req, {
         state: {type: 'string', min: 0},
         asset_id: {type: 'int', min: 1},
 
         min_assets: {type: 'int', min: 1},
-        max_assets: {type: 'int', min: 1}
+        max_assets: {type: 'int', min: 1},
+
+        symbol: {type: 'string', min: 1},
+        min_price: {type: 'float', min: 0},
+        max_price: {type: 'float', min: 0}
     });
 
     let varCounter = varOffset;
     const queryValues: any[] = [];
     let queryString = '';
 
-    const listingFilter = buildListingFilter(req, varCounter);
+    const listingFilter = buildListingFilter(req, varCounter, greylists);
 
     queryString += listingFilter.str;
     queryValues.push(...listingFilter.values);
@@ -226,8 +261,8 @@ export function buildAuctionFilter(req: express.Request, varOffset: number): {st
 
         queryString += 'AND EXISTS(' +
                 'SELECT asset.asset_id ' +
-                'FROM atomicassets_assets asset LEFT JOIN atomicassets_templates template ON ( ' +
-                    'template.contract = asset.contract AND template.template_id = asset.template_id ' +
+                'FROM atomicassets_assets asset LEFT JOIN atomicassets_templates "template" ON ( ' +
+                    '"template".contract = asset.contract AND "template".template_id = asset.template_id ' +
                 '), atomicmarket_auctions_assets asset_a ' +
                 'WHERE ' +
                     'asset.contract = asset_a.assets_contract AND asset.asset_id = asset_a.asset_id AND ' +
@@ -260,6 +295,21 @@ export function buildAuctionFilter(req: express.Request, varOffset: number): {st
             'asset.asset_id = $' + ++varCounter + ' ' +
             ') ';
         queryValues.push(args.asset_id);
+    }
+
+    if (args.symbol) {
+        queryString += ' AND listing.raw_token_symbol = $' + ++varCounter + ' ';
+        queryValues.push(args.symbol);
+
+        if (args.min_price) {
+            queryString += 'AND listing.raw_price >= 1.0 * $' + ++varCounter + ' * POWER(10, listing.raw_token_precision) ';
+            queryValues.push(args.min_price);
+        }
+
+        if (args.max_price) {
+            queryString += 'AND listing.raw_price <= 1.0 * $' + ++varCounter + ' * POWER(10, listing.raw_token_precision) ';
+            queryValues.push(args.max_price);
+        }
     }
 
     if (args.state) {

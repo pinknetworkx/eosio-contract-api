@@ -5,7 +5,7 @@ import { AtomicMarketNamespace, AuctionApiState } from '../index';
 import { HTTPServer } from '../../../server';
 import { formatAuction } from '../format';
 import { fillAuctions } from '../filler';
-import { buildAuctionFilter } from '../utils';
+import { buildAuctionFilter, fetchGreylists } from '../utils';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/openapi';
 import logger from '../../../../utils/winston';
@@ -23,7 +23,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
             });
 
-            const auctionFilter = buildAuctionFilter(req, 1);
+            const auctionFilter = buildAuctionFilter(req, 1, await fetchGreylists(core));
 
             let queryString = 'SELECT * FROM atomicmarket_auctions_master listing WHERE market_contract = $1 ' + auctionFilter.str;
             const queryValues = [core.args.atomicmarket_account, ...auctionFilter.values];
@@ -95,7 +95,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
         }
     });
 
-    router.get('/v1/auctions/:auction_id/logs', this.server.web.caching(), (async (req, res) => {
+    router.get('/v1/auctions/:auction_id/logs', server.web.caching(), (async (req, res) => {
         const args = filterQueryArgs(req, {
             page: {type: 'int', min: 1, default: 1},
             limit: {type: 'int', min: 1, max: 100, default: 100},
@@ -106,7 +106,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             res.json({
                 success: true,
                 data: await getLogs(
-                    this.core.connection.database, this.core.args.atomicassets_account, 'auction', req.params.auction_id,
+                    core.connection.database, core.args.atomicassets_account, 'auction', req.params.auction_id,
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });

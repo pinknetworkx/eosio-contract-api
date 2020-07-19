@@ -8,6 +8,7 @@ import logger from '../../../../utils/winston';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import { assetFilterParameters } from '../../atomicassets/openapi';
 import { buildAssetFilter } from '../../atomicassets/utils';
+import { fillAssets } from '../../atomicassets/filler';
 import { formatListingAsset } from '../../atomicmarket/format';
 
 export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
@@ -68,10 +69,12 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
             });
 
             let varCounter = 2;
-            let queryString = 'SELECT asset.* ' +
-                'FROM atomicmarket_assets_master asset JOIN atomichub_watchlist wlist ON (' +
-                'wlist.contract = asset.contract AND wlist.asset_id = asset.asset_id' +
-                ')' +
+            let queryString = 'SELECT asset.asset_id ' +
+                'FROM atomicassets_assets asset JOIN atomichub_watchlist wlist ON (' +
+                    'wlist.contract = asset.contract AND wlist.asset_id = asset.asset_id' +
+                ') LEFT JOIN atomicassets_templates "template" ON (' +
+                    'asset.contract = template.contract AND asset.template_id = template.template_id' +
+                ') ' +
                 'WHERE asset.contract = $1 AND wlist.account = $2 ';
 
             let queryValues: any[] = [core.args.atomicassets_account, req.params.account];
@@ -97,7 +100,13 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
 
             const query = await core.connection.database.query(queryString, queryValues);
 
-            return res.json({success: true, data: query.rows.map((row) => formatListingAsset(row)), query_time: Date.now()});
+            const assets = await fillAssets(
+                core.connection, core.args.atomicassets_account,
+                query.rows.map(row => row.asset_id),
+                formatListingAsset, 'atomicmarket_assets_master'
+            );
+
+            return res.json({success: true, data: assets, query_time: Date.now()});
         } catch (e) {
             logger.error(req.originalUrl + ' ', e);
 

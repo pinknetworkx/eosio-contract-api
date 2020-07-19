@@ -168,6 +168,13 @@ export const listingFilterParameters = [
         schema: {type: 'integer'}
     },
     {
+        name: 'max_assets',
+        in: 'query',
+        description: 'Max assets per listing',
+        required: false,
+        schema: {type: 'integer'}
+    },
+    {
         name: 'show_blacklisted',
         in: 'query',
         description: 'Include blacklisted collections and sellers',

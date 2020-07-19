@@ -16,11 +16,11 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             collection.*, volume_table.volume, listings_table.listings,
             EXISTS (
                 SELECT * FROM atomicmarket_blacklist_collections list
-                WHERE list.assets_contract = asset_a.contract AND list.collection_name = asset_a.collection_name
+                WHERE list.assets_contract = collection.contract AND list.collection_name = collection.collection_name
             ) collection_blacklisted,
             EXISTS (
                 SELECT * FROM atomicmarket_whitelist_collections list
-                WHERE list.assets_contract = asset_a.contract AND list.collection_name = asset_a.collection_name
+                WHERE list.assets_contract = collection.contract AND list.collection_name = collection.collection_name
             ) collection_whitelisted
         FROM
             atomicassets_collections_master collection
@@ -48,13 +48,15 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 (
                     SELECT buyer account, SUM(final_price) buy_volume_inner, 0 sell_volume_inner 
                     FROM atomicmarket_sales sale
-                    WHERE sale.state = ${SaleState.SOLD.valueOf()} GROUP BY buyer AND sale.listing_symbol = $2 AND sale.market_contract = $1
+                    WHERE sale.state = ${SaleState.SOLD.valueOf()} AND sale.listing_symbol = $2 AND sale.market_contract = $1
+                    GROUP BY buyer
                 )
                 UNION ALL
                 (
                     SELECT seller account, 0 buy_volume_inner, SUM(final_price) sell_volume_inner 
                     FROM atomicmarket_sales sale
-                    WHERE sale.state = ${SaleState.SOLD.valueOf()} GROUP BY seller AND sale.listing_symbol = $2 AND sale.market_contract = $1
+                    WHERE sale.state = ${SaleState.SOLD.valueOf()} AND sale.listing_symbol = $2 AND sale.market_contract = $1
+                    GROUP BY seller
                 )
             ) accounts
         GROUP BY account
@@ -64,8 +66,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
     function getSchemaStatsQuery(): string {
         return `
         SELECT "schema_name", 
-            SUM(final_price) FILTER (WHERE "state" = 3) volume, 
-            COUNT(*) FILTER (WHERE "state" = 1) listings
+            SUM(final_price) FILTER (WHERE "state" = ${SaleState.SOLD.valueOf()}) volume, 
+            COUNT(*) FILTER (WHERE "state" = ${SaleState.LISTED.valueOf()}) listings
         FROM (
             SELECT sale.assets_contract, sale.sale_id, sale.state, sale.final_price, asset_a.schema_name
             FROM
@@ -73,7 +75,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             WHERE
                 sale.assets_contract = asset_o.contract AND sale.offer_id = asset_o.offer_id AND
                 asset_o.contract = asset_a.contract AND asset_o.asset_id = asset_a.asset_id AND
-                sale.assets_contract = $1 AND sale.listing_symbol = $2 AND sale.collection_name = $3 AND 
+                sale.market_contract = $1 AND sale.listing_symbol = $2 AND sale.collection_name = $3 AND 
                 sale."state" IN (${SaleState.LISTED.valueOf()}, ${SaleState.SOLD.valueOf()})
             GROUP BY sale.assets_contract, sale.sale_id, sale.state, sale.final_price, asset_a.schema_name
         ) t1
@@ -87,7 +89,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
 
         const query = await core.connection.database.query(
-            'SELECT token_symbol, token_contract, token_precision WHERE contract = $1 AND token_symbol = $2',
+            'SELECT token_symbol, token_contract, token_precision FROM atomicassets_tokens WHERE contract = $1 AND token_symbol = $2',
             [core.args.atomicassets_account, symbol]
         );
 
@@ -115,7 +117,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
-            let queryString = getCollectionStatsQuery() + 'AND volume IS NOT NULL OR listings IS NOT NULL';
+            let queryString = 'SELECT * FROM (' + getCollectionStatsQuery() + ') x WHERE volume IS NOT NULL OR listings IS NOT NULL ';
             const queryValues = [core.args.atomicassets_account, args.symbol];
             let varCounter = queryValues.length;
 
@@ -133,12 +135,12 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             };
 
             // @ts-ignore
-            queryString += 'GROUP BY sale.collection_name ORDER BY ' + sortColumnMapping[args.sort] + ' DESC NULLS LAST ' +
+            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' DESC NULLS LAST ' +
                 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter;
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
 
-            logger.debug(queryString);
+            logger.debug(queryString, queryValues);
 
             const query = await core.connection.database.query(queryString, queryValues);
 
@@ -162,8 +164,10 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
-            const queryString = getCollectionStatsQuery() + ' AND collection.collection_name = $3';
+            const queryString = 'SELECT * FROM (' + getCollectionStatsQuery() + ') x WHERE x.collection_name = $3 ';
             const queryValues = [core.args.atomicassets_account, req.query.symbol, req.params.collection_name];
+
+            logger.debug(queryString, queryValues);
 
             const query = await core.connection.database.query(queryString, queryValues);
 
@@ -199,7 +203,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
-            let queryString = 'SELECT * FROM (' + getAccountStatsQuery() + ') ';
+            let queryString = 'SELECT * FROM (' + getAccountStatsQuery() + ') x ';
             const queryValues = [core.args.atomicmarket_account, args.symbol];
             let varCounter = queryValues.length;
 
@@ -214,7 +218,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
 
-            logger.debug(queryString);
+            logger.debug(queryString, queryValues);
 
             const query = await core.connection.database.query(queryString, queryValues);
 
@@ -238,8 +242,10 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
-            const queryString = 'SELECT * FROM (' + getAccountStatsQuery() + ') WHERE account = $3';
-            const queryValues = [core.args.atomicassets_account, req.query.symbol, req.params.account];
+            const queryString = 'SELECT * FROM (' + getAccountStatsQuery() + ') x WHERE x.account = $3 ';
+            const queryValues = [core.args.atomicmarket_account, req.query.symbol, req.params.account];
+
+            logger.debug(queryString, queryValues);
 
             const query = await core.connection.database.query(queryString, queryValues);
 
@@ -273,9 +279,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
-            let queryString = 'SELECT * FROM (' + getSchemaStatsQuery() + ') ';
+            let queryString = 'SELECT * FROM (' + getSchemaStatsQuery() + ') x ';
             const queryValues = [core.args.atomicmarket_account, args.symbol, req.params.collection_name];
-            let varCounter = queryValues.length;
 
             const sortColumnMapping = {
                 volume: 'volume',
@@ -283,10 +288,9 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             };
 
             // @ts-ignore
-            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' DESC NULLS LAST ' +
-                'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter;
+            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' DESC NULLS LAST ';
 
-            logger.debug(queryString);
+            logger.debug(queryString, queryValues);
 
             const query = await core.connection.database.query(queryString, queryValues);
 

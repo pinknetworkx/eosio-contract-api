@@ -3,7 +3,7 @@ import PQueue from 'p-queue';
 
 import { AtomicMarketNamespace, SaleApiState } from '../index';
 import { HTTPServer } from '../../../server';
-import { buildSaleFilter } from '../utils';
+import { buildSaleFilter, fetchGreylists } from '../utils';
 import { fillSales } from '../filler';
 import { formatSale } from '../format';
 import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/openapi';
@@ -24,9 +24,14 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
             });
 
-            const filter = buildSaleFilter(req, 1);
+            const filter = buildSaleFilter(req, 1, await fetchGreylists(core));
 
-            let queryString = 'SELECT * FROM atomicmarket_sales LEFT JOIN listing WHERE market_contract = $1 ' + filter.str;
+            let queryString = `
+                SELECT listing.sale_id 
+                FROM atomicmarket_sales listing 
+                    JOIN atomicassets_offers offer ON (listing.assets_contract = offer.contract AND listing.offer_id = offer.offer_id)
+                    LEFT JOIN atomicmarket_sale_prices price ON (price.market_contract = listing.market_contract AND price.sale_id = listing.sale_id)
+                WHERE listing.market_contract = $1 ` + filter.str;
             const queryValues = [core.args.atomicmarket_account, ...filter.values];
             let varCounter = queryValues.length;
 
@@ -44,24 +49,36 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             queryString += boundaryFilter.str;
 
             const sortColumnMapping = {
-                sale_id: 'sale_id',
-                created: 'sale_id',
-                updated: 'updated_at_block',
-                price: 'raw_price'
+                sale_id: 'listing.sale_id',
+                created: 'listing.sale_id',
+                updated: 'listing.updated_at_block',
+                price: 'price.price'
             };
 
             // @ts-ignore
-            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' ';
+            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' NULLS LAST ';
             queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
 
             logger.debug(queryString);
 
-            const query = await core.connection.database.query(queryString, queryValues);
+            const saleQuery = await core.connection.database.query(queryString, queryValues);
+
+            const saleLookup: {[key: string]: any} = {};
+            const query = await core.connection.database.query(
+                'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY ($2)',
+                [core.args.atomicmarket_account, saleQuery.rows.map(row => row.sale_id)]
+            );
+
+            query.rows.reduce((prev, current) => {
+                prev[String(current.sale_id)] = current;
+
+                return prev;
+            }, saleLookup);
 
             const sales = await fillSales(
-                core.connection, core.args.atomicassets_account, query.rows.map((row) => formatSale(row))
+                core.connection, core.args.atomicassets_account, saleQuery.rows.map((row) => formatSale(saleLookup[String(row.sale_id)]))
             );
 
             res.json({success: true, data: sales, query_time: Date.now()});
@@ -95,7 +112,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     });
 
-    router.get('/v1/sales/:sale_id/logs', this.server.web.caching(), (async (req, res) => {
+    router.get('/v1/sales/:sale_id/logs', server.web.caching(), (async (req, res) => {
         const args = filterQueryArgs(req, {
             page: {type: 'int', min: 1, default: 1},
             limit: {type: 'int', min: 1, max: 100, default: 100},
@@ -106,7 +123,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             res.json({
                 success: true,
                 data: await getLogs(
-                    this.core.connection.database, this.core.args.atomicassets_account, 'sale', req.params.sale_id,
+                    core.connection.database, core.args.atomicassets_account, 'sale', req.params.sale_id,
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });

@@ -5,7 +5,7 @@ import fetch from 'node-fetch';
 import logger from '../src/utils/winston';
 
 describe('Endpoints Test', () => {
-    const endpoint = 'http://localhost:9000';
+    const endpoint = 'https://test.wax.api.atomicassets.io';
 
     async function testEndpoint(namespace: string, path: string, params: any): Promise<number> {
         const url = endpoint + '/' + namespace + path + '?' + Object.keys(params).map(key => key + '=' + params[key]).join('&');
@@ -34,6 +34,10 @@ describe('Endpoints Test', () => {
             limit: 1,
             order: 'asc',
             sort: 'asset_id',
+            collection_whitelist: 'test',
+            collection_blacklist: 'test',
+            before: '1',
+            after: Date.now(),
             'data.test': 'test'
         })).to.equal(200);
 
@@ -49,7 +53,9 @@ describe('Endpoints Test', () => {
             page: 1,
             limit: 1,
             order: 'asc',
-            sort: 'created'
+            sort: 'created',
+            collection_whitelist: 'test',
+            collection_blacklist: 'test'
         })).to.equal(200);
 
         expect(await testEndpoint(namespace, '/v1/collections/test', {})).to.equal(416);
@@ -63,7 +69,9 @@ describe('Endpoints Test', () => {
             page: 1,
             limit: 10,
             order: 'asc',
-            sort: 'created'
+            sort: 'created',
+            collection_whitelist: 'test',
+            collection_blacklist: 'test'
         })).to.equal(200);
 
         expect(await testEndpoint(namespace, '/v1/schemas/test/test', {})).to.equal(416);
@@ -78,7 +86,9 @@ describe('Endpoints Test', () => {
             page: 1,
             limit: 10,
             order: 'asc',
-            sort: 'created'
+            sort: 'created',
+            collection_whitelist: 'test',
+            collection_blacklist: 'test'
         })).to.equal(200);
 
         expect(await testEndpoint(namespace, '/v1/templates/test/10000000000', {})).to.equal(416);
@@ -184,6 +194,13 @@ describe('Endpoints Test', () => {
         expect(await testEndpoint(namespace, '/v1/marketplaces', {})).to.equal(200);
         expect(await testEndpoint(namespace, '/v1/marketplaces/test', {})).to.equal(416);
 
+        // stats
+        expect(await testEndpoint(namespace, '/v1/stats/collections', {symbol: 'WAX'})).to.equal(200);
+        expect(await testEndpoint(namespace, '/v1/stats/collections/test', {symbol: 'WAX'})).to.equal(416);
+        expect(await testEndpoint(namespace, '/v1/stats/accounts', {symbol: 'WAX'})).to.equal(200);
+        expect(await testEndpoint(namespace, '/v1/stats/accounts/test', {symbol: 'WAX'})).to.equal(416);
+        expect(await testEndpoint(namespace, '/v1/stats/schemas/test', {symbol: 'WAX'})).to.equal(200);
+
         // config
         expect(await testEndpoint(namespace, '/v1/config', {})).to.equal(200);
 
@@ -280,7 +297,7 @@ describe('Endpoints Test', () => {
             schema_name: 'test'
         })).to.equal(200);
         expect(await testEndpoint(namespace, '/v1/sales/suggestions', {
-            sale_id: 10000
+            sale_id: 100000
         })).to.equal(416);
         expect(await testEndpoint(namespace, '/v1/sales/suggestions', {
             collection_name: 'test',

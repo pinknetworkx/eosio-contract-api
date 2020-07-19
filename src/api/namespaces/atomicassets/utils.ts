@@ -61,7 +61,7 @@ export function buildDataConditions(args: any, varCounter: number = 0): {conditi
 
 export function buildAssetFilter(
     req: express.Request, varOffset: number,
-    templateReadableNameColumn: string = 'template.readable_name', assetReadableNameColumn: string = 'asset.readable_name'
+    templateReadableNameColumn: string = '"template".readable_name', assetReadableNameColumn: string = 'asset.readable_name'
 ): {str: string, values: any[]} {
     const args = filterQueryArgs(req, {
         owner: {type: 'string', min: 1, max: 12},

@@ -9,6 +9,7 @@ import { SaleState } from '../../../../filler/handlers/atomicmarket';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { fillSales } from '../../atomicmarket/filler';
 import logger from '../../../../utils/winston';
+import { fillAssets } from '../../atomicassets/filler';
 
 export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/stats', server.web.caching({expire: 60, ignoreQueryString: true}), async (req, res) => {
@@ -66,27 +67,15 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
 
     router.get('/v1/sales/trending', server.web.caching({expire: 60}), async (req, res) => {
         try {
-            const args = filterQueryArgs(req, {
+            /*const args = filterQueryArgs(req, {
                 limit: {type: 'int', min: 1, max: 100, default: 10}
-            });
-
-            const query = await core.connection.database.query(
-                'SELECT * from atomicmarket_sales_master ' +
-                'WHERE sale_state = $1 AND offer_state = $2 AND market_contract = $3 AND raw_token_symbol = $4 ' +
-                'ORDER BY created_at_block DESC LIMIT $5',
-                [
-                    SaleState.LISTED.valueOf(), OfferState.PENDING.valueOf(),
-                    core.args.atomicmarket_account, core.args.default_symbol, args.limit
-                ]
-            );
+            });*/
 
             // TODO do some market magic to find trending assets
 
-            const sales = await fillSales(core.connection, core.args.atomicassets_account, query.rows.map(row => formatSale(row)));
-
             res.json({
                 success: true,
-                data: sales,
+                data: [],
                 query_time: Date.now()
             });
         } catch (e) {
@@ -126,7 +115,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             let assets = [];
             for (let i = 0; i <= 3 && assets.length === 0; i++) {
                 const queryValues = [core.args.atomicassets_account];
-                let queryString = 'SELECT * from atomicmarket_assets_master WHERE contract = $1 AND owner IS NOT NULL ';
+                let queryString = 'SELECT asset_id from atomicassets_assets WHERE contract = $1 AND owner IS NOT NULL ';
 
                 if (args.template_id && i <= 0) {
                     queryValues.push(args.template_id);
@@ -153,7 +142,11 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
 
                 const query = await core.connection.database.query(queryString, queryValues);
 
-                assets = query.rows.map(row => formatListingAsset(row));
+                assets = await fillAssets(
+                    core.connection, core.args.atomicassets_account,
+                    query.rows.map(row => row.asset_id),
+                    formatListingAsset, 'atomicmarket_assets_master'
+                );
             }
 
             res.json({
