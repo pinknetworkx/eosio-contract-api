@@ -83,6 +83,15 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         `;
     }
 
+    function getGraphStatsQuery(): string {
+        return `
+        SELECT div(sale.updated_at_time, 24 * 3600 * 1000) "time", COUNT(*) sales, SUM(final_price) volume
+        FROM atomicmarket_sales sale 
+        WHERE "state" = ${SaleState.SOLD.valueOf()} AND market_contract = $1 AND settlement_symbol = $2
+        GROUP BY "time" ORDER BY "time" ASC
+        `;
+    }
+
     async function fetchSymbol(symbol: string): Promise<{token_symbol: string, token_contract: string, token_precision: number}> {
         if (!symbol) {
             return null;
@@ -297,6 +306,62 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             res.json({
                 success: true,
                 data: {symbol, results: query.rows},
+                query_time: Date.now()
+            });
+        } catch (e) {
+            logger.error(req.originalUrl + ' ', e);
+
+            res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
+    });
+
+    router.get('/v1/stats/graph', server.web.caching(), async (req, res) => {
+        try {
+            const symbol = await fetchSymbol(String(req.query.symbol));
+
+            if (symbol === null) {
+                return res.status(500).json({success: false, message: 'Symbol not found'});
+            }
+
+            const queryString = getGraphStatsQuery();
+            const queryValues = [core.args.atomicmarket_account, req.query.symbol];
+
+            logger.debug(queryString, queryValues);
+
+            const query = await core.connection.database.query(queryString, queryValues);
+
+            res.json({
+                success: true,
+                data: {symbol, results: query.rows},
+                query_time: Date.now()
+            });
+        } catch (e) {
+            logger.error(req.originalUrl + ' ', e);
+
+            res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
+    });
+
+    router.get('/v1/stats/sales', server.web.caching(), async (req, res) => {
+        try {
+            const symbol = await fetchSymbol(String(req.query.symbol));
+
+            if (symbol === null) {
+                return res.status(500).json({success: false, message: 'Symbol not found'});
+            }
+
+            const queryString = `
+                SELECT SUM(final_price) volume, COUNT(*) sales FROM atomicmarket_sales WHERE state = ${SaleState.SOLD.valueOf()}
+            `;
+            const queryValues = [core.args.atomicmarket_account, req.query.symbol];
+
+            logger.debug(queryString, queryValues);
+
+            const query = await core.connection.database.query(queryString, queryValues);
+
+            res.json({
+                success: true,
+                data: {symbol, result: query.rows[0]},
                 query_time: Date.now()
             });
         } catch (e) {
@@ -551,6 +616,70 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                         properties: {
                             symbol: SymbolResult,
                             results: {type: 'array', items: SchemaResult}
+                        }
+                    })
+                }
+            },
+            '/v1/stats/graph': {
+                get: {
+                    tags: ['stats'],
+                    summary: 'Get history of volume and',
+                    parameters: [
+                        {
+                            name: 'symbol',
+                            in: 'query',
+                            description: 'Token Symbol',
+                            required: true,
+                            schema: {
+                                type: 'string'
+                            }
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'object',
+                        properties: {
+                            symbol: SymbolResult,
+                            results: {
+                                type: 'array',
+                                items: {
+                                    type: 'object',
+                                    properties: {
+                                        time: {type: 'integer'},
+                                        volume: {type: 'integer'},
+                                        sales: {type: 'integer'}
+                                    }
+                                }
+                            }
+                        }
+                    })
+                }
+            },
+            '/v1/stats/sales': {
+                get: {
+                    tags: ['stats'],
+                    summary: 'Get total sales and volume',
+                    parameters: [
+                        {
+                            name: 'symbol',
+                            in: 'query',
+                            description: 'Token Symbol',
+                            required: true,
+                            schema: {
+                                type: 'string'
+                            }
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'object',
+                        properties: {
+                            symbol: SymbolResult,
+                            results: {
+                                type: 'object',
+                                properties: {
+                                    volume: {type: 'integer'},
+                                    sales: {type: 'integer'}
+                                }
+                            }
                         }
                     })
                 }
