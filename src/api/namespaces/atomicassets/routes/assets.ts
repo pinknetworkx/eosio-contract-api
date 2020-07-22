@@ -55,8 +55,8 @@ export class AssetApi {
                     queryString += 'AND EXISTS (' +
                         'SELECT * FROM atomicassets_assets inner_asset ' +
                         'WHERE inner_asset.contract = asset.contract AND inner_asset.template_id = asset.template_id ' +
-                        'AND inner_asset.assetid < asset.asset_id' +
-                        ') AND template.template_id IS NOT NULL ';
+                        'AND inner_asset.asset_id < asset.asset_id AND inner_asset.owner = asset.owner' +
+                        ') AND asset.template_id IS NOT NULL ';
                 }
 
                 const assetFilter = buildAssetFilter(req, varCounter);

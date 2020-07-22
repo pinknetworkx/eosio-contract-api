@@ -114,6 +114,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             const args = filterQueryArgs(req, {
                 collection_whitelisted: {type: 'bool'},
                 symbol: {type: 'string', min: 1},
+                match: {type: 'string', min: 1},
 
                 sort: {type: 'string', values: ['volume', 'listings'], default: 'volume'},
                 page: {type: 'int', min: 1, default: 1},
@@ -126,9 +127,14 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
-            let queryString = 'SELECT * FROM (' + getCollectionStatsQuery() + ') x WHERE volume IS NOT NULL OR listings IS NOT NULL ';
+            let queryString = 'SELECT * FROM (' + getCollectionStatsQuery() + ') x WHERE (volume IS NOT NULL OR listings IS NOT NULL) ';
             const queryValues = [core.args.atomicassets_account, args.symbol];
             let varCounter = queryValues.length;
+
+            if (args.match) {
+                queryString += 'AND collection_name ILIKE $' + ++varCounter + ' ';
+                queryValues.push('%' + args.match + '%');
+            }
 
             if (typeof args.collection_whitelisted !== 'undefined') {
                 if (args.collection_whitelisted) {
@@ -278,6 +284,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         try {
             const args = filterQueryArgs(req, {
                 symbol: {type: 'string', min: 1},
+                match: {type: 'string', min: 1},
 
                 sort: {type: 'string', values: ['volume', 'listings'], default: 'volume'}
             });
@@ -290,11 +297,17 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             let queryString = 'SELECT * FROM (' + getSchemaStatsQuery() + ') x ';
             const queryValues = [core.args.atomicmarket_account, args.symbol, req.params.collection_name];
+            let varCounter = queryValues.length;
 
             const sortColumnMapping = {
                 volume: 'volume',
                 listings: 'listings'
             };
+
+            if (args.match) {
+                queryString += 'WHERE schema_name ILIKE $' + ++varCounter + ' ';
+                queryValues.push('%' + args.match + '%');
+            }
 
             // @ts-ignore
             queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' DESC NULLS LAST ';
