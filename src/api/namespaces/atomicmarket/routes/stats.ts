@@ -27,13 +27,13 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             LEFT JOIN (
                 SELECT sale.assets_contract contract, sale.collection_name, SUM(sale.final_price) volume
                 FROM atomicmarket_sales sale
-                WHERE sale.state = ${SaleState.SOLD.valueOf()} AND sale.listing_symbol = $2
+                WHERE sale.state = ${SaleState.SOLD.valueOf()} AND sale.settlement_symbol = $2
                 GROUP BY sale.assets_contract, sale.collection_name
             ) volume_table ON (collection.contract = volume_table.contract AND collection.collection_name = volume_table.collection_name)
             LEFT JOIN (
                 SELECT sale.assets_contract contract, sale.collection_name, COUNT(*) listings
                 FROM atomicmarket_sales sale
-                WHERE sale.state = ${SaleState.LISTED.valueOf()} AND sale.listing_symbol = $2
+                WHERE sale.state = ${SaleState.LISTED.valueOf()} AND sale.settlement_symbol = $2
                 GROUP BY sale.assets_contract, sale.collection_name
             ) listings_table ON (collection.contract = listings_table.contract AND collection.collection_name = listings_table.collection_name)
         WHERE collection.contract = $1 
@@ -48,14 +48,14 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 (
                     SELECT buyer account, SUM(final_price) buy_volume_inner, 0 sell_volume_inner 
                     FROM atomicmarket_sales sale
-                    WHERE sale.state = ${SaleState.SOLD.valueOf()} AND sale.listing_symbol = $2 AND sale.market_contract = $1
+                    WHERE sale.state = ${SaleState.SOLD.valueOf()} AND sale.settlement_symbol = $2 AND sale.market_contract = $1
                     GROUP BY buyer
                 )
                 UNION ALL
                 (
                     SELECT seller account, 0 buy_volume_inner, SUM(final_price) sell_volume_inner 
                     FROM atomicmarket_sales sale
-                    WHERE sale.state = ${SaleState.SOLD.valueOf()} AND sale.listing_symbol = $2 AND sale.market_contract = $1
+                    WHERE sale.state = ${SaleState.SOLD.valueOf()} AND sale.settlement_symbol = $2 AND sale.market_contract = $1
                     GROUP BY seller
                 )
             ) accounts
@@ -75,7 +75,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             WHERE
                 sale.assets_contract = asset_o.contract AND sale.offer_id = asset_o.offer_id AND
                 asset_o.contract = asset_a.contract AND asset_o.asset_id = asset_a.asset_id AND
-                sale.market_contract = $1 AND sale.listing_symbol = $2 AND sale.collection_name = $3 AND 
+                sale.market_contract = $1 AND sale.settlement_symbol = $2 AND sale.collection_name = $3 AND 
                 sale."state" IN (${SaleState.LISTED.valueOf()}, ${SaleState.SOLD.valueOf()})
             GROUP BY sale.assets_contract, sale.sale_id, sale.state, sale.final_price, asset_a.schema_name
         ) t1
