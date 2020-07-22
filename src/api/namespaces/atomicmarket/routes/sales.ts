@@ -58,7 +58,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             };
 
             // @ts-ignore
-            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' NULLS LAST ';
+            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' NULLS LAST, listing.sale_id ASC ';
             queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);

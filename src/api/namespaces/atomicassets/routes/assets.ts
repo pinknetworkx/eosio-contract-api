@@ -82,7 +82,7 @@ export class AssetApi {
                 };
 
                 // @ts-ignore
-                queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' NULLS LAST ';
+                queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' NULLS LAST, asset.asset_id ASC ';
                 queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
                 queryValues.push(args.limit);
                 queryValues.push((args.page - 1) * args.limit);

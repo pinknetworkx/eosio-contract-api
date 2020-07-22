@@ -94,7 +94,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             };
 
             // @ts-ignore
-            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' ';
+            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', template_id ASC ';
             queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);

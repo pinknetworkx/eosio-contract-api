@@ -63,12 +63,12 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
             queryString += boundaryFilter.str;
 
             const sortColumnMapping = {
-                created: 'created_at_block',
+                created: 'link_id',
                 updated: 'updated_at_block'
             };
 
             // @ts-ignore
-            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' ';
+            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', link_id ASC ';
             queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);

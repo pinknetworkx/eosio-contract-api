@@ -51,7 +51,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             };
 
             // @ts-ignore
-            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' ';
+            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' NULLS LAST, listing.auction_id ASC ';
             queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
