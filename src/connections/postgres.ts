@@ -2,11 +2,14 @@ import { Pool, PoolClient, QueryResult } from 'pg';
 
 export default class PostgresConnection {
     readonly pool: Pool;
+    readonly name: string;
 
     private initialized = false;
 
     constructor(host: string, port: number, user: string, password: string, database: string) {
         this.pool = new Pool({ host, port, user, password, database });
+
+        this.name = host + '::' + port + '::' + database;
     }
 
     async init(): Promise<void> {

@@ -78,7 +78,7 @@ export class AssetApi {
                     asset_id: 'asset.asset_id',
                     updated: 'asset.updated_at_block',
                     minted: 'asset.asset_id',
-                    mint_number: 'mint.template_mint'
+                    template_mint: 'mint.template_mint'
                 };
 
                 // @ts-ignore
@@ -213,7 +213,7 @@ export class AssetApi {
                                 required: false,
                                 schema: {
                                     type: 'string',
-                                    enum: ['asset_id', 'minted', 'updated', 'mint_number'],
+                                    enum: ['asset_id', 'minted', 'updated', 'template_mint'],
                                     default: 'asset_id'
                                 }
                             }

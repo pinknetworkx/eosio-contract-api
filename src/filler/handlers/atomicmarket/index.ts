@@ -101,6 +101,8 @@ export default class AtomicMarketHandler extends ContractHandler {
             [await this.connection.database.schema(), 'atomicmarket_config']
         );
 
+        const materializedViews = ['atomicmarket_sale_prices', 'atomicmarket_sale_mints'];
+
         if (!existsQuery.rows[0].exists) {
             logger.info('Could not find AtomicMarket tables. Create them now...');
 
@@ -118,9 +120,7 @@ export default class AtomicMarketHandler extends ContractHandler {
                 await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
             }
 
-            const materialized = ['atomicmarket_sale_prices'];
-
-            for (const view of materialized) {
+            for (const view of materializedViews) {
                 await client.query(fs.readFileSync('./definitions/materialized/' + view + '.sql', {encoding: 'utf8'}));
             }
 
@@ -215,15 +215,17 @@ export default class AtomicMarketHandler extends ContractHandler {
                         return;
                     }
 
-                    const key = 'eosio-contract-api:' + this.connection.chain.name + ':atomicmarket_sale_prices';
+                    for (const view of materializedViews) {
+                        const key = 'eosio-contract-api:' + this.connection.chain.name + ':' + this.connection.database.name + ':' + view;
 
-                    const updated = JSON.parse(await this.connection.redis.ioRedis.get(key)) || 0;
+                        const updated = JSON.parse(await this.connection.redis.ioRedis.get(key)) || 0;
 
-                    // only update every 90 seconds if multiple processes are running
-                    if (updated < Date.now() - 90000) {
-                        await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY atomicmarket_sale_prices');
+                        // only update every 90 seconds if multiple processes are running
+                        if (updated < Date.now() - 90000) {
+                            await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view);
 
-                        await this.connection.redis.ioRedis.set(key, JSON.stringify(Date.now()));
+                            await this.connection.redis.ioRedis.set(key, JSON.stringify(Date.now()));
+                        }
                     }
                 } catch (e) {
                     logger.error(e);

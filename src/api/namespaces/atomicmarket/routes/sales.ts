@@ -31,6 +31,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 FROM atomicmarket_sales listing 
                     JOIN atomicassets_offers offer ON (listing.assets_contract = offer.contract AND listing.offer_id = offer.offer_id)
                     LEFT JOIN atomicmarket_sale_prices price ON (price.market_contract = listing.market_contract AND price.sale_id = listing.sale_id)
+                    LEFT JOIN atomicmarket_sale_mints mint ON (mint.market_contract = listing.market_contract AND mint.sale_id = listing.sale_id)
                 WHERE listing.market_contract = $1 ` + filter.str;
             const queryValues = [core.args.atomicmarket_account, ...filter.values];
             let varCounter = queryValues.length;
@@ -52,7 +53,8 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 sale_id: 'listing.sale_id',
                 created: 'listing.sale_id',
                 updated: 'listing.updated_at_block',
-                price: 'price.price'
+                price: 'price.price',
+                template_mint: 'mint.min_template_mint'
             };
 
             // @ts-ignore
@@ -171,7 +173,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             required: false,
                             schema: {
                                 type: 'string',
-                                enum: ['created', 'updated', 'sale_id', 'price'],
+                                enum: ['created', 'updated', 'sale_id', 'price', 'template_mint'],
                                 default: 'created'
                             }
                         }
