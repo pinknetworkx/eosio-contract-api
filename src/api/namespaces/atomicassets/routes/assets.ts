@@ -25,7 +25,7 @@ export class AssetApi {
                 const args = filterQueryArgs(req, {
                     page: {type: 'int', min: 1, default: 1},
                     limit: {type: 'int', min: 1, max: 1000, default: 100},
-                    sort: {type: 'string', values: ['asset_id', 'updated', 'minted', 'mint_number'], default: 'asset_id'},
+                    sort: {type: 'string', values: ['asset_id', 'updated', 'minted', 'template_mint'], default: 'asset_id'},
                     order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
                     authorized_account: {type: 'string', min: 1, max: 12},
