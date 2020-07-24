@@ -125,7 +125,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             res.json({
                 success: true,
                 data: await getLogs(
-                    core.connection.database, core.args.atomicassets_account, 'sale', req.params.sale_id,
+                    core.connection.database, core.args.atomicmarket_account, 'sale', req.params.sale_id,
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });

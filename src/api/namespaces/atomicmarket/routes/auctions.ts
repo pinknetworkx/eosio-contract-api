@@ -106,7 +106,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             res.json({
                 success: true,
                 data: await getLogs(
-                    core.connection.database, core.args.atomicassets_account, 'auction', req.params.auction_id,
+                    core.connection.database, core.args.atomicmarket_account, 'auction', req.params.auction_id,
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });
