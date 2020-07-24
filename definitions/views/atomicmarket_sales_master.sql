@@ -27,6 +27,7 @@ CREATE OR REPLACE VIEW atomicmarket_sales_master AS
             'median', delphi.median
         ) price,
 
+        sale.listing_price,
         sale.listing_symbol,
 
         ARRAY(

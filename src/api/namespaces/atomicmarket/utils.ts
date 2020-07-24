@@ -46,7 +46,7 @@ export function buildListingFilter(
     req: express.Request, varOffset: number, greylists: Greylists
 ): {str: string, values: any[], counter: number} {
     const args = filterQueryArgs(req, {
-        show_blacklisted: {type: 'bool', default: false},
+        show_blacklisted: {type: 'bool', default: true},
         whitelisted_seller_only: {type: 'bool'},
         whitelisted_collections_only: {type: 'bool'},
         whitelisted_only: {type: 'bool'},
@@ -89,9 +89,23 @@ export function buildListingFilter(
     } else if (args.whitelisted_seller_only) {
         queryString += 'AND listing.seller = ANY ($' + ++varCounter + ') ';
         queryValues.push(greylists.account_whitelist);
-    } else if (!args.show_blacklisted) {
-        queryString += 'AND ((NOT (listing.seller = ANY($' + ++varCounter + '))) OR listing.seller = ANY($' + ++varCounter + ')) AND ' +
-            '(NOT (listing.collection_name = ANY($' + ++varCounter + '))) ';
+    }
+
+    if (!args.show_blacklisted) {
+        const accountBlacklistVar = ++varCounter;
+        const accountWhitelistVar = ++varCounter;
+        const collectionBlacklistVar = ++varCounter;
+
+        queryString += 'AND (' +
+            '(' +
+                '(' +
+                    'NOT (listing.seller = ANY($' + accountBlacklistVar + '))) AND ' +
+                    'NOT EXISTS(SELECT * FROM contract_codes code WHERE code.account = listing.seller) ' +
+                ') OR ' +
+                'listing.seller = ANY($' + accountWhitelistVar + ') OR ' +
+            ') AND ' +
+            '(NOT (listing.collection_name = ANY($' + collectionBlacklistVar + ')) ' +
+            ') ';
         queryValues.push(greylists.account_blacklist, greylists.account_whitelist, greylists.collection_blacklist);
     }
 
