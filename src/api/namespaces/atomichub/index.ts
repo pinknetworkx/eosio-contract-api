@@ -12,6 +12,7 @@ import { watchlistEndpoints } from './routes/watchlist';
 import { statsEndpoints } from './routes/stats';
 import { utilsEndpoints } from './routes/utils';
 import { atomicmarketComponents } from '../atomicmarket/openapi';
+import { blacklistEndpoints } from './routes/blacklist';
 
 export type AtomicHubNamespaceArgs = {
     atomicassets_account: string,
@@ -127,6 +128,7 @@ export class AtomicHubNamespace extends ApiNamespace {
 
         docs.push(notificationsEndpoints(this, server, router));
         docs.push(watchlistEndpoints(this, server, router));
+        docs.push(blacklistEndpoints(this, server, router));
         docs.push(statsEndpoints(this, server, router));
         docs.push(webpushEndpoints(this, server, router));
         docs.push(utilsEndpoints(this, server, router));
