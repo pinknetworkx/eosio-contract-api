@@ -102,7 +102,7 @@ export function buildListingFilter(
                     'NOT (listing.seller = ANY($' + accountBlacklistVar + '))) AND ' +
                     'NOT EXISTS(SELECT * FROM contract_codes code WHERE code.account = listing.seller) ' +
                 ') OR ' +
-                'listing.seller = ANY($' + accountWhitelistVar + ') OR ' +
+                'listing.seller = ANY($' + accountWhitelistVar + ') ' +
             ') AND ' +
             '(NOT (listing.collection_name = ANY($' + collectionBlacklistVar + ')) ' +
             ') ';
