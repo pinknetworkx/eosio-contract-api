@@ -40,7 +40,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 queryString += 'AND NOT EXISTS (' +
                     'SELECT * FROM atomicassets_offers_assets asset_o, atomicassets_assets asset_a ' +
                     'WHERE asset_a.contract = asset_o.contract AND asset_a.asset_id = asset_o.asset_id AND asset_o.offer_id = sale.offer_id AND ' +
-                    '(asset_a.collection_name != $' + ++varCounter + ' OR asset_a.template_id != $' + ++varCounter + ') ' +
+                    '(asset_a.collection_name != $' + ++varCounter + ' OR asset_a.template_id != $' + ++varCounter + ' OR asset_a.template_id IS NULL) ' +
                     ') ';
 
                 queryValues.push(args.collection_name, args.template_id);
