@@ -35,27 +35,30 @@ export class OfferApi {
                     recipient: {type: 'string', min: 1},
                     state: {type: 'string', min: 1},
 
+                    collection_blacklist: {type: 'string', min: 1},
+                    collection_whitelist: {type: 'string', min: 1},
+
                     asset_id: {type: 'string', min: 1},
                     is_recipient_contract: {type: 'bool'}
                 });
 
                 let varCounter = 1;
-                let queryString = 'SELECT * FROM ' + this.offerView + ' offer WHERE contract = $1 ';
+                let queryString = 'SELECT * FROM atomicassets_offers offer WHERE contract = $1 ';
 
                 const queryValues: any[] = [this.core.args.atomicassets_account];
 
                 if (args.account) {
-                    queryString += 'AND (sender_name = ANY ($' + ++varCounter + ') OR recipient_name = ANY ($' + varCounter + ')) ';
+                    queryString += 'AND (sender = ANY ($' + ++varCounter + ') OR recipient = ANY ($' + varCounter + ')) ';
                     queryValues.push(args.account.split(','));
                 }
 
                 if (args.sender) {
-                    queryString += 'AND sender_name = ANY ($' + ++varCounter + ') ';
+                    queryString += 'AND sender = ANY ($' + ++varCounter + ') ';
                     queryValues.push(args.sender.split(','));
                 }
 
                 if (args.recipient) {
-                    queryString += 'AND recipient_name = ANY ($' + ++varCounter + ') ';
+                    queryString += 'AND recipient = ANY ($' + ++varCounter + ') ';
                     queryValues.push(args.recipient.split(','));
                 }
 
@@ -65,19 +68,39 @@ export class OfferApi {
                 }
 
                 if (args.is_recipient_contract === true) {
-                    queryString += 'AND recipient_contract_account IS NOT NULL ';
+                    queryString += 'AND EXISTS(SELECT * FROM contract_codes WHERE account = offer.recipient) ';
                 } else if (args.is_recipient_contract === false) {
-                    queryString += 'AND recipient_contract_account IS NULL ';
+                    queryString += 'AND NOT EXISTS(SELECT * FROM contract_codes WHERE account = offer.recipient) ';
                 }
 
                 if (args.asset_id) {
                     queryString += 'AND EXISTS(' +
-                        'SELECT offer_id FROM atomicassets_offers_assets asset ' +
+                        'SELECT * FROM atomicassets_offers_assets asset ' +
                         'WHERE asset.contract = offer.contract AND ' +
                         'asset.offer_id = offer.offer_id AND ' +
                         'asset.asset_id = ANY ($' + ++varCounter + ')' +
                         ') ';
                     queryValues.push(args.asset_id.split(','));
+                }
+
+                if (args.collection_blacklist) {
+                    queryString += 'AND NOT EXISTS(' +
+                        'SELECT * FROM atomicassets_offers_assets asset_o, atomicassets_assets asset_a ' +
+                        'WHERE asset_o.contract = offer.contract AND asset_o.offer_id = offer.offer_id AND ' +
+                        'asset_o.contract = asset_a.contract AND asset_o.asset_id = asset_a.asset_id AND ' +
+                        'asset_a.collection_name = ANY ($' + ++varCounter + ')' +
+                        ') ';
+                    queryValues.push(args.collection_blacklist.split(','));
+                }
+
+                if (args.collection_whitelist) {
+                    queryString += 'AND NOT EXISTS(' +
+                        'SELECT * FROM atomicassets_offers_assets asset_o, atomicassets_assets asset_a ' +
+                        'WHERE asset_o.contract = offer.contract AND asset_o.offer_id = offer.offer_id AND ' +
+                        'asset_o.contract = asset_a.contract AND asset_o.asset_id = asset_a.asset_id AND ' +
+                        'NOT (asset_a.collection_name = ANY ($' + ++varCounter + '))' +
+                        ') ';
+                    queryValues.push(args.collection_whitelist.split(','));
                 }
 
                 const boundaryFilter = buildBoundaryFilter(
@@ -101,7 +124,13 @@ export class OfferApi {
 
                 logger.debug(queryString);
 
-                const query = await this.core.connection.database.query(queryString, queryValues);
+                const offerQuery = await this.core.connection.database.query(queryString, queryValues);
+
+                const query = await this.core.connection.database.query(
+                    'SELECT * FROM ' + this.offerView + ' WHERE contract = $1 AND offer_id = ANY ($2)',
+                    [this.core.args.atomicassets_account, offerQuery.rows.map(row => row.offer_id)]
+                );
+
                 const offers = await fillOffers(
                     this.core.connection, this.core.args.atomicassets_account,
                     query.rows.map((row) => this.offerFormatter(row)),
@@ -220,6 +249,20 @@ export class OfferApi {
                                 name: 'asset_id',
                                 in: 'query',
                                 description: 'Asset which is in the offer - separate multiple with ","',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
+                            {
+                                name: 'collection_blacklist',
+                                in: 'query',
+                                description: 'Dont show offers which include assets from a collection of this list. Seperate multiple with ","',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
+                            {
+                                name: 'collection_whitelist',
+                                in: 'query',
+                                description: 'Only show offers which include assets from a collection of this list. Seperate multiple with ","',
                                 required: false,
                                 schema: {type: 'string'}
                             },

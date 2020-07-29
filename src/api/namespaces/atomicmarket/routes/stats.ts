@@ -10,10 +10,10 @@ import { atomicassetsComponents } from '../../atomicassets/openapi';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 
 export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
-    function getCollectionStatsQuery(): string {
+    function getCollectionStatsQuery(after?: number, before?: number): string {
         return `
         SELECT 
-            collection.*, volume_table.volume, listings_table.listings,
+            collection.*, t1.volume, t1.listings, t1.sales,
             EXISTS (
                 SELECT * FROM atomicmarket_blacklist_collections list
                 WHERE list.assets_contract = collection.contract AND list.collection_name = collection.collection_name
@@ -24,18 +24,16 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             ) collection_whitelisted
         FROM
             atomicassets_collections_master collection
-            LEFT JOIN (
-                SELECT sale.assets_contract contract, sale.collection_name, SUM(sale.final_price) volume
+            JOIN (
+                SELECT 
+                    sale.assets_contract contract, sale.collection_name, 
+                    SUM(sale.final_price) FILTER(WHERE sale.state = ${SaleState.SOLD.valueOf()}) volume,
+                    COUNT(*) FILTER(WHERE sale.state = ${SaleState.LISTED.valueOf()}) listings,
+                    COUNT(*) FILTER(WHERE sale.state = ${SaleState.SOLD.valueOf()}) sales
                 FROM atomicmarket_sales sale
-                WHERE sale.state = ${SaleState.SOLD.valueOf()} AND sale.settlement_symbol = $2
+                WHERE sale.settlement_symbol = $2
                 GROUP BY sale.assets_contract, sale.collection_name
-            ) volume_table ON (collection.contract = volume_table.contract AND collection.collection_name = volume_table.collection_name)
-            LEFT JOIN (
-                SELECT sale.assets_contract contract, sale.collection_name, COUNT(*) listings
-                FROM atomicmarket_sales sale
-                WHERE sale.state = ${SaleState.LISTED.valueOf()} AND sale.settlement_symbol = $2
-                GROUP BY sale.assets_contract, sale.collection_name
-            ) listings_table ON (collection.contract = listings_table.contract AND collection.collection_name = listings_table.collection_name)
+            ) t1 ON (collection.contract = t1.contract AND collection.collection_name = t1.collection_name)
         WHERE collection.contract = $1 
         `;
     }
@@ -116,7 +114,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 symbol: {type: 'string', min: 1},
                 match: {type: 'string', min: 1},
 
-                sort: {type: 'string', values: ['volume', 'listings'], default: 'volume'},
+                sort: {type: 'string', values: ['volume', 'listings', 'sales'], default: 'volume'},
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100}
             });
@@ -399,7 +397,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         properties: {
             ...atomicassetsComponents.Collection,
             listings: {type: 'integer'},
-            volume: {type: 'integer'}
+            volume: {type: 'integer'},
+            sales: {type: 'integer'},
         }
     };
 
@@ -494,7 +493,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             required: false,
                             schema: {
                                 type: 'string',
-                                enum: ['volume', 'listings'],
+                                enum: ['volume', 'listings', 'sales'],
                                 default: 'volume'
                             }
                         }

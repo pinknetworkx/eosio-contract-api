@@ -17,10 +17,13 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 symbol: {type: 'string', min: 1}
             });
 
-            let queryString = 'SELECT ' +
-                'sale.final_price price, symbol.token_symbol, symbol.token_precision, ' +
+            let queryString = 'SELECT DISTINCT ON (sale.market_contract, sale.sale_id) ' +
+                'sale.sale_id, sale.final_price price, mint.min_template_mint template_mint, ' +
+                'symbol.token_symbol, symbol.token_precision, ' +
                 'symbol.token_contract, sale.updated_at_time block_time, sale.updated_at_block block_num ' +
-                'FROM atomicmarket_sales sale, atomicmarket_tokens symbol ' +
+                'FROM ' +
+                    'atomicmarket_sales sale LEFT JOIN atomicmarket_sale_mints mint ON (sale.market_contract = mint.market_contract AND sale.sale_id = mint.sale_id), ' +
+                    'atomicmarket_tokens symbol ' +
                 'WHERE sale.market_contract = $1 AND sale.state = $2 AND ' +
                 'sale.market_contract = symbol.market_contract AND sale.settlement_symbol = symbol.token_symbol ';
             const queryValues = [core.args.atomicmarket_account, SaleState.SOLD.valueOf()];
@@ -112,6 +115,8 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                     responses: getOpenAPI3Responses([500, 200], {
                         type: 'object',
                         properties: {
+                            sale_id: {type: 'integer'},
+                            template_mint: {type: 'integer'},
                             price: {type: 'integer'},
                             token_symbol: {type: 'string'},
                             token_precision: {type: 'integer'},

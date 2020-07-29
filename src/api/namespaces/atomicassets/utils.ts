@@ -11,7 +11,7 @@ export async function getLogs(
     const queryStr = 'SELECT log_id, name, data, encode(txid::bytea, \'hex\') txid, created_at_block, created_at_time ' +
         'FROM atomicassets_logs ' +
         'WHERE contract = $1 AND relation_name = $2 AND relation_id = $3 ' +
-        'ORDER BY created_at_block ' + (order === 'asc' ? 'ASC' : 'DESC') + ' LIMIT $4 OFFSET $5';
+        'ORDER BY log_id ' + (order === 'asc' ? 'ASC' : 'DESC') + ' LIMIT $4 OFFSET $5';
 
     logger.debug(queryStr);
 
