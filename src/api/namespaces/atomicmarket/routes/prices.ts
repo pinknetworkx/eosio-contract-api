@@ -17,7 +17,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 symbol: {type: 'string', min: 1}
             });
 
-            let queryString = 'SELECT DISTINCT ON (sale.market_contract, sale.sale_id) ' +
+            let queryString = 'SELECT ' +
                 'sale.sale_id, sale.final_price price, mint.min_template_mint template_mint, ' +
                 'symbol.token_symbol, symbol.token_precision, ' +
                 'symbol.token_contract, sale.updated_at_time block_time, sale.updated_at_block block_num ' +
