@@ -10,6 +10,26 @@ import { atomicassetsComponents } from '../../atomicassets/openapi';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 
 export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
+    function getSubCondition (state: number, after?: number, before?: number): string {
+        if (state === SaleState.LISTED.valueOf()) {
+            return (
+                typeof after === 'number' ? 'AND sale.created_at_time > ' + after + ' ' : ''
+            ) + (
+                typeof before === 'number' ? 'AND sale.created_at_time < ' + before + ' ' : ''
+            );
+        }
+
+        if (state === SaleState.SOLD.valueOf()) {
+            return (
+                typeof after === 'number' ? 'AND sale.updated_at_time > ' + after + ' ' : ''
+            ) + (
+                typeof before === 'number' ? 'AND sale.updated_at_time < ' + before + ' ' : ''
+            );
+        }
+
+        return '';
+    }
+
     function getCollectionStatsQuery(after?: number, before?: number): string {
         return `
         SELECT 
@@ -27,9 +47,9 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             JOIN (
                 SELECT 
                     sale.assets_contract contract, sale.collection_name, 
-                    SUM(sale.final_price) FILTER(WHERE sale.state = ${SaleState.SOLD.valueOf()}) volume,
-                    COUNT(*) FILTER(WHERE sale.state = ${SaleState.LISTED.valueOf()}) listings,
-                    COUNT(*) FILTER(WHERE sale.state = ${SaleState.SOLD.valueOf()}) sales
+                    SUM(sale.final_price) FILTER(WHERE sale.state = ${SaleState.SOLD.valueOf()} ${getSubCondition(SaleState.SOLD.valueOf(), after, before)}) volume,
+                    COUNT(*) FILTER(WHERE sale.state = ${SaleState.LISTED.valueOf()} ${getSubCondition(SaleState.LISTED.valueOf(), after, before)}) listings,
+                    COUNT(*) FILTER(WHERE sale.state = ${SaleState.SOLD.valueOf()} ${getSubCondition(SaleState.SOLD.valueOf(), after, before)}) sales
                 FROM atomicmarket_sales sale
                 WHERE sale.settlement_symbol = $2
                 GROUP BY sale.assets_contract, sale.collection_name
@@ -38,7 +58,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         `;
     }
 
-    function getAccountStatsQuery(): string {
+    function getAccountStatsQuery(after?: number, before?: number): string {
         return `
         SELECT account, SUM(buy_volume_inner) buy_volume, SUM(sell_volume_inner) sell_volume
         FROM
@@ -47,6 +67,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                     SELECT buyer account, SUM(final_price) buy_volume_inner, 0 sell_volume_inner 
                     FROM atomicmarket_sales sale
                     WHERE sale.state = ${SaleState.SOLD.valueOf()} AND sale.settlement_symbol = $2 AND sale.market_contract = $1
+                        ${getSubCondition(SaleState.SOLD.valueOf(), after, before)}
                     GROUP BY buyer
                 )
                 UNION ALL
@@ -54,6 +75,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                     SELECT seller account, 0 buy_volume_inner, SUM(final_price) sell_volume_inner 
                     FROM atomicmarket_sales sale
                     WHERE sale.state = ${SaleState.SOLD.valueOf()} AND sale.settlement_symbol = $2 AND sale.market_contract = $1
+                        ${getSubCondition(SaleState.SOLD.valueOf(), after, before)}
                     GROUP BY seller
                 )
             ) accounts
@@ -61,11 +83,11 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         `;
     }
 
-    function getSchemaStatsQuery(): string {
+    function getSchemaStatsQuery(after?: number, before?: number): string {
         return `
         SELECT "schema_name", 
-            SUM(final_price) FILTER (WHERE "state" = ${SaleState.SOLD.valueOf()}) volume, 
-            COUNT(*) FILTER (WHERE "state" = ${SaleState.LISTED.valueOf()}) listings
+            SUM(final_price) FILTER (WHERE "state" = ${SaleState.SOLD.valueOf()} ${getSubCondition(SaleState.SOLD.valueOf(), after, before)}) volume, 
+            COUNT(*) FILTER (WHERE "state" = ${SaleState.LISTED.valueOf()} ${getSubCondition(SaleState.LISTED.valueOf(), after, before)}) listings
         FROM (
             SELECT sale.assets_contract, sale.sale_id, sale.state, sale.final_price, asset_a.schema_name
             FROM
@@ -114,6 +136,9 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 symbol: {type: 'string', min: 1},
                 match: {type: 'string', min: 1},
 
+                before: {type: 'int', min: 1},
+                after: {type: 'int', min: 1},
+
                 sort: {type: 'string', values: ['volume', 'listings', 'sales'], default: 'volume'},
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100}
@@ -125,7 +150,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
-            let queryString = 'SELECT * FROM (' + getCollectionStatsQuery() + ') x WHERE (volume IS NOT NULL OR listings IS NOT NULL) ';
+            let queryString = 'SELECT * FROM (' + getCollectionStatsQuery(args.after, args.before) + ') x WHERE (volume IS NOT NULL OR listings IS NOT NULL) ';
             const queryValues = [core.args.atomicassets_account, args.symbol];
             let varCounter = queryValues.length;
 
@@ -205,6 +230,9 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             const args = filterQueryArgs(req, {
                 symbol: {type: 'string', min: 1},
 
+                before: {type: 'int', min: 1},
+                after: {type: 'int', min: 1},
+
                 sort: {type: 'string', values: ['sell_volume', 'buy_volume'], default: 'sell_volume'},
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100}
@@ -216,7 +244,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
-            let queryString = 'SELECT * FROM (' + getAccountStatsQuery() + ') x ';
+            let queryString = 'SELECT * FROM (' + getAccountStatsQuery(args.after, args.before) + ') x ';
             const queryValues = [core.args.atomicmarket_account, args.symbol];
             let varCounter = queryValues.length;
 
@@ -284,6 +312,9 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 symbol: {type: 'string', min: 1},
                 match: {type: 'string', min: 1},
 
+                before: {type: 'int', min: 1},
+                after: {type: 'int', min: 1},
+
                 sort: {type: 'string', values: ['volume', 'listings'], default: 'volume'}
             });
 
@@ -293,7 +324,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
-            let queryString = 'SELECT * FROM (' + getSchemaStatsQuery() + ') x ';
+            let queryString = 'SELECT * FROM (' + getSchemaStatsQuery(args.after, args.before) + ') x ';
             const queryValues = [core.args.atomicmarket_account, args.symbol, req.params.collection_name];
             let varCounter = queryValues.length;
 
@@ -398,7 +429,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             ...atomicassetsComponents.Collection,
             listings: {type: 'integer'},
             volume: {type: 'integer'},
-            sales: {type: 'integer'},
+            sales: {type: 'integer'}
         }
     };
 
@@ -420,6 +451,27 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     };
 
+    const boundaryParams = [
+        {
+            name: 'after',
+            in: 'query',
+            description: 'Only sales after this time',
+            required: false,
+            schema: {
+                type: 'integer'
+            }
+        },
+        {
+            name: 'before',
+            in: 'query',
+            description: 'Only sales before this time',
+            required: false,
+            schema: {
+                type: 'integer'
+            }
+        }
+    ];
+
     return {
         tag: {
             name: 'stats',
@@ -440,6 +492,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
+                        ...boundaryParams,
                         ...paginationParameters,
                         {
                             name: 'sort',
@@ -484,18 +537,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             schema: {
                                 type: 'string'
                             }
-                        },
-                        ...paginationParameters,
-                        {
-                            name: 'sort',
-                            in: 'query',
-                            description: 'Column to sort',
-                            required: false,
-                            schema: {
-                                type: 'string',
-                                enum: ['volume', 'listings', 'sales'],
-                                default: 'volume'
-                            }
                         }
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
@@ -521,6 +562,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
+                        ...boundaryParams,
                         ...paginationParameters,
                         {
                             name: 'sort',
@@ -565,18 +607,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             schema: {
                                 type: 'string'
                             }
-                        },
-                        ...paginationParameters,
-                        {
-                            name: 'sort',
-                            in: 'query',
-                            description: 'Column to sort',
-                            required: false,
-                            schema: {
-                                type: 'string',
-                                enum: ['buy_volume', 'sell_volume'],
-                                default: 'buy_volume'
-                            }
                         }
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
@@ -611,6 +641,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
+                        ...boundaryParams,
                         ...paginationParameters,
                         {
                             name: 'sort',
