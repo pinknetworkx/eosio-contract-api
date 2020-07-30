@@ -120,7 +120,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
             }));
 
             const views = [
-                'atomicassets_assets_master', 'atomicassets_asset_mints_master', 'atomicassets_templates_master',
+                'atomicassets_asset_mints_master', 'atomicassets_templates_master',
                 'atomicassets_schemas_master', 'atomicassets_collections_master', 'atomicassets_offers_master',
                 'atomicassets_transfers_master'
             ];
@@ -132,6 +132,8 @@ export default class AtomicAssetsHandler extends ContractHandler {
             for (const view of materializedViews) {
                 await client.query(fs.readFileSync('./definitions/materialized/' + view + '.sql', {encoding: 'utf8'}));
             }
+
+            await client.query(fs.readFileSync('./definitions/views/atomicassets_assets_master.sql', {encoding: 'utf8'}));
 
             logger.info('AtomicAssets tables successfully created');
         }
