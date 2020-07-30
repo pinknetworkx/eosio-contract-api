@@ -126,14 +126,21 @@ export class OfferApi {
 
                 const offerQuery = await this.core.connection.database.query(queryString, queryValues);
 
+                const offerLookup: {[key: string]: any} = {};
                 const query = await this.core.connection.database.query(
                     'SELECT * FROM ' + this.offerView + ' WHERE contract = $1 AND offer_id = ANY ($2)',
                     [this.core.args.atomicassets_account, offerQuery.rows.map(row => row.offer_id)]
                 );
 
+                query.rows.reduce((prev, current) => {
+                    prev[String(current.offer_id)] = current;
+
+                    return prev;
+                }, offerLookup);
+
                 const offers = await fillOffers(
                     this.core.connection, this.core.args.atomicassets_account,
-                    query.rows.map((row) => this.offerFormatter(row)),
+                    offerQuery.rows.map((row) => this.offerFormatter(offerLookup[row.offer_id])),
                     this.assetFormatter, this.assetView
                 );
 
