@@ -206,6 +206,8 @@ export default class AtomicAssetsActionHandler {
                 backed_tokens: data.backed_tokens
             });
 
+            this.core.checkOfferState([], [data.asset_id]);
+
             this.core.pushNotificiation(block, tx, 'assets', 'burn', {
                 asset_id: data.asset_id,
                 trace: data
@@ -229,8 +231,6 @@ export default class AtomicAssetsActionHandler {
                 asset_id: data.asset_id,
                 trace: data
             });
-
-            this.core.assetsMinted.amount += 1;
         } else if (trace.act.name === 'logbackasset') {
             // @ts-ignore
             const data: LogBackAssetActionData = trace.act.data;

@@ -64,10 +64,11 @@ export default class AtomicAssetsHandler extends ContractHandler {
     }> = [];
 
     offerState: {assets: string[], offers: string[]} = {assets: [], offers: []};
-    assetsMinted: {amount: number, updated: number} = {amount: 0, updated: 0};
 
     tableHandler: AtomicAssetsTableHandler;
     actionHandler: AtomicAssetsActionHandler;
+
+    materializedViewRefresh = true;
 
     constructor(reader: StateReceiver, args: {[key: string]: any}, minBlock: number = 0) {
         super(reader, args, minBlock);
@@ -109,6 +110,8 @@ export default class AtomicAssetsHandler extends ContractHandler {
             [await this.connection.database.schema(), 'atomicassets_config']
         );
 
+        const materializedViews = ['atomicassets_asset_mints'];
+
         if (!existsQuery.rows[0].exists) {
             logger.info('Could not find AtomicAssets tables. Create them now...');
 
@@ -117,13 +120,17 @@ export default class AtomicAssetsHandler extends ContractHandler {
             }));
 
             const views = [
-                'atomicassets_assets_master', 'atomicassets_assets_mints_master', 'atomicassets_templates_master',
+                'atomicassets_assets_master', 'atomicassets_asset_mints_master', 'atomicassets_templates_master',
                 'atomicassets_schemas_master', 'atomicassets_collections_master', 'atomicassets_offers_master',
                 'atomicassets_transfers_master'
             ];
 
             for (const view of views) {
                 await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
+            }
+
+            for (const view of materializedViews) {
+                await client.query(fs.readFileSync('./definitions/materialized/' + view + '.sql', {encoding: 'utf8'}));
             }
 
             logger.info('AtomicAssets tables successfully created');
@@ -195,11 +202,38 @@ export default class AtomicAssetsHandler extends ContractHandler {
 
             logger.debug('Offer #' + offer_id + ' changed state to ' + state);
         });
+
+        setTimeout(async () => {
+            while (true) {
+                try {
+                    if (!this.materializedViewRefresh) {
+                        return;
+                    }
+
+                    for (const view of materializedViews) {
+                        const key = 'eosio-contract-api:' + this.connection.chain.name + ':' + this.connection.database.name + ':' + view;
+
+                        const updated = JSON.parse(await this.connection.redis.ioRedis.get(key)) || 0;
+
+                        // only update every 50 seconds if multiple processes are running
+                        if (updated < Date.now() - 50000) {
+                            await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view);
+
+                            await this.connection.redis.ioRedis.set(key, JSON.stringify(Date.now()));
+                        }
+                    }
+                } catch (e) {
+                    logger.error(e);
+                }
+
+                await new Promise((resolve => setTimeout(resolve, 60000)));
+            }
+        }, 5000);
     }
 
     async deleteDB(client: PoolClient): Promise<void> {
         const tables = [
-            'atomicassets_assets', 'atomicassets_assets_backed_tokens', 'atomicassets_assets_data', 'atomicassets_assets_mints',
+            'atomicassets_assets', 'atomicassets_assets_backed_tokens', 'atomicassets_assets_data',
             'atomicassets_balances', 'atomicassets_collections', 'atomicassets_config',
             'atomicassets_logs', 'atomicassets_offers', 'atomicassets_offers_assets',
             'atomicassets_templates', 'atomicassets_templates_data', 'atomicassets_schemas',
@@ -211,6 +245,12 @@ export default class AtomicAssetsHandler extends ContractHandler {
                 'DELETE FROM ' + client.escapeIdentifier(table) + ' WHERE contract = $1',
                 [this.args.atomicassets_account]
             );
+        }
+
+        const views = ['atomicassets_asset_mints'];
+
+        for (const view of views) {
+            await client.query('REFRESH MATERIALIZED VIEW ' + client.escapeIdentifier(view) + '');
         }
     }
 
@@ -252,7 +292,6 @@ export default class AtomicAssetsHandler extends ContractHandler {
         this.jobs = [];
 
         await this.updateOfferStates(db, block, this.offerState.offers, this.offerState.assets);
-        await this.updateMints(db);
     }
 
     async onCommit(): Promise<void> {
@@ -290,22 +329,18 @@ export default class AtomicAssetsHandler extends ContractHandler {
             return;
         }
 
-        const filterOptions = [];
-
-        if (offerIDs.length > 0) {
-            filterOptions.push('(offer.offer_id IN (' + offerIDs.join(',') + '))');
-        }
-
-        if (assetIDs.length > 0) {
-            filterOptions.push('(asset.asset_id IN (' + assetIDs.join(',') + '))');
-        }
+        const filterOptions = [
+            '(offer.offer_id = ANY ($2))',
+            '(asset.asset_id = ANY ($3))'
+        ];
 
         const relatedOffersQuery = await db.query(
             'SELECT DISTINCT ON (offer.offer_id) offer.offer_id, offer.state ' +
             'FROM atomicassets_offers offer, atomicassets_offers_assets asset ' +
             'WHERE offer.contract = asset.contract AND offer.offer_id = asset.offer_id AND ' +
             'offer.state IN (' + [OfferState.PENDING.valueOf(), OfferState.INVALID.valueOf()].join(',') + ') AND' +
-            '(' + filterOptions.join(' OR ') + ') AND offer.contract = \'' + this.args.atomicassets_account + '\''
+            '(' + filterOptions.join(' OR ') + ') AND offer.contract = $1',
+            [this.args.atomicassets_account, offerIDs, assetIDs]
         );
 
         if (relatedOffersQuery.rowCount === 0) {
@@ -316,8 +351,9 @@ export default class AtomicAssetsHandler extends ContractHandler {
             'SELECT DISTINCT ON (o_asset.offer_id) o_asset.offer_id ' +
             'FROM atomicassets_offers_assets o_asset, atomicassets_assets a_asset ' +
             'WHERE o_asset.contract = a_asset.contract AND o_asset.asset_id = a_asset.asset_id AND ' +
-            'o_asset.offer_id IN (' + relatedOffersQuery.rows.map(row => row.offer_id).join(',') + ') AND ' +
-            'o_asset.owner != a_asset.owner AND o_asset.contract = \'' + this.args.atomicassets_account + '\''
+            'o_asset.offer_id = ANY ($2) AND ' +
+            '(o_asset.owner != a_asset.owner OR a_asset.owner IS NULL) AND o_asset.contract = $1',
+            [this.args.atomicassets_account, relatedOffersQuery.rows.map(row => row.offer_id)]
         );
 
         const invalidOffers = invalidOffersQuery.rows.map((row) => row.offer_id);
@@ -361,39 +397,6 @@ export default class AtomicAssetsHandler extends ContractHandler {
             await this.events.emit('atomicassets_offer_state_change',
                 {db, block, contract: this.args.atomicassets_account, ...notification});
         }
-    }
-
-    async updateMints(db: ContractDBTransaction): Promise<void> {
-        if (this.assetsMinted.amount === 0) {
-            return;
-        }
-
-        if (this.assetsMinted.updated > Date.now() - 30000) {
-            return;
-        }
-
-        const pendingQuery = await db.query(
-            `
-            SELECT mint_view.*
-            FROM atomicassets_assets asset, atomicassets_assets_mints_master mint_view
-            WHERE asset.contract = $1
-                AND asset.contract = mint_view.contract AND asset.asset_id = mint_view.asset_id
-                AND asset.template_id IS NOT NULL
-                AND NOT EXISTS (
-                    SELECT *
-                    FROM atomicassets_assets_mints mint
-                    WHERE asset.contract = mint.contract AND asset.asset_id = mint.asset_id 
-                )
-            `,
-            [this.args.atomicassets_account]
-        );
-
-        if (pendingQuery.rowCount > 0) {
-            await db.insert('atomicassets_assets_mints', pendingQuery.rows, ['contract', 'asset_id']);
-        }
-
-        this.assetsMinted.amount = 0;
-        this.assetsMinted.updated = Date.now();
     }
 
     addUpdateJob(fn: () => any, priority: JobPriority): void {

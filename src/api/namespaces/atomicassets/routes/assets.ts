@@ -37,7 +37,7 @@ export class AssetApi {
                     'LEFT JOIN atomicassets_templates template ON (' +
                         'asset.contract = template.contract AND asset.template_id = template.template_id' +
                     ') ' +
-                    'LEFT JOIN atomicassets_assets_mints mint ON (' +
+                    'LEFT JOIN atomicassets_asset_mints mint ON (' +
                         'asset.contract = mint.contract AND asset.asset_id = mint.asset_id' +
                     ') ' +
                     'WHERE asset.contract = $1 ';

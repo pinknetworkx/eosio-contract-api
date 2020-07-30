@@ -220,8 +220,8 @@ export default class AtomicMarketHandler extends ContractHandler {
 
                         const updated = JSON.parse(await this.connection.redis.ioRedis.get(key)) || 0;
 
-                        // only update every 90 seconds if multiple processes are running
-                        if (updated < Date.now() - 90000) {
+                        // only update every 50 seconds if multiple processes are running
+                        if (updated < Date.now() - 50000) {
                             await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view);
 
                             await this.connection.redis.ioRedis.set(key, JSON.stringify(Date.now()));
@@ -231,7 +231,7 @@ export default class AtomicMarketHandler extends ContractHandler {
                     logger.error(e);
                 }
 
-                await new Promise((resolve => setTimeout(resolve, 120000)));
+                await new Promise((resolve => setTimeout(resolve, 60000)));
             }
         }, 5000);
     }
@@ -250,7 +250,7 @@ export default class AtomicMarketHandler extends ContractHandler {
             );
         }
 
-        const views = ['atomicmarket_sale_prices'];
+        const views = ['atomicmarket_sale_prices', 'atomicmarket_sale_mints'];
 
         for (const view of views) {
             await client.query('REFRESH MATERIALIZED VIEW ' + client.escapeIdentifier(view) + '');
