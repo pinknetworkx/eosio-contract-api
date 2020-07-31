@@ -25,7 +25,7 @@ export default class StateHistoryBlockReader {
     private stopped: boolean;
 
     private blocksQueue: PQueue;
-    private deserializeWorkers: StaticPool;
+    private deserializeWorkers: StaticPool<{type: string, data: Uint8Array}, any>;
 
     private unconfirmed: number;
     private consumer: BlockConsumer;

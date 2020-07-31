@@ -1,7 +1,7 @@
 import * as express from 'express';
 // @ts-ignore
-import * as ecc from 'eosjs-ecc';
 import * as crypto from 'crypto';
+import { Signature } from 'eosjs/dist/eosjs-jssig';
 
 import { AuthenticationNamespace } from './index';
 import { HTTPServer } from '../../server';
@@ -85,7 +85,9 @@ export function authenticationEndpoints(core: AuthenticationNamespace, server: H
             const availableKeys = [];
 
             for (const signature of signatures) {
-                availableKeys.push(ecc.recover(signature, plaintext));
+                const sig = Signature.fromString(signature);
+
+                availableKeys.push(sig.recover(plaintext).toString());
             }
 
             logger.debug('recovered public keys ', availableKeys);
