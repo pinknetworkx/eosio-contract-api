@@ -66,6 +66,7 @@ export class AssetApi {
 
                 const blacklistFilter = buildGreylistFilter(req, varCounter, 'asset.collection_name');
                 queryValues.push(...blacklistFilter.values);
+                varCounter += blacklistFilter.values.length;
                 queryString += blacklistFilter.str;
 
                 const boundaryFilter = buildBoundaryFilter(
