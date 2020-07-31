@@ -7,7 +7,7 @@ import { buildGreylistFilter, getLogs } from '../utils';
 import logger from '../../../../utils/winston';
 import { formatCollection } from '../format';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
-import { blacklistFilterParameters } from '../openapi';
+import { greylistFilterParameters } from '../openapi';
 
 export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/collections', server.web.caching(), (async (req, res) => {
@@ -185,7 +185,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
                             required: false,
                             schema: {type: 'string'}
                         },
-                        ...blacklistFilterParameters,
+                        ...greylistFilterParameters,
                         ...primaryBoundaryParameters,
                         ...dateBoundaryParameters,
                         ...paginationParameters,

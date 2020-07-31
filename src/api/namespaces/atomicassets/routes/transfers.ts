@@ -7,6 +7,7 @@ import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { fillTransfers } from '../filler';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
+import { greylistFilterParameters } from '../openapi';
 
 export class TransferApi {
     constructor(
@@ -27,6 +28,9 @@ export class TransferApi {
                     limit: {type: 'int', min: 1, max: 100, default: 100},
                     sort: {type: 'string', values: ['created'], default: 'created'},
                     order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+
+                    collection_blacklist: {type: 'string', min: 1},
+                    collection_whitelist: {type: 'string', min: 1},
 
                     account: {type: 'string', min: 1},
                     sender: {type: 'string', min: 1},
@@ -61,6 +65,26 @@ export class TransferApi {
                         'asset_id = ANY ($' + ++varCounter + ')' +
                         ') ';
                     queryValues.push(args.asset_id.split(','));
+                }
+
+                if (args.collection_blacklist) {
+                    queryString += 'AND NOT EXISTS(' +
+                        'SELECT * FROM atomicassets_transfers_assets asset_t, atomicassets_assets asset_a ' +
+                        'WHERE asset_t.contract = transfer.contract AND asset_t.transfer_id = transfer.transfer_id AND ' +
+                        'asset_t.contract = asset_a.contract AND asset_t.asset_id = asset_a.asset_id AND ' +
+                        'asset_a.collection_name = ANY ($' + ++varCounter + ')' +
+                        ') ';
+                    queryValues.push(args.collection_blacklist.split(','));
+                }
+
+                if (args.collection_whitelist) {
+                    queryString += 'AND NOT EXISTS(' +
+                        'SELECT * FROM atomicassets_transfers_assets asset_t, atomicassets_assets asset_a ' +
+                        'WHERE asset_t.contract = transfer.contract AND asset_t.transfer_id = transfer.transfer_id AND ' +
+                        'asset_t.contract = asset_a.contract AND asset_t.asset_id = asset_a.asset_id AND ' +
+                        'NOT (asset_a.collection_name = ANY ($' + ++varCounter + '))' +
+                        ') ';
+                    queryValues.push(args.collection_whitelist.split(','));
                 }
 
                 const boundaryFilter = buildBoundaryFilter(
@@ -137,6 +161,7 @@ export class TransferApi {
                                 required: false,
                                 schema: {type: 'string'}
                             },
+                            ...greylistFilterParameters,
                             ...paginationParameters,
                             {
                                 name: 'sort',

@@ -239,11 +239,18 @@ export const atomicassetsComponents = {
     }
 };
 
-export const blacklistFilterParameters = [
+export const greylistFilterParameters = [
     {
         name: 'collection_blacklist',
         in: 'query',
         description: 'Hide collections from result. Split multiple with ","',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'collection_whitelist',
+        in: 'query',
+        description: 'Show only results from specific collections. Split multiple with ","',
         required: false,
         schema: {type: 'string'}
     }
@@ -285,7 +292,7 @@ export const assetFilterParameters = [
         required: false,
         schema: {type: 'string'}
     },
-    ...blacklistFilterParameters
+    ...greylistFilterParameters
 ];
 
 export const atomicDataFilter =

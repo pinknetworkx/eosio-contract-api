@@ -103,6 +103,35 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         `;
     }
 
+    function getMarketStatsQuery(after?: number, before?: number): string {
+        return `
+        SELECT 
+            mp.market_contract, mp.marketplace_name,
+            (
+                SELECT COUNT(*) account FROM (
+                    (
+                        SELECT seller account FROM atomicmarket_sales sale
+                        WHERE sale.market_contract = mp.market_contract ${getSubCondition(SaleState.LISTED.valueOf(), after, before)} AND
+                            (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name)
+                    ) UNION (
+                        SELECT buyer account FROM atomicmarket_sales sale
+                        WHERE sale.state = 3 AND sale.market_contract = mp.market_contract ${getSubCondition(SaleState.SOLD.valueOf(), after, before)} AND
+                            (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name)
+                    )
+                ) ut1
+            ) users,
+            (
+                SELECT SUM(final_price) FROM atomicmarket_sales sale 
+                WHERE
+                    sale.state = 3 AND sale.settlement_symbol = $2 AND
+                    sale.market_contract = mp.market_contract ${getSubCondition(SaleState.SOLD.valueOf(), after, before)} AND
+                    (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name)
+            ) volume
+        FROM atomicmarket_marketplaces mp
+        WHERE mp.market_contract = $1
+        `;
+    }
+
     function getGraphStatsQuery(): string {
         return `
         SELECT div(sale.updated_at_time, 24 * 3600 * 1000) "time", COUNT(*) sales, SUM(final_price) volume
@@ -337,6 +366,50 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 queryString += 'WHERE schema_name ILIKE $' + ++varCounter + ' ';
                 queryValues.push('%' + args.match + '%');
             }
+
+            // @ts-ignore
+            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' DESC NULLS LAST ';
+
+            logger.debug(queryString, queryValues);
+
+            const query = await core.connection.database.query(queryString, queryValues);
+
+            res.json({
+                success: true,
+                data: {symbol, results: query.rows},
+                query_time: Date.now()
+            });
+        } catch (e) {
+            logger.error(req.originalUrl + ' ', e);
+
+            res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
+    });
+
+    router.get('/v1/stats/markets', server.web.caching(), async (req, res) => {
+        try {
+            const args = filterQueryArgs(req, {
+                symbol: {type: 'string', min: 1},
+
+                before: {type: 'int', min: 1},
+                after: {type: 'int', min: 1},
+
+                sort: {type: 'string', values: ['users', 'volume'], default: 'users'}
+            });
+
+            const symbol = await fetchSymbol(args.symbol);
+
+            if (symbol === null) {
+                return res.status(500).json({success: false, message: 'Symbol not found'});
+            }
+
+            let queryString = 'SELECT * FROM (' + getMarketStatsQuery(args.after, args.before) + ') x ';
+            const queryValues = [core.args.atomicmarket_account, args.symbol];
+
+            const sortColumnMapping = {
+                users: 'users',
+                volume: 'volume'
+            };
 
             // @ts-ignore
             queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' DESC NULLS LAST ';

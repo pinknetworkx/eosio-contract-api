@@ -7,7 +7,7 @@ import { buildGreylistFilter, getLogs } from '../utils';
 import logger from '../../../../utils/winston';
 import { formatSchema } from '../format';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
-import { blacklistFilterParameters } from '../openapi';
+import { greylistFilterParameters } from '../openapi';
 
 export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     async function schemaRequestHandler(req: express.Request, res: express.Response): Promise<any> {
@@ -192,7 +192,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                             required: false,
                             schema: {type: 'string'}
                         },
-                        ...blacklistFilterParameters,
+                        ...greylistFilterParameters,
                         ...primaryBoundaryParameters,
                         ...dateBoundaryParameters,
                         ...paginationParameters,

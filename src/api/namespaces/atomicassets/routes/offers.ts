@@ -9,6 +9,7 @@ import { fillOffers } from '../filler';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { getLogs } from '../utils';
+import { greylistFilterParameters } from '../openapi';
 
 export class OfferApi {
     constructor(
@@ -259,20 +260,7 @@ export class OfferApi {
                                 required: false,
                                 schema: {type: 'string'}
                             },
-                            {
-                                name: 'collection_blacklist',
-                                in: 'query',
-                                description: 'Dont show offers which include assets from a collection of this list. Seperate multiple with ","',
-                                required: false,
-                                schema: {type: 'string'}
-                            },
-                            {
-                                name: 'collection_whitelist',
-                                in: 'query',
-                                description: 'Only show offers which include assets from a collection of this list. Seperate multiple with ","',
-                                required: false,
-                                schema: {type: 'string'}
-                            },
+                            ...greylistFilterParameters,
                             ...paginationParameters,
                             {
                                 name: 'sort',

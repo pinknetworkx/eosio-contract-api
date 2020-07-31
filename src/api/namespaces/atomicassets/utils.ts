@@ -121,10 +121,6 @@ export function buildAssetFilter(
         queryValues.push('%' + args.match + '%');
     }
 
-    const blacklistFilter = buildGreylistFilter(req, varCounter, 'asset.collection_name');
-    queryValues.push(...blacklistFilter.values);
-    queryString += blacklistFilter.str;
-
     return {
         values: queryValues,
         str: queryString

@@ -7,7 +7,7 @@ import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { formatTemplate } from '../format';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
-import { atomicDataFilter, blacklistFilterParameters } from '../openapi';
+import { atomicDataFilter, greylistFilterParameters } from '../openapi';
 
 export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     async function templateRequestHandler(req: express.Request, res: express.Response): Promise<any> {
@@ -213,7 +213,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                             required: false,
                             schema: {type: 'string'}
                         },
-                        ...blacklistFilterParameters,
+                        ...greylistFilterParameters,
                         ...primaryBoundaryParameters,
                         ...dateBoundaryParameters,
                         ...paginationParameters,

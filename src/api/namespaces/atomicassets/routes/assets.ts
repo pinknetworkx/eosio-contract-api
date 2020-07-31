@@ -3,11 +3,11 @@ import PQueue from 'p-queue';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { buildAssetFilter, getLogs } from '../utils';
+import { buildAssetFilter, buildGreylistFilter, getLogs } from '../utils';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { primaryBoundaryParameters, getOpenAPI3Responses, paginationParameters, dateBoundaryParameters } from '../../../docs';
-import { assetFilterParameters, atomicDataFilter } from '../openapi';
+import { assetFilterParameters, atomicDataFilter, greylistFilterParameters } from '../openapi';
 import { fillAssets } from '../filler';
 
 export class AssetApi {
@@ -63,6 +63,10 @@ export class AssetApi {
                 queryValues = queryValues.concat(assetFilter.values);
                 varCounter += assetFilter.values.length;
                 queryString += assetFilter.str;
+
+                const blacklistFilter = buildGreylistFilter(req, varCounter, 'asset.collection_name');
+                queryValues.push(...blacklistFilter.values);
+                queryString += blacklistFilter.str;
 
                 const boundaryFilter = buildBoundaryFilter(
                     req, varCounter,
@@ -203,6 +207,7 @@ export class AssetApi {
                                     type: 'string'
                                 }
                             },
+                            ...greylistFilterParameters,
                             ...primaryBoundaryParameters,
                             ...dateBoundaryParameters,
                             ...paginationParameters,
