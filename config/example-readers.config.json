@@ -21,6 +21,19 @@
           "store_transfers": true,
           "store_logs": true
         }
+      },
+      {
+        "handler": "delphioracle",
+        "args": {
+          "delphioracle_account": "delphioracle"
+        }
+      },
+      {
+        "handler": "atomicmarket",
+        "args": {
+          "atomicmarket_account": "atomicmarket",
+          "store_logs": true
+        }
       }
     ]
   }

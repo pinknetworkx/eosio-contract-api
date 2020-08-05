@@ -29,6 +29,15 @@
         "atomicassets_account": "atomicassets",
         "connected_reader": "atomic"
       }
+    },
+    {
+      "name": "atomicmarket",
+      "path": "/atomicmarket",
+      "args": {
+        "atomicmarket_account": "atomicmarket",
+        "connected_reader": "atomic",
+        "admin_tokens": []
+      }
     }
   ]
 }
