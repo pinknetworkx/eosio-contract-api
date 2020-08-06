@@ -62,7 +62,7 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
                 queryString += 'AND NOT EXISTS(' +
                         'SELECT * FROM atomictools_links_assets asset_l, atomicassets_assets asset_a ' +
                         'WHERE asset_l.tools_contract = link.tools_contract AND asset_l.link_id = link.link_id AND ' +
-                            'asset_l.assets_contract = asset_a.assets_contract AND asset_l.asset_id = asset_a.asset_id AND ' +
+                            'asset_l.assets_contract = asset_a.contract AND asset_l.asset_id = asset_a.asset_id AND ' +
                             'asset_a.collection_name = ANY ($' + ++varCounter + ')' +
                     ') ';
                 queryValues.push(args.collection_blacklist.split(','));
@@ -72,7 +72,7 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
                 queryString += 'AND NOT EXISTS(' +
                         'SELECT * FROM atomictools_links_assets asset_l, atomicassets_assets asset_a ' +
                         'WHERE asset_l.tools_contract = link.tools_contract AND asset_l.link_id = link.link_id AND ' +
-                            'asset_l.assets_contract = asset_a.assets_contract AND asset_l.asset_id = asset_a.asset_id AND ' +
+                            'asset_l.assets_contract = asset_a.contract AND asset_l.asset_id = asset_a.asset_id AND ' +
                             'NOT (asset_a.collection_name = ANY ($' + ++varCounter + '))' +
                     ') ';
                 queryValues.push(args.collection_whitelist.split(','));
