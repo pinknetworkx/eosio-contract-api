@@ -9,6 +9,7 @@ import { fillLinks } from '../filler';
 import { formatLink } from '../format';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { LinkState } from '../../../../filler/handlers/atomictools';
+import { greylistFilterParameters } from '../../atomicassets/openapi';
 
 export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/links', server.web.caching(), async (req, res) => {
@@ -19,13 +20,16 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
                 public_key: {type: 'string', min: 1},
                 state: {type: 'string'},
 
+                collection_blacklist: {type: 'string', min: 1},
+                collection_whitelist: {type: 'string', min: 1},
+
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100},
                 sort: {type: 'string', values: ['created'], default: 'created'},
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
             });
 
-            let queryString = 'SELECT * FROM atomictools_links_master listing WHERE tools_contract = $1 ';
+            let queryString = 'SELECT * FROM atomictools_links_master link WHERE tools_contract = $1 ';
             const queryValues: any[] = [core.args.atomictools_account];
             let varCounter = queryValues.length;
 
@@ -52,6 +56,26 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
             if (args.state) {
                 queryString += 'AND state = ANY ($' + ++varCounter + ') ';
                 queryValues.push(args.state.split(','));
+            }
+
+            if (args.collection_blacklist) {
+                queryString += 'AND NOT EXISTS(' +
+                        'SELECT * FROM atomicassets_links_assets asset_l, atomicassets_assets asset_a ' +
+                        'WHERE asset_l.contract = link.contract AND asset_l.link_id = link.link_id AND ' +
+                            'asset_l.contract = asset_a.contract AND asset_l.asset_id = asset_a.asset_id AND ' +
+                            'asset_a.collection_name = ANY ($' + ++varCounter + ')' +
+                    ') ';
+                queryValues.push(args.collection_blacklist.split(','));
+            }
+
+            if (args.collection_whitelist) {
+                queryString += 'AND NOT EXISTS(' +
+                        'SELECT * FROM atomicassets_links_assets asset_l, atomicassets_assets asset_a ' +
+                        'WHERE asset_l.contract = link.contract AND asset_l.link_id = link.link_id AND ' +
+                            'asset_l.contract = asset_a.contract AND asset_l.asset_id = asset_a.asset_id AND ' +
+                            'NOT (asset_a.collection_name = ANY ($' + ++varCounter + '))' +
+                    ') ';
+                queryValues.push(args.collection_whitelist.split(','));
             }
 
             const boundaryFilter = buildBoundaryFilter(
@@ -156,6 +180,7 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
                             required: false,
                             schema: {type: 'string'}
                         },
+                        ...greylistFilterParameters,
                         ...primaryBoundaryParameters,
                         ...dateBoundaryParameters,
                         ...paginationParameters,
