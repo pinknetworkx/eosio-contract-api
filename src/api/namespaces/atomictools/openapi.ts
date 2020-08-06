@@ -10,7 +10,7 @@ export const atomictoolsComponents = {
             creator: {type: 'string'},
             claimer: {type: 'string', nullable: true},
             state: {type: 'integer'},
-            key: {type: 'string'},
+            public_key: {type: 'string'},
             memo: {type: 'string'},
             txid: {type: 'string'},
             assets: {
