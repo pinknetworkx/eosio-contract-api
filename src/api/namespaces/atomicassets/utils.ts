@@ -75,7 +75,7 @@ export function buildAssetFilter(
     let queryValues: any[] = [];
     let varCounter = varOffset;
 
-    if (args.collection_name && args.schema_name) {
+    if (args.collection_name) {
         const data = buildDataConditions(req.query, varCounter);
 
         if (data.conditions.length > 0) {
