@@ -60,7 +60,7 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
 
             if (args.collection_blacklist) {
                 queryString += 'AND NOT EXISTS(' +
-                        'SELECT * FROM atomicassets_links_assets asset_l, atomicassets_assets asset_a ' +
+                        'SELECT * FROM atomictools_links_assets asset_l, atomicassets_assets asset_a ' +
                         'WHERE asset_l.contract = link.contract AND asset_l.link_id = link.link_id AND ' +
                             'asset_l.contract = asset_a.contract AND asset_l.asset_id = asset_a.asset_id AND ' +
                             'asset_a.collection_name = ANY ($' + ++varCounter + ')' +
@@ -70,7 +70,7 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
 
             if (args.collection_whitelist) {
                 queryString += 'AND NOT EXISTS(' +
-                        'SELECT * FROM atomicassets_links_assets asset_l, atomicassets_assets asset_a ' +
+                        'SELECT * FROM atomictools_links_assets asset_l, atomicassets_assets asset_a ' +
                         'WHERE asset_l.contract = link.contract AND asset_l.link_id = link.link_id AND ' +
                             'asset_l.contract = asset_a.contract AND asset_l.asset_id = asset_a.asset_id AND ' +
                             'NOT (asset_a.collection_name = ANY ($' + ++varCounter + '))' +
