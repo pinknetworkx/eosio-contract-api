@@ -6,6 +6,7 @@ import { getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters }
 import { formatCollection } from '../format';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
+import { greylistFilterParameters } from '../openapi';
 
 export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/accounts', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
@@ -13,6 +14,9 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 1000, default: 100},
+
+                collection_whitelist: {type: 'string', min: 1},
+                collection_blacklist: {type: 'string', min: 1},
 
                 match: {type: 'string', min: 1}
             });
@@ -24,6 +28,16 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             if (args.match) {
                 queryString += 'AND owner ILIKE $' + ++varCounter + ' ';
                 queryValues.push('%' + args.match + '%');
+            }
+
+            if (args.collection_whitelist) {
+                queryString += 'AND asset.collection_name = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.collection_whitelist.split(','));
+            }
+
+            if (args.collection_blacklist) {
+                queryString += 'AND NOT (asset.collection_name = ANY ($' + ++varCounter + ')) ';
+                queryValues.push(args.collection_blacklist.split(','));
             }
 
             const boundaryFilter = buildBoundaryFilter(
@@ -51,13 +65,30 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
 
     router.get('/v1/accounts/:account', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
-            const query = await core.connection.database.query(
-                'SELECT collection_name, COUNT(*) as assets ' +
+            const args = filterQueryArgs(req, {
+                collection_whitelist: {type: 'string', min: 1},
+                collection_blacklist: {type: 'string', min: 1}
+            });
+
+            let varCounter = 2;
+            let queryString = 'SELECT collection_name, COUNT(*) as assets ' +
                 'FROM atomicassets_assets asset ' +
-                'WHERE contract = $1 AND owner = $2 ' +
-                'GROUP BY collection_name ORDER BY assets DESC',
-                [core.args.atomicassets_account, req.params.account]
-            );
+                'WHERE contract = $1 AND owner = $2 ';
+            const queryValues: any[] = [core.args.atomicassets_account, req.params.account];
+
+            if (args.collection_whitelist) {
+                queryString += 'AND asset.collection_name = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.collection_whitelist.split(','));
+            }
+
+            if (args.collection_blacklist) {
+                queryString += 'AND NOT (asset.collection_name = ANY ($' + ++varCounter + ')) ';
+                queryValues.push(args.collection_blacklist.split(','));
+            }
+
+            queryString += 'GROUP BY collection_name ORDER BY assets DESC';
+
+            const query = await core.connection.database.query(queryString, queryValues);
 
             const collections = await core.connection.database.query(
                 'SELECT * FROM atomicassets_collections_master WHERE contract = $1 AND collection_name = ANY ($2)',
@@ -103,6 +134,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                             required: false,
                             schema: {type: 'string'}
                         },
+                        ...greylistFilterParameters,
                         ...primaryBoundaryParameters,
                         ...paginationParameters
                     ],
@@ -129,7 +161,8 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                             description: 'Account name',
                             required: true,
                             schema: {type: 'string'}
-                        }
+                        },
+                        ...greylistFilterParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'array',

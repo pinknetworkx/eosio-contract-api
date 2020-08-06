@@ -6,7 +6,7 @@ import { filterQueryArgs } from '../../utils';
 import { bearerToken } from '../../authentication/middleware';
 import logger from '../../../../utils/winston';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
-import { assetFilterParameters } from '../../atomicassets/openapi';
+import { assetFilterParameters, greylistFilterParameters } from '../../atomicassets/openapi';
 import { buildAssetFilter } from '../../atomicassets/utils';
 import { fillAssets } from '../../atomicassets/filler';
 import { formatListingAsset } from '../../atomicmarket/format';
@@ -65,7 +65,10 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 1000, default: 100},
                 sort: {type: 'string', values: ['added', 'asset_id'], default: 'added'},
-                order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
+                order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+
+                collection_whitelist: {type: 'string', min: 1},
+                collection_blacklist: {type: 'string', min: 1}
             });
 
             let varCounter = 2;
@@ -89,6 +92,16 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
                 asset_id: 'asset.asset_id',
                 added: 'wlist.created'
             };
+
+            if (args.collection_whitelist) {
+                queryString += 'AND asset.collection_name = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.collection_whitelist.split(','));
+            }
+
+            if (args.collection_blacklist) {
+                queryString += 'AND NOT (asset.collection_name = ANY ($' + ++varCounter + ')) ';
+                queryValues.push(args.collection_blacklist.split(','));
+            }
 
             // @ts-ignore
             queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', asset.asset_id ASC ';
@@ -141,6 +154,7 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
                     summary: 'Get the watchlist from a specific account',
                     parameters: [
                         ...assetFilterParameters,
+                        ...greylistFilterParameters,
                         ...paginationParameters,
                         {
                             in: 'query',
