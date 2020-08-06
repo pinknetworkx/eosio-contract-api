@@ -168,6 +168,9 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 before: {type: 'int', min: 1},
                 after: {type: 'int', min: 1},
 
+                collection_whitelist: {type: 'string', min: 1},
+                collection_blacklist: {type: 'string', min: 1},
+
                 sort: {type: 'string', values: ['volume', 'listings', 'sales'], default: 'volume'},
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100}
@@ -186,6 +189,16 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             if (args.match) {
                 queryString += 'AND collection_name ILIKE $' + ++varCounter + ' ';
                 queryValues.push('%' + args.match + '%');
+            }
+
+            if (args.collection_whitelist) {
+                queryString += 'AND collection_name = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.collection_whitelist.split(','));
+            }
+
+            if (args.collection_blacklist) {
+                queryString += 'AND NOT (collection_name = ANY ($' + ++varCounter + ')) ';
+                queryValues.push(args.collection_blacklist.split(','));
             }
 
             if (typeof args.collection_whitelisted !== 'undefined') {
