@@ -43,7 +43,8 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             const boundaryFilter = buildBoundaryFilter(
                 req, varCounter, 'listing.sale_id', 'int',
-                args.sort === 'updated' ? 'updated_at_time' : 'created_at_time', args.sort === 'updated' ? 'updated_at_block' : 'created_at_block'
+                args.sort === 'updated' ? 'listing.updated_at_time' : 'listing.created_at_time',
+                args.sort === 'updated' ? 'listing.updated_at_block' : 'listing.created_at_block'
             );
             queryValues.push(...boundaryFilter.values);
             varCounter += boundaryFilter.values.length;

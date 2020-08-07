@@ -36,7 +36,8 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
 
             const boundaryFilter = buildBoundaryFilter(
                 req, varCounter, 'auction_id', 'int',
-                args.sort === 'updated' ? 'updated_at_time' : 'created_at_time', args.sort === 'updated' ? 'updated_at_block' : 'created_at_block'
+                args.sort === 'updated' ? 'listing.updated_at_time' : 'listing.created_at_time',
+                args.sort === 'updated' ? 'listing.updated_at_block' : 'listing.created_at_block'
             );
             queryValues.push(...boundaryFilter.values);
             varCounter += boundaryFilter.values.length;
