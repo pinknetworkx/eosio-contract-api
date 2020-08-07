@@ -12,6 +12,23 @@ import logger from '../../../../utils/winston';
 import { fillAssets } from '../../atomicassets/filler';
 
 export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
+    async function fetchSymbol(symbol: string): Promise<{token_symbol: string, token_contract: string, token_precision: number}> {
+        if (!symbol) {
+            return null;
+        }
+
+        const query = await core.connection.database.query(
+            'SELECT token_symbol, token_contract, token_precision FROM atomicassets_tokens WHERE contract = $1 AND token_symbol = $2',
+            [core.args.atomicassets_account, symbol]
+        );
+
+        if (query.rows.length === 0) {
+            return null;
+        }
+
+        return query.rows[0];
+    }
+
     router.get('/v1/stats', server.web.caching({expire: 60, ignoreQueryString: true}), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
@@ -235,6 +252,69 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             res.json({
                 success: true,
                 data: await fillSales(core.connection, core.args.atomicassets_account, sales),
+                query_time: Date.now()
+            });
+        } catch (e) {
+            logger.error(req.originalUrl + ' ', e);
+
+            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
+    });
+
+    router.get('/v1/giveaway', server.web.caching({expire: 60}), async (req, res) => {
+        try {
+            const args = filterQueryArgs(req, {
+                symbol: {type: 'string', min: 1},
+
+                after: {type: 'int', min: 0, default: 0},
+                before: {type: 'int', min: 0, default: Date.now()},
+
+                multiplier_amount: {type: 'int', min: 0, default: 0},
+                multiplier_frame: {type: 'int', min: 0, default: 0}
+            });
+
+            const symbol = await fetchSymbol(args.symbol);
+
+            if (symbol === null) {
+                return res.status(500).json({success: false, message: 'Symbol not found'});
+            }
+
+            const queryString = `
+                SELECT account, SUM (x.amount) amount, SUM(x.bonus) bonus
+                FROM (
+                    (
+                        SELECT 
+                            seller account, 
+                            SUM(final_price) amount, 
+                            SUM(final_price) FILTER (WHERE sale.updated_at_time > $5) "bonus"
+                        FROM atomicassets_sales sale 
+                        WHERE sale.contract = $1 AND settlement_symbol = $2 AND sale.state = ${SaleState.SOLD.valueOf()}
+                            AND sale.updated_at_time > $3 AND sale.updated_at_time < $4
+                    ) UNION ALL (
+                        SELECT 
+                            buyer account, 
+                            SUM(final_price) amount, 
+                            SUM(final_price) FILTER (WHERE sale.updated_at_time > $5) "bonus"
+                        FROM atomicassets_sales sale 
+                        WHERE sale.contract = $1 AND settlement_symbol = $2 AND sale.state = ${SaleState.SOLD.valueOf()}
+                            AND sale.updated_at_time > $3 AND sale.updated_at_time < $4
+                    )
+                ) x
+                GROUP BY x.account
+            `;
+            const queryValues = [
+                core.args.atomicmarket_account, args.symbol,
+                args.after, args.before, args.before - args.multiplier_frame
+            ];
+
+            const query = await core.connection.database.query(queryString, queryValues);
+
+            res.json({
+                success: true,
+                data: query.rows.map(row => ({
+                    account: row.account,
+                    tickets: Math.floor((row.amount + args.multiplier_amount * row.bonus) / Math.pow(10, symbol.token_precision))
+                })).sort((a, b) => b.tickets - a.tickets),
                 query_time: Date.now()
             });
         } catch (e) {
