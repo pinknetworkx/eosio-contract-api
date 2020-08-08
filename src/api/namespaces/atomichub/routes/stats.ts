@@ -321,7 +321,10 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 data: query.rows
                     .map(row => ({
                         account: row.account,
-                        tickets: Math.floor((row.amount + args.multiplier_amount * row.bonus) / Math.pow(10, symbol.token_precision))
+                        tickets: Math.floor(
+                            (parseInt(row.amount, 10) + parseInt(args.multiplier_amount, 10) * row.bonus) /
+                            Math.pow(10, symbol.token_precision)
+                        )
                     }))
                     .sort((a, b) => b.tickets - a.tickets)
                     .filter(row => row.tickets > 0),
