@@ -70,9 +70,7 @@ export function buildAssetFilter(
         template_id: {type: 'int', min: 0},
         collection_name: {type: 'string', min: 1, max: 12},
         schema_name: {type: 'string', min: 1, max: 12},
-        match: {type: 'string', min: 1},
-        hide_offers: {type: 'bool', default: false},
-        hide_sales: {type: 'bool', default: false}
+        match: {type: 'string', min: 1}
     });
 
     let queryString = '';
@@ -123,25 +121,6 @@ export function buildAssetFilter(
                 templateReadableNameColumn + ' ILIKE $' + varCounter +
             ') ';
         queryValues.push('%' + args.match + '%');
-    }
-
-    if (args.hide_offers) {
-        queryString += 'AND NOT EXISTS (' +
-            'SELECT * FROM atomicassets_offers offer, atomicassets_offers_assets asset_o ' +
-            'WHERE asset_o.contract = asset.contract AND asset_o.asset_id = asset.asset_id AND ' +
-            'offer.contract = asset_o.contract AND offer.offer_id = asset_o.offer_id AND offer.state = ' + OfferState.PENDING.valueOf() + ' ' +
-            ') ';
-    }
-
-    if (args.hide_sales) {
-        queryString += 'AND NOT EXISTS (' +
-            'SELECT * FROM atomicmarket_sales sale, atomicassets_offers offer, atomicassets_offers_assets asset_o ' +
-            'WHERE asset_o.contract = asset.contract AND asset_o.asset_id = asset.asset_id AND ' +
-            'offer.contract = asset_o.contract AND offer.offer_id = asset_o.offer_id AND ' +
-            'offer.state = ' + OfferState.PENDING.valueOf() + ' AND ' +
-            'sale.assets_contract = offer.contract AND sale.offer_id = offer.offer_id AND ' +
-            'sale.state = ' + SaleState.LISTED.valueOf() + ' ' +
-            ') ';
     }
 
     return {
