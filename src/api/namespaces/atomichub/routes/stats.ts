@@ -270,7 +270,9 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 before: {type: 'int', min: 0, default: Date.now()},
 
                 multiplier_amount: {type: 'int', min: 0, default: 0},
-                multiplier_frame: {type: 'int', min: 0, default: 0}
+                multiplier_frame: {type: 'int', min: 0, default: 0},
+
+                marketplace: {type: 'string', default: ''}
             });
 
             const symbol = await fetchSymbol(args.symbol);
@@ -290,6 +292,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                         FROM atomicmarket_sales sale 
                         WHERE sale.market_contract = $1 AND sale.settlement_symbol = $2 AND sale.state = ${SaleState.SOLD.valueOf()}
                             AND sale.updated_at_time > $3 AND sale.updated_at_time < $4
+                            AND sale.maker_marketplace = $6
                         GROUP BY seller
                     ) UNION ALL (
                         SELECT 
@@ -299,6 +302,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                         FROM atomicmarket_sales sale 
                         WHERE sale.market_contract = $1 AND sale.settlement_symbol = $2 AND sale.state = ${SaleState.SOLD.valueOf()}
                             AND sale.updated_at_time > $3 AND sale.updated_at_time < $4
+                            AND sale.taker_marketplace = $6
                         GROUP BY buyer
                     )
                 ) x
@@ -306,17 +310,21 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             `;
             const queryValues = [
                 core.args.atomicmarket_account, args.symbol,
-                args.after, args.before, args.before - args.multiplier_frame
+                args.after, args.before, args.before - args.multiplier_frame,
+                args.marketplace
             ];
 
             const query = await core.connection.database.query(queryString, queryValues);
 
             res.json({
                 success: true,
-                data: query.rows.map(row => ({
-                    account: row.account,
-                    tickets: Math.floor((row.amount + args.multiplier_amount * row.bonus) / Math.pow(10, symbol.token_precision))
-                })).sort((a, b) => b.tickets - a.tickets),
+                data: query.rows
+                    .map(row => ({
+                        account: row.account,
+                        tickets: Math.floor((row.amount + args.multiplier_amount * row.bonus) / Math.pow(10, symbol.token_precision))
+                    }))
+                    .sort((a, b) => b.tickets - a.tickets)
+                    .filter(row => row.tickets > 0),
                 query_time: Date.now()
             });
         } catch (e) {
