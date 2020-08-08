@@ -261,7 +261,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
         }
     });
 
-    router.get('/v1/giveaway', server.web.caching({expire: 60}), async (req, res) => {
+    router.get('/v1/giveaway', server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 symbol: {type: 'string', min: 1},
@@ -288,7 +288,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                             SUM(final_price) amount, 
                             SUM(final_price) FILTER (WHERE sale.updated_at_time > $5) "bonus"
                         FROM atomicmarket_sales sale 
-                        WHERE sale.contract = $1 AND settlement_symbol = $2 AND sale.state = ${SaleState.SOLD.valueOf()}
+                        WHERE sale.market_contract = $1 AND sale.settlement_symbol = $2 AND sale.state = ${SaleState.SOLD.valueOf()}
                             AND sale.updated_at_time > $3 AND sale.updated_at_time < $4
                         GROUP BY seller
                     ) UNION ALL (
@@ -297,7 +297,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                             SUM(final_price) amount, 
                             SUM(final_price) FILTER (WHERE sale.updated_at_time > $5) "bonus"
                         FROM atomicmarket_sales sale 
-                        WHERE sale.contract = $1 AND settlement_symbol = $2 AND sale.state = ${SaleState.SOLD.valueOf()}
+                        WHERE sale.market_contract = $1 AND sale.settlement_symbol = $2 AND sale.state = ${SaleState.SOLD.valueOf()}
                             AND sale.updated_at_time > $3 AND sale.updated_at_time < $4
                         GROUP BY buyer
                     )
