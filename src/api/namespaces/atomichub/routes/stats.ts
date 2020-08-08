@@ -287,17 +287,19 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                             seller account, 
                             SUM(final_price) amount, 
                             SUM(final_price) FILTER (WHERE sale.updated_at_time > $5) "bonus"
-                        FROM atomicassets_sales sale 
+                        FROM atomicmarket_sales sale 
                         WHERE sale.contract = $1 AND settlement_symbol = $2 AND sale.state = ${SaleState.SOLD.valueOf()}
                             AND sale.updated_at_time > $3 AND sale.updated_at_time < $4
+                        GROUP BY seller
                     ) UNION ALL (
                         SELECT 
                             buyer account, 
                             SUM(final_price) amount, 
                             SUM(final_price) FILTER (WHERE sale.updated_at_time > $5) "bonus"
-                        FROM atomicassets_sales sale 
+                        FROM atomicmarket_sales sale 
                         WHERE sale.contract = $1 AND settlement_symbol = $2 AND sale.state = ${SaleState.SOLD.valueOf()}
                             AND sale.updated_at_time > $3 AND sale.updated_at_time < $4
+                        GROUP BY buyer
                     )
                 ) x
                 GROUP BY x.account
