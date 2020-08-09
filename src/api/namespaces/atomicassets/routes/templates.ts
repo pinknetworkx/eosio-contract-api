@@ -30,19 +30,19 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             }
 
             let varCounter = 1;
-            let queryString = 'SELECT * FROM atomicassets_templates_master template WHERE contract = $1 ';
+            let queryString = 'SELECT template.contract, template.template_id FROM atomicassets_templates template WHERE contract = $1 ';
             let queryValues: any[] = [core.args.atomicassets_account];
 
             if (args.collection_name) {
                 const data = buildDataConditions(req.query, varCounter);
 
                 if (data.conditions.length > 0) {
-                    queryString += 'AND EXISTS (' +
-                            'SELECT "key" ' +
-                            'FROM atomicassets_templates_data data ' +
-                            'WHERE data.contract = template.contract AND data.template_id = template.template_id AND ' +
-                            '(' + data.conditions.join(' OR ') + ')' +
-                        ') ';
+                    queryString += 'AND (' +
+                        'SELECT COUNT(DISTINCT "key") FROM (' +
+                                'SELECT "key", "value" FROM atomicassets_templates_data data_t2 WHERE data_t2.contract = asset.contract AND data_t2.template_id = asset.template_id ' +
+                            ') "data" ' +
+                            'WHERE ' + data.conditions.join(' OR ') +
+                        ') >= ' + data.conditions.length + ' ';
 
                     queryValues = queryValues.concat(data.values);
                     varCounter += data.values.length;
@@ -50,12 +50,12 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             }
 
             if (args.collection_name) {
-                queryString += 'AND collection_name = $' + ++varCounter + ' ';
+                queryString += 'AND template.collection_name = $' + ++varCounter + ' ';
                 queryValues.push(args.collection_name);
             }
 
             if (args.schema_name) {
-                queryString += 'AND schema_name = $' + ++varCounter + ' ';
+                queryString += 'AND template.schema_name = $' + ++varCounter + ' ';
                 queryValues.push(args.schema_name);
             }
 
@@ -68,17 +68,17 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                 const parsedMatch = parseInt(args.match, 10);
 
                 if (isNaN(parsedMatch)) {
-                    queryString += 'AND (name ILIKE $' + ++varCounter + ') ';
+                    queryString += 'AND (template.readable_name ILIKE $' + ++varCounter + ') ';
                     queryValues.push('%' + args.match + '%');
                 } else {
-                    queryString += 'AND (name ILIKE $' + ++varCounter + ' OR template_id = $' + ++varCounter + ') ';
+                    queryString += 'AND (template.readable_name ILIKE $' + ++varCounter + ' OR template.template_id = $' + ++varCounter + ') ';
                     queryValues.push('%' + args.match + '%', args.match);
                 }
             }
 
             const boundaryFilter = buildBoundaryFilter(
-                req, varCounter, 'template_id', 'int',
-                'created_at_time', 'created_at_block'
+                req, varCounter, 'template.template_id', 'int',
+                'template.created_at_time', 'template.created_at_block'
             );
             queryValues.push(...boundaryFilter.values);
             varCounter += boundaryFilter.values.length;
@@ -101,9 +101,25 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
 
             logger.debug(queryString);
 
-            const query = await core.connection.database.query(queryString, queryValues);
+            const templateQuery = await this.core.connection.database.query(queryString, queryValues);
 
-            return res.json({success: true, data: query.rows.map((row) => formatTemplate(row)), query_time: Date.now()});
+            const templateLookup: {[key: string]: any} = {};
+            const query = await this.core.connection.database.query(
+                'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND template_id = ANY ($2)',
+                [this.core.args.atomicassets_account, templateQuery.rows.map((row: any) => row.template_id)]
+            );
+
+            query.rows.reduce((prev: any, current: any) => {
+                prev[String(current.template_id)] = current;
+
+                return prev;
+            }, templateLookup);
+
+            return res.json({
+                success: true,
+                data: query.rows.map((row: any) => formatTemplate(templateLookup[String(row.template_id)])),
+                query_time: Date.now()
+            });
         } catch (e) {
             logger.error(req.originalUrl + ' ', e);
 

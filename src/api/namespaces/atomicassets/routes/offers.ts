@@ -44,7 +44,7 @@ export class OfferApi {
                 });
 
                 let varCounter = 1;
-                let queryString = 'SELECT * FROM atomicassets_offers offer WHERE contract = $1 ';
+                let queryString = 'SELECT contract, offer_id FROM atomicassets_offers offer WHERE contract = $1 ';
 
                 const queryValues: any[] = [this.core.args.atomicassets_account];
 

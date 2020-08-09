@@ -116,6 +116,38 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
         }
     }));
 
+    router.get('/v1/accounts/:account/:collection_name', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+        try {
+            const templateQuery = await core.connection.database.query(
+                'SELECT template_id, COUNT(*) as assets ' +
+                'FROM atomicassets_assets asset ' +
+                'WHERE contract = $1 AND owner = $2 AND collection_name = $3 ' +
+                'GROUP BY template_id ORDER BY assets DESC',
+                [core.args.atomicassets_account, req.params.account, req.params.collection_name]
+            );
+
+            const schemaQuery = await core.connection.database.query(
+                'SELECT schema_name, COUNT(*) as assets ' +
+                'FROM atomicassets_assets asset ' +
+                'WHERE contract = $1 AND owner = $2 AND collection_name = $3 ' +
+                'GROUP BY schema_name ORDER BY assets DESC',
+                [core.args.atomicassets_account, req.params.account, req.params.collection_name]
+            );
+
+            return res.json({
+                success: true,
+                data: {
+                    schemas: schemaQuery.rows,
+                    templates: templateQuery.rows
+                }
+            });
+        } catch (e) {
+            logger.error(req.originalUrl + ' ', e);
+
+            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
+    }));
+
     return {
         tag: {
             name: 'stats',
@@ -180,6 +212,56 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                                     }
                                 },
                                 assets: {type: 'integer'}
+                            }
+                        }
+                    })
+                }
+            },
+            '/v1/accounts/{account}/{collection_name}': {
+                get: {
+                    tags: ['stats'],
+                    summary: 'Get templates and schemas count by account',
+                    parameters: [
+                        {
+                            name: 'account',
+                            in: 'path',
+                            description: 'Account name',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'collection_name',
+                            in: 'path',
+                            description: 'Collection Name',
+                            required: true,
+                            schema: {type: 'string'}
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                templates: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            template_id: {type: 'integer'},
+                                            assets: {type: 'integer'}
+                                        }
+                                    }
+                                },
+                                schemas: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            schema_name: {type: 'string'},
+                                            assets: {type: 'integer'}
+                                        }
+                                    }
+                                }
                             }
                         }
                     })

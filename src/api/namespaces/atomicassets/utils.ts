@@ -3,8 +3,6 @@ import * as express from 'express';
 import PostgresConnection from '../../../connections/postgres';
 import { filterQueryArgs } from '../utils';
 import logger from '../../../utils/winston';
-import { OfferState } from '../../../filler/handlers/atomicassets';
-import { SaleState } from '../../../filler/handlers/atomicmarket';
 
 export async function getLogs(
     db: PostgresConnection, contract: string, relationName: string, relationId: string,
