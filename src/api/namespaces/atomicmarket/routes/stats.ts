@@ -108,22 +108,28 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         SELECT 
             mp.market_contract, mp.marketplace_name,
             (
-                SELECT COUNT(*) account FROM (
+                SELECT COUNT(*) FROM (
                     (
                         SELECT seller account FROM atomicmarket_sales sale
                         WHERE sale.market_contract = mp.market_contract ${getSubCondition(SaleState.LISTED.valueOf(), after, before)} AND
                             (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name)
                     ) UNION (
                         SELECT buyer account FROM atomicmarket_sales sale
-                        WHERE sale.state = 3 AND sale.market_contract = mp.market_contract ${getSubCondition(SaleState.SOLD.valueOf(), after, before)} AND
+                        WHERE sale.state = ${SaleState.SOLD.valueOf()} AND sale.market_contract = mp.market_contract ${getSubCondition(SaleState.SOLD.valueOf(), after, before)} AND
                             (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name)
                     )
                 ) ut1
             ) users,
             (
-                SELECT SUM(final_price) FROM atomicmarket_sales sale 
+                SELECT 
+                    json_build_object(
+                        'total', SUM(final_price),
+                        'taker', SUM(final_price) FILTER (WHERE sale.taker_marketplace = mp.marketplace_name),
+                        'maker', SUM(final_price) FILTER (WHERE sale.maker_marketplace = mp.marketplace_name)
+                    )
+                FROM atomicmarket_sales sale 
                 WHERE
-                    sale.state = 3 AND sale.settlement_symbol = $2 AND
+                    sale.state = ${SaleState.SOLD.valueOf()} AND sale.settlement_symbol = $2 AND
                     sale.market_contract = mp.market_contract ${getSubCondition(SaleState.SOLD.valueOf(), after, before)} AND
                     (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name)
             ) volume
@@ -405,9 +411,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 symbol: {type: 'string', min: 1},
 
                 before: {type: 'int', min: 1},
-                after: {type: 'int', min: 1},
-
-                sort: {type: 'string', values: ['users', 'volume'], default: 'users'}
+                after: {type: 'int', min: 1}
             });
 
             const symbol = await fetchSymbol(args.symbol);
@@ -419,13 +423,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             let queryString = 'SELECT * FROM (' + getMarketStatsQuery(args.after, args.before) + ') x ';
             const queryValues = [core.args.atomicmarket_account, args.symbol];
 
-            const sortColumnMapping = {
-                users: 'users',
-                volume: 'volume'
-            };
-
             // @ts-ignore
-            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' DESC NULLS LAST ';
+            queryString += 'ORDER BY users DESC NULLS LAST ';
 
             logger.debug(queryString, queryValues);
 
