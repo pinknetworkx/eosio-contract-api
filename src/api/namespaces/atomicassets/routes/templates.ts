@@ -101,12 +101,12 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
 
             logger.debug(queryString);
 
-            const templateQuery = await this.core.connection.database.query(queryString, queryValues);
+            const templateQuery = await core.connection.database.query(queryString, queryValues);
 
             const templateLookup: {[key: string]: any} = {};
-            const query = await this.core.connection.database.query(
+            const query = await core.connection.database.query(
                 'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND template_id = ANY ($2)',
-                [this.core.args.atomicassets_account, templateQuery.rows.map((row: any) => row.template_id)]
+                [core.args.atomicassets_account, templateQuery.rows.map((row: any) => row.template_id)]
             );
 
             query.rows.reduce((prev: any, current: any) => {
