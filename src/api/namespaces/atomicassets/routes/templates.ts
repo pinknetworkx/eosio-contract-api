@@ -117,7 +117,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
 
             return res.json({
                 success: true,
-                data: query.rows.map((row: any) => formatTemplate(templateLookup[String(row.template_id)])),
+                data: templateQuery.rows.map((row: any) => formatTemplate(templateLookup[String(row.template_id)])),
                 query_time: Date.now()
             });
         } catch (e) {
