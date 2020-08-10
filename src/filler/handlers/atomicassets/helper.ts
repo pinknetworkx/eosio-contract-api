@@ -51,6 +51,8 @@ export async function saveAssetTableRow(
             (immutableData.name ? String(immutableData.name).substr(0, 64) : null) ||
             (mutableData.name ? String(mutableData.name).substr(0, 64) : null),
         ram_payer: data.ram_payer,
+        mutable_data: JSON.stringify(mutableData),
+        immutable_data: JSON.stringify(immutableData),
         burned_at_block: deleted ? block.block_num : null,
         burned_at_time: deleted ? eosioTimestampToDate(block.timestamp).getTime() : null,
         updated_at_block: block.block_num,
@@ -108,60 +110,6 @@ export async function saveAssetTableRow(
             updated_at_block: block.block_num,
             updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
         }, ['contract', 'asset_id', 'token_symbol']);
-    }
-
-    // update data
-    const localData: {[key: string]: {key: string, value: string, mutable: boolean}} = {};
-    for (const key of Object.keys(mutableData)) {
-        localData[[key, 'mutable'].join(':')] = {
-            key: key,
-            value: JSON.stringify(mutableData[key]),
-            mutable: true
-        };
-    }
-    for (const key of Object.keys(immutableData)) {
-        localData[[key, 'immutable'].join(':')] = {
-            key: key,
-            value: JSON.stringify(immutableData[key]),
-            mutable: false
-        };
-    }
-
-    const dbDataQuery = (await db.query(
-        'SELECT "key", "value", mutable FROM atomicassets_assets_data WHERE contract = $1 and asset_id = $2',
-        [contractName, data.asset_id]
-    ));
-
-    for (const dbData of dbDataQuery.rows) {
-        const key = [dbData.key, dbData.mutable ? 'mutable' : 'immutable'].join(':');
-
-        if (typeof localData[key] === 'undefined') {
-            await db.delete('atomicassets_assets_data', {
-                str: 'contract = $1 AND asset_id = $2 AND key = $3 AND mutable = $4',
-                values: [contractName, data.asset_id, dbData.key, dbData.mutable]
-            });
-        } else {
-            if (JSON.stringify(dbData.value) !== localData[key].value) {
-                await db.update('atomicassets_assets_data', {
-                    value: localData[key].value
-                }, {
-                    str: 'contract = $1 AND asset_id = $2 AND key = $3 AND mutable = $4',
-                    values: [contractName, data.asset_id, dbData.key, dbData.mutable]
-                }, ['contract', 'asset_id', 'key', 'mutable']);
-            }
-
-            delete localData[key];
-        }
-    }
-
-    for (const key of Object.keys(localData)) {
-        await db.insert('atomicassets_assets_data', {
-            ...localData[key],
-            contract: contractName,
-            asset_id: data.asset_id,
-            updated_at_block: block.block_num,
-            updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
-        }, ['contract', 'asset_id', 'key', 'mutable']);
     }
 }
 

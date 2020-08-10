@@ -39,13 +39,13 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
             'is_transferable', template_a.transferable,
             'is_burnable', template_a.burnable,
             'issued_supply', template_a.issued_supply,
-            'immutable_data', (SELECT json_object_agg("key", "value") FROM atomicassets_templates_data WHERE contract = asset_a.contract AND template_id = asset_a.template_id),
+            'immutable_data', template_a.immutable_data,
             'created_at_time', template_a.created_at_time,
             'created_at_block', template_a.created_at_block
         ) END AS "template",
 
-        (SELECT json_object_agg("key", "value") FROM atomicassets_assets_data WHERE contract = asset_a.contract AND asset_id = asset_a.asset_id AND mutable IS true) mutable_data,
-        (SELECT json_object_agg("key", "value") FROM atomicassets_assets_data WHERE contract = asset_a.contract AND asset_id = asset_a.asset_id AND mutable IS false) immutable_data,
+        asset_a.mutable_data,
+        asset_a.immutable_data,
 
         COALESCE(mint_a.template_mint, 0) template_mint,
         mint_a.schema_mint,

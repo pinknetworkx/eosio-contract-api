@@ -30,19 +30,14 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             }
 
             let varCounter = 1;
-            let queryString = 'SELECT template.contract, template.template_id FROM atomicassets_templates template WHERE contract = $1 ';
+            let queryString = 'SELECT template.contract, template.template_id FROM atomicassets_templates "template" WHERE contract = $1 ';
             let queryValues: any[] = [core.args.atomicassets_account];
 
             if (args.collection_name) {
-                const data = buildDataConditions(req.query, varCounter);
+                const data = buildDataConditions(req.query, varCounter, null, '"template"');
 
                 if (data.conditions.length > 0) {
-                    queryString += 'AND (' +
-                        'SELECT COUNT(DISTINCT "key") FROM (' +
-                                'SELECT "key", "value" FROM atomicassets_templates_data data_t2 WHERE data_t2.contract = asset.contract AND data_t2.template_id = asset.template_id ' +
-                            ') "data" ' +
-                            'WHERE ' + data.conditions.join(' OR ') +
-                        ') >= ' + data.conditions.length + ' ';
+                    queryString += 'AND (' + data.conditions.join(' AND ') + ') ';
 
                     queryValues = queryValues.concat(data.values);
                     varCounter += data.values.length;

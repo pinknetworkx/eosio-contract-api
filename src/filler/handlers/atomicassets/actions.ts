@@ -222,6 +222,13 @@ export default class AtomicAssetsActionHandler {
             // @ts-ignore
             const data: LogMintAssetActionData = trace.act.data;
 
+            await db.insert('atomicassets_mints', {
+                contract: this.contractName,
+                asset_id: data.asset_id,
+                created_at_block: block.block_num,
+                created_at_time: eosioTimestampToDate(block.timestamp).getTime()
+            }, ['contract', 'asset_id']);
+
             await this.createLogMessage(db, block, tx, trace.global_sequence, 'mint', 'asset', data.asset_id, {
                 minter: data.minter,
                 new_owner: data.new_owner

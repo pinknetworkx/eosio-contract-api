@@ -45,7 +45,7 @@ CREATE TABLE atomichub_notifications
     account character varying(12) NOT NULL,
     contract character varying(12) NOT NULL,
     message character varying(256) NOT NULL,
-    reference json NOT NULL,
+    reference jsonb NOT NULL,
     block_num bigint NOT NULL,
     block_time bigint NOT NULL,
     CONSTRAINT atomichub_notifications_pkey PRIMARY KEY (id)

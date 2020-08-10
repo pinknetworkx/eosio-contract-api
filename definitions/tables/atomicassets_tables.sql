@@ -7,6 +7,8 @@ CREATE TABLE atomicassets_assets (
     template_id bigint,
     owner character varying(12),
     readable_name character varying(64),
+    mutable_data jsonb,
+    immutable_data jsonb,
     ram_payer character varying(12) NOT NULL,
     burned_at_block bigint,
     burned_at_time bigint,
@@ -27,15 +29,13 @@ CREATE TABLE atomicassets_assets_backed_tokens (
     CONSTRAINT atomicassets_assets_backed_tokens_pkey PRIMARY KEY (contract, asset_id, token_symbol)
 );
 
-CREATE TABLE atomicassets_assets_data (
+CREATE TABLE atomicassets_mints (
     contract character varying(12) NOT NULL,
     asset_id bigint NOT NULL,
-    "key" character varying(64) NOT NULL,
-    "value" json NOT NULL,
-    mutable boolean NOT NULL,
-    updated_at_block bigint NOT NULL,
-    updated_at_time bigint NOT NULL,
-    CONSTRAINT atomicassets_assets_data_pkey PRIMARY KEY (contract, asset_id, "key", mutable)
+    txid bytea NOT NULL,
+    created_at_block bigint NOT NULL,
+    created_at_time bigint NOT NULL,
+    CONSTRAINT atomicassets_mints_pkey PRIMARY KEY (contract, asset_id)
 );
 
 CREATE TABLE atomicassets_balances (
@@ -57,7 +57,7 @@ CREATE TABLE atomicassets_collections (
     authorized_accounts character varying(12)[] NOT NULL,
     notify_accounts character varying(12)[] NOT NULL,
     market_fee double precision NOT NULL,
-    data json,
+    data jsonb,
     created_at_block bigint NOT NULL,
     created_at_time bigint NOT NULL,
     CONSTRAINT atomicassets_collections_pkey PRIMARY KEY (contract, collection_name)
@@ -66,7 +66,7 @@ CREATE TABLE atomicassets_collections (
 CREATE TABLE atomicassets_config (
     contract character varying(12) NOT NULL,
     version character varying(64) NOT NULL,
-    collection_format json[] NOT NULL,
+    collection_format jsonb[] NOT NULL,
     CONSTRAINT atomicassets_config_pkey PRIMARY KEY (contract)
 );
 
@@ -115,24 +115,17 @@ CREATE TABLE atomicassets_templates (
     burnable boolean NOT NULL,
     max_supply bigint NOT NULL,
     issued_supply bigint NOT NULL,
+    immutable_data jsonb,
     created_at_time bigint NOT NULL,
     created_at_block bigint NOT NULL,
     CONSTRAINT atomicassets_templates_pkey PRIMARY KEY (contract, template_id)
-);
-
-CREATE TABLE atomicassets_templates_data (
-    contract character varying(12) NOT NULL,
-    template_id bigint NOT NULL,
-    "key" character varying(64) NOT NULL,
-    "value" json NOT NULL,
-    CONSTRAINT atomicassets_templates_data_pkey PRIMARY KEY (contract, template_id, "key")
 );
 
 CREATE TABLE atomicassets_schemas (
     contract character varying(12) NOT NULL,
     collection_name character varying(12) NOT NULL,
     schema_name character varying(12) NOT NULL,
-    format json[] NOT NULL,
+    format jsonb[] NOT NULL,
     created_at_block bigint NOT NULL,
     created_at_time bigint NOT NULL,
     CONSTRAINT atomicassets_schemas_pkey PRIMARY KEY (contract, collection_name, schema_name)
@@ -172,11 +165,11 @@ ALTER TABLE ONLY atomicassets_assets_backed_tokens
 ALTER TABLE ONLY atomicassets_assets_backed_tokens
     ADD CONSTRAINT atomicassets_assets_backed_tokens_symbol_fkey FOREIGN KEY (token_symbol, contract) REFERENCES atomicassets_tokens(token_symbol, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
+ALTER TABLE ONLY atomicassets_mints
+    ADD CONSTRAINT atomicassets_mints_assets_fkey FOREIGN KEY (asset_id, contract) REFERENCES atomicassets_assets(asset_id, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+
 ALTER TABLE ONLY atomicassets_assets
     ADD CONSTRAINT atomicassets_assets_collections_fkey FOREIGN KEY (contract, collection_name) REFERENCES atomicassets_collections(contract, collection_name) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
-
-ALTER TABLE ONLY atomicassets_assets_data
-    ADD CONSTRAINT atomicassets_assets_data_assets_fkey FOREIGN KEY (asset_id, contract) REFERENCES atomicassets_assets(asset_id, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_assets
     ADD CONSTRAINT atomicassets_assets_templates_fkey FOREIGN KEY (template_id, contract) REFERENCES atomicassets_templates(template_id, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
@@ -195,9 +188,6 @@ ALTER TABLE ONLY atomicassets_offers_assets
 
 ALTER TABLE ONLY atomicassets_templates
     ADD CONSTRAINT atomicassets_templates_collections_fkey FOREIGN KEY (collection_name, contract) REFERENCES atomicassets_collections(collection_name, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
-
-ALTER TABLE ONLY atomicassets_templates_data
-    ADD CONSTRAINT atomicassets_templates_data_templates_fkey FOREIGN KEY (template_id, contract) REFERENCES atomicassets_templates(template_id, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_templates
     ADD CONSTRAINT atomicassets_templates_schemas_fkey FOREIGN KEY (collection_name, schema_name, contract) REFERENCES atomicassets_schemas(collection_name, schema_name, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
@@ -220,32 +210,34 @@ CREATE INDEX atomicassets_assets_schema_name ON atomicassets_assets USING btree 
 CREATE INDEX atomicassets_assets_owner ON atomicassets_assets USING hash (owner);
 CREATE INDEX atomicassets_assets_readable_name ON atomicassets_assets USING btree (readable_name);
 CREATE INDEX atomicassets_assets_burned_at_block ON atomicassets_assets USING btree (burned_at_block);
+CREATE INDEX atomicassets_assets_burned_at_time ON atomicassets_assets USING btree (burned_at_time);
 CREATE INDEX atomicassets_assets_updated_at_block ON atomicassets_assets USING btree (updated_at_block);
 CREATE INDEX atomicassets_assets_updated_at_time ON atomicassets_assets USING btree (updated_at_time);
 CREATE INDEX atomicassets_assets_minted_at_block ON atomicassets_assets USING btree (minted_at_block);
 CREATE INDEX atomicassets_assets_minted_at_time ON atomicassets_assets USING btree (minted_at_time);
 
-CREATE INDEX atomicassets_assets_backed_tokens_contract ON atomicassets_assets_backed_tokens USING hash (contract);
+CREATE INDEX atomicassets_assets_backed_tokens_contract ON atomicassets_assets_backed_tokens USING btree (contract);
 CREATE INDEX atomicassets_assets_backed_tokens_asset_id ON atomicassets_assets_backed_tokens USING btree (asset_id);
 CREATE INDEX atomicassets_assets_backed_tokens_token_symbol ON atomicassets_assets_backed_tokens USING hash (token_symbol);
 CREATE INDEX atomicassets_assets_backed_tokens_updated_at_block ON atomicassets_assets_backed_tokens USING btree (updated_at_block);
 
-CREATE INDEX atomicassets_assets_data_contract ON atomicassets_assets_data USING btree (contract);
-CREATE INDEX atomicassets_assets_data_asset_id ON atomicassets_assets_data USING btree (asset_id);
-CREATE INDEX atomicassets_assets_data_asset_key ON atomicassets_assets_data USING btree ("key");
-CREATE INDEX atomicassets_assets_data_updated_at_block ON atomicassets_assets_data USING btree (updated_at_block);
-CREATE INDEX atomicassets_assets_data_updated_mutable ON atomicassets_assets_data USING btree (mutable);
+CREATE INDEX atomicassets_mints_contract ON atomicassets_mints USING btree (contract);
+CREATE INDEX atomicassets_mints_asset_id ON atomicassets_mints USING btree (asset_id);
+CREATE INDEX atomicassets_mints_created_at_block ON atomicassets_mints USING btree (created_at_block);
+CREATE INDEX atomicassets_mints_created_at_block ON atomicassets_mints USING btree (created_at_block);
 
 CREATE INDEX atomicassets_balances_contract ON atomicassets_balances USING btree (contract);
 CREATE INDEX atomicassets_balances_owner ON atomicassets_balances USING hash (owner);
 CREATE INDEX atomicassets_balances_token_symbol ON atomicassets_balances USING btree (token_symbol);
 CREATE INDEX atomicassets_balances_updated_at_block ON atomicassets_balances USING btree (updated_at_block);
+CREATE INDEX atomicassets_balances_updated_at_time ON atomicassets_balances USING btree (updated_at_time);
 
 CREATE INDEX atomicassets_collections_contract ON atomicassets_collections USING btree (contract);
 CREATE INDEX atomicassets_collections_collection_name ON atomicassets_collections USING btree (collection_name);
 CREATE INDEX atomicassets_collections_readable_name ON atomicassets_collections USING btree (readable_name);
 CREATE INDEX atomicassets_collections_author ON atomicassets_collections USING btree (author);
 CREATE INDEX atomicassets_collections_created_at_block ON atomicassets_collections USING btree (created_at_block);
+CREATE INDEX atomicassets_collections_created_at_time ON atomicassets_collections USING btree (created_at_time);
 
 CREATE INDEX atomicassets_logs_contract ON atomicassets_logs USING btree (contract);
 CREATE INDEX atomicassets_logs_name ON atomicassets_logs USING btree (name);
@@ -274,15 +266,13 @@ CREATE INDEX atomicassets_templates_collection_name ON atomicassets_templates US
 CREATE INDEX atomicassets_templates_schema_name ON atomicassets_templates USING btree (schema_name);
 CREATE INDEX atomicassets_templates_readable_name ON atomicassets_templates USING btree (readable_name);
 CREATE INDEX atomicassets_templates_created_at_block ON atomicassets_templates USING btree (created_at_block);
-
-CREATE INDEX atomicassets_templates_data_contract ON atomicassets_templates_data USING btree (contract);
-CREATE INDEX atomicassets_templates_data_template_id ON atomicassets_templates_data USING btree (template_id);
-CREATE INDEX atomicassets_templates_data_key ON atomicassets_templates_data USING btree ("key");
+CREATE INDEX atomicassets_templates_created_at_time ON atomicassets_templates USING btree (created_at_time);
 
 CREATE INDEX atomicassets_schemas_contract ON atomicassets_schemas USING btree (contract);
 CREATE INDEX atomicassets_schemas_schema_name ON atomicassets_schemas USING btree (schema_name);
 CREATE INDEX atomicassets_schemas_collection_name ON atomicassets_schemas USING btree (collection_name);
 CREATE INDEX atomicassets_schemas_created_at_block ON atomicassets_schemas USING btree (created_at_block);
+CREATE INDEX atomicassets_schemas_created_at_time ON atomicassets_schemas USING btree (created_at_time);
 
 CREATE INDEX atomicassets_transfers_contract ON atomicassets_transfers USING btree (contract);
 CREATE INDEX atomicassets_transfers_sender ON atomicassets_transfers USING hash (sender);

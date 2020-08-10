@@ -157,7 +157,7 @@ export function buildSaleFilter(
     varCounter += listingFilter.values.length;
 
     if (hasAssetFilter(req)) {
-        const filter = buildAssetFilter(req, varCounter);
+        const filter = buildAssetFilter(req, varCounter, '"asset"', '"template"');
 
         queryString += 'AND EXISTS(' +
                 'SELECT asset.asset_id ' +
@@ -271,7 +271,7 @@ export function buildAuctionFilter(
     varCounter += listingFilter.values.length;
 
     if (hasAssetFilter(req)) {
-        const filter = buildAssetFilter(req, varCounter);
+        const filter = buildAssetFilter(req, varCounter, '"asset"', '"template"');
 
         queryString += 'AND EXISTS(' +
                 'SELECT asset.asset_id ' +

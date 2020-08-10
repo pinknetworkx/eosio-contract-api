@@ -235,10 +235,10 @@ export default class AtomicAssetsHandler extends ContractHandler {
 
     async deleteDB(client: PoolClient): Promise<void> {
         const tables = [
-            'atomicassets_assets', 'atomicassets_assets_backed_tokens', 'atomicassets_assets_data',
+            'atomicassets_assets', 'atomicassets_assets_backed_tokens',
             'atomicassets_balances', 'atomicassets_collections', 'atomicassets_config',
             'atomicassets_logs', 'atomicassets_offers', 'atomicassets_offers_assets',
-            'atomicassets_templates', 'atomicassets_templates_data', 'atomicassets_schemas',
+            'atomicassets_templates', 'atomicassets_schemas',
             'atomicassets_tokens', 'atomicassets_transfers', 'atomicassets_transfers_assets'
         ];
 
