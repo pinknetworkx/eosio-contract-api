@@ -15,15 +15,16 @@ export const atomicmarketComponents = {
                     }
                 }
             },
-            auction: {
-                type: 'object',
-                properties: {
-                    market_contract: {type: 'string'},
-                    auction_id: {type: 'integer'}
+            auction:{
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        market_contract: {type: 'string'},
+                        auction_id: {type: 'integer'}
+                    }
                 }
-            },
-            collection_whitelisted: {type: 'boolean'},
-            collection_blacklisted: {type: 'boolean'}
+            }
         }
     },
     ListingOffer: generateOfferSchema('ListingAsset'),
@@ -51,6 +52,7 @@ export const atomicmarketComponents = {
                 }
             },
 
+            listing_price: {type: 'number'},
             listing_symbol: {type: 'string'},
 
             assets: {
@@ -63,13 +65,7 @@ export const atomicmarketComponents = {
 
             collection: atomicassetsComponents.Asset.properties.collection,
 
-            sale_state: {type: 'integer'},
-            offer_state: {type: 'integer'},
-
-            collection_blacklisted: {type: 'boolean'},
-            collection_whitelisted: {type: 'boolean'},
-            seller_blacklisted: {type: 'boolean'},
-            seller_whitelisted: {type: 'boolean'},
+            state: {type: 'integer'},
 
             updated_at_block: {type: 'integer'},
             updated_at_time: {type: 'integer'},
@@ -125,11 +121,6 @@ export const atomicmarketComponents = {
 
             state: {type: 'integer'},
 
-            collection_blacklisted: {type: 'boolean'},
-            collection_whitelisted: {type: 'boolean'},
-            seller_blacklisted: {type: 'boolean'},
-            seller_whitelisted: {type: 'boolean'},
-
             end_time: {type: 'integer'},
 
             updated_at_block: {type: 'integer'},
@@ -175,30 +166,23 @@ export const listingFilterParameters = [
         schema: {type: 'integer'}
     },
     {
-        name: 'show_blacklisted',
+        name: 'show_seller_contracts',
         in: 'query',
-        description: 'Include blacklisted collections and sellers',
+        description: 'If false no seller contracts are shown except if they are in the contract whitelist',
         required: false,
         schema: {type: 'boolean'}
     },
     {
-        name: 'whitelisted_seller_only',
+        name: 'contract_whitelist',
         in: 'query',
-        description: 'Only show listings from verified sellers',
+        description: 'Show these accounts even if they are contracts',
         required: false,
         schema: {type: 'boolean'}
     },
     {
-        name: 'whitelisted_collections_only',
+        name: 'seller_blacklist',
         in: 'query',
-        description: 'Only show assets from verified collections',
-        required: false,
-        schema: {type: 'boolean'}
-    },
-    {
-        name: 'whitelisted_only',
-        in: 'query',
-        description: 'Only show explicit whitelisted listings',
+        description: 'Dont show listings from these sellers (Split multiple with ",")',
         required: false,
         schema: {type: 'boolean'}
     },

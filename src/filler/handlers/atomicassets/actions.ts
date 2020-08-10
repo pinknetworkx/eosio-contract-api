@@ -61,6 +61,10 @@ export default class AtomicAssetsActionHandler {
             this.core.addUpdateJob(async () => {
                 await this.handleAssetBurnTrace(db, block, trace, tx);
             }, JobPriority.ACTION_BURN_ASSET);
+        } else if (['logmint'].indexOf(trace.act.name) >= 0) {
+            this.core.addUpdateJob(async () => {
+                await this.handleAssetMintTrace(db, block, trace, tx);
+            }, JobPriority.ACTION_MINT_ASSET);
         } else if (['logmint', 'logburnasset', 'logbackasset', 'logsetdata'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleAssetUpdateTrace(db, block, trace, tx);
@@ -200,22 +204,10 @@ export default class AtomicAssetsActionHandler {
                 immutable_serialized_data: null,
                 mutable_serialized_data: null
             }, true, data.old_immutable_data, data.old_mutable_data);
-
-            await this.createLogMessage(db, block, tx, trace.global_sequence, 'burn', 'asset', data.asset_id, {
-                owner: data.asset_owner,
-                backed_tokens: data.backed_tokens
-            });
-
-            this.core.checkOfferState([], [data.asset_id]);
-
-            this.core.pushNotificiation(block, tx, 'assets', 'burn', {
-                asset_id: data.asset_id,
-                trace: data
-            });
         }
     }
 
-    async handleAssetUpdateTrace(
+    async handleAssetMintTrace(
         db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction
     ): Promise<void> {
         if (trace.act.name === 'logmint') {
@@ -229,6 +221,15 @@ export default class AtomicAssetsActionHandler {
                 created_at_block: block.block_num,
                 created_at_time: eosioTimestampToDate(block.timestamp).getTime()
             }, ['contract', 'asset_id']);
+        }
+    }
+
+    async handleAssetUpdateTrace(
+        db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction
+    ): Promise<void> {
+        if (trace.act.name === 'logmint') {
+            // @ts-ignore
+            const data: LogMintAssetActionData = trace.act.data;
 
             await this.createLogMessage(db, block, tx, trace.global_sequence, 'mint', 'asset', data.asset_id, {
                 minter: data.minter,
@@ -236,6 +237,21 @@ export default class AtomicAssetsActionHandler {
             });
 
             this.core.pushNotificiation(block, tx, 'assets', 'mint', {
+                asset_id: data.asset_id,
+                trace: data
+            });
+        } else if (trace.act.name === 'logburnasset') {
+            // @ts-ignore
+            const data: LogBurnAssetActionData = trace.act.data;
+
+            await this.createLogMessage(db, block, tx, trace.global_sequence, 'burn', 'asset', data.asset_id, {
+                owner: data.asset_owner,
+                backed_tokens: data.backed_tokens
+            });
+
+            this.core.checkOfferState([], [data.asset_id]);
+
+            this.core.pushNotificiation(block, tx, 'assets', 'burn', {
                 asset_id: data.asset_id,
                 trace: data
             });

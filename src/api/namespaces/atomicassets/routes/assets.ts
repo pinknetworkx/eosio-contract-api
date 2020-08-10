@@ -27,14 +27,22 @@ export class AssetApi {
                 const args = filterQueryArgs(req, {
                     page: {type: 'int', min: 1, default: 1},
                     limit: {type: 'int', min: 1, max: 1000, default: 100},
-                    sort: {type: 'string', values: ['asset_id', 'updated', 'minted', 'template_mint'], default: 'asset_id'},
+                    sort: {
+                        type: 'string',
+                        values: ['asset_id', 'updated', 'minted', 'template_mint', 'schema_mint', 'collection_mint'],
+                        default: 'asset_id'
+                    },
                     order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
                     authorized_account: {type: 'string', min: 1, max: 12},
                     only_duplicate_templates: {type: 'bool'},
 
                     hide_offers: {type: 'bool', default: false},
-                    hide_sales: {type: 'bool', default: false}
+                    hide_sales: {type: 'bool', default: false},
+
+                    template_mint: {type: 'int', min: 1},
+                    schema_mint: {type: 'int', min: 1},
+                    collection_mint: {type: 'int', min: 1}
                 });
 
                 let varCounter = 1;
@@ -84,6 +92,21 @@ export class AssetApi {
                         ') ';
                 }
 
+                if (args.template_mint) {
+                    queryString += 'AND mint.template_mint = $' + ++varCounter + ' ';
+                    queryValues.push(args.template_mint);
+                }
+
+                if (args.schema_mint) {
+                    queryString += 'AND mint.schema_mint = $' + ++varCounter + ' ';
+                    queryValues.push(args.schema_mint);
+                }
+
+                if (args.collection_mint) {
+                    queryString += 'AND mint.collection_mint = $' + ++varCounter + ' ';
+                    queryValues.push(args.collection_mint);
+                }
+
                 const assetFilter = buildAssetFilter(req, varCounter, '"asset"', '"template"');
                 queryValues = queryValues.concat(assetFilter.values);
                 varCounter += assetFilter.values.length;
@@ -108,6 +131,8 @@ export class AssetApi {
                     asset_id: 'asset.asset_id',
                     updated: 'asset.updated_at_block',
                     minted: 'asset.asset_id',
+                    collection_mint: 'mint.collection_mint',
+                    schema_mint: 'mint.schema_mint',
                     template_mint: 'mint.template_mint'
                 };
 

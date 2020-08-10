@@ -31,6 +31,7 @@ export enum JobPriority {
     TABLE_PRESETS = 60,
     TABLE_ASSETS = 60,
     ACTION_BURN_ASSET = 50,
+    ACTION_MINT_ASSET = 40,
     ACTION_TRANSFER_ASSET = 40,
     TABLE_OFFERS = 30,
     ACTION_CREATE_OFFER = 20,
@@ -116,6 +117,10 @@ export default class AtomicAssetsHandler extends ContractHandler {
             logger.info('Could not find AtomicAssets tables. Create them now...');
 
             await client.query(fs.readFileSync('./definitions/tables/atomicassets_tables.sql', {
+                encoding: 'utf8'
+            }));
+
+            await client.query(fs.readFileSync('./definitions/tables/atomicassets_indexes.sql', {
                 encoding: 'utf8'
             }));
 

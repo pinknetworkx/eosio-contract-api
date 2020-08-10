@@ -55,27 +55,7 @@ CREATE OR REPLACE VIEW atomicmarket_sales_master AS
         sale.state sale_state,
         offer.state offer_state,
 
-        EXISTS (
-            SELECT * FROM atomicmarket_blacklist_collections list
-            WHERE list.market_contract = sale.market_contract AND list.assets_contract = sale.assets_contract AND
-                list.collection_name = sale.collection_name
-        ) collection_blacklisted,
-        EXISTS (
-            SELECT * FROM atomicmarket_whitelist_collections list
-            WHERE list.market_contract = sale.market_contract AND list.assets_contract = sale.assets_contract AND
-                list.collection_name = sale.collection_name
-        ) collection_whitelisted,
-        (EXISTS (
-            SELECT * FROM atomicmarket_blacklist_accounts list
-            WHERE list.market_contract = sale.market_contract AND list.account = sale.seller
-        ) OR EXISTS (
-            SELECT * FROM contract_codes list
-            WHERE list.account = sale.seller
-        )) seller_blacklisted,
-        EXISTS (
-            SELECT * FROM atomicmarket_whitelist_accounts list
-            WHERE list.market_contract = sale.market_contract AND list.account = sale.seller
-        ) seller_whitelisted,
+        EXISTS(SELECT * FROM contract_codes WHERE account = sale.seller) is_seller_contract,
 
         sale.updated_at_block,
         sale.updated_at_time,

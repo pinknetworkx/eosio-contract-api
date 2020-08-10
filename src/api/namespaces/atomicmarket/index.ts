@@ -12,7 +12,6 @@ import logger from '../../../utils/winston';
 import { auctionsEndpoints, auctionSockets } from './routes/auctions';
 import { salesEndpoints, salesSockets } from './routes/sales';
 import { atomicmarketComponents } from './openapi';
-import { adminEndpoints } from './routes/admin';
 import { configEndpoints } from './routes/config';
 import { marketplacesEndpoints } from './routes/marketplaces';
 import { formatOffer, formatTransfer } from '../atomicassets/format';
@@ -137,8 +136,6 @@ export class AtomicMarketNamespace extends ApiNamespace {
         docs.push(assetApi.endpoints(router));
         docs.push(transferApi.endpoints(router));
         docs.push(offerApi.endpoints(router));
-
-        docs.push(adminEndpoints(this, server, router));
 
         for (const doc of docs) {
             Object.assign(documentation.paths, doc.paths);

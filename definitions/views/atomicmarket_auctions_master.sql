@@ -60,26 +60,9 @@ CREATE OR REPLACE VIEW atomicmarket_auctions_master AS
 
         auction.state auction_state,
 
-        EXISTS (
-            SELECT * FROM atomicmarket_blacklist_collections list
-            WHERE list.market_contract = auction.market_contract AND list.assets_contract = auction.assets_contract AND
-                list.collection_name = auction.collection_name
-        ) collection_blacklisted,
-        EXISTS (
-            SELECT * FROM atomicmarket_whitelist_collections list
-            WHERE list.market_contract = auction.market_contract AND list.assets_contract = auction.assets_contract AND
-                list.collection_name = auction.collection_name
-        ) collection_whitelisted,
-        EXISTS (
-            SELECT * FROM atomicmarket_blacklist_accounts list
-            WHERE list.market_contract = auction.market_contract AND list.account = auction.seller
-        ) seller_blacklisted,
-        EXISTS (
-            SELECT * FROM atomicmarket_whitelist_accounts list
-            WHERE list.market_contract = auction.market_contract AND list.account = auction.seller
-        ) seller_whitelisted,
-
         auction.end_time,
+
+        EXISTS(SELECT * FROM contract_codes WHERE account = auction.seller) is_seller_contract,
 
         auction.updated_at_block,
         auction.updated_at_time,

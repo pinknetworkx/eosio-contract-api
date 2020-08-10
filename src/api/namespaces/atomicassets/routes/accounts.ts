@@ -13,7 +13,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
-                limit: {type: 'int', min: 1, max: 1000, default: 100},
+                limit: {type: 'int', min: 1, max: 5000, default: 100},
 
                 collection_whitelist: {type: 'string', min: 1},
                 collection_blacklist: {type: 'string', min: 1},

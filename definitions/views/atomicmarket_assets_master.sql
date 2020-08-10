@@ -13,7 +13,7 @@ CREATE OR REPLACE VIEW atomicmarket_assets_master AS
                 asset_o.contract = asset_a.contract AND asset_o.asset_id = asset_a.asset_id AND
                 offer_a.state = 0 AND sale_a.state = 1
         ) sales,
-        (
+        ARRAY(
             SELECT
                 json_build_object(
                     'market_contract', auction_a.market_contract,
@@ -23,14 +23,5 @@ CREATE OR REPLACE VIEW atomicmarket_assets_master AS
             WHERE auction_a.market_contract = asset_o.market_contract AND auction_a.auction_id = asset_o.auction_id AND
                 asset_o.assets_contract = asset_a.contract AND asset_o.asset_id = asset_a.asset_id AND
                 auction_a.state = 1 AND auction_a.end_time <= (extract(epoch from now()) * 1000)::bigint
-        ) auction,
-
-        EXISTS (
-            SELECT * FROM atomicmarket_blacklist_collections list
-            WHERE list.assets_contract = asset_a.contract AND list.collection_name = asset_a.collection_name
-        ) collection_blacklisted,
-        EXISTS (
-            SELECT * FROM atomicmarket_whitelist_collections list
-            WHERE list.assets_contract = asset_a.contract AND list.collection_name = asset_a.collection_name
-        ) collection_whitelisted
+        ) auctions
     FROM atomicassets_assets_master asset_a

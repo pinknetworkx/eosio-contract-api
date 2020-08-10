@@ -3,7 +3,7 @@ import PQueue from 'p-queue';
 
 import { AtomicMarketNamespace, SaleApiState } from '../index';
 import { HTTPServer } from '../../../server';
-import { buildSaleFilter, fetchGreylists } from '../utils';
+import { buildSaleFilter } from '../utils';
 import { fillSales } from '../filler';
 import { formatSale } from '../format';
 import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/openapi';
@@ -24,7 +24,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
             });
 
-            const filter = buildSaleFilter(req, 1, await fetchGreylists(core));
+            const filter = buildSaleFilter(req, 1);
 
             let queryString = `
                 SELECT listing.sale_id 

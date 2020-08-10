@@ -123,32 +123,6 @@ CREATE TABLE atomicmarket_sales
     CONSTRAINT atomicmarket_sales_offer_id_key UNIQUE (market_contract, assets_contract, offer_id)
 );
 
-CREATE TABLE atomicmarket_blacklist_accounts (
-    market_contract character varying(12) NOT NULL,
-    account character varying(12) NOT NULL,
-    CONSTRAINT atomicmarket_blacklist_account_pkey PRIMARY KEY (market_contract, account)
-);
-
-CREATE TABLE atomicmarket_blacklist_collections (
-    market_contract character varying(12) NOT NULL,
-    assets_contract character varying(12) NOT NULL,
-    collection_name character varying(12) NOT NULL,
-    CONSTRAINT atomicmarket_blacklist_collections_pkey PRIMARY KEY (market_contract, assets_contract, collection_name)
-);
-
-CREATE TABLE atomicmarket_whitelist_accounts (
-    market_contract character varying(12) NOT NULL,
-    account character varying(12) NOT NULL,
-    CONSTRAINT atomicmarket_whitelist_account_pkey PRIMARY KEY (market_contract, account)
-);
-
-CREATE TABLE atomicmarket_whitelist_collections (
-    market_contract character varying(12) NOT NULL,
-    assets_contract character varying(12) NOT NULL,
-    collection_name character varying(12) NOT NULL,
-    CONSTRAINT atomicmarket_whitelist_collections_pkey PRIMARY KEY (market_contract, assets_contract, collection_name)
-);
-
 -- Foreign Keys
 ALTER TABLE ONLY atomicmarket_auctions
     ADD CONSTRAINT atomicmarket_auctions_collection_name_fkey FOREIGN KEY (collection_name, assets_contract)
@@ -200,15 +174,6 @@ ALTER TABLE ONLY atomicmarket_sales
     ADD CONSTRAINT atomicmarket_sales_symbol_fkey FOREIGN KEY (market_contract, settlement_symbol)
     REFERENCES atomicmarket_tokens (market_contract, token_symbol) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
-
-
-ALTER TABLE ONLY atomicmarket_whitelist_collections
-    ADD CONSTRAINT atomicmarket_whitelist_collections_collection_fkey FOREIGN KEY (assets_contract, collection_name)
-    REFERENCES atomicassets_collections (contract, collection_name) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
-
-ALTER TABLE ONLY atomicmarket_blacklist_collections
-    ADD CONSTRAINT atomicmarket_blacklist_collections_collection_fkey FOREIGN KEY (assets_contract, collection_name)
-    REFERENCES atomicassets_collections (contract, collection_name) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 -- Indexes
 CREATE INDEX atomicmarket_auctions_market_contract ON atomicmarket_auctions USING btree (market_contract);
