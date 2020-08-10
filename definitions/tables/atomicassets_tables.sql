@@ -224,7 +224,7 @@ CREATE INDEX atomicassets_assets_backed_tokens_updated_at_block ON atomicassets_
 CREATE INDEX atomicassets_mints_contract ON atomicassets_mints USING btree (contract);
 CREATE INDEX atomicassets_mints_asset_id ON atomicassets_mints USING btree (asset_id);
 CREATE INDEX atomicassets_mints_created_at_block ON atomicassets_mints USING btree (created_at_block);
-CREATE INDEX atomicassets_mints_created_at_block ON atomicassets_mints USING btree (created_at_block);
+CREATE INDEX atomicassets_mints_created_at_time ON atomicassets_mints USING btree (created_at_time);
 
 CREATE INDEX atomicassets_balances_contract ON atomicassets_balances USING btree (contract);
 CREATE INDEX atomicassets_balances_owner ON atomicassets_balances USING hash (owner);
