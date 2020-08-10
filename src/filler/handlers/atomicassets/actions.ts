@@ -225,6 +225,7 @@ export default class AtomicAssetsActionHandler {
             await db.insert('atomicassets_mints', {
                 contract: this.contractName,
                 asset_id: data.asset_id,
+                txid: Buffer.from(tx.id, 'hex'),
                 created_at_block: block.block_num,
                 created_at_time: eosioTimestampToDate(block.timestamp).getTime()
             }, ['contract', 'asset_id']);
