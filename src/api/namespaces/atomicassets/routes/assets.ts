@@ -59,7 +59,8 @@ export class AssetApi {
                 if (args.authorized_account) {
                     queryString += 'AND EXISTS(' +
                         'SELECT * FROM atomicassets_collections collection ' +
-                        'WHERE collection.collection_name = asset.collection_name AND $' + ++varCounter + ' = ANY(collection.authorized_accounts)' +
+                        'WHERE collection.collection_name = asset.collection_name AND collection.contract = asset.contract ' +
+                            'AND $' + ++varCounter + ' = ANY(collection.authorized_accounts)' +
                         ') ';
                     queryValues.push(args.authorized_account);
                 }

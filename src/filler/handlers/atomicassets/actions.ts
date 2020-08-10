@@ -189,7 +189,7 @@ export default class AtomicAssetsActionHandler {
         });
     }
 
-    async handleAssetBurnTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
+    async handleAssetBurnTrace(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, _: EosioTransaction): Promise<void> {
         if (trace.act.name === 'logburnasset') {
             // @ts-ignore
             const data: LogBurnAssetActionData = trace.act.data;

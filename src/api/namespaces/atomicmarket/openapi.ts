@@ -15,7 +15,7 @@ export const atomicmarketComponents = {
                     }
                 }
             },
-            auction:{
+            auction: {
                 type: 'array',
                 items: {
                     type: 'object',

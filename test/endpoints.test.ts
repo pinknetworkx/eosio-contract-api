@@ -205,12 +205,6 @@ describe('Endpoints Test', () => {
         // prices
         expect(await testEndpoint(namespace, '/v1/prices', {})).to.equal(200);
 
-        // admin
-        expect(await testEndpoint(namespace, '/v1/blacklist/collections', {})).to.equal(200);
-        expect(await testEndpoint(namespace, '/v1/whitelist/collections', {})).to.equal(200);
-        expect(await testEndpoint(namespace, '/v1/blacklist/accounts', {})).to.equal(200);
-        expect(await testEndpoint(namespace, '/v1/whitelist/accounts', {})).to.equal(200);
-
         // assets
         expect(await testEndpoint(namespace, '/v1/assets', {
             owner: 'test',

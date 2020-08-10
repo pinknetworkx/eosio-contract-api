@@ -55,7 +55,11 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             }
 
             if (args.authorized_account) {
-                queryString += 'AND $' + ++varCounter + ' = ANY(authorized_accounts) ';
+                queryString += 'AND EXISTS(' +
+                    'SELECT * FROM atomicassets_collections collection ' +
+                    'WHERE collection.collection_name = template.collection_name AND collection.contract = template.contract ' +
+                        'AND $' + ++varCounter + ' = ANY(collection.authorized_accounts)' +
+                    ') ';
                 queryValues.push(args.authorized_account);
             }
 
