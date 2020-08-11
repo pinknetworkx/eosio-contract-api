@@ -14,7 +14,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
-                limit: {type: 'int', min: 1, max: 100, default: 100},
+                limit: {type: 'int', min: 1, max: 1000, default: 100},
                 sort: {type: 'string', values: ['created'], default: 'created'},
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
