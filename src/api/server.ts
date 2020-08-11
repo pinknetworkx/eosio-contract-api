@@ -73,7 +73,7 @@ export class WebServer {
                     return next();
                 }
 
-                res.json({success: false, message: 'Rate limit'});
+                res.status(429).json({success: false, message: 'Rate limit'});
             },
             keyGenerator(req: express.Request): string {
                 return req.ip;
