@@ -14,6 +14,8 @@ import {
 export type BlockConsumer = (block: ShipBlockResponse) => any;
 
 export default class StateHistoryBlockReader {
+    currentArgs: BlockRequestType;
+
     abi: Abi;
     types: Map<string, Serialize.Type>;
     tables: Map<string, string>;
@@ -29,8 +31,6 @@ export default class StateHistoryBlockReader {
 
     private unconfirmed: number;
     private consumer: BlockConsumer;
-
-    private currentArgs: BlockRequestType;
 
     constructor(
         private readonly endpoint: string,
@@ -226,7 +226,7 @@ export default class StateHistoryBlockReader {
         this.connected = false;
         this.connecting = false;
 
-        this.deserializeWorkers.destroy();
+        await this.deserializeWorkers.destroy();
         this.deserializeWorkers = null;
 
         this.blocksQueue.clear();

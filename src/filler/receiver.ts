@@ -87,7 +87,7 @@ export default class StateReceiver {
         const db = await this.database.startTransaction(resp.this_block.block_num, resp.last_irreversible.block_num);
 
         try {
-            if (resp.this_block.block_num <= this.currentBlock) {
+            if (resp.this_block.block_num <= (this.currentBlock || this.ship.currentArgs.start_block_num)) {
                 logger.info('Chain fork detected. Reverse all blocks which were affected');
 
                 await db.rollbackReversibleBlocks(resp.this_block.block_num);
