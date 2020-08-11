@@ -352,6 +352,8 @@ export class OfferApi {
 
                 const msg = JSON.parse(message);
 
+                logger.debug('received offer notification', msg);
+
                 await queue.add(async () => {
                     const query = await this.core.connection.database.query(
                         'SELECT * FROM ' + this.offerView + ' WHERE contract = $1 AND offer_id = $2',

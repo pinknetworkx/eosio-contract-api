@@ -220,6 +220,8 @@ export class TransferApi {
 
                 const msg = JSON.parse(message);
 
+                logger.debug('received transfer notification', msg);
+
                 await queue.add(async () => {
                     const query = await this.core.connection.database.query(
                         'SELECT * FROM ' + this.transferView + ' WHERE contract = $1 AND transfer_id = $2',

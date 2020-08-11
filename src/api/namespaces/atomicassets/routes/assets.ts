@@ -388,6 +388,8 @@ export class AssetApi {
 
                 const msg = JSON.parse(message);
 
+                logger.debug('received asset notification', msg);
+
                 await queue.add(async () => {
                     const query = await this.core.connection.database.query(
                         'SELECT * FROM atomicassets_assets_master WHERE contract = $1 AND asset_id = $2',

@@ -312,6 +312,8 @@ export function salesSockets(core: AtomicMarketNamespace, server: HTTPServer): v
 
             const msg = JSON.parse(message);
 
+            logger.debug('received sales notification', msg);
+
             if (msg.action === 'state_change') {
                 if ([OfferState.PENDING.valueOf(), OfferState.INVALID.valueOf()].indexOf(parseInt(msg.data.state, 10)) === -1) {
                     return;

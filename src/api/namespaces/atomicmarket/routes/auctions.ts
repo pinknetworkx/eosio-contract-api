@@ -264,6 +264,8 @@ export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer):
 
             const msg = JSON.parse(message);
 
+            logger.debug('received auctions notification', msg);
+
             await queue.add(async () => {
                 const query = await core.connection.database.query(
                     'SELECT * FROM atomicmarket_auctions_master WHERE market_contract = $1 AND auction_id = $2',
