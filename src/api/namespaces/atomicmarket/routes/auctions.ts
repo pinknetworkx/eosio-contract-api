@@ -321,4 +321,6 @@ export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer):
             });
         });
     });
+
+    server.socket.addForkSubscription(core.args.connected_reader, namespace);
 }

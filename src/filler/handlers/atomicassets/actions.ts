@@ -49,38 +49,54 @@ export default class AtomicAssetsActionHandler {
             this.core.addUpdateJob(async () => {
                 await this.handleOfferCreateTrace(db, block, trace, tx);
             }, JobPriority.ACTION_CREATE_OFFER);
-        } else if (['acceptoffer', 'declineoffer', 'canceloffer'].indexOf(trace.act.name) >= 0) {
+        }
+
+        if (['acceptoffer', 'declineoffer', 'canceloffer'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleOfferUpdateTrace(db, block, trace, tx);
             }, JobPriority.ACTION_UPDATE_OFFER);
-        } else if (['logtransfer'].indexOf(trace.act.name) >= 0) {
+        }
+
+        if (['logtransfer'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleTransferTrace(db, block, trace, tx);
             }, JobPriority.ACTION_TRANSFER_ASSET);
-        } else if (['logburnasset'].indexOf(trace.act.name) >= 0) {
+        }
+
+        if (['logburnasset'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleAssetBurnTrace(db, block, trace, tx);
             }, JobPriority.ACTION_BURN_ASSET);
-        } else if (['logmint'].indexOf(trace.act.name) >= 0) {
+        }
+
+        if (['logmint'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleAssetMintTrace(db, block, trace, tx);
             }, JobPriority.ACTION_MINT_ASSET);
-        } else if (['logmint', 'logburnasset', 'logbackasset', 'logsetdata'].indexOf(trace.act.name) >= 0) {
+        }
+
+        if (['logmint', 'logburnasset', 'logbackasset', 'logsetdata'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleAssetUpdateTrace(db, block, trace, tx);
             }, JobPriority.INDEPENDENT);
-        } else if (['lognewtempl', 'locktemplate'].indexOf(trace.act.name) >= 0) {
+        }
+
+        if (['lognewtempl', 'locktemplate'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleTemplateTrace(db, block, trace, tx);
             }, JobPriority.INDEPENDENT);
-        } else if ([
+        }
+
+        if ([
             'addcolauth', 'addnotifyacc', 'createcol', 'forbidnotify',
             'remcolauth', 'remnotifyacc', 'setmarketfee', 'setcoldata'
         ].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleCollectionTrace(db, block, trace, tx);
             }, JobPriority.INDEPENDENT);
-        } else if (['createschema', 'extendschema'].indexOf(trace.act.name) >= 0) {
+        }
+
+        if (['createschema', 'extendschema'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleSchemaTrace(db, block, trace, tx);
             }, JobPriority.INDEPENDENT);

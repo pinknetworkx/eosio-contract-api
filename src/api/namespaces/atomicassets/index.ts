@@ -122,22 +122,5 @@ export class AtomicAssetsNamespace extends ApiNamespace {
         assetApi.sockets();
         transferApi.sockets();
         offerApi.sockets();
-
-        const chainChannelName = [
-            'eosio-contract-api', this.connection.chain.name, this.args.connected_reader, 'chain'
-        ].join(':');
-        this.connection.redis.ioRedisSub.subscribe(chainChannelName, () => {
-            this.connection.redis.ioRedisSub.on('message', async (channel, message) => {
-                if (channel !== chainChannelName) {
-                    return;
-                }
-
-                const msg = JSON.parse(message);
-
-                if (msg.action === 'fork') {
-                    server.socket.io.sockets.emit('fork', {block_num: msg.block_num});
-                }
-            });
-        });
     }
 }

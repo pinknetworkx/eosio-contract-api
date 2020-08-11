@@ -168,4 +168,6 @@ export function notificationsSockets(core: AtomicHubNamespace, server: HTTPServe
             await sendPushMessage(core, msg.account, core.args.notification_title, msg.notification.message);
         });
     });
+
+    server.socket.addForkSubscription(core.args.connected_reader, namespace);
 }

@@ -432,5 +432,7 @@ export class AssetApi {
                 });
             });
         });
+
+        this.server.socket.addForkSubscription(this.core.args.connected_reader, namespace);
     }
 }

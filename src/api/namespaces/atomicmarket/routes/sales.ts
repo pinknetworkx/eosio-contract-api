@@ -336,4 +336,6 @@ export function salesSockets(core: AtomicMarketNamespace, server: HTTPServer): v
             }
         });
     });
+
+    server.socket.addForkSubscription(core.args.connected_reader, namespace);
 }
