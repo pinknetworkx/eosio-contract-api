@@ -30,22 +30,13 @@ CREATE TABLE atomichub_watchlist
     CONSTRAINT atomichub_watchlist_pkey PRIMARY KEY (account, contract, asset_id)
 );
 
-CREATE TABLE atomichub_blacklist
-(
-    account character varying(12) NOT NULL,
-    contract character varying(12) NOT NULL,
-    collection_name character varying(12) NOT NULL,
-    created bigint NOT NULL,
-    CONSTRAINT atomichub_blacklist_pkey PRIMARY KEY (account, contract, collection_name)
-);
-
 CREATE TABLE atomichub_notifications
 (
     id integer NOT NULL,
     account character varying(12) NOT NULL,
     contract character varying(12) NOT NULL,
     message character varying(256) NOT NULL,
-    reference json NOT NULL,
+    reference jsonb NOT NULL,
     block_num bigint NOT NULL,
     block_time bigint NOT NULL,
     CONSTRAINT atomichub_notifications_pkey PRIMARY KEY (id)
@@ -68,19 +59,12 @@ ALTER TABLE ONLY atomichub_watchlist
     ADD CONSTRAINT atomichub_watchlist_asset_id FOREIGN KEY (asset_id, contract)
     REFERENCES atomicassets_assets (asset_id, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
 
-ALTER TABLE ONLY atomichub_blacklist
-    ADD CONSTRAINT atomichub_blacklist_asset_id FOREIGN KEY (collection_name, contract)
-    REFERENCES atomicassets_collections (collection_name, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
-
 -- Indexes
 
 CREATE INDEX atomichub_browsers_account ON atomichub_browsers USING hash (account);
 
 CREATE INDEX atomichub_watchlist_account ON atomichub_watchlist USING hash (account);
 CREATE INDEX atomichub_watchlist_created ON atomichub_watchlist USING btree (created);
-
-CREATE INDEX atomichub_blacklist_account ON atomichub_blacklist USING hash (account);
-CREATE INDEX atomichub_blacklist_created ON atomichub_blacklist USING btree (created);
 
 CREATE INDEX atomichub_notifications_account ON atomichub_notifications USING hash (account);
 CREATE INDEX atomichub_notifications_block_num ON atomichub_notifications USING btree (block_num);

@@ -183,6 +183,7 @@ export default class AtomicAssetsTableHandler {
             collection_name: scope,
             schema_name: data.schema_name,
             readable_name: immutableData.name ? String(immutableData.name).substr(0, 64) : null,
+            immutable_data: JSON.stringify(immutableData),
             transferable: data.transferable,
             burnable: data.burnable,
             max_supply: data.max_supply,
@@ -190,26 +191,6 @@ export default class AtomicAssetsTableHandler {
             created_at_block: block.block_num,
             created_at_time: eosioTimestampToDate(block.timestamp).getTime()
         }, ['contract', 'template_id'], ['created_at_block', 'created_at_time']);
-
-        await db.query(
-            'DELETE FROM atomicassets_templates_data WHERE contract = $1 AND template_id = $2',
-            [this.contractName, data.template_id]
-        );
-
-        const keys = Object.keys(immutableData);
-        const values = [];
-
-        for (const key of keys) {
-            values.push({
-                contract: this.contractName,
-                template_id: data.template_id,
-                key, value: JSON.stringify(immutableData[key])
-            });
-        }
-
-        if (values.length > 0) {
-            await db.insert('atomicassets_templates_data', values, ['contract', 'template_id', 'key']);
-        }
     }
 
     async handleSchemasUpdate(

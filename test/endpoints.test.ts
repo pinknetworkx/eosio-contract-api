@@ -135,10 +135,9 @@ describe('Endpoints Test', () => {
             state: '0,1,2,3,4',
             max_assets: 1,
             asset_id: '1',
-            show_blacklisted: false,
-            whitelisted_seller_only: false,
-            whitelisted_collections_only: false,
-            whitelisted_only: false,
+            show_seller_contracts: false,
+            contract_whitelist: 'test',
+            seller_blacklist: 'test',
             marketplace: 'test',
             maker_marketplace: 'test',
             taker_marketplace: 'test',
@@ -165,10 +164,9 @@ describe('Endpoints Test', () => {
             state: '0,1,2,3,4',
             max_assets: 1,
             asset_id: '1',
-            show_blacklisted: false,
-            whitelisted_seller_only: false,
-            whitelisted_collections_only: false,
-            whitelisted_only: false,
+            show_seller_contracts: false,
+            contract_whitelist: 'test',
+            seller_blacklist: 'test',
             marketplace: 'test',
             maker_marketplace: 'test',
             taker_marketplace: 'test',
@@ -206,12 +204,6 @@ describe('Endpoints Test', () => {
 
         // prices
         expect(await testEndpoint(namespace, '/v1/prices', {})).to.equal(200);
-
-        // admin
-        expect(await testEndpoint(namespace, '/v1/blacklist/collections', {})).to.equal(200);
-        expect(await testEndpoint(namespace, '/v1/whitelist/collections', {})).to.equal(200);
-        expect(await testEndpoint(namespace, '/v1/blacklist/accounts', {})).to.equal(200);
-        expect(await testEndpoint(namespace, '/v1/whitelist/accounts', {})).to.equal(200);
 
         // assets
         expect(await testEndpoint(namespace, '/v1/assets', {

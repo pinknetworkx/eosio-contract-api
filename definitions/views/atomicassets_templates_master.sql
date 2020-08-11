@@ -23,7 +23,7 @@ CREATE OR REPLACE VIEW atomicassets_templates_master AS
             'created_at_block', schema_a.created_at_block,
             'created_at_time', schema_a.created_at_time
         ) "schema",
-        (SELECT json_object_agg("key", "value") FROM atomicassets_templates_data WHERE contract = template_a.contract AND template_id = template_a.template_id) AS immutable_data,
+        template_a.immutable_data,
         template_a.created_at_time, template_a.created_at_block
     FROM
         atomicassets_templates template_a

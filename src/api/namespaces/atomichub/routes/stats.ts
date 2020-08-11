@@ -272,7 +272,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 multiplier_amount: {type: 'int', min: 0, default: 0},
                 multiplier_frame: {type: 'int', min: 0, default: 0},
 
-                marketplace: {type: 'string', default: ''},
+                marketplace: {type: 'string'},
                 collection_name: {type: 'string'}
             });
 
@@ -292,8 +292,8 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                             SUM(final_price) FILTER (WHERE sale.updated_at_time > $5) "bonus"
                         FROM atomicmarket_sales sale 
                         WHERE sale.market_contract = $1 AND sale.settlement_symbol = $2 AND sale.state = ${SaleState.SOLD.valueOf()}
-                            AND sale.updated_at_time > $3 AND sale.updated_at_time < $4
-                            AND sale.maker_marketplace = $6 AND sale.collection_name = $7
+                            AND sale.updated_at_time > $3 AND sale.updated_at_time < $4 AND sale.collection_name = $6
+                            ${typeof args.marketplace === 'string' ? 'AND sale.maker_marketplace = $7' : ''}
                         GROUP BY seller
                     ) UNION ALL (
                         SELECT 
@@ -302,8 +302,8 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                             SUM(final_price) FILTER (WHERE sale.updated_at_time > $5) "bonus"
                         FROM atomicmarket_sales sale 
                         WHERE sale.market_contract = $1 AND sale.settlement_symbol = $2 AND sale.state = ${SaleState.SOLD.valueOf()}
-                            AND sale.updated_at_time > $3 AND sale.updated_at_time < $4
-                            AND sale.taker_marketplace = $6 AND sale.collection_name = $7
+                            AND sale.updated_at_time > $3 AND sale.updated_at_time < $4 AND sale.collection_name = $6
+                            ${typeof args.marketplace === 'string' ? 'AND sale.taker_marketplace = $7' : ''}
                         GROUP BY buyer
                     )
                 ) x
@@ -312,8 +312,12 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             const queryValues = [
                 core.args.atomicmarket_account, args.symbol,
                 args.after, args.before, args.before - args.multiplier_frame,
-                args.marketplace, args.collection_name
+                args.collection_name
             ];
+
+            if (typeof args.marketplace === 'string') {
+                queryValues.push(args.marketplace);
+            }
 
             const query = await core.connection.database.query(queryString, queryValues);
 

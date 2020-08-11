@@ -5,7 +5,7 @@ import { AtomicMarketNamespace, AuctionApiState } from '../index';
 import { HTTPServer } from '../../../server';
 import { formatAuction } from '../format';
 import { fillAuctions } from '../filler';
-import { buildAuctionFilter, fetchGreylists } from '../utils';
+import { buildAuctionFilter } from '../utils';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/openapi';
 import logger from '../../../../utils/winston';
@@ -23,7 +23,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
             });
 
-            const auctionFilter = buildAuctionFilter(req, 1, await fetchGreylists(core));
+            const auctionFilter = buildAuctionFilter(req, 1);
 
             let queryString = 'SELECT * FROM atomicmarket_auctions_master listing WHERE market_contract = $1 ' + auctionFilter.str;
             const queryValues = [core.args.atomicmarket_account, ...auctionFilter.values];

@@ -20,36 +20,35 @@ export async function getLogs(
     return query.rows;
 }
 
-export function buildDataConditions(args: any, varCounter: number = 0): {conditions: string[], values: any[]} {
+export function buildDataConditions(
+    args: any, varCounter: number = 0, assetTable: string = '"asset"', templateTable: string = '"template"'
+): {conditions: string[], values: any[]} {
     const keys = Object.keys(args);
     const dataConditions = [];
     const queryValues = [];
 
     for (const key of keys) {
         if (key.startsWith('data.')) {
-            const conditionKeys = key.substring(5).split('.');
+            const keyVar = ++varCounter;
+            const valVar = ++varCounter;
 
-            let condition = '("data"."key" = $' + ++varCounter + ' AND ';
-            queryValues.push(conditionKeys[0]);
+            const conditions = [];
 
-            let column;
-            if (conditionKeys.length > 1 && !isNaN(parseInt(conditionKeys[1], 10))) {
-                column = '"data"."value"->>' + parseInt(conditionKeys[1], 10);
-            } else {
-                column = '"data"."value"::text';
+            if (assetTable) {
+                conditions.push(
+                    `${assetTable}.immutable_data->>$${keyVar} = $${valVar}`,
+                    `${assetTable}.mutable_data->>$${keyVar} = $${valVar}`
+                );
             }
 
-            const possibleValues = [column + ' = $' + ++varCounter];
-            queryValues.push(JSON.stringify(args[key]));
-
-            if (!isNaN(parseFloat(String(args[key])))) {
-                possibleValues.push(column + ' = $' + ++varCounter);
-                queryValues.push(String(parseFloat(String(args[key]))));
+            if (templateTable) {
+                conditions.push(
+                    `${templateTable}.immutable_data->>$${keyVar} = $${valVar}`
+                );
             }
 
-            condition += '(' + possibleValues.join(' OR ') + '))';
-
-            dataConditions.push(condition);
+            dataConditions.push(`(${conditions.join(' OR ')})`);
+            queryValues.push(key.substr('data.'.length), args[key]);
         }
     }
 
@@ -60,8 +59,7 @@ export function buildDataConditions(args: any, varCounter: number = 0): {conditi
 }
 
 export function buildAssetFilter(
-    req: express.Request, varOffset: number,
-    templateReadableNameColumn: string = '"template".readable_name', assetReadableNameColumn: string = 'asset.readable_name'
+    req: express.Request, varOffset: number, assetTable: string = '"template"', templateTable: string = '"asset"'
 ): {str: string, values: any[]} {
     const args = filterQueryArgs(req, {
         owner: {type: 'string', min: 1, max: 12},
@@ -76,17 +74,10 @@ export function buildAssetFilter(
     let varCounter = varOffset;
 
     if (args.collection_name) {
-        const data = buildDataConditions(req.query, varCounter);
+        const data = buildDataConditions(req.query, varCounter, assetTable, templateTable);
 
         if (data.conditions.length > 0) {
-            queryString += 'AND (' +
-                    'SELECT COUNT(DISTINCT "key") FROM (' +
-                        'SELECT "key", "value" FROM atomicassets_assets_data data_t1 WHERE data_t1.contract = asset.contract AND data_t1.asset_id = asset.asset_id ' +
-                        'UNION ALL ' +
-                        'SELECT "key", "value" FROM atomicassets_templates_data data_t2 WHERE data_t2.contract = asset.contract AND data_t2.template_id = asset.template_id ' +
-                    ') "data" ' +
-                    'WHERE ' + data.conditions.join(' OR ') +
-                ') >= ' + data.conditions.length + ' ';
+            queryString += 'AND (' + data.conditions.join(' AND ') + ') ';
 
             queryValues = queryValues.concat(data.values);
             varCounter += data.values.length;
@@ -115,8 +106,8 @@ export function buildAssetFilter(
 
     if (args.match) {
         queryString += 'AND (' +
-                assetReadableNameColumn + ' ILIKE $' + ++varCounter + ' OR ' +
-                templateReadableNameColumn + ' ILIKE $' + varCounter +
+                templateTable + '.readable_name ILIKE $' + ++varCounter + ' OR ' +
+                assetTable + '.readable_name ILIKE $' + varCounter +
             ') ';
         queryValues.push('%' + args.match + '%');
     }

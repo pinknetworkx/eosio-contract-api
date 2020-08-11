@@ -32,16 +32,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
     function getCollectionStatsQuery(after?: number, before?: number): string {
         return `
-        SELECT 
-            collection.*, t1.volume, t1.listings, t1.sales,
-            EXISTS (
-                SELECT * FROM atomicmarket_blacklist_collections list
-                WHERE list.assets_contract = collection.contract AND list.collection_name = collection.collection_name
-            ) collection_blacklisted,
-            EXISTS (
-                SELECT * FROM atomicmarket_whitelist_collections list
-                WHERE list.assets_contract = collection.contract AND list.collection_name = collection.collection_name
-            ) collection_whitelisted
+        SELECT collection.*, t1.volume, t1.listings, t1.sales
         FROM
             atomicassets_collections_master collection
             JOIN (
@@ -167,7 +158,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
     router.get('/v1/stats/collections', server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
-                collection_whitelisted: {type: 'bool'},
                 symbol: {type: 'string', min: 1},
                 match: {type: 'string', min: 1},
 
@@ -205,14 +195,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             if (args.collection_blacklist) {
                 queryString += 'AND NOT (collection_name = ANY ($' + ++varCounter + ')) ';
                 queryValues.push(args.collection_blacklist.split(','));
-            }
-
-            if (typeof args.collection_whitelisted !== 'undefined') {
-                if (args.collection_whitelisted) {
-                    queryString += 'AND collection_whitelisted = TRUE ';
-                } else {
-                    queryString += 'AND collection_whitelisted = FALSE ';
-                }
             }
 
             const sortColumnMapping = {

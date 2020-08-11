@@ -112,8 +112,7 @@ export default class AtomicMarketHandler extends ContractHandler {
 
             const views = [
                 'atomicmarket_assets_master', 'atomicmarket_auctions_master',
-                'atomicmarket_sales_master', 'atomicmarket_offers_master',
-                'atomicmarket_sale_prices_master'
+                'atomicmarket_sales_master', 'atomicmarket_sale_prices_master'
             ];
 
             for (const view of views) {

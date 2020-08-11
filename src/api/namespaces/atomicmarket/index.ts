@@ -12,7 +12,6 @@ import logger from '../../../utils/winston';
 import { auctionsEndpoints, auctionSockets } from './routes/auctions';
 import { salesEndpoints, salesSockets } from './routes/sales';
 import { atomicmarketComponents } from './openapi';
-import { adminEndpoints } from './routes/admin';
 import { configEndpoints } from './routes/config';
 import { marketplacesEndpoints } from './routes/marketplaces';
 import { formatOffer, formatTransfer } from '../atomicassets/format';
@@ -21,8 +20,7 @@ import { pricesEndpoints } from './routes/prices';
 import { statsEndpoints } from './routes/stats';
 
 export type AtomicMarketNamespaceArgs = {
-    atomicmarket_account: string,
-    admin_tokens: string[]
+    atomicmarket_account: string
     // optional
     atomicassets_account: string,
     delphioracle_account: string,
@@ -54,16 +52,6 @@ export class AtomicMarketNamespace extends ApiNamespace {
     async init(): Promise<void> {
         if (typeof this.args.atomicmarket_account !== 'string') {
             throw new Error('Argument missing in atomicmarket api namespace: atomicmarket_account');
-        }
-
-        if (!Array.isArray(this.args.admin_tokens)) {
-            throw new Error('Argument missing in atomicmarket api namespace: admin_tokens');
-        }
-
-        for (const token of this.args.admin_tokens) {
-            if (typeof token !== 'string') {
-                throw new Error('Invalid admin token type in atomicmarket api namespace');
-            }
         }
 
         const query = await this.connection.database.query(
@@ -130,15 +118,13 @@ export class AtomicMarketNamespace extends ApiNamespace {
         );
         const offerApi = new OfferApi(
             this, server, 'ListingOffer',
-            'atomicmarket_offers_master', formatOffer,
+            'atomicassets_offers_master', formatOffer,
             'atomicmarket_assets_master', formatListingAsset
         );
 
         docs.push(assetApi.endpoints(router));
         docs.push(transferApi.endpoints(router));
         docs.push(offerApi.endpoints(router));
-
-        docs.push(adminEndpoints(this, server, router));
 
         for (const doc of docs) {
             Object.assign(documentation.paths, doc.paths);

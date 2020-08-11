@@ -35,8 +35,7 @@
       "path": "/atomicmarket",
       "args": {
         "atomicmarket_account": "atomicmarket",
-        "connected_reader": "atomic",
-        "admin_tokens": []
+        "connected_reader": "atomic"
       }
     }
   ]

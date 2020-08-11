@@ -2,16 +2,9 @@ import * as express from 'express';
 
 import { filterQueryArgs } from '../utils';
 import { buildAssetFilter } from '../atomicassets/utils';
-import { AtomicMarketNamespace, AuctionApiState, SaleApiState } from './index';
+import { AuctionApiState, SaleApiState } from './index';
 import { AuctionState, SaleState } from '../../../filler/handlers/atomicmarket';
 import { OfferState } from '../../../filler/handlers/atomicassets';
-
-export interface Greylists {
-    collection_blacklist: string[];
-    collection_whitelist: string[];
-    account_blacklist: string[];
-    account_whitelist: string;
-}
 
 function hasAssetFilter(req: express.Request): boolean {
     const keys = Object.keys(req.query);
@@ -29,27 +22,13 @@ function hasAssetFilter(req: express.Request): boolean {
     return false;
 }
 
-export async function fetchGreylists(core: AtomicMarketNamespace): Promise<Greylists> {
-    const query = await core.connection.database.query(
-        'SELECT ' +
-        'ARRAY(SELECT collection_name FROM atomicmarket_blacklist_collections WHERE market_contract = $1 AND assets_contract = $2) collection_blacklist, ' +
-        'ARRAY(SELECT collection_name FROM atomicmarket_whitelist_collections WHERE market_contract = $1 AND assets_contract = $2) collection_whitelist, ' +
-        'ARRAY(SELECT account FROM atomicmarket_blacklist_accounts WHERE market_contract = $1) account_blacklist, ' +
-        'ARRAY(SELECT account FROM atomicmarket_whitelist_accounts WHERE market_contract = $1) account_whitelist ',
-        [core.args.atomicmarket_account, core.args.atomicassets_account]
-    );
-
-    return query.rows[0];
-}
-
 export function buildListingFilter(
-    req: express.Request, varOffset: number, greylists: Greylists
+    req: express.Request, varOffset: number
 ): {str: string, values: any[], counter: number} {
     const args = filterQueryArgs(req, {
-        show_blacklisted: {type: 'bool', default: true},
-        whitelisted_seller_only: {type: 'bool'},
-        whitelisted_collections_only: {type: 'bool'},
-        whitelisted_only: {type: 'bool'},
+        show_seller_contracts: {type: 'bool', default: true},
+        contract_whitelist: {type: 'string', min: 1, default: ''},
+        seller_blacklist: {type: 'string', min: 1},
 
         maker_marketplace: {type: 'string', min: 1, max: 12},
         taker_marketplace: {type: 'string', min: 1, max: 12},
@@ -80,33 +59,17 @@ export function buildListingFilter(
         queryValues.push(args.collection_name.split(','));
     }
 
-    if (args.whitelisted_only) {
-        queryString += 'AND (listing.seller = ANY ($' + ++varCounter + ') OR listing.collection_name = ANY ($' + ++varCounter + ')) ';
-        queryValues.push(greylists.account_whitelist, greylists.collection_whitelist);
-    } else if (args.whitelisted_collections_only) {
-        queryString += 'AND listing.collection_name = ANY ($' + ++varCounter + ') ';
-        queryValues.push(greylists.collection_whitelist);
-    } else if (args.whitelisted_seller_only) {
-        queryString += 'AND listing.seller = ANY ($' + ++varCounter + ') ';
-        queryValues.push(greylists.account_whitelist);
+    if (!args.show_seller_contracts) {
+        queryString += 'AND (' +
+            'NOT EXISTS(SELECT * FROM contract_codes code WHERE code.account = listing.seller) OR ' +
+            'listing.seller = ANY ($' + ++varCounter + ')' +
+            ') ';
+        queryValues.push(args.contract_whitelist.split(','));
     }
 
-    if (!args.show_blacklisted) {
-        const accountBlacklistVar = ++varCounter;
-        const accountWhitelistVar = ++varCounter;
-        const collectionBlacklistVar = ++varCounter;
-
-        queryString += 'AND (' +
-            '(' +
-                '(' +
-                    'NOT (listing.seller = ANY($' + accountBlacklistVar + '))) AND ' +
-                    'NOT EXISTS(SELECT * FROM contract_codes code WHERE code.account = listing.seller) ' +
-                ') OR ' +
-                'listing.seller = ANY($' + accountWhitelistVar + ') ' +
-            ') AND ' +
-            '(NOT (listing.collection_name = ANY($' + collectionBlacklistVar + ')) ' +
-            ') ';
-        queryValues.push(greylists.account_blacklist, greylists.account_whitelist, greylists.collection_blacklist);
+    if (args.seller_blacklist) {
+        queryString += 'AND NOT (listing.seller = ANY ($' + ++varCounter + ')) ';
+        queryValues.push(args.seller_blacklist.split(','));
     }
 
     if (args.marketplace) {
@@ -132,7 +95,7 @@ export function buildListingFilter(
 }
 
 export function buildSaleFilter(
-    req: express.Request, varOffset: number, greylists: Greylists
+    req: express.Request, varOffset: number
 ): {str: string, values: any[], counter: number} {
     const args = filterQueryArgs(req, {
         state: {type: 'string', min: 0},
@@ -150,14 +113,14 @@ export function buildSaleFilter(
     const queryValues: any[] = [];
     let queryString = '';
 
-    const listingFilter = buildListingFilter(req, varOffset, greylists);
+    const listingFilter = buildListingFilter(req, varOffset);
 
     queryString += listingFilter.str;
     queryValues.push(...listingFilter.values);
     varCounter += listingFilter.values.length;
 
     if (hasAssetFilter(req)) {
-        const filter = buildAssetFilter(req, varCounter);
+        const filter = buildAssetFilter(req, varCounter, '"asset"', '"template"');
 
         queryString += 'AND EXISTS(' +
                 'SELECT asset.asset_id ' +
@@ -246,7 +209,7 @@ export function buildSaleFilter(
 }
 
 export function buildAuctionFilter(
-    req: express.Request, varOffset: number, greylists: Greylists
+    req: express.Request, varOffset: number
 ): {str: string, values: any[], counter: number} {
     const args = filterQueryArgs(req, {
         state: {type: 'string', min: 0},
@@ -264,14 +227,14 @@ export function buildAuctionFilter(
     const queryValues: any[] = [];
     let queryString = '';
 
-    const listingFilter = buildListingFilter(req, varCounter, greylists);
+    const listingFilter = buildListingFilter(req, varCounter);
 
     queryString += listingFilter.str;
     queryValues.push(...listingFilter.values);
     varCounter += listingFilter.values.length;
 
     if (hasAssetFilter(req)) {
-        const filter = buildAssetFilter(req, varCounter);
+        const filter = buildAssetFilter(req, varCounter, '"asset"', '"template"');
 
         queryString += 'AND EXISTS(' +
                 'SELECT asset.asset_id ' +
