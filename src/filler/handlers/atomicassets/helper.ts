@@ -47,9 +47,6 @@ export async function saveAssetTableRow(
         schema_name: data.schema_name,
         template_id: data.template_id === -1 ? null : data.template_id,
         owner: deleted ? null : scope,
-        readable_name:
-            (immutableData.name ? String(immutableData.name).substr(0, 64) : null) ||
-            (mutableData.name ? String(mutableData.name).substr(0, 64) : null),
         ram_payer: data.ram_payer,
         mutable_data: JSON.stringify(mutableData),
         immutable_data: JSON.stringify(immutableData),

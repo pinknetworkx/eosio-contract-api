@@ -432,7 +432,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
                 await this.connection.redis.ioRedis.publish(channelName, JSON.stringify({
                     transaction: tx,
                     block: {block_num: block.block_num, block_id: block.block_id},
-                    action: name, data
+                    action: name, data: data
                 }));
             }
         });

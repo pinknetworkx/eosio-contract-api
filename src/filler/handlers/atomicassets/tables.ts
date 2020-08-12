@@ -132,7 +132,6 @@ export default class AtomicAssetsTableHandler {
         await db.replace('atomicassets_collections', {
             contract: this.contractName,
             collection_name: data.collection_name,
-            readable_name: deserializedData.name ? String(deserializedData.name).substr(0, 64) : null,
             author: data.author,
             allow_notify: data.allow_notify,
             authorized_accounts: data.authorized_accounts,
@@ -182,7 +181,6 @@ export default class AtomicAssetsTableHandler {
             template_id: data.template_id,
             collection_name: scope,
             schema_name: data.schema_name,
-            readable_name: immutableData.name ? String(immutableData.name).substr(0, 64) : null,
             immutable_data: JSON.stringify(immutableData),
             transferable: data.transferable,
             burnable: data.burnable,

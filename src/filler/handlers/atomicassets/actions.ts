@@ -23,7 +23,7 @@ import {
     SetColDataActionData,
     SetMarketFeeActionData
 } from './types/actions';
-import { convertAttributeMapToObject, saveAssetTableRow, saveOfferTableRow } from './helper';
+import { saveAssetTableRow, saveOfferTableRow } from './helper';
 
 export default class AtomicAssetsActionHandler {
     private readonly contractName: string;
@@ -286,49 +286,15 @@ export default class AtomicAssetsActionHandler {
         } if (trace.act.name === 'logsetdata') {
             // @ts-ignore
             const data: LogSetDataActionData = trace.act.data;
-            const delta = [];
 
-            // update data
-            const newData: {[key: string]: string} = convertAttributeMapToObject(data.new_data);
-            const oldData: {[key: string]: string} = convertAttributeMapToObject(data.old_data);
-
-            for (const key of Object.keys(oldData)) {
-                if (typeof newData[key] === 'undefined') {
-                    delta.push({
-                        action: 'remove',
-                        key: key,
-                        before: oldData[key],
-                        after: null
-                    });
-                } else {
-                    if (JSON.stringify(oldData[key]) !== JSON.stringify(newData[key])) {
-                        delta.push({
-                            action: 'update',
-                            key: key,
-                            before: oldData[key],
-                            after: newData[key]
-                        });
-                    }
-
-                    delete newData[key];
-                }
-            }
-
-            for (const key of Object.keys(newData)) {
-                delta.push({
-                    action: 'create',
-                    key: key,
-                    before: null,
-                    after: newData[key]
-                });
-            }
-
-            await this.createLogMessage(db, block, tx, trace.global_sequence, 'update', 'asset', data.asset_id, delta);
+            await this.createLogMessage(db, block, tx, trace.global_sequence, 'update', 'asset', data.asset_id, {
+                old_data: data.old_data,
+                new_data: data.new_data
+            });
 
             this.core.pushNotificiation(block, tx, 'assets', 'update', {
                 asset_id: data.asset_id,
-                trace: data,
-                delta: delta
+                trace: data
             });
         }
     }
@@ -339,21 +305,28 @@ export default class AtomicAssetsActionHandler {
             const data: AddColAuthActionData = trace.act.data;
 
             await this.createLogMessage(db, block, tx, trace.global_sequence,
-                'add_authorized_accounts', 'collection', data.collection_name,
+                'add_authorized_account', 'collection', data.collection_name,
                 {account: data.account_to_add}
                 );
         } else if (trace.act.name === 'addnotifyacc') {
             // @ts-ignore
             const data: AddNotifyAccActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, trace.global_sequence, 'add_notify_accounts', 'collection', data.collection_name, {
+            await this.createLogMessage(db, block, tx, trace.global_sequence, 'add_notify_account', 'collection', data.collection_name, {
                 account: data.account_to_add
             });
         } else if (trace.act.name === 'createcol') {
             // @ts-ignore
             const data: CreateColActionData = trace.act.data;
 
-            await this.createLogMessage(db, block, tx, trace.global_sequence, 'create', 'collection', data.collection_name, data);
+            await this.createLogMessage(db, block, tx, trace.global_sequence, 'create', 'collection', data.collection_name, {
+                author: data.author,
+                allow_notify: data.allow_notify,
+                notify_accounts: data.notify_accounts,
+                authorized_accounts: data.authorized_accounts,
+                market_fee: data.market_fee,
+                data: data.data
+            });
         } else if (trace.act.name === 'forbidnotify') {
             // @ts-ignore
             const data: ForbidNotifyActionData = trace.act.data;
@@ -364,7 +337,7 @@ export default class AtomicAssetsActionHandler {
             const data: RemColAuthActionData = trace.act.data;
 
             await this.createLogMessage(db, block, tx, trace.global_sequence,
-                'remove_authorized_accounts', 'collection', data.collection_name,
+                'remove_authorized_account', 'collection', data.collection_name,
                 {account: data.account_to_remove}
                 );
         } else if (trace.act.name === 'remnotifyacc') {
@@ -372,7 +345,7 @@ export default class AtomicAssetsActionHandler {
             const data: RemNotifyAccActionData = trace.act.data;
 
             await this.createLogMessage(db, block, tx, trace.global_sequence,
-                'remove_notify_accounts', 'collection', data.collection_name,
+                'remove_notify_account', 'collection', data.collection_name,
                 {account: data.account_to_remove}
                 );
         } else if (trace.act.name === 'setmarketfee') {
@@ -399,9 +372,10 @@ export default class AtomicAssetsActionHandler {
 
             await this.createLogMessage(
                 db, block, tx, trace.global_sequence,
-                'create', 'template', data.collection_name + ':' + data.template_id,
-                {creator: data.authorized_creator}
-                );
+                'create', 'template', data.collection_name + ':' + data.template_id, {
+                    authorized_creator: data.authorized_creator,
+                    max_supply: data.max_supply
+                });
         } else if (trace.act.name === 'locktemplate') {
             // @ts-ignore
             const data: LockTemplateActionData = trace.act.data;

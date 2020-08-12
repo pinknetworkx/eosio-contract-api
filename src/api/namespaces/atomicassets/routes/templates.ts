@@ -64,15 +64,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             }
 
             if (args.match) {
-                const parsedMatch = parseInt(args.match, 10);
-
-                if (isNaN(parsedMatch)) {
-                    queryString += 'AND (template.readable_name ILIKE $' + ++varCounter + ') ';
-                    queryValues.push('%' + args.match + '%');
-                } else {
-                    queryString += 'AND (template.readable_name ILIKE $' + ++varCounter + ' OR template.template_id = $' + ++varCounter + ') ';
-                    queryValues.push('%' + args.match + '%', args.match);
-                }
+                queryString += 'AND ("template".immutable_data->>\'name\' ILIKE $' + ++varCounter + ') ';
+                queryValues.push('%' + args.match + '%');
             }
 
             const boundaryFilter = buildBoundaryFilter(

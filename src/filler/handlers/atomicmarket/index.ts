@@ -101,7 +101,7 @@ export default class AtomicMarketHandler extends ContractHandler {
             [await this.connection.database.schema(), 'atomicmarket_config']
         );
 
-        const materializedViews = ['atomicmarket_sale_prices', 'atomicmarket_sale_mints'];
+        const materializedViews = ['atomicmarket_sale_prices', 'atomicmarket_sale_mints', 'atomicmarket_template_prices'];
 
         if (!existsQuery.rows[0].exists) {
             logger.info('Could not find AtomicMarket tables. Create them now...');
@@ -112,7 +112,8 @@ export default class AtomicMarketHandler extends ContractHandler {
 
             const views = [
                 'atomicmarket_assets_master', 'atomicmarket_auctions_master',
-                'atomicmarket_sales_master', 'atomicmarket_sale_prices_master'
+                'atomicmarket_sales_master', 'atomicmarket_sale_prices_master',
+                'atomicmarket_template_prices_master'
             ];
 
             for (const view of views) {

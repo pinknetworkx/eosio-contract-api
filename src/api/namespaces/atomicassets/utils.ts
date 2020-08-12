@@ -106,8 +106,9 @@ export function buildAssetFilter(
 
     if (args.match) {
         queryString += 'AND (' +
-                templateTable + '.readable_name ILIKE $' + ++varCounter + ' OR ' +
-                assetTable + '.readable_name ILIKE $' + varCounter +
+                templateTable + '.immutable_data->>\'name\' ILIKE $' + ++varCounter + ' OR ' +
+                assetTable + '.immutable_data->>\'name\' ILIKE $' + varCounter + ' OR ' +
+                assetTable + '.mutable_data->>\'name\' ILIKE $' + varCounter +
             ') ';
         queryValues.push('%' + args.match + '%');
     }

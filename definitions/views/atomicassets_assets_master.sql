@@ -1,79 +1,75 @@
 CREATE OR REPLACE VIEW atomicassets_assets_master AS
-    SELECT DISTINCT ON (asset_a.contract, asset_a.asset_id)
-        asset_a.contract, asset_a.asset_id, asset_a.owner,
+    SELECT DISTINCT ON (asset.contract, asset.asset_id)
+        asset.contract, asset.asset_id, asset.owner,
 
-        template_a.readable_name template_readable_name,
-        asset_a.readable_name asset_readable_name,
-        CASE WHEN template_a.readable_name IS NULL THEN asset_a.readable_name ELSE template_a.readable_name END AS name,
+        CASE WHEN "template".template_id IS NULL THEN true ELSE "template".transferable END AS is_transferable,
+        CASE WHEN "template".template_id IS NULL THEN true ELSE "template".burnable END AS is_burnable,
 
-        CASE WHEN template_a.template_id IS NULL THEN true ELSE template_a.transferable END AS is_transferable,
-        CASE WHEN template_a.template_id IS NULL THEN true ELSE template_a.burnable END AS is_burnable,
-
-        asset_a.collection_name,
+        asset.collection_name,
         json_build_object(
-            'collection_name', collection_a.collection_name,
-            'name', collection_a.readable_name,
-            'img', collection_a.data->'img',
-            'author', collection_a.author,
-            'allow_notify', collection_a.allow_notify,
-            'authorized_accounts', collection_a.authorized_accounts,
-            'notify_accounts', collection_a.notify_accounts,
-            'market_fee', collection_a.market_fee,
-            'created_at_block', collection_a.created_at_block,
-            'created_at_time', collection_a.created_at_time
+            'collection_name', collection.collection_name,
+            'name', collection.data->>'name',
+            'img', collection.data->>'img',
+            'author', collection.author,
+            'allow_notify', collection.allow_notify,
+            'authorized_accounts', collection.authorized_accounts,
+            'notify_accounts', collection.notify_accounts,
+            'market_fee', collection.market_fee,
+            'created_at_block', collection.created_at_block,
+            'created_at_time', collection.created_at_time
         ) collection,
 
-        asset_a.schema_name,
+        asset.schema_name,
         json_build_object(
-            'schema_name', schema_a.schema_name,
-            'format', schema_a.format,
-            'created_at_block', schema_a.created_at_block,
-            'created_at_time', schema_a.created_at_time
+            'schema_name', "schema".schema_name,
+            'format', "schema".format,
+            'created_at_block', "schema".created_at_block,
+            'created_at_time', "schema".created_at_time
         ) "schema",
 
-        asset_a.template_id,
-        CASE WHEN template_a.template_id IS NULL THEN null ELSE
+        asset.template_id,
+        CASE WHEN "template".template_id IS NULL THEN null ELSE
         json_build_object(
-            'template_id', template_a.template_id,
-            'max_supply', template_a.max_supply,
-            'is_transferable', template_a.transferable,
-            'is_burnable', template_a.burnable,
-            'issued_supply', template_a.issued_supply,
-            'immutable_data', template_a.immutable_data,
-            'created_at_time', template_a.created_at_time,
-            'created_at_block', template_a.created_at_block
+            'template_id', "template".template_id,
+            'max_supply', "template".max_supply,
+            'is_transferable', "template".transferable,
+            'is_burnable', "template".burnable,
+            'issued_supply', "template".issued_supply,
+            'immutable_data', "template".immutable_data,
+            'created_at_time', "template".created_at_time,
+            'created_at_block', "template".created_at_block
         ) END AS "template",
 
-        asset_a.mutable_data,
-        asset_a.immutable_data,
+        asset.mutable_data,
+        asset.immutable_data,
 
-        COALESCE(mint_a.template_mint, 0) template_mint,
-        mint_a.schema_mint,
-        mint_a.collection_mint,
+        COALESCE(mint.template_mint, 0) template_mint,
+        mint.schema_mint,
+        mint.collection_mint,
 
         ARRAY(
-            SELECT DISTINCT ON (backed_b.contract, backed_b.asset_id, backed_b.token_symbol)
+            SELECT DISTINCT ON (inner_backed.contract, inner_backed.asset_id, inner_backed.token_symbol)
                 json_build_object(
-                    'token_contract', symbols_b.token_contract,
-                    'token_symbol', symbols_b.token_symbol,
-                    'token_precision', symbols_b.token_precision,
-                    'amount', backed_b.amount
+                    'token_contract', inner_symbol.token_contract,
+                    'token_symbol', inner_symbol.token_symbol,
+                    'token_precision', inner_symbol.token_precision,
+                    'amount', inner_backed.amount
                 )
-            FROM atomicassets_assets_backed_tokens backed_b, atomicassets_tokens symbols_b
+            FROM atomicassets_assets_backed_tokens inner_backed, atomicassets_tokens inner_symbol
             WHERE
-                backed_b.contract = symbols_b.contract AND backed_b.token_symbol = symbols_b.token_symbol AND
-                backed_b.contract = asset_a.contract AND backed_b.asset_id = asset_a.asset_id
+                inner_backed.contract = inner_symbol.contract AND inner_backed.token_symbol = inner_symbol.token_symbol AND
+                inner_backed.contract = asset.contract AND inner_backed.asset_id = asset.asset_id
         ) backed_tokens,
 
-        asset_a.burned_at_block, asset_a.burned_at_time, asset_a.updated_at_block,
-        asset_a.updated_at_time, asset_a.minted_at_block, asset_a.minted_at_time
+        asset.burned_at_block, asset.burned_at_time, asset.updated_at_block,
+        asset.updated_at_time, asset.minted_at_block, asset.minted_at_time
     FROM
-        atomicassets_assets asset_a
-        LEFT JOIN atomicassets_templates template_a ON (
-            template_a.contract = asset_a.contract AND template_a.template_id = asset_a.template_id
+        atomicassets_assets asset
+        LEFT JOIN atomicassets_templates "template" ON (
+            "template".contract = asset.contract AND "template".template_id = asset.template_id
         )
-        LEFT JOIN atomicassets_asset_mints mint_a ON (
-            mint_a.contract = asset_a.contract AND mint_a.asset_id = asset_a.asset_id
+        LEFT JOIN atomicassets_asset_mints mint ON (
+            mint.contract = asset.contract AND mint.asset_id = asset.asset_id
         )
-        JOIN atomicassets_collections collection_a ON (collection_a.contract = asset_a.contract AND collection_a.collection_name = asset_a.collection_name)
-        JOIN atomicassets_schemas schema_a ON (schema_a.contract = asset_a.contract AND schema_a.collection_name = asset_a.collection_name AND schema_a.schema_name = asset_a.schema_name)
+        JOIN atomicassets_collections collection ON (collection.contract = asset.contract AND collection.collection_name = asset.collection_name)
+        JOIN atomicassets_schemas "schema" ON ("schema".contract = asset.contract AND "schema".collection_name = asset.collection_name AND "schema".schema_name = asset.schema_name)

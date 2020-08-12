@@ -6,7 +6,6 @@ CREATE TABLE atomicassets_assets (
     schema_name character varying(12) NOT NULL,
     template_id bigint,
     owner character varying(12),
-    readable_name character varying(64),
     mutable_data jsonb,
     immutable_data jsonb,
     ram_payer character varying(12) NOT NULL,
@@ -51,7 +50,6 @@ CREATE TABLE atomicassets_balances (
 CREATE TABLE atomicassets_collections (
     contract character varying(12) NOT NULL,
     collection_name character varying(12) NOT NULL,
-    readable_name character varying(64),
     author character varying(12) NOT NULL,
     allow_notify boolean NOT NULL,
     authorized_accounts character varying(12)[] NOT NULL,
@@ -110,7 +108,6 @@ CREATE TABLE atomicassets_templates (
     template_id bigint NOT NULL,
     collection_name character varying(12) NOT NULL,
     schema_name character varying(12) NOT NULL,
-    readable_name character varying(64),
     transferable boolean NOT NULL,
     burnable boolean NOT NULL,
     max_supply bigint NOT NULL,
@@ -208,7 +205,6 @@ CREATE INDEX atomicassets_assets_collection_name ON atomicassets_assets USING bt
 CREATE INDEX atomicassets_assets_template_id ON atomicassets_assets USING btree (template_id);
 CREATE INDEX atomicassets_assets_schema_name ON atomicassets_assets USING btree (schema_name);
 CREATE INDEX atomicassets_assets_owner ON atomicassets_assets USING hash (owner);
-CREATE INDEX atomicassets_assets_readable_name ON atomicassets_assets USING btree (readable_name);
 CREATE INDEX atomicassets_assets_burned_at_block ON atomicassets_assets USING btree (burned_at_block);
 CREATE INDEX atomicassets_assets_burned_at_time ON atomicassets_assets USING btree (burned_at_time);
 CREATE INDEX atomicassets_assets_updated_at_block ON atomicassets_assets USING btree (updated_at_block);
@@ -234,7 +230,6 @@ CREATE INDEX atomicassets_balances_updated_at_time ON atomicassets_balances USIN
 
 CREATE INDEX atomicassets_collections_contract ON atomicassets_collections USING btree (contract);
 CREATE INDEX atomicassets_collections_collection_name ON atomicassets_collections USING btree (collection_name);
-CREATE INDEX atomicassets_collections_readable_name ON atomicassets_collections USING btree (readable_name);
 CREATE INDEX atomicassets_collections_author ON atomicassets_collections USING btree (author);
 CREATE INDEX atomicassets_collections_created_at_block ON atomicassets_collections USING btree (created_at_block);
 CREATE INDEX atomicassets_collections_created_at_time ON atomicassets_collections USING btree (created_at_time);
@@ -264,7 +259,6 @@ CREATE INDEX atomicassets_templates_contract ON atomicassets_templates USING btr
 CREATE INDEX atomicassets_templates_template_id ON atomicassets_templates USING btree (template_id);
 CREATE INDEX atomicassets_templates_collection_name ON atomicassets_templates USING btree (collection_name);
 CREATE INDEX atomicassets_templates_schema_name ON atomicassets_templates USING btree (schema_name);
-CREATE INDEX atomicassets_templates_readable_name ON atomicassets_templates USING btree (readable_name);
 CREATE INDEX atomicassets_templates_created_at_block ON atomicassets_templates USING btree (created_at_block);
 CREATE INDEX atomicassets_templates_created_at_time ON atomicassets_templates USING btree (created_at_time);
 

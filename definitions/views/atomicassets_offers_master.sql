@@ -1,25 +1,25 @@
 CREATE OR REPLACE VIEW atomicassets_offers_master AS
-    SELECT DISTINCT ON (offer_a.contract, offer_a.offer_id)
-        offer_a.contract, offer_a.offer_id,
-        offer_a.sender sender_name, offer_a.recipient recipient_name, offer_a.memo,
-        offer_a.state,
+    SELECT DISTINCT ON (offer.contract, offer.offer_id)
+        offer.contract, offer.offer_id,
+        offer.sender sender_name, offer.recipient recipient_name, offer.memo,
+        offer.state,
 
         ARRAY(
-            SELECT asset_o.asset_id
-            FROM atomicassets_offers_assets asset_o
-            WHERE asset_o.offer_id = offer_a.offer_id AND asset_o.contract::text = offer_a.contract::text AND asset_o.owner::text = offer_a.sender::text
+            SELECT offer_asset.asset_id
+            FROM atomicassets_offers_assets offer_asset
+            WHERE offer_asset.offer_id = offer.offer_id AND offer_asset.contract::text = offer.contract::text AND offer_asset.owner::text = offer.sender::text
         ) sender_assets,
 
         ARRAY(
-            SELECT asset_o.asset_id
-            FROM atomicassets_offers_assets asset_o
-            WHERE asset_o.offer_id = offer_a.offer_id AND asset_o.contract::text = offer_a.contract::text AND asset_o.owner::text = offer_a.recipient::text
+            SELECT offer_asset.asset_id
+            FROM atomicassets_offers_assets offer_asset
+            WHERE offer_asset.offer_id = offer.offer_id AND offer_asset.contract::text = offer.contract::text AND offer_asset.owner::text = offer.recipient::text
         ) recipient_assets,
 
-        EXISTS(SELECT * FROM contract_codes WHERE account = offer_a.sender) is_sender_contract,
-        EXISTS(SELECT * FROM contract_codes WHERE account = offer_a.recipient) is_recipient_contract,
+        EXISTS(SELECT * FROM contract_codes WHERE account = offer.sender) is_sender_contract,
+        EXISTS(SELECT * FROM contract_codes WHERE account = offer.recipient) is_recipient_contract,
 
-        offer_a.updated_at_block, offer_a.updated_at_time,
-        offer_a.created_at_block, offer_a.created_at_time
+        offer.updated_at_block, offer.updated_at_time,
+        offer.created_at_block, offer.created_at_time
     FROM
-        atomicassets_offers offer_a
+        atomicassets_offers offer

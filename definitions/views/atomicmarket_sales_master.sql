@@ -42,7 +42,8 @@ CREATE OR REPLACE VIEW atomicmarket_sales_master AS
         sale.collection_name,
         json_build_object(
             'collection_name', collection.collection_name,
-            'name', collection.readable_name,
+            'name', collection.data->>'name',
+            'img', collection..data->>'img',
             'author', collection.author,
             'allow_notify', collection.allow_notify,
             'authorized_accounts', collection.authorized_accounts,

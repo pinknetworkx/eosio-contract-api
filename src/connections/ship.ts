@@ -188,6 +188,8 @@ export default class StateHistoryBlockReader {
 
                             logger.error('Ship blocks queue stopped duo to an error');
                             logger.error(e);
+
+                            return;
                         }
 
                         this.unconfirmed += 1;
