@@ -17,6 +17,8 @@ export function formatAsset(row: any): any {
         Object.assign(data['data'], data.template.immutable_data);
     }
 
+    data.name = data.data.name;
+
     delete data['template_id'];
     delete data['schema_name'];
     delete data['collection_name'];
@@ -29,6 +31,8 @@ export function formatTemplate(row: any): any {
     const data = {...row};
 
     data.collection = formatCollection(data.collection);
+
+    data.name = data.data.name;
 
     delete data['schema_name'];
     delete data['collection_name'];
