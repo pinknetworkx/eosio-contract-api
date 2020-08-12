@@ -1,6 +1,6 @@
-CREATE INDEX atomicassets_assets_immutable_data_rarity ON atomicassets_assets ((immutable_data->'name'));
-CREATE INDEX atomicassets_assets_mutable_data_rarity ON atomicassets_assets ((mutable_data->'name'));
-CREATE INDEX atomicassets_templates_immutable_data_rarity ON atomicassets_templates ((immutable_data->'name'));
+CREATE INDEX atomicassets_assets_immutable_data_name ON atomicassets_assets ((immutable_data->'name'));
+CREATE INDEX atomicassets_assets_mutable_data_name ON atomicassets_assets ((mutable_data->'name'));
+CREATE INDEX atomicassets_templates_immutable_data_name ON atomicassets_templates ((immutable_data->'name'));
 
 CREATE INDEX atomicassets_assets_immutable_data_rarity ON atomicassets_assets ((immutable_data->'rarity'));
 CREATE INDEX atomicassets_assets_mutable_data_rarity ON atomicassets_assets ((mutable_data->'rarity'));
