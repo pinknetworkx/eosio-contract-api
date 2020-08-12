@@ -49,7 +49,7 @@ CREATE OR REPLACE VIEW atomicmarket_auctions_master AS
         json_build_object(
             'collection_name', collection.collection_name,
             'name', collection.data->>'name',
-            'img', collection..data->>'img',
+            'img', collection.data->>'img',
             'author', collection.author,
             'allow_notify', collection.allow_notify,
             'authorized_accounts', collection.authorized_accounts,
