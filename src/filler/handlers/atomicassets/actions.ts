@@ -233,7 +233,7 @@ export default class AtomicAssetsActionHandler {
             await db.insert('atomicassets_mints', {
                 contract: this.contractName,
                 asset_id: data.asset_id,
-                receiver: data.new_owner,
+                receiver: data.new_asset_owner,
                 txid: Buffer.from(tx.id, 'hex'),
                 created_at_block: block.block_num,
                 created_at_time: eosioTimestampToDate(block.timestamp).getTime()
@@ -250,7 +250,7 @@ export default class AtomicAssetsActionHandler {
 
             await this.createLogMessage(db, block, tx, trace.global_sequence, 'mint', 'asset', data.asset_id, {
                 minter: data.minter,
-                new_owner: data.new_owner
+                new_owner: data.new_asset_owner
             });
 
             this.core.pushNotificiation(block, tx, 'assets', 'mint', {

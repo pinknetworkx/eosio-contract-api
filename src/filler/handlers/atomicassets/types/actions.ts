@@ -15,7 +15,7 @@ export type LogMintAssetActionData = {
     collection_name: string,
     schema_name: string,
     template_id: number,
-    new_owner: string
+    new_asset_owner: string
 };
 
 export type LogBurnAssetActionData = {
