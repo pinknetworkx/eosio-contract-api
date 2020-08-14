@@ -248,5 +248,47 @@ export const listingFilterParameters = [
         description: 'Upper price limit',
         required: false,
         schema: {type: 'number'}
+    },
+    {
+        name: 'min_template_mint',
+        in: 'query',
+        description: 'Min template mint',
+        required: false,
+        schema: {type: 'number'}
+    },
+    {
+        name: 'max_template_mint',
+        in: 'query',
+        description: 'Max template mint',
+        required: false,
+        schema: {type: 'number'}
+    },
+    {
+        name: 'min_schema_mint',
+        in: 'query',
+        description: 'Min schema mint',
+        required: false,
+        schema: {type: 'number'}
+    },
+    {
+        name: 'max_schema_mint',
+        in: 'query',
+        description: 'Max schema mint',
+        required: false,
+        schema: {type: 'number'}
+    },
+    {
+        name: 'min_collection_mint',
+        in: 'query',
+        description: 'Min collection mint',
+        required: false,
+        schema: {type: 'number'}
+    },
+    {
+        name: 'max_collection_mint',
+        in: 'query',
+        description: 'Max collection mint',
+        required: false,
+        schema: {type: 'number'}
     }
 ];

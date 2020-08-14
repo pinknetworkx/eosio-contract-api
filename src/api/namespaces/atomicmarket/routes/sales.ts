@@ -20,8 +20,15 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100},
-                sort: {type: 'string', values: ['created', 'updated', 'sale_id', 'price', 'template_mint'], default: 'created'},
-                order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
+                sort: {
+                    type: 'string',
+                    values: [
+                        'created', 'updated', 'sale_id', 'price',
+                        'template_mint', 'schema_mint', 'collection_mint'
+                    ],
+                    default: 'created'
+                },
+                order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
             });
 
             const filter = buildSaleFilter(req, 1);
@@ -55,7 +62,9 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 created: 'listing.sale_id',
                 updated: 'listing.updated_at_block',
                 price: 'price.price',
-                template_mint: 'mint.min_template_mint'
+                template_mint: 'mint.min_template_mint',
+                schema_mint: 'mint.min_schema_mint',
+                collection_mint: 'mint.min_collection_mint'
             };
 
             // @ts-ignore
@@ -174,7 +183,10 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             required: false,
                             schema: {
                                 type: 'string',
-                                enum: ['created', 'updated', 'sale_id', 'price', 'template_mint'],
+                                enum: [
+                                    'created', 'updated', 'sale_id', 'price',
+                                    'template_mint', 'schema_mint', 'collection_mint'
+                                ],
                                 default: 'created'
                             }
                         }

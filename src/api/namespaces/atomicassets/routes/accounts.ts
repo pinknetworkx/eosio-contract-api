@@ -15,6 +15,10 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 5000, default: 100},
 
+                collection_name: {type: 'string', min: 1},
+                schema_name: {type: 'string', min: 1},
+                template_id: {type: 'string', min: 1},
+
                 collection_whitelist: {type: 'string', min: 1},
                 collection_blacklist: {type: 'string', min: 1},
 
@@ -38,6 +42,21 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             if (args.collection_blacklist) {
                 queryString += 'AND NOT (asset.collection_name = ANY ($' + ++varCounter + ')) ';
                 queryValues.push(args.collection_blacklist.split(','));
+            }
+
+            if (args.collection_name) {
+                queryString += 'AND asset.collection_name = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.collection_name.split(','));
+
+                if (args.template_id) {
+                    queryString += 'AND asset.template_id = ANY ($' + ++varCounter + ') ';
+                    queryValues.push(args.template_id.split(','));
+                }
+
+                if (args.schema_name) {
+                    queryString += 'AND asset.schema_name = ANY ($' + ++varCounter + ') ';
+                    queryValues.push(args.schema_name.split(','));
+                }
             }
 
             const boundaryFilter = buildBoundaryFilter(
@@ -163,6 +182,27 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                             name: 'match',
                             in: 'query',
                             description: 'Search for partial account name',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'collection_name',
+                            in: 'query',
+                            description: 'Filter for specific collection',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'schema_name',
+                            in: 'query',
+                            description: 'Filter for specific schema',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'template_id',
+                            in: 'query',
+                            description: 'Filter for specific template',
                             required: false,
                             schema: {type: 'string'}
                         },

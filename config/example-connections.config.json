@@ -4,15 +4,15 @@
     "port": 5432,
     "user": "username",
     "password": "changeme",
-    "database": "api-wax-testnet"
+    "database": "api-wax-mainnet"
   },
   "redis": {
     "host": "127.0.0.1",
     "port": 6379
   },
   "chain": {
-    "name": "wax-testnet",
-    "chain_id": "f16b1833c747c43682f4386fca9cbb327929334a762755ebec17f6f23c9b8a12",
+    "name": "wax-mainnet",
+    "chain_id": "1064487b3cd1a897ce03ae5b6a865651747e2e152090f99c1d19d44e01aea5a4",
     "http": "http://127.0.0.1:8888",
     "ship": "ws://127.0.0.1:8080"
   }

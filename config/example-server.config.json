@@ -37,6 +37,14 @@
         "atomicmarket_account": "atomicmarket",
         "connected_reader": "atomic"
       }
+    },
+    {
+      "name": "atomictools",
+      "path": "/atomictools",
+      "args": {
+        "atomictools_account": "atomictoolsx",
+        "atomicassets_account": "atomicassets"
+      }
     }
   ]
 }

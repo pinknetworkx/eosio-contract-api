@@ -3,8 +3,8 @@ import PQueue from 'p-queue';
 
 import { AtomicMarketNamespace, AuctionApiState } from '../index';
 import { HTTPServer } from '../../../server';
-import { formatAuction } from '../format';
-import { fillAuctions } from '../filler';
+import { formatAuction, formatSale } from '../format';
+import { fillAuctions, fillSales } from '../filler';
 import { buildAuctionFilter } from '../utils';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/openapi';
@@ -19,13 +19,23 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100},
-                sort: {type: 'string', values: ['created', 'updated', 'ending', 'auction_id', 'price'], default: 'created'},
+                sort: {
+                    type: 'string',
+                    values: [
+                        'created', 'updated', 'ending', 'auction_id', 'price',
+                        'template_mint', 'schema_mint', 'collection_mint'
+                    ],
+                    default: 'created'
+                },
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
             });
 
             const auctionFilter = buildAuctionFilter(req, 1);
 
-            let queryString = 'SELECT * FROM atomicmarket_auctions_master listing WHERE market_contract = $1 ' + auctionFilter.str;
+            let queryString = 'SELECT listing.auction_id ' +
+                'FROM atomicmarket_auctions listing ' +
+                    'LEFT JOIN atomicmarket_auction_mints mint ON (mint.market_contract = listing.market_contract AND mint.auction_id = listing.auction_id)' +
+                'WHERE market_contract = $1 ' + auctionFilter.str;
             const queryValues = [core.args.atomicmarket_account, ...auctionFilter.values];
             let varCounter = queryValues.length;
 
@@ -44,11 +54,14 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             queryString += boundaryFilter.str;
 
             const sortColumnMapping = {
-                auction_id: 'auction_id',
-                ending: 'end_time',
-                created: 'auction_id',
-                updated: 'updated_at_block',
-                price: 'raw_price'
+                auction_id: 'listing.auction_id',
+                ending: 'listing.end_time',
+                created: 'listing.auction_id',
+                updated: 'listing.updated_at_block',
+                price: 'listing.price',
+                template_mint: 'mint.min_template_mint',
+                schema_mint: 'mint.min_schema_mint',
+                collection_mint: 'mint.min_collection_mint'
             };
 
             // @ts-ignore
@@ -59,10 +72,23 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
 
             logger.debug(queryString);
 
-            const query = await core.connection.database.query(queryString, queryValues);
+            const auctionQuery = await core.connection.database.query(queryString, queryValues);
+
+            const auctionLookup: {[key: string]: any} = {};
+            const query = await core.connection.database.query(
+                'SELECT * FROM atomicmarket_auctions_master WHERE market_contract = $1 AND auction_id = ANY ($2)',
+                [core.args.atomicmarket_account, auctionQuery.rows.map(row => row.sale_id)]
+            );
+
+            query.rows.reduce((prev, current) => {
+                prev[String(current.auction_id)] = current;
+
+                return prev;
+            }, auctionLookup);
 
             const auctions = await fillAuctions(
-                core.connection, core.args.atomicassets_account, query.rows.map((row) => formatAuction(row))
+                core.connection, core.args.atomicassets_account,
+                auctionQuery.rows.map((row) => formatAuction(auctionLookup[String(row.auction_id)]))
             );
 
             res.json({success: true, data: auctions, query_time: Date.now()});
@@ -155,7 +181,10 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                             required: false,
                             schema: {
                                 type: 'string',
-                                enum: ['created', 'updated', 'ending', 'auction_id', 'price'],
+                                enum: [
+                                    'created', 'updated', 'ending', 'auction_id', 'price',
+                                    'template_mint', 'schema_mint', 'collection_mint'
+                                ],
                                 default: 'created'
                             }
                         }

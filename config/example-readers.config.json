@@ -34,6 +34,12 @@
           "atomicmarket_account": "atomicmarket",
           "store_logs": true
         }
+      },
+      {
+        "handler": "atomictools",
+        "args": {
+          "atomictools_account": "atomictoolsx"
+        }
       }
     ]
   }

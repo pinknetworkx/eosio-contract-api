@@ -37,7 +37,14 @@ export function buildListingFilter(
         seller: {type: 'string', min: 1},
         buyer: {type: 'string', min: 1},
 
-        collection_name: {type: 'string', min: 1}
+        collection_name: {type: 'string', min: 1},
+
+        min_template_mint: {type: 'int', min: 1},
+        max_template_mint: {type: 'int', min: 1},
+        min_schema_mint: {type: 'int', min: 1},
+        max_schema_mint: {type: 'int', min: 1},
+        min_collection_mint: {type: 'int', min: 1},
+        max_collection_mint: {type: 'int', min: 1}
     });
 
     let varCounter = varOffset;
@@ -85,6 +92,36 @@ export function buildListingFilter(
             queryString += 'AND listing.taker_marketplace = ANY ($' + ++varCounter + ') ';
             queryValues.push(args.taker_marketplace.split(','));
         }
+    }
+
+    if (args.min_template_mint) {
+        queryString += 'AND mint.max_template_mint >= $' + ++varCounter + ' ';
+        queryValues.push(args.min_template_mint);
+    }
+
+    if (args.max_template_mint) {
+        queryString += 'AND mint.min_template_mint <= $' + ++varCounter + ' ';
+        queryValues.push(args.max_template_mint);
+    }
+
+    if (args.min_schema_mint) {
+        queryString += 'AND mint.max_schema_mint >= $' + ++varCounter + ' ';
+        queryValues.push(args.min_schema_mint);
+    }
+
+    if (args.max_schema_mint) {
+        queryString += 'AND mint.min_schema_mint <= $' + ++varCounter + ' ';
+        queryValues.push(args.max_schema_mint);
+    }
+
+    if (args.min_collection_mint) {
+        queryString += 'AND mint.max_collection_mint >= $' + ++varCounter + ' ';
+        queryValues.push(args.min_collection_mint);
+    }
+
+    if (args.max_collection_mint) {
+        queryString += 'AND mint.min_collection_mint <= $' + ++varCounter + ' ';
+        queryValues.push(args.max_collection_mint);
     }
 
     return {
