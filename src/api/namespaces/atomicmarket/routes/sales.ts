@@ -28,7 +28,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                     ],
                     default: 'created'
                 },
-                order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+                order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
             });
 
             const filter = buildSaleFilter(req, 1);

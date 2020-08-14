@@ -3,8 +3,8 @@ import PQueue from 'p-queue';
 
 import { AtomicMarketNamespace, AuctionApiState } from '../index';
 import { HTTPServer } from '../../../server';
-import { formatAuction, formatSale } from '../format';
-import { fillAuctions, fillSales } from '../filler';
+import { formatAuction } from '../format';
+import { fillAuctions } from '../filler';
 import { buildAuctionFilter } from '../utils';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/openapi';
