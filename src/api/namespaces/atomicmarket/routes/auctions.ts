@@ -35,7 +35,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             let queryString = 'SELECT listing.auction_id ' +
                 'FROM atomicmarket_auctions listing ' +
                     'LEFT JOIN atomicmarket_auction_mints mint ON (mint.market_contract = listing.market_contract AND mint.auction_id = listing.auction_id)' +
-                'WHERE market_contract = $1 ' + auctionFilter.str;
+                'WHERE listing.market_contract = $1 ' + auctionFilter.str;
             const queryValues = [core.args.atomicmarket_account, ...auctionFilter.values];
             let varCounter = queryValues.length;
 
@@ -45,7 +45,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             queryString += blacklistFilter.str;
 
             const boundaryFilter = buildBoundaryFilter(
-                req, varCounter, 'auction_id', 'int',
+                req, varCounter, 'listing.auction_id', 'int',
                 args.sort === 'updated' ? 'listing.updated_at_time' : 'listing.created_at_time',
                 args.sort === 'updated' ? 'listing.updated_at_block' : 'listing.created_at_block'
             );
