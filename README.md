@@ -159,12 +159,12 @@ Stop
 4. `yarn global add pm2`
 
 Start
-* `pm2 start filler`
-* `pm2 start api`
+* `pm2 start ecosystems.config.json --only eosio-contract-api-filler`
+* `pm2 start ecosystems.config.json --only eosio-contract-api-server`
 
 Stop
-* `pm2 stop filler`
-* `pm2 stop api`
+* `pm2 stop eosio-contract-api-filler`
+* `pm2 stop eosio-contract-api-server`
 
 ## Currently Supported Contracts
 
