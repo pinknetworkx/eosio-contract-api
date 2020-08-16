@@ -16,7 +16,7 @@
     },
     {
       "name": "eosio-contract-api-server",
-      "script": "build/bin/api.js",
+      "script": "build/bin/server.js",
 
       "autorestart": true,
       "exp_backoff_restart_delay": 100,

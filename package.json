@@ -12,11 +12,11 @@
     "test": "mocha -r ts-node/register test/**/*.test.ts",
     "postinstall": "yarn build",
 
-    "start:api": "node ./build/bin/api.js",
+    "start:server": "node ./build/bin/server.js",
     "start:filler": "node ./build/bin/filler.js",
     "start:abiscan": "node ./build/bin/abiscan.js",
 
-    "dev:api": "tsc && node --trace-warnings ./build/bin/api.js",
+    "dev:server": "tsc && node --trace-warnings ./build/bin/server.js",
     "dev:filler": "tsc && node --trace-warnings ./build/bin/filler.js"
   },
   "dependencies": {

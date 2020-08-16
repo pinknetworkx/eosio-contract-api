@@ -15,7 +15,7 @@ services:
   eosio-contract-api-server:
     container_name: eosio-contract-api-server
     build: .
-    command: yarn run start:api
+    command: yarn run start:server
     restart: on-failure
     ports:
       - "9000:9000"
@@ -45,3 +45,6 @@ services:
       - ./docker/postgres/data:/var/lib/postgresql/data
     networks:
       - eosio-contract-api
+networks:
+  eosio-contract-api:
+    driver: bridge
