@@ -9,7 +9,7 @@ services:
       - eosio-contract-api-postgres
       - eosio-contract-api-redis
     volumes:
-      - ./config:/root/app/config
+      - ./config:/home/application/app/config
     networks:
       - eosio-contract-api
   eosio-contract-api-server:
@@ -23,7 +23,7 @@ services:
       - eosio-contract-api-postgres
       - eosio-contract-api-redis
     volumes:
-      - ./config:/root/app/config
+      - ./config:/home/application/app/config
     networks:
       - eosio-contract-api
   eosio-contract-api-redis:
