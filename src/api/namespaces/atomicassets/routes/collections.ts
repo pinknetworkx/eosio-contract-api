@@ -111,6 +111,16 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
                 'SELECT ' +
                 '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2) assets, ' +
                 '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND owner IS NULL) burned, ' +
+                'ARRAY(' +
+                    'SELECT json_build_object(\'template_id\', template_id, \'burned\', COUNT(*)) ' +
+                    'FROM atomicassets_assets ' +
+                    'WHERE contract = $1 AND collection_name = $2 AND owner IS NULL GROUP BY template_id' +
+                ') burned_by_template, ' +
+                'ARRAY(' +
+                    'SELECT json_build_object(\'schema_name\', schema_name, \'burned\', COUNT(*)) ' +
+                    'FROM atomicassets_assets ' +
+                    'WHERE contract = $1 AND collection_name = $2 AND owner IS NULL GROUP BY schema_name' +
+                ') burned_by_schema, ' +
                 '(SELECT COUNT(*) FROM atomicassets_templates WHERE contract = $1 AND collection_name = $2) templates, ' +
                 '(SELECT COUNT(*) FROM atomicassets_schemas WHERE contract = $1 AND collection_name = $2) "schemas"',
                 [core.args.atomicassets_account, req.params.collection_name]
