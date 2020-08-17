@@ -10,7 +10,6 @@ export async function fillLinks(connection: ConnectionManager, assetContract: st
     }
 
     const filler = new AssetFiller(connection, assetContract, assetIDs, formatAsset, 'atomicassets_assets_master');
-    await filler.query();
 
     return await Promise.all(links.map(async (link) => {
         link.assets = await filler.fill(link.assets);

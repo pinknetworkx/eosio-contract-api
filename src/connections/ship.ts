@@ -156,13 +156,27 @@ export default class StateHistoryBlockReader {
 
                 if (type === 'get_blocks_result_v0') {
                     let block: any = null;
-                    let traces: any = null;
-                    let deltas: any = null;
+                    let traces: any = [];
+                    let deltas: any = [];
 
                     if (response.this_block) {
-                        block = this.deserializeWorkers.exec({type: 'signed_block', data: response.block});
-                        traces = this.deserializeWorkers.exec({type: 'transaction_trace[]', data: response.traces});
-                        deltas = this.deserializeWorkers.exec({type: 'table_delta[]', data: response.deltas});
+                        if (response.block) {
+                            block = this.deserializeWorkers.exec({type: 'signed_block', data: response.block});
+                        } else {
+                            logger.warn('Block #' + response.this_block.block_num + ' does not contain block data');
+                        }
+
+                        if (response.traces) {
+                            traces = this.deserializeWorkers.exec({type: 'transaction_trace[]', data: response.traces});
+                        } else {
+                            logger.warn('Block #' + response.this_block.block_num + ' does not contain trace data');
+                        }
+
+                        if (response.deltas) {
+                            deltas = this.deserializeWorkers.exec({type: 'table_delta[]', data: response.deltas});
+                        } else {
+                            logger.warn('Block #' + response.this_block.block_num + ' does not contain delta data');
+                        }
                     }
 
                     this.blocksQueue.add(async () => {

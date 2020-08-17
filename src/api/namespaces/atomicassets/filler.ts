@@ -1,7 +1,7 @@
 import ConnectionManager from '../../../connections/manager';
 
 export class AssetFiller {
-    private assets: {[key: string]: any} | null;
+    private assets: Promise<{[key: string]: any}> | null;
 
     constructor(
         readonly connection: ConnectionManager,
@@ -14,30 +14,40 @@ export class AssetFiller {
     }
 
     async fill(assetIDs: string[]): Promise<any[]> {
-        await this.query();
+        this.query();
 
-        return assetIDs.map((assetID) => this.assets[String(assetID)] || String(assetID));
+        const data = await this.assets;
+
+        return assetIDs.map((assetID) => data[String(assetID)] || String(assetID));
     }
 
-    async query(): Promise<void> {
+    query(): void {
         if (this.assets !== null) {
             return;
         }
 
-        this.assets = {};
+        this.assets = new Promise(async (resolve, reject) => {
+            if (this.assetIDs.length === 0) {
+                return resolve({});
+            }
 
-        if (this.assetIDs.length === 0) {
-            return;
-        }
+            try {
+                const query = await this.connection.database.query(
+                    'SELECT * FROM ' + this.view + ' WHERE contract = $1 AND asset_id = ANY ($2)',
+                    [this.contract, this.assetIDs]
+                );
 
-        const query = await this.connection.database.query(
-            'SELECT * FROM ' + this.view + ' WHERE contract = $1 AND asset_id = ANY ($2)',
-            [this.contract, this.assetIDs]
-        );
+                const result: {[key: string]: any} = {};
 
-        for (const row of query.rows) {
-            this.assets[String(row.asset_id)] = this.formatter(row);
-        }
+                for (const row of query.rows) {
+                    result[String(row.asset_id)] = this.formatter(row);
+                }
+
+                return resolve(result);
+            } catch (e) {
+                return reject(e);
+            }
+        });
     }
 }
 
@@ -45,7 +55,6 @@ export async function fillAssets(
     connection: ConnectionManager, contract: string, assetIDs: any[], formatter: (_: any) => any, view: string
 ): Promise<any[]> {
     const filler = new AssetFiller(connection, contract, assetIDs, formatter, view);
-    await filler.query();
 
     return await filler.fill(assetIDs);
 }
@@ -61,7 +70,6 @@ export async function fillOffers(
     }
 
     const filler = new AssetFiller(connection, contract, assetIDs, formatter, view);
-    await filler.query();
 
     return await Promise.all(offers.map(async (offer) => {
         offer.sender_assets = await filler.fill(offer.sender_assets);
@@ -81,7 +89,6 @@ export async function fillTransfers(
     }
 
     const filler = new AssetFiller(connection, contract, assetIDs, formatter, view);
-    await filler.query();
 
     return await Promise.all(transfers.map(async (transfer) => {
         transfer.assets = await filler.fill(transfer.assets);

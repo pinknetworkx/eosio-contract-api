@@ -10,7 +10,6 @@ export async function fillAuctions(connection: ConnectionManager, assetContract:
     }
 
     const filler = new AssetFiller(connection, assetContract, assetIDs, formatAsset, 'atomicassets_assets_master');
-    await filler.query();
 
     return await Promise.all(auctions.map(async (auction) => {
         auction.assets = await filler.fill(auction.assets);
@@ -27,7 +26,6 @@ export async function fillSales(connection: ConnectionManager, assetContract: st
     }
 
     const filler = new AssetFiller(connection, assetContract, assetIDs, formatAsset, 'atomicassets_assets_master');
-    await filler.query();
 
     return await Promise.all(sales.map(async (sale) => {
         sale.assets = await filler.fill(sale.assets);
