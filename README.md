@@ -79,7 +79,8 @@ This file is used to configure the filler
         "handler": "atomicassets",
         "start_on": 100, // Define the block after which actions and deltas are important
         "args": {
-          "atomicassets_account": "assetstest55" // Account where the contract is deployed
+          "atomicassets_account": "assetstest55", // Account where the contract is deployed
+          "store_logs": true, // store logs
           "store_transfers": true // store the transfer history
         }
       }
@@ -139,9 +140,10 @@ There are two suggested ways to run the project: Docker if you want to container
 ### Docker
 
 1. `git clone && cd eosio-contract-api`
-2. Create and modify configs
-3. There is an example docker compose file provided
-4. `docker-compose up -d`
+2. Create postgres database and user
+3. Create and modify configs
+4. There is an example docker compose file provided
+5. `docker-compose up -d`
 
 Start
 * `docker-compose start eosio-contract-api-filler`
@@ -154,9 +156,10 @@ Stop
 ### PM2
 
 1. `git clone && cd eosio-contract-api`
-2. Create and modify configs
-3. `yarn install`
-4. `yarn global add pm2`
+2. Install and setup postgres, redis, nodeos with state history
+3. Create and modify configs
+4. `yarn install`
+5. `yarn global add pm2`
 
 Start
 * `pm2 start ecosystems.config.json --only eosio-contract-api-filler`
