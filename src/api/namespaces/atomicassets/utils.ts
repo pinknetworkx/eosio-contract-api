@@ -3,6 +3,8 @@ import * as express from 'express';
 import PostgresConnection from '../../../connections/postgres';
 import { filterQueryArgs } from '../utils';
 import logger from '../../../utils/winston';
+import { OfferState } from '../../../filler/handlers/atomicassets';
+import { SaleState } from '../../../filler/handlers/atomicmarket';
 
 export async function getLogs(
     db: PostgresConnection, contract: string, relationName: string, relationId: string,
@@ -155,4 +157,35 @@ export function buildGreylistFilter(
         values: queryValues,
         str: queryString
     };
+}
+
+export function hideOfferAssets(req: express.Request): string {
+    const args = filterQueryArgs(req, {
+        hide_offers: {type: 'bool', default: false},
+        hide_sales: {type: 'bool', default: false}
+    });
+
+    let queryString = '';
+
+    if (args.hide_offers) {
+        queryString += 'AND NOT EXISTS (' +
+            'SELECT * FROM atomicassets_offers offer, atomicassets_offers_assets asset_o ' +
+            'WHERE asset_o.contract = asset.contract AND asset_o.asset_id = asset.asset_id AND ' +
+            'offer.contract = asset_o.contract AND offer.offer_id = asset_o.offer_id AND ' +
+            'offer.state = ' + OfferState.PENDING.valueOf() + ' ' +
+            ') ';
+    }
+
+    if (args.hide_sales) {
+        queryString += 'AND NOT EXISTS (' +
+            'SELECT * FROM atomicmarket_sales sale, atomicassets_offers offer, atomicassets_offers_assets asset_o ' +
+            'WHERE asset_o.contract = asset.contract AND asset_o.asset_id = asset.asset_id AND ' +
+            'offer.contract = asset_o.contract AND offer.offer_id = asset_o.offer_id AND ' +
+            'offer.state = ' + OfferState.PENDING.valueOf() + ' AND ' +
+            'sale.assets_contract = offer.contract AND sale.offer_id = offer.offer_id AND ' +
+            'sale.state = ' + SaleState.LISTED.valueOf() + ' ' +
+            ') ';
+    }
+
+    return queryString;
 }

@@ -295,6 +295,23 @@ export const assetFilterParameters = [
     ...greylistFilterParameters
 ];
 
+export const hideOffersParameters = [
+    {
+        name: 'hide_offers',
+        in: 'query',
+        description: 'Hide assets which are used in an offer',
+        required: false,
+        schema: {type: 'boolean'}
+    },
+    {
+        name: 'hide_sales',
+        in: 'query',
+        description: 'Hide assets which are listed on a atomicmarket contract which is connected to the API',
+        required: false,
+        schema: {type: 'boolean'}
+    }
+];
+
 export const atomicDataFilter =
     'You can filter the result by specific asset / template data fields. You need to define collection_name to enable this filter.' +
     'You can add for example &data.rarity=common to only receive results which have an attribute "rarity" with the value "common"';

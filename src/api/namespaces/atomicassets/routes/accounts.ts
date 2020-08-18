@@ -6,7 +6,8 @@ import { getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters }
 import { formatCollection } from '../format';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { greylistFilterParameters } from '../openapi';
+import { greylistFilterParameters, hideOffersParameters } from '../openapi';
+import { hideOfferAssets } from '../utils';
 
 export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/accounts', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
@@ -59,6 +60,8 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                 }
             }
 
+            queryString += hideOfferAssets(req);
+
             const boundaryFilter = buildBoundaryFilter(
                 req, varCounter, 'owner', 'string', null, null
             );
@@ -104,6 +107,8 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                 queryString += 'AND NOT (asset.collection_name = ANY ($' + ++varCounter + ')) ';
                 queryValues.push(args.collection_blacklist.split(','));
             }
+
+            queryString += hideOfferAssets(req);
 
             queryString += 'GROUP BY collection_name ORDER BY assets DESC';
 
@@ -206,6 +211,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                             required: false,
                             schema: {type: 'string'}
                         },
+                        ...hideOffersParameters,
                         ...greylistFilterParameters,
                         ...primaryBoundaryParameters,
                         ...paginationParameters
@@ -234,6 +240,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                             required: true,
                             schema: {type: 'string'}
                         },
+                        ...hideOffersParameters,
                         ...greylistFilterParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
