@@ -88,7 +88,7 @@ export function buildAssetFilter(
 
     if (args.owner) {
         queryString += 'AND asset.owner = ANY($' + ++varCounter + ') ';
-        queryValues.push(args.owner);
+        queryValues.push(args.owner.split(','));
     }
 
     if (args.template_id) {
