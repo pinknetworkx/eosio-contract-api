@@ -145,7 +145,7 @@ export const dateBoundaryParameters = [
     {
         name: 'before',
         in: 'query',
-        description: 'Only show results before this timestamp (value excluded)',
+        description: 'Only show results before this timestamp in milliseconds (value excluded)',
         required: false,
         schema: {
             type: 'integer'
@@ -154,7 +154,7 @@ export const dateBoundaryParameters = [
     {
         name: 'after',
         in: 'query',
-        description: 'Only show results after this timestamp (value excluded)',
+        description: 'Only show results after this timestamp in milliseconds (value excluded)',
         required: false,
         schema: {
             type: 'integer'

@@ -1718,10 +1718,10 @@ node-fetch@^2.6.0:
   resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.6.0.tgz#e633456386d4aa55863f676a7ab0daa8fdecb0fd"
   integrity sha512-8dG4H5ujfvFiqDmVu9fQ5bOHUC15JMjMY/Zumv26oOvvVJjM67KF8koCWIabKQ1GJIa9r2mMZscBq/TbdOcmNA==
 
-node-worker-threads-pool@^1.4.0:
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/node-worker-threads-pool/-/node-worker-threads-pool-1.4.0.tgz#99b6dda8d3a5a3fab5c543f624d48f4936a9dd9d"
-  integrity sha512-dIUCAj5QTgPBbBb3oJidrafdCT2cVP9EAC4m1XtXgELgO5JXVVO5rbiMeORR9tVHwGNFuCTioe+h0O25OuawpA==
+node-worker-threads-pool@^1.4.1:
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/node-worker-threads-pool/-/node-worker-threads-pool-1.4.1.tgz#dd82b6479414e1bfe78e8a8aaf93400d53f8e1e8"
+  integrity sha512-vyDXDVP/fppE4miayWbiN0H0NOOlECPnxDUg4byx4Qm8lK2RyypxWj5iisPjZTuXbKlFIKoIYvTmkzruoAlX0g==
 
 normalize-path@^3.0.0, normalize-path@~3.0.0:
   version "3.0.0"
