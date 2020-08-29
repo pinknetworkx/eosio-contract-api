@@ -211,6 +211,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 args.collection_name = sale[0].assets[0].collection.collection_name;
                 args.schema_name = sale[0].assets[0].schema.schema_name;
                 args.asset_id = sale[0].assets[0].asset_id;
+                args.symbol = sale[0].assets[0].price.token_symbol;
             }
 
             let saleQuery: any = {rowCount: 0, rows: []};
