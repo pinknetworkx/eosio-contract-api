@@ -38,14 +38,14 @@ export function buildDataConditions(
 
             if (assetTable) {
                 conditions.push(
-                    `${assetTable}.immutable_data->>$${keyVar} = $${valVar}`,
-                    `${assetTable}.mutable_data->>$${keyVar} = $${valVar}`
+                    `${assetTable}.immutable_data->>$${keyVar} IS NOT NULL AND ${assetTable}.immutable_data->>$${keyVar} = $${valVar}`,
+                    `${assetTable}.mutable_data->>$${keyVar} IS NOT NULL AND ${assetTable}.mutable_data->>$${keyVar} = $${valVar}`
                 );
             }
 
             if (templateTable) {
                 conditions.push(
-                    `${templateTable}.immutable_data->>$${keyVar} = $${valVar}`
+                    `${templateTable}.immutable_data->>$${keyVar} IS NOT NULL AND ${templateTable}.immutable_data->>$${keyVar} = $${valVar}`
                 );
             }
 

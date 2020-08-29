@@ -182,6 +182,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
         try {
             const args = filterQueryArgs(req, {
                 limit: {type: 'int', min: 1, max: 100, default: 10},
+                symbol: {type: 'string', min: 1, max: 12},
 
                 template_id: {type: 'int', min: 0},
                 collection_name: {type: 'string', min: 1, max: 12},
@@ -192,16 +193,16 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             });
 
             if (args.sale_id) {
-                const query = await core.connection.database.query(
+                const dataQuery = await core.connection.database.query(
                     'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = $2',
                     [core.args.atomicmarket_account, args.sale_id]
                 );
 
-                if (query.rowCount === 0) {
+                if (dataQuery.rowCount === 0) {
                     return res.status(416).json({success: false, message: 'Sale not found'});
                 }
 
-                const sale = await fillSales(core.connection, core.args.atomicassets_account, query.rows.map((row) => formatSale(row)));
+                const sale = await fillSales(core.connection, core.args.atomicassets_account, dataQuery.rows.map((row) => formatSale(row)));
 
                 if (sale[0].assets[0].template) {
                     args.template_id = sale[0].assets[0].template.template_id;
@@ -212,46 +213,66 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 args.asset_id = sale[0].assets[0].asset_id;
             }
 
-            let sales: any[] = [];
-            for (let i = 0; i <= 3 && sales.length === 0; i++) {
-                const queryValues = [core.args.atomicmarket_account, args.sale_id ? args.sale_id : null];
-                let queryString = 'SELECT * FROM atomicmarket_sales_master listing ' +
-                    'WHERE listing.market_contract = $1 AND listing.sale_id != $2 AND ' +
-                    'listing.sale_state = ' + SaleState.LISTED.valueOf() + ' AND ' +
-                    'listing.offer_state = ' + OfferState.PENDING.valueOf() + ' AND ' +
+            let saleQuery: any = {rowCount: 0, rows: []};
+            for (let i = 0; i <= 3 && saleQuery.rows.length === 0; i++) {
+                const queryValues = [core.args.atomicmarket_account, args.sale_id ? args.sale_id : null, args.symbol];
+                let queryString = 'SELECT listing.sale_id ' +
+                    'FROM atomicmarket_sales_master listing ' +
+                    'JOIN atomicassets_offers offer ON (listing.assets_contract = offer.contract AND listing.offer_id = offer.offer_id) ' +
+                    'LEFT JOIN atomicmarket_sale_prices price ON (price.market_contract = listing.market_contract AND price.sale_id = listing.sale_id) ' +
+                    'WHERE ' +
+                    'listing.market_contract = $1 AND listing.sale_id != $2 AND ' +
+                    'listing.settlement_symbol = $3 AND ' +
+                    'listing.state = ' + SaleState.LISTED.valueOf() + ' AND ' +
+                    'offer.state = ' + OfferState.PENDING.valueOf() + ' AND ' +
                     'EXISTS (' +
-                    'SELECT * FROM atomicassets_offers_assets asset_o, atomicassets_assets asset_a ' +
-                    'WHERE asset_o.offer_id = listing.offer_id AND asset_o.contract = listing.assets_contract AND ' +
-                    'asset_o.contract = asset_a.contract AND asset_o.asset_id = asset_a.asset_id ';
+                    'SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
+                    'WHERE offer_asset.offer_id = listing.offer_id AND offer_asset.contract = listing.assets_contract AND ' +
+                    'offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id ';
 
                 if (args.template_id && i <= 0) {
                     queryValues.push(args.template_id);
-                    queryString += 'AND asset_a.template_id = $' + queryValues.length + ' ';
+                    queryString += 'AND asset.template_id = $' + queryValues.length + ' ';
                 }
 
                 if (args.schema_name && i <= 1) {
                     queryValues.push(args.schema_name);
-                    queryString += 'AND asset_a.schema_name = $' + queryValues.length + ' ';
+                    queryString += 'AND asset.schema_name = $' + queryValues.length + ' ';
                 }
 
                 if (args.collection_name && i <= 2) {
                     queryValues.push(args.collection_name);
-                    queryString += 'AND asset_a.collection_name = $' + queryValues.length + ' ';
+                    queryString += 'AND asset.collection_name = $' + queryValues.length + ' ';
                 }
 
                 queryValues.push(args.limit);
-                queryString += ') ORDER BY raw_price ASC LIMIT $' + queryValues.length;
+                queryString += ') ORDER BY price.price ASC LIMIT $' + queryValues.length;
 
                 logger.debug(queryString);
 
-                const query = await core.connection.database.query(queryString, queryValues);
-
-                sales = query.rows.map(row => formatSale(row));
+                saleQuery = await core.connection.database.query(queryString, queryValues);
             }
+
+            const saleLookup: {[key: string]: any} = {};
+            const query = await core.connection.database.query(
+                'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY ($2)',
+                [core.args.atomicmarket_account, saleQuery.rows.map((row: any) => row.sale_id)]
+            );
+
+            query.rows.reduce((prev, current) => {
+                prev[String(current.sale_id)] = current;
+
+                return prev;
+            }, saleLookup);
+
+            const sales = await fillSales(
+                core.connection, core.args.atomicassets_account,
+                saleQuery.rows.map((row: any) => formatSale(saleLookup[String(row.sale_id)]))
+            );
 
             res.json({
                 success: true,
-                data: await fillSales(core.connection, core.args.atomicassets_account, sales),
+                data: sales,
                 query_time: Date.now()
             });
         } catch (e) {

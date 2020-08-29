@@ -113,19 +113,7 @@ export async function saveAssetTableRow(
 export async function saveOfferTableRow(
     db: ContractDBTransaction, block: ShipBlock, contractName: string, data: OffersTableRow, deleted: boolean
 ): Promise<void> {
-    if (deleted) {
-        await db.update('atomicassets_offers', {
-            state: OfferState.UNKNOWN.valueOf()
-        }, {
-            str: 'contract = $1 AND offer_id = $2 AND (state = $3 OR state = $4)',
-            values: [
-                contractName,
-                data.offer_id,
-                OfferState.PENDING.valueOf(),
-                OfferState.INVALID.valueOf()
-            ]
-        }, ['contract', 'offer_id']);
-    } else {
+    if (!deleted) {
         const offerQuery = await db.query(
             'SELECT offer_id FROM atomicassets_offers WHERE contract = $1 AND offer_id = $2',
             [contractName, data.offer_id]
