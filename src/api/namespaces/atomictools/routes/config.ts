@@ -3,10 +3,9 @@ import * as express from 'express';
 import { AtomicToolsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { getOpenAPI3Responses } from '../../../docs';
-import logger from '../../../../utils/winston';
 
 export function configEndpoints(core: AtomicToolsNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/config', server.web.caching(), async (req, res) => {
+    router.get('/v1/config', server.web.caching(), async (_, res) => {
         try {
             const configQuery = await server.query(
                 'SELECT * FROM atomictools_config WHERE tools_contract = $1',

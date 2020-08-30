@@ -3,10 +3,9 @@ import * as express from 'express';
 import { AtomicMarketNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { getOpenAPI3Responses } from '../../../docs';
-import logger from '../../../../utils/winston';
 
 export function marketplacesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/marketplaces', server.web.caching(), async (req, res) => {
+    router.get('/v1/marketplaces', server.web.caching(), async (_, res) => {
         try {
             const query = await server.query(
                 'SELECT marketplace_name, creator, created_at_block, created_at_time FROM atomicmarket_marketplaces WHERE market_contract = $1',

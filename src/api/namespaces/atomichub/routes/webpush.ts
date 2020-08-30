@@ -4,7 +4,6 @@ import { AtomicHubNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { filterQueryArgs } from '../../utils';
 import { getOpenAPI3Responses } from '../../../docs';
-import logger from '../../../../utils/winston';
 
 export function webpushEndpoints(_: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
     router.post('/v1/webpush', async (req, res) => {

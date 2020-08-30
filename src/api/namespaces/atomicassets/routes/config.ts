@@ -2,11 +2,10 @@ import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import logger from '../../../../utils/winston';
 import { getOpenAPI3Responses } from '../../../docs';
 
 export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/config', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+    router.get('/v1/config', server.web.caching({ignoreQueryString: true}), (async (_, res) => {
         try {
             const query = await server.query(
                 'SELECT * FROM atomicassets_config WHERE contract = $1',

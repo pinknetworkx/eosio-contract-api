@@ -80,7 +80,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
         }
     });
 
-    router.get('/v1/sales/trending', server.web.caching({expire: 60}), async (req, res) => {
+    router.get('/v1/sales/trending', server.web.caching({expire: 60}), async (_, res) => {
         try {
             /*const args = filterQueryArgs(req, {
                 limit: {type: 'int', min: 1, max: 100, default: 10}

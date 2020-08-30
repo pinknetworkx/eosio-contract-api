@@ -6,7 +6,7 @@ import { getOpenAPI3Responses } from '../../../docs';
 import logger from '../../../../utils/winston';
 
 export function configEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/config', server.web.caching(), async (req, res) => {
+    router.get('/v1/config', server.web.caching(), async (_, res) => {
         try {
             const configQuery = await server.query(
                 'SELECT * FROM atomicmarket_config WHERE market_contract = $1',
