@@ -3,7 +3,6 @@ import * as express from 'express';
 import { AtomicMarketNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { getOpenAPI3Responses } from '../../../docs';
-import logger from '../../../../utils/winston';
 
 export function configEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/config', server.web.caching(), async (_, res) => {

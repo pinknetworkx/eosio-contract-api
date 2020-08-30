@@ -1,7 +1,6 @@
 import * as express from 'express';
 
 import { filterQueryArgs } from '../utils';
-import logger from '../../../utils/winston';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 import { SaleState } from '../../../filler/handlers/atomicmarket';
 import { HTTPServer } from '../../server';

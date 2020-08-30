@@ -4,7 +4,6 @@ import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { buildGreylistFilter, buildDataConditions, getLogs } from '../utils';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
-import logger from '../../../../utils/winston';
 import { formatTemplate } from '../format';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { atomicDataFilter, greylistFilterParameters } from '../openapi';

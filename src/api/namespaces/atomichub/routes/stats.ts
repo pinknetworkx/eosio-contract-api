@@ -8,7 +8,6 @@ import { formatListingAsset, formatSale } from '../../atomicmarket/format';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { fillSales } from '../../atomicmarket/filler';
-import logger from '../../../../utils/winston';
 import { fillAssets } from '../../atomicassets/filler';
 
 export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {

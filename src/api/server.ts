@@ -69,7 +69,7 @@ export class HTTPServer {
             return result;
         } catch (error) {
             logger.warn('Query exception', {
-                error, queryText, values
+                message: String(error), error, queryText, values
             });
 
             throw error;

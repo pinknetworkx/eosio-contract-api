@@ -4,7 +4,6 @@ import { AtomicHubNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { filterQueryArgs } from '../../utils';
 import { bearerToken } from '../../authentication/middleware';
-import logger from '../../../../utils/winston';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import { assetFilterParameters, greylistFilterParameters } from '../../atomicassets/openapi';
 import { buildAssetFilter } from '../../atomicassets/utils';

@@ -1,6 +1,5 @@
 import * as express from 'express';
 
-import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { formatCollection } from '../format';

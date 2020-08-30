@@ -3,7 +3,6 @@ import * as express from 'express';
 import { AtomicMarketNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { getOpenAPI3Responses } from '../../../docs';
-import logger from '../../../../utils/winston';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
 import { filterQueryArgs } from '../../utils';
 

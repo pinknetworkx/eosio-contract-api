@@ -4,7 +4,6 @@ import { Numeric } from 'eosjs/dist';
 import { AtomicToolsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
-import logger from '../../../../utils/winston';
 import { fillLinks } from '../filler';
 import { formatLink } from '../format';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';

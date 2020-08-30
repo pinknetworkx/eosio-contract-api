@@ -2,7 +2,6 @@ import * as express from 'express';
 
 import { AtomicMarketNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import logger from '../../../../utils/winston';
 import { filterQueryArgs } from '../../utils';
 import { formatCollection } from '../../atomicassets/format';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
