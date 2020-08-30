@@ -243,8 +243,6 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 queryValues.push(args.limit);
                 queryString += ') ORDER BY price.price ASC LIMIT $' + queryValues.length;
 
-                logger.debug(queryString);
-
                 saleQuery = await server.query(queryString, queryValues);
             }
 

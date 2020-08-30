@@ -21,8 +21,6 @@ export function configEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 'WHERE pair.market_contract = $1 ' +
                 'AND pair.delphi_contract = delphi.contract AND pair.delphi_pair_name = delphi.delphi_pair_name';
 
-            logger.debug(queryString);
-
             const pairsQuery = await server.query(queryString, [core.args.atomicmarket_account]);
 
             const tokensQuery = await server.query(

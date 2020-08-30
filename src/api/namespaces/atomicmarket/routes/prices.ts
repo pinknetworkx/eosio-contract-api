@@ -56,8 +56,6 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
 
             queryString += 'ORDER BY updated_at_block DESC LIMIT 500';
 
-            logger.debug(queryString);
-
             const prices = await server.query(queryString, queryValues);
 
             res.json({

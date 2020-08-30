@@ -96,8 +96,6 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
 
-            logger.debug(queryString);
-
             const templateQuery = await server.query(queryString, queryValues);
 
             const templateLookup: {[key: string]: any} = {};

@@ -82,8 +82,6 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
 
-            logger.debug(queryString);
-
             const saleQuery = await server.query(queryString, queryValues);
 
             const saleLookup: {[key: string]: any} = {};

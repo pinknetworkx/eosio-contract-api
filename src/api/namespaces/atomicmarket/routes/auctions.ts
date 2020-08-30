@@ -79,14 +79,12 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
 
-            logger.debug(queryString);
-
             const auctionQuery = await server.query(queryString, queryValues);
 
             const auctionLookup: {[key: string]: any} = {};
             const query = await server.query(
                 'SELECT * FROM atomicmarket_auctions_master WHERE market_contract = $1 AND auction_id = ANY ($2)',
-                [core.args.atomicmarket_account, auctionQuery.rows.map(row => row.sale_id)]
+                [core.args.atomicmarket_account, auctionQuery.rows.map(row => row.auction_id)]
             );
 
             query.rows.reduce((prev, current) => {

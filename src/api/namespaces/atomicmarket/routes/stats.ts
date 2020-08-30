@@ -208,8 +208,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
 
-            logger.debug(queryString, queryValues);
-
             const query = await server.query(queryString, queryValues);
 
             res.json({
@@ -232,8 +230,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             const queryString = 'SELECT * FROM (' + getCollectionStatsQuery() + ') x WHERE x.collection_name = $3 ';
             const queryValues = [core.args.atomicassets_account, req.query.symbol, req.params.collection_name];
-
-            logger.debug(queryString, queryValues);
 
             const query = await server.query(queryString, queryValues);
 
@@ -285,8 +281,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
 
-            logger.debug(queryString, queryValues);
-
             const query = await server.query(queryString, queryValues);
 
             res.json({
@@ -309,8 +303,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             const queryString = 'SELECT * FROM (' + getAccountStatsQuery() + ') x WHERE x.account = $3 ';
             const queryValues = [core.args.atomicmarket_account, req.query.symbol, req.params.account];
-
-            logger.debug(queryString, queryValues);
 
             const query = await server.query(queryString, queryValues);
 
@@ -363,8 +355,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             // @ts-ignore
             queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' DESC NULLS LAST ';
 
-            logger.debug(queryString, queryValues);
-
             const query = await server.query(queryString, queryValues);
 
             res.json({
@@ -398,8 +388,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             // @ts-ignore
             queryString += 'ORDER BY users DESC NULLS LAST ';
 
-            logger.debug(queryString, queryValues);
-
             const query = await server.query(queryString, queryValues);
 
             res.json({
@@ -422,8 +410,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             const queryString = getGraphStatsQuery();
             const queryValues = [core.args.atomicmarket_account, req.query.symbol];
-
-            logger.debug(queryString, queryValues);
 
             const query = await server.query(queryString, queryValues);
 
@@ -450,8 +436,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 WHERE market_contract = $1 and settlement_symbol = $2 AND state = ${SaleState.SOLD.valueOf()}
             `;
             const queryValues = [core.args.atomicmarket_account, req.query.symbol];
-
-            logger.debug(queryString, queryValues);
 
             const query = await server.query(queryString, queryValues);
 

@@ -114,8 +114,6 @@ export class TransferApi {
                 queryValues.push(args.limit);
                 queryValues.push((args.page - 1) * args.limit);
 
-                logger.debug(queryString);
-
                 const query = await this.server.query(queryString, queryValues);
                 const transfers = await fillTransfers(
                     this.server, this.core.args.atomicassets_account,

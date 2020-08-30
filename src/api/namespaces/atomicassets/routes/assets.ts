@@ -166,8 +166,6 @@ export class AssetApi {
                 queryValues.push(args.limit);
                 queryValues.push((args.page - 1) * args.limit);
 
-                logger.debug(queryString);
-
                 const query = await this.server.query(queryString, queryValues);
 
                 const assets = await fillAssets(

@@ -84,8 +84,6 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
 
-            logger.debug(queryString);
-
             const query = await server.query(queryString, queryValues);
 
             return res.json({success: true, data: query.rows});

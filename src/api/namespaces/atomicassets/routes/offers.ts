@@ -132,8 +132,6 @@ export class OfferApi {
                 queryValues.push(args.limit);
                 queryValues.push((args.page - 1) * args.limit);
 
-                logger.debug(queryString);
-
                 const offerQuery = await this.server.query(queryString, queryValues);
 
                 const offerLookup: {[key: string]: any} = {};

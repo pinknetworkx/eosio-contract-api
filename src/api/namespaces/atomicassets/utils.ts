@@ -15,8 +15,6 @@ export async function getLogs(
         'WHERE contract = $1 AND relation_name = $2 AND relation_id = $3 ' +
         'ORDER BY log_id ' + (order === 'asc' ? 'ASC' : 'DESC') + ' LIMIT $4 OFFSET $5';
 
-    logger.debug(queryStr);
-
     const query = await server.query(queryStr, [contract, relationName, relationId, limit, offset]);
 
     return query.rows;

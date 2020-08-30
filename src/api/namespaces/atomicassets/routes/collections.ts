@@ -83,8 +83,6 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
 
-            logger.debug(queryString);
-
             const query = await server.query(queryString, queryValues);
 
             return res.json({success: true, data: query.rows.map((row) => formatCollection(row)), query_time: Date.now()});

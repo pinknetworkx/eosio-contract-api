@@ -106,8 +106,6 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
 
-            logger.debug(queryString);
-
             const query = await server.query(queryString, queryValues);
 
             const links = await fillLinks(

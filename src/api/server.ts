@@ -54,6 +54,8 @@ export class HTTPServer {
     async query(queryText: string, values?: any[]): Promise<QueryResult> {
         const startTime = Date.now();
 
+        logger.debug(queryText, values);
+
         try {
             const result = await this.connection.database.query(queryText, values);
             const duration = Date.now() - startTime;
