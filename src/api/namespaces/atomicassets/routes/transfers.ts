@@ -21,7 +21,7 @@ export class TransferApi {
     ) { }
 
     endpoints(router: express.Router): any {
-        router.get('/v1/transfers', this.server.web.caching(), (async (req, res) => {
+        router.get(['/v1/transfers', '/v1/transfers/_count'], this.server.web.caching(), (async (req, res) => {
             try {
                 const args = filterQueryArgs(req, {
                     page: {type: 'int', min: 1, default: 1},
@@ -95,6 +95,15 @@ export class TransferApi {
                 varCounter += boundaryFilter.values.length;
                 queryString += boundaryFilter.str;
 
+                if (req.originalUrl.search('/_count') >= 0) {
+                    const countQuery = await this.server.query(
+                        'SELECT COUNT(*) counter FROM (' + queryString + ') x',
+                        queryValues
+                    );
+
+                    return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
+                }
+
                 const sortColumnMapping = {
                     created: 'transfer_id'
                 };
@@ -107,17 +116,15 @@ export class TransferApi {
 
                 logger.debug(queryString);
 
-                const query = await this.core.connection.database.query(queryString, queryValues);
+                const query = await this.server.query(queryString, queryValues);
                 const transfers = await fillTransfers(
-                    this.core.connection, this.core.args.atomicassets_account,
+                    this.server, this.core.args.atomicassets_account,
                     query.rows.map((row) => this.transferFormatter(row)),
                     this.assetFormatter, this.assetView
                 );
 
                 return res.json({success: true, data: transfers, query_time: Date.now()});
             } catch (e) {
-                logger.error(req.originalUrl + ' ', e);
-
                 res.status(500).json({success: false, message: 'Internal Server Error'});
             }
         }));
@@ -223,7 +230,7 @@ export class TransferApi {
                 logger.debug('received transfer notification', msg);
 
                 await queue.add(async () => {
-                    const query = await this.core.connection.database.query(
+                    const query = await this.server.query(
                         'SELECT * FROM ' + this.transferView + ' WHERE contract = $1 AND transfer_id = $2',
                         [this.core.args.atomicassets_account, msg.data.transfer_id]
                     );
@@ -235,7 +242,7 @@ export class TransferApi {
                     }
 
                     const transfers = await fillTransfers(
-                        this.core.connection, this.core.args.atomicassets_account,
+                        this.server, this.core.args.atomicassets_account,
                         query.rows.map((row) => this.transferFormatter(row)),
                         this.assetFormatter, this.assetView
                     );

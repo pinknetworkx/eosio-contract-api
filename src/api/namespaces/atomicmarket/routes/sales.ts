@@ -15,7 +15,7 @@ import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { buildGreylistFilter, getLogs } from '../../atomicassets/utils';
 
 export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/sales', server.web.caching(), async (req, res) => {
+    router.get(['/v1/sales', '/v1/sales/_count'], server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
@@ -57,6 +57,15 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             varCounter += boundaryFilter.values.length;
             queryString += boundaryFilter.str;
 
+            if (req.originalUrl.search('/_count') >= 0) {
+                const countQuery = await this.server.query(
+                    'SELECT COUNT(*) counter FROM (' + queryString + ') x',
+                    queryValues
+                );
+
+                return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
+            }
+
             const sortColumnMapping = {
                 sale_id: 'listing.sale_id',
                 created: 'listing.sale_id',
@@ -75,10 +84,10 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             logger.debug(queryString);
 
-            const saleQuery = await core.connection.database.query(queryString, queryValues);
+            const saleQuery = await server.query(queryString, queryValues);
 
             const saleLookup: {[key: string]: any} = {};
-            const query = await core.connection.database.query(
+            const query = await server.query(
                 'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY ($2)',
                 [core.args.atomicmarket_account, saleQuery.rows.map(row => row.sale_id)]
             );
@@ -90,20 +99,18 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             }, saleLookup);
 
             const sales = await fillSales(
-                core.connection, core.args.atomicassets_account, saleQuery.rows.map((row) => formatSale(saleLookup[String(row.sale_id)]))
+                server, core.args.atomicassets_account, saleQuery.rows.map((row) => formatSale(saleLookup[String(row.sale_id)]))
             );
 
             res.json({success: true, data: sales, query_time: Date.now()});
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
 
     router.get('/v1/sales/:sale_id', server.web.caching(), async (req, res) => {
         try {
-            const query = await core.connection.database.query(
+            const query = await server.query(
                 'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = $2',
                 [core.args.atomicmarket_account, req.params.sale_id]
             );
@@ -112,14 +119,12 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 res.status(416).json({success: false, message: 'Sale not found'});
             } else {
                 const sales = await fillSales(
-                    core.connection, core.args.atomicassets_account, query.rows.map((row) => formatSale(row))
+                    server, core.args.atomicassets_account, query.rows.map((row) => formatSale(row))
                 );
 
                 res.json({success: true, data: sales[0], query_time: Date.now()});
             }
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
@@ -135,7 +140,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             res.json({
                 success: true,
                 data: await getLogs(
-                    core.connection.database, core.args.atomicmarket_account, 'sale', req.params.sale_id,
+                    server, core.args.atomicmarket_account, 'sale', req.params.sale_id,
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });
@@ -273,7 +278,7 @@ export function salesSockets(core: AtomicMarketNamespace, server: HTTPServer): v
             const msg = JSON.parse(message);
 
             await queue.add(async () => {
-                const query = await core.connection.database.query(
+                const query = await server.query(
                     'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = $2',
                     [core.args.atomicmarket_account, msg.data.sale_id]
                 );
@@ -285,7 +290,7 @@ export function salesSockets(core: AtomicMarketNamespace, server: HTTPServer): v
                 }
 
                 const sales = await fillSales(
-                    core.connection, core.args.atomicassets_account,
+                    server, core.args.atomicassets_account,
                     query.rows.map((row: any) => formatSale(row))
                 );
 
@@ -332,7 +337,7 @@ export function salesSockets(core: AtomicMarketNamespace, server: HTTPServer): v
                 }
 
                 await queue.add(async () => {
-                    const sales = await core.connection.database.query(
+                    const sales = await server.query(
                         'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND offer_id = $2',
                         [core.args.atomicmarket_account, msg.data.offer_id]
                     );

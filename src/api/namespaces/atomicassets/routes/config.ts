@@ -8,7 +8,7 @@ import { getOpenAPI3Responses } from '../../../docs';
 export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/config', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
-            const query = await core.connection.database.query(
+            const query = await server.query(
                 'SELECT * FROM atomicassets_config WHERE contract = $1',
                 [core.args.atomicassets_account]
             );
@@ -19,7 +19,7 @@ export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                 return res.json({success: false, message: 'Config not found'});
             }
 
-            const tokensQuery = await core.connection.database.query(
+            const tokensQuery = await server.query(
                 'SELECT token_symbol, token_contract, token_precision FROM atomicassets_tokens WHERE contract = $1',
                 [core.args.atomicassets_account]
             );
@@ -33,8 +33,6 @@ export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                 }, query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));

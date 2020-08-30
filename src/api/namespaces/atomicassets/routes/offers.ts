@@ -23,7 +23,7 @@ export class OfferApi {
     ) { }
 
     endpoints(router: express.Router): any {
-        router.get('/v1/offers', this.server.web.caching(), (async (req, res) => {
+        router.get(['/v1/offers', '/v1/offers/_count'], this.server.web.caching(), (async (req, res) => {
             try {
                 const args = filterQueryArgs(req, {
                     page: {type: 'int', min: 1, default: 1},
@@ -117,6 +117,15 @@ export class OfferApi {
                     updated: 'updated_at_block'
                 };
 
+                if (req.originalUrl.search('/_count') >= 0) {
+                    const countQuery = await this.server.query(
+                        'SELECT COUNT(*) counter FROM (' + queryString + ') x',
+                        queryValues
+                    );
+
+                    return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
+                }
+
                 // @ts-ignore
                 queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', offer_id ASC ';
                 queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
@@ -125,10 +134,10 @@ export class OfferApi {
 
                 logger.debug(queryString);
 
-                const offerQuery = await this.core.connection.database.query(queryString, queryValues);
+                const offerQuery = await this.server.query(queryString, queryValues);
 
                 const offerLookup: {[key: string]: any} = {};
-                const query = await this.core.connection.database.query(
+                const query = await this.server.query(
                     'SELECT * FROM ' + this.offerView + ' WHERE contract = $1 AND offer_id = ANY ($2)',
                     [this.core.args.atomicassets_account, offerQuery.rows.map(row => row.offer_id)]
                 );
@@ -140,22 +149,20 @@ export class OfferApi {
                 }, offerLookup);
 
                 const offers = await fillOffers(
-                    this.core.connection, this.core.args.atomicassets_account,
+                    this.server, this.core.args.atomicassets_account,
                     offerQuery.rows.map((row) => this.offerFormatter(offerLookup[row.offer_id])),
                     this.assetFormatter, this.assetView
                 );
 
                 return res.json({success: true, data: offers, query_time: Date.now()});
             } catch (e) {
-                logger.error(req.originalUrl + ' ', e);
-
                 res.status(500).json({success: false, message: 'Internal Server Error'});
             }
         }));
 
         router.get('/v1/offers/:offer_id', this.server.web.caching({ignoreQueryString: true}), (async (req, res) => {
             try {
-                const query = await this.core.connection.database.query(
+                const query = await this.server.query(
                     'SELECT * FROM atomicassets_offers_master WHERE contract = $1 AND offer_id = $2',
                     [this.core.args.atomicassets_account, req.params.offer_id]
                 );
@@ -165,15 +172,13 @@ export class OfferApi {
                 }
 
                 const offers = await fillOffers(
-                    this.core.connection, this.core.args.atomicassets_account,
+                    this.server, this.core.args.atomicassets_account,
                     query.rows.map((row) => this.offerFormatter(row)),
                     this.assetFormatter, this.assetView
                 );
 
                 return res.json({success: true, data: offers[0], query_time: Date.now()});
             } catch (e) {
-                logger.error(req.originalUrl + ' ', e);
-
                 return res.status(500).json({success: false, message: 'Internal Server Error'});
             }
         }));
@@ -189,7 +194,7 @@ export class OfferApi {
                 res.json({
                     success: true,
                     data: await getLogs(
-                        this.core.connection.database, this.core.args.atomicassets_account, 'offer', req.params.offer_id,
+                        this.server, this.core.args.atomicassets_account, 'offer', req.params.offer_id,
                         (args.page - 1) * args.limit, args.limit, args.order
                     ), query_time: Date.now()
                 });
@@ -355,7 +360,7 @@ export class OfferApi {
                 logger.debug('received offer notification', msg);
 
                 await queue.add(async () => {
-                    const query = await this.core.connection.database.query(
+                    const query = await this.server.query(
                         'SELECT * FROM ' + this.offerView + ' WHERE contract = $1 AND offer_id = $2',
                         [this.core.args.atomicassets_account, msg.data.offer_id]
                     );
@@ -367,7 +372,7 @@ export class OfferApi {
                     }
 
                     const offers = await fillOffers(
-                        this.core.connection, this.core.args.atomicassets_account,
+                        this.server, this.core.args.atomicassets_account,
                         query.rows.map((row) => this.offerFormatter(row)),
                         this.assetFormatter, this.assetView
                     );

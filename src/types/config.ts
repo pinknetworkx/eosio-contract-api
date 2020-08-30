@@ -40,6 +40,7 @@ export interface IServerConfig {
     };
 
     ip_whitelist: string[];
+    slow_query_threshold: number;
 
     namespaces: INamespaceConfig[];
 }

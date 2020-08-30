@@ -6,7 +6,7 @@ import { filterQueryArgs } from '../../utils';
 import { getOpenAPI3Responses } from '../../../docs';
 import logger from '../../../../utils/winston';
 
-export function webpushEndpoints(core: AtomicHubNamespace, _: HTTPServer, router: express.Router): any {
+export function webpushEndpoints(_: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
     router.post('/v1/webpush', async (req, res) => {
         const args = filterQueryArgs(req, {
             account: {type: 'string', min: 1, max: 12},
@@ -20,7 +20,7 @@ export function webpushEndpoints(core: AtomicHubNamespace, _: HTTPServer, router
         }
 
         try {
-            const exists = await core.connection.database.query(
+            const exists = await server.query(
                 'SELECT account FROM atomichub_browsers WHERE account = $1 AND url = $2 AND public_key = $3 AND secret = $4',
                 [args.account, args.url, args.public_key, args.secret]
             );
@@ -29,15 +29,13 @@ export function webpushEndpoints(core: AtomicHubNamespace, _: HTTPServer, router
                 return res.status(416).json({success: false, data: 'Entry already exists'});
             }
 
-            await core.connection.database.query(
+            await server.query(
                 'INSERT INTO atomichub_browsers (account, url, public_key, secret, created) VALUES ($1, $2, $3, $4, $5)',
                 [args.account, args.url, args.public_key, args.secret, Date.now()]
             );
 
             return res.json({success: true, data: null});
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });

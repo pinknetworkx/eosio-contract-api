@@ -23,7 +23,7 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
             }
 
             try {
-                await core.connection.database.query(
+                await server.query(
                     'INSERT INTO atomichub_watchlist (account, contract, asset_id, created) VALUES ($1, $2, $3, $4)',
                     [req.authorizedAccount, core.args.atomicassets_account, body.asset_id, Date.now()]
                 );
@@ -33,8 +33,6 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
                 return res.json({success: false, message: 'Entry already exists or asset id not found'});
             }
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
 
@@ -42,7 +40,7 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
 
     router.delete('/v1/watchlist/:asset_id', bearerToken(core.connection), async (req, res) => {
         try {
-            const query = await core.connection.database.query(
+            const query = await server.query(
                 'DELETE FROM atomichub_watchlist WHERE account = $1 AND contract = $2 AND asset_id = $3 RETURNING *',
                 [req.authorizedAccount, core.args.atomicassets_account, req.params.asset_id]
             );
@@ -53,8 +51,6 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
 
             return res.json({success: false, message: 'Item not found on watchlist'});
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.json({success: false, message: 'Internal Server Error'});
         }
     });
@@ -111,33 +107,29 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
 
             logger.debug(queryString);
 
-            const query = await core.connection.database.query(queryString, queryValues);
+            const query = await server.query(queryString, queryValues);
 
             const assets = await fillAssets(
-                core.connection, core.args.atomicassets_account,
+                server, core.args.atomicassets_account,
                 query.rows.map(row => row.asset_id),
                 formatListingAsset, 'atomicmarket_assets_master'
             );
 
             return res.json({success: true, data: assets, query_time: Date.now()});
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
 
     router.get('/v1/watchlist/:account/:asset_id', server.web.caching(), async (req, res) => {
         try {
-            const query = await core.connection.database.query(
+            const query = await server.query(
                 'SELECT asset_id FROM atomichub_watchlist WHERE contract = $1 AND account = $2 AND asset_id = $3',
                 [core.args.atomicassets_account, req.params.account, req.params.asset_id]
             );
 
             return res.json({success: query.rowCount > 0, data: null, query_time: Date.now()});
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });

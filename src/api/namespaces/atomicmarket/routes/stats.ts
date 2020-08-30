@@ -143,7 +143,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             return null;
         }
 
-        const query = await core.connection.database.query(
+        const query = await server.query(
             'SELECT token_symbol, token_contract, token_precision FROM atomicassets_tokens WHERE contract = $1 AND token_symbol = $2',
             [core.args.atomicassets_account, symbol]
         );
@@ -210,7 +210,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             logger.debug(queryString, queryValues);
 
-            const query = await core.connection.database.query(queryString, queryValues);
+            const query = await server.query(queryString, queryValues);
 
             res.json({
                 success: true,
@@ -218,8 +218,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
@@ -237,7 +235,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             logger.debug(queryString, queryValues);
 
-            const query = await core.connection.database.query(queryString, queryValues);
+            const query = await server.query(queryString, queryValues);
 
             if (query.rowCount === 0) {
                 return res.status(416).json({success: false, message: 'Collection not found'});
@@ -249,8 +247,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
@@ -291,7 +287,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             logger.debug(queryString, queryValues);
 
-            const query = await core.connection.database.query(queryString, queryValues);
+            const query = await server.query(queryString, queryValues);
 
             res.json({
                 success: true,
@@ -299,8 +295,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
@@ -318,7 +312,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             logger.debug(queryString, queryValues);
 
-            const query = await core.connection.database.query(queryString, queryValues);
+            const query = await server.query(queryString, queryValues);
 
             if (query.rowCount === 0) {
                 return res.status(416).json({success: false, message: 'Account does not have any sales'});
@@ -330,8 +324,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
@@ -373,7 +365,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             logger.debug(queryString, queryValues);
 
-            const query = await core.connection.database.query(queryString, queryValues);
+            const query = await server.query(queryString, queryValues);
 
             res.json({
                 success: true,
@@ -381,8 +373,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
@@ -410,7 +400,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             logger.debug(queryString, queryValues);
 
-            const query = await core.connection.database.query(queryString, queryValues);
+            const query = await server.query(queryString, queryValues);
 
             res.json({
                 success: true,
@@ -418,8 +408,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
@@ -437,7 +425,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             logger.debug(queryString, queryValues);
 
-            const query = await core.connection.database.query(queryString, queryValues);
+            const query = await server.query(queryString, queryValues);
 
             res.json({
                 success: true,
@@ -445,8 +433,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
@@ -467,7 +453,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             logger.debug(queryString, queryValues);
 
-            const query = await core.connection.database.query(queryString, queryValues);
+            const query = await server.query(queryString, queryValues);
 
             res.json({
                 success: true,
@@ -475,8 +461,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });

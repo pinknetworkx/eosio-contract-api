@@ -8,7 +8,7 @@ import logger from '../../../../utils/winston';
 export function configEndpoints(core: AtomicToolsNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/config', server.web.caching(), async (req, res) => {
         try {
-            const configQuery = await core.connection.database.query(
+            const configQuery = await server.query(
                 'SELECT * FROM atomictools_config WHERE tools_contract = $1',
                 [core.args.atomictools_account]
             );
@@ -23,8 +23,6 @@ export function configEndpoints(core: AtomicToolsNamespace, server: HTTPServer, 
                 query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });

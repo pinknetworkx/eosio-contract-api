@@ -20,7 +20,7 @@ export class AssetApi {
     ) { }
 
     endpoints(router: express.Router): any {
-        router.get('/v1/assets', this.server.web.caching(), (async (req, res) => {
+        router.get(['/v1/assets', '/v1/assets/_count'], this.server.web.caching(), (async (req, res) => {
             try {
                 const args = filterQueryArgs(req, {
                     page: {type: 'int', min: 1, default: 1},
@@ -37,7 +37,14 @@ export class AssetApi {
 
                     template_mint: {type: 'int', min: 1},
                     schema_mint: {type: 'int', min: 1},
-                    collection_mint: {type: 'int', min: 1}
+                    collection_mint: {type: 'int', min: 1},
+
+                    min_template_mint: {type: 'int', min: 1},
+                    max_template_mint: {type: 'int', min: 1},
+                    min_schema_mint: {type: 'int', min: 1},
+                    max_schema_mint: {type: 'int', min: 1},
+                    min_collection_mint: {type: 'int', min: 1},
+                    max_collection_mint: {type: 'int', min: 1}
                 });
 
                 let varCounter = 1;
@@ -85,6 +92,36 @@ export class AssetApi {
                     queryValues.push(args.collection_mint);
                 }
 
+                if (args.min_template_mint) {
+                    queryString += 'AND mint.template_mint >= $' + ++varCounter + ' ';
+                    queryValues.push(args.min_template_mint);
+                }
+
+                if (args.max_template_mint) {
+                    queryString += 'AND mint.template_mint <= $' + ++varCounter + ' ';
+                    queryValues.push(args.max_template_mint);
+                }
+
+                if (args.min_schema_mint) {
+                    queryString += 'AND mint.schema_mint >= $' + ++varCounter + ' ';
+                    queryValues.push(args.min_schema_mint);
+                }
+
+                if (args.max_schema_mint) {
+                    queryString += 'AND mint.schema_mint <= $' + ++varCounter + ' ';
+                    queryValues.push(args.max_schema_mint);
+                }
+
+                if (args.min_collection_mint) {
+                    queryString += 'AND mint.collection_mint >= $' + ++varCounter + ' ';
+                    queryValues.push(args.min_collection_mint);
+                }
+
+                if (args.max_collection_mint) {
+                    queryString += 'AND mint.collection_mint <= $' + ++varCounter + ' ';
+                    queryValues.push(args.max_collection_mint);
+                }
+
                 const assetFilter = buildAssetFilter(req, varCounter, '"asset"', '"template"');
                 queryValues = queryValues.concat(assetFilter.values);
                 varCounter += assetFilter.values.length;
@@ -105,6 +142,15 @@ export class AssetApi {
                 varCounter += boundaryFilter.values.length;
                 queryString += boundaryFilter.str;
 
+                if (req.originalUrl.search('/_count') >= 0) {
+                    const countQuery = await this.server.query(
+                        'SELECT COUNT(*) counter FROM (' + queryString + ') x',
+                        queryValues
+                    );
+
+                    return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
+                }
+
                 const sortColumnMapping = {
                     asset_id: 'asset.asset_id',
                     updated: 'asset.updated_at_block',
@@ -122,25 +168,23 @@ export class AssetApi {
 
                 logger.debug(queryString);
 
-                const query = await this.core.connection.database.query(queryString, queryValues);
+                const query = await this.server.query(queryString, queryValues);
 
                 const assets = await fillAssets(
-                    this.core.connection, this.core.args.atomicassets_account,
+                    this.server, this.core.args.atomicassets_account,
                     query.rows.map(row => row.asset_id),
                     this.assetFormatter, this.assetView
                 );
 
                 return res.json({success: true, data: assets, query_time: Date.now()});
             } catch (e) {
-                logger.error(req.originalUrl + ' ', e);
-
                 return res.status(500).json({success: false, message: 'Internal Server Error'});
             }
         }));
 
         router.get('/v1/assets/:asset_id', this.server.web.caching({ignoreQueryString: true}), (async (req, res) => {
             try {
-                const query = await this.core.connection.database.query(
+                const query = await this.server.query(
                     'SELECT * FROM ' + this.assetView + ' WHERE contract = $1 AND asset_id = $2',
                     [this.core.args.atomicassets_account, req.params.asset_id]
                 );
@@ -151,15 +195,13 @@ export class AssetApi {
 
                 return res.json({success: true, data: this.assetFormatter(query.rows[0]), query_time: Date.now()});
             } catch (e) {
-                logger.error(req.originalUrl + ' ', e);
-
                 return res.status(500).json({success: false, message: 'Internal Server Error'});
             }
         }));
 
         router.get('/v1/assets/:asset_id/stats', this.server.web.caching({ignoreQueryString: true}), (async (req, res) => {
             try {
-                const assetQuery = await this.core.connection.database.query(
+                const assetQuery = await this.server.query(
                     'SELECT * FROM atomicassets_assets WHERE contract = $1 AND asset_id = $2',
                     [this.core.args.atomicassets_account, req.params.asset_id]
                 );
@@ -170,15 +212,13 @@ export class AssetApi {
 
                 const asset = assetQuery.rows[0];
 
-                const query = await this.core.connection.database.query(
+                const query = await this.server.query(
                     'SELECT COUNT(*) template_mint FROM atomicassets_assets WHERE contract = $1 AND asset_id <= $2 AND template_id = $3 AND schema_name = $4 AND collection_name = $5',
                     [this.core.args.atomicassets_account, asset.asset_id, asset.template_id, asset.schema_name, asset.collection_name]
                 );
 
                 return res.json({success: true, data: query.rows[0]});
             } catch (e) {
-                logger.error(req.originalUrl + ' ', e);
-
                 res.status(500).json({success: false, message: 'Internal Server Error'});
             }
         }));
@@ -194,7 +234,7 @@ export class AssetApi {
                 res.json({
                     success: true,
                     data: await getLogs(
-                        this.core.connection.database, this.core.args.atomicassets_account, 'asset', req.params.asset_id,
+                        this.server, this.core.args.atomicassets_account, 'asset', req.params.asset_id,
                         (args.page - 1) * args.limit, args.limit, args.order
                     ), query_time: Date.now()
                 });
@@ -355,7 +395,7 @@ export class AssetApi {
                 logger.debug('received asset notification', msg);
 
                 await queue.add(async () => {
-                    const query = await this.core.connection.database.query(
+                    const query = await this.server.query(
                         'SELECT * FROM atomicassets_assets_master WHERE contract = $1 AND asset_id = $2',
                         [this.core.args.atomicassets_account, msg.data.asset_id]
                     );

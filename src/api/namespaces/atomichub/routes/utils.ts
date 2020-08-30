@@ -37,8 +37,6 @@ export function utilsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             return res.contentType(defaultImage.headers.get('content-type'))
                 .send(Buffer.from(await defaultImage.arrayBuffer()));
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
 

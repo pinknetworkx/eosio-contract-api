@@ -8,7 +8,7 @@ import logger from '../../../../utils/winston';
 export function configEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/config', server.web.caching(), async (req, res) => {
         try {
-            const configQuery = await core.connection.database.query(
+            const configQuery = await server.query(
                 'SELECT * FROM atomicmarket_config WHERE market_contract = $1',
                 [core.args.atomicmarket_account]
             );
@@ -23,9 +23,9 @@ export function configEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
 
             logger.debug(queryString);
 
-            const pairsQuery = await core.connection.database.query(queryString, [core.args.atomicmarket_account]);
+            const pairsQuery = await server.query(queryString, [core.args.atomicmarket_account]);
 
-            const tokensQuery = await core.connection.database.query(
+            const tokensQuery = await server.query(
                 'SELECT token_contract, token_symbol, token_precision FROM atomicmarket_tokens WHERE market_contract = $1',
                 [core.args.atomicmarket_account]
             );
@@ -47,8 +47,6 @@ export function configEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 }, query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });

@@ -103,7 +103,7 @@ export function authenticationEndpoints(core: AuthenticationNamespace, server: H
 
             const hash = crypto.createHash('sha256').update(token).digest();
 
-            await core.connection.database.query(
+            await server.query(
                 'INSERT INTO auth_tokens (token, account, nonce, created, expire) VALUES ($1, $2, $3, $4, $5)',
                 [hash, account, Buffer.from(nonce, 'utf8'), Date.now(), expire]
             );
@@ -116,23 +116,19 @@ export function authenticationEndpoints(core: AuthenticationNamespace, server: H
                 }
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));
 
     router.delete('/v1/token', bearerToken(server.connection), async (req, res) => {
         try {
-            await core.connection.database.query(
+            await server.query(
                 'UPDATE auth_tokens SET expire = $1 WHERE token = $2',
                 [Date.now() - 1000, crypto.createHash('sha256').update(Buffer.from(req.bearerToken, 'hex')).digest()]
             );
 
             res.json({success: true, data: null});
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });

@@ -10,7 +10,7 @@ import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, pri
 import { greylistFilterParameters } from '../openapi';
 
 export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
-    async function schemaRequestHandler(req: express.Request, res: express.Response): Promise<any> {
+    router.get(['/v1/schemas', '/v1/schemas/_count'], server.web.caching(), (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
@@ -67,6 +67,15 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
             varCounter += blacklistFilter.values.length;
             queryString += blacklistFilter.str;
 
+            if (req.originalUrl.search('/_count') >= 0) {
+                const countQuery = await server.query(
+                    'SELECT COUNT(*) counter FROM (' + queryString + ') x',
+                    queryValues
+                );
+
+                return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
+            }
+
             const sortColumnMapping = {
                 created: 'created_at_block',
                 schema_name: 'schema_name'
@@ -80,22 +89,17 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
 
             logger.debug(queryString);
 
-            const query = await core.connection.database.query(queryString, queryValues);
+            const query = await server.query(queryString, queryValues);
 
             return res.json({success: true, data: query.rows.map((row) => formatSchema(row)), query_time: Date.now()});
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
-    }
-
-    router.get('/v1/schemas', server.web.caching(), schemaRequestHandler);
-    router.get('/v1/schemas/:collection_name', server.web.caching(), schemaRequestHandler);
+    }));
 
     router.get('/v1/schemas/:collection_name/:schema_name', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
-            const query = await core.connection.database.query(
+            const query = await server.query(
                 'SELECT * FROM atomicassets_schemas_master WHERE contract = $1 AND collection_name = $2 AND schema_name = $3',
                 [core.args.atomicassets_account, req.params.collection_name, req.params.schema_name]
             );
@@ -106,15 +110,13 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
 
             return res.json({success: true, data: formatSchema(query.rows[0])});
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));
 
     router.get('/v1/schemas/:collection_name/:schema_name/stats', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
-            const query = await core.connection.database.query(
+            const query = await server.query(
                 'SELECT ' +
                 '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND schema_name = $3) assets, ' +
                 '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND schema_name = $3 AND owner IS NULL) burned, ' +
@@ -124,8 +126,6 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
 
             return res.json({success: true, data: query.rows[0]});
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));
@@ -141,14 +141,12 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
             res.json({
                 success: true,
                 data: await getLogs(
-                    core.connection.database, core.args.atomicassets_account, 'schema',
+                    server, core.args.atomicassets_account, 'schema',
                     req.params.collection_name + ':' + req.params.schema_name,
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));

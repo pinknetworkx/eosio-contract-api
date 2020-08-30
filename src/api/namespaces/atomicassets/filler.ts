@@ -1,10 +1,10 @@
-import ConnectionManager from '../../../connections/manager';
+import { HTTPServer } from '../../server';
 
 export class AssetFiller {
     private assets: Promise<{[key: string]: any}> | null;
 
     constructor(
-        readonly connection: ConnectionManager,
+        readonly server: HTTPServer,
         readonly contract: string,
         readonly assetIDs: string[],
         readonly formatter: (_: any) => any,
@@ -32,7 +32,7 @@ export class AssetFiller {
             }
 
             try {
-                const query = await this.connection.database.query(
+                const query = await this.server.query(
                     'SELECT * FROM ' + this.view + ' WHERE contract = $1 AND asset_id = ANY ($2)',
                     [this.contract, this.assetIDs]
                 );
@@ -52,15 +52,15 @@ export class AssetFiller {
 }
 
 export async function fillAssets(
-    connection: ConnectionManager, contract: string, assetIDs: any[], formatter: (_: any) => any, view: string
+    server: HTTPServer, contract: string, assetIDs: any[], formatter: (_: any) => any, view: string
 ): Promise<any[]> {
-    const filler = new AssetFiller(connection, contract, assetIDs, formatter, view);
+    const filler = new AssetFiller(server, contract, assetIDs, formatter, view);
 
     return await filler.fill(assetIDs);
 }
 
 export async function fillOffers(
-    connection: ConnectionManager, contract: string, offers: any[], formatter: (_: any) => any, view: string
+    server: HTTPServer, contract: string, offers: any[], formatter: (_: any) => any, view: string
 ): Promise<any[]> {
     const assetIDs: string[] = [];
 
@@ -69,7 +69,7 @@ export async function fillOffers(
         assetIDs.push(...offer.recipient_assets);
     }
 
-    const filler = new AssetFiller(connection, contract, assetIDs, formatter, view);
+    const filler = new AssetFiller(server, contract, assetIDs, formatter, view);
 
     return await Promise.all(offers.map(async (offer) => {
         offer.sender_assets = await filler.fill(offer.sender_assets);
@@ -80,7 +80,7 @@ export async function fillOffers(
 }
 
 export async function fillTransfers(
-    connection: ConnectionManager, contract: string, transfers: any[], formatter: (_: any) => any, view: string
+    server: HTTPServer, contract: string, transfers: any[], formatter: (_: any) => any, view: string
 ): Promise<any[]> {
     const assetIDs: string[] = [];
 
@@ -88,7 +88,7 @@ export async function fillTransfers(
         assetIDs.push(...transfer.assets);
     }
 
-    const filler = new AssetFiller(connection, contract, assetIDs, formatter, view);
+    const filler = new AssetFiller(server, contract, assetIDs, formatter, view);
 
     return await Promise.all(transfers.map(async (transfer) => {
         transfer.assets = await filler.fill(transfer.assets);

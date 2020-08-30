@@ -14,7 +14,7 @@ import { listingFilterParameters } from '../openapi';
 import { buildGreylistFilter, getLogs } from '../../atomicassets/utils';
 
 export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/auctions', server.web.caching(), async (req, res) => {
+    router.get(['/v1/auctions', '/v1/auctions/_count'], server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
@@ -53,6 +53,15 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             varCounter += boundaryFilter.values.length;
             queryString += boundaryFilter.str;
 
+            if (req.originalUrl.search('/_count') >= 0) {
+                const countQuery = await this.server.query(
+                    'SELECT COUNT(*) counter FROM (' + queryString + ') x',
+                    queryValues
+                );
+
+                return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
+            }
+
             const sortColumnMapping = {
                 auction_id: 'listing.auction_id',
                 ending: 'listing.end_time',
@@ -72,10 +81,10 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
 
             logger.debug(queryString);
 
-            const auctionQuery = await core.connection.database.query(queryString, queryValues);
+            const auctionQuery = await server.query(queryString, queryValues);
 
             const auctionLookup: {[key: string]: any} = {};
-            const query = await core.connection.database.query(
+            const query = await server.query(
                 'SELECT * FROM atomicmarket_auctions_master WHERE market_contract = $1 AND auction_id = ANY ($2)',
                 [core.args.atomicmarket_account, auctionQuery.rows.map(row => row.sale_id)]
             );
@@ -87,21 +96,19 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             }, auctionLookup);
 
             const auctions = await fillAuctions(
-                core.connection, core.args.atomicassets_account,
+                server, core.args.atomicassets_account,
                 auctionQuery.rows.map((row) => formatAuction(auctionLookup[String(row.auction_id)]))
             );
 
             res.json({success: true, data: auctions, query_time: Date.now()});
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
 
     router.get('/v1/auctions/:auction_id', server.web.caching(), async (req, res) => {
         try {
-            const query = await core.connection.database.query(
+            const query = await server.query(
                 'SELECT * FROM atomicmarket_auctions_master WHERE market_contract = $1 AND auction_id = $2',
                 [core.args.atomicmarket_account, req.params.auction_id]
             );
@@ -110,14 +117,12 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                 res.status(416).json({success: false, message: 'Auction not found'});
             } else {
                 const auctions = await fillAuctions(
-                    core.connection, core.args.atomicassets_account, query.rows.map((row) => formatAuction(row))
+                    server, core.args.atomicassets_account, query.rows.map((row) => formatAuction(row))
                 );
 
                 res.json({success: true, data: auctions[0], query_time: Date.now()});
             }
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
@@ -133,7 +138,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             res.json({
                 success: true,
                 data: await getLogs(
-                    core.connection.database, core.args.atomicmarket_account, 'auction', req.params.auction_id,
+                    server, core.args.atomicmarket_account, 'auction', req.params.auction_id,
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });
@@ -259,7 +264,7 @@ export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer):
 
     async function checkAuction(auctionID: string): Promise<void> {
         await queue.add(async () => {
-            const query = await core.connection.database.query(
+            const query = await server.query(
                 'SELECT * FROM atomicmarket_auctions_master WHERE market_contract = $1 AND auction_id = $2',
                 [core.args.atomicmarket_account, auctionID]
             );
@@ -267,7 +272,7 @@ export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer):
             const auction = formatAuction(query.rows[0]);
 
             if ([AuctionApiState.SOLD.valueOf(), AuctionApiState.INVALID.valueOf()].indexOf(parseInt(auction.state, 10))) {
-                const filledAuction = (await fillAuctions(core.connection, core.args.atomicassets_account, [auction]))[0];
+                const filledAuction = (await fillAuctions(server, core.args.atomicassets_account, [auction]))[0];
 
                 namespace.emit('state_change', {
                     transaction: null,
@@ -296,7 +301,7 @@ export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer):
             logger.debug('received auctions notification', msg);
 
             await queue.add(async () => {
-                const query = await core.connection.database.query(
+                const query = await server.query(
                     'SELECT * FROM atomicmarket_auctions_master WHERE market_contract = $1 AND auction_id = $2',
                     [core.args.atomicmarket_account, msg.data.auction_id]
                 );
@@ -308,7 +313,7 @@ export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer):
                 }
 
                 const auctions = await fillAuctions(
-                    core.connection, core.args.atomicassets_account,
+                    server, core.args.atomicassets_account,
                     query.rows.map((row: any) => formatAuction(row))
                 );
 

@@ -114,6 +114,7 @@ This file is used to configure the filler
   },
 
   "ip_whitelist": [], // These IPs are not rate limited or receive cached requests
+  "slow_query_threshold": 7500, // If specific queries take longer than this threshold a warning is created
 
   "namespaces": [
     // atomicassets namespace which provides an API for basic functionalities

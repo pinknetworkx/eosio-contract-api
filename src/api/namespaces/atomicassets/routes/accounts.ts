@@ -10,7 +10,7 @@ import { greylistFilterParameters, hideOffersParameters } from '../openapi';
 import { hideOfferAssets } from '../utils';
 
 export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/accounts', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+    router.get(['/v1/accounts', '/v1/accounts/_count'], server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
@@ -69,18 +69,27 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             varCounter += boundaryFilter.values.length;
             queryString += boundaryFilter.str;
 
-            queryString += 'GROUP BY owner ORDER BY assets DESC LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
+            queryString += 'GROUP BY owner ';
+
+            if (req.originalUrl.search('/_count') >= 0) {
+                const countQuery = await server.query(
+                    'SELECT COUNT(*) counter FROM (' + queryString + ') x',
+                    queryValues
+                );
+
+                return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
+            }
+
+            queryString += 'ORDER BY assets DESC LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
 
             logger.debug(queryString);
 
-            const query = await core.connection.database.query(queryString, queryValues);
+            const query = await server.query(queryString, queryValues);
 
             return res.json({success: true, data: query.rows});
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));
@@ -112,9 +121,9 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
 
             queryString += 'GROUP BY collection_name ORDER BY assets DESC';
 
-            const query = await core.connection.database.query(queryString, queryValues);
+            const query = await server.query(queryString, queryValues);
 
-            const collections = await core.connection.database.query(
+            const collections = await server.query(
                 'SELECT * FROM atomicassets_collections_master WHERE contract = $1 AND collection_name = ANY ($2)',
                 [core.args.atomicassets_account, query.rows.map(row => row.collection_name)]
             );
@@ -134,15 +143,13 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                 }
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));
 
     router.get('/v1/accounts/:account/:collection_name', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
-            const templateQuery = await core.connection.database.query(
+            const templateQuery = await server.query(
                 'SELECT template_id, COUNT(*) as assets ' +
                 'FROM atomicassets_assets asset ' +
                 'WHERE contract = $1 AND owner = $2 AND collection_name = $3 ' +
@@ -150,7 +157,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                 [core.args.atomicassets_account, req.params.account, req.params.collection_name]
             );
 
-            const schemaQuery = await core.connection.database.query(
+            const schemaQuery = await server.query(
                 'SELECT schema_name, COUNT(*) as assets ' +
                 'FROM atomicassets_assets asset ' +
                 'WHERE contract = $1 AND owner = $2 AND collection_name = $3 ' +
@@ -166,8 +173,6 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                 }
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));

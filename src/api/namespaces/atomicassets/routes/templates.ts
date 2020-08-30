@@ -10,7 +10,7 @@ import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, pri
 import { atomicDataFilter, greylistFilterParameters } from '../openapi';
 
 export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
-    async function templateRequestHandler(req: express.Request, res: express.Response): Promise<any> {
+    router.get(['/v1/templates', '/v1/templates/_count'], server.web.caching(), (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
@@ -24,10 +24,6 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
 
                 match: {type: 'string', min: 1}
             });
-
-            if (typeof req.params.collection_name === 'string' && req.params.collection_name.length > 0) {
-                args.collection_name = req.params.collection_name;
-            }
 
             let varCounter = 1;
             let queryString = 'SELECT template.contract, template.template_id FROM atomicassets_templates "template" WHERE contract = $1 ';
@@ -58,7 +54,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                 queryString += 'AND EXISTS(' +
                     'SELECT * FROM atomicassets_collections collection ' +
                     'WHERE collection.collection_name = template.collection_name AND collection.contract = template.contract ' +
-                        'AND $' + ++varCounter + ' = ANY(collection.authorized_accounts)' +
+                    'AND $' + ++varCounter + ' = ANY(collection.authorized_accounts)' +
                     ') ';
                 queryValues.push(args.authorized_account);
             }
@@ -81,6 +77,15 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             varCounter += blacklistFilter.values.length;
             queryString += blacklistFilter.str;
 
+            if (req.originalUrl.search('/_count') >= 0) {
+                const countQuery = await server.query(
+                    'SELECT COUNT(*) counter FROM (' + queryString + ') x',
+                    queryValues
+                );
+
+                return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
+            }
+
             const sortColumnMapping = {
                 created: 'template_id'
             };
@@ -93,10 +98,10 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
 
             logger.debug(queryString);
 
-            const templateQuery = await core.connection.database.query(queryString, queryValues);
+            const templateQuery = await server.query(queryString, queryValues);
 
             const templateLookup: {[key: string]: any} = {};
-            const query = await core.connection.database.query(
+            const query = await server.query(
                 'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND template_id = ANY ($2)',
                 [core.args.atomicassets_account, templateQuery.rows.map((row: any) => row.template_id)]
             );
@@ -113,18 +118,13 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                 query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
-    }
-
-    router.get('/v1/templates', server.web.caching(), templateRequestHandler);
-    router.get('/v1/templates/:collection_name', server.web.caching(), templateRequestHandler);
+    }));
 
     router.get('/v1/templates/:collection_name/:template_id', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
-            const query = await core.connection.database.query(
+            const query = await server.query(
                 'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND collection_name = $2 AND template_id = $3 LIMIT 1',
                 [core.args.atomicassets_account, req.params.collection_name, req.params.template_id]
             );
@@ -135,15 +135,13 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
 
             return res.json({success: true, data: formatTemplate(query.rows[0]), query_time: Date.now()});
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));
 
     router.get('/v1/templates/:collection_name/:template_id/stats', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
-            const query = await core.connection.database.query(
+            const query = await server.query(
                 'SELECT ' +
                 '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND template_id = $3) assets, ' +
                 '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND template_id = $3 AND owner IS NULL) burned ',
@@ -152,8 +150,6 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
 
             return res.json({success: true, data: query.rows[0]});
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));
@@ -169,14 +165,12 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             res.json({
                 success: true,
                 data: await getLogs(
-                    core.connection.database, core.args.atomicassets_account, 'template',
+                    server, core.args.atomicassets_account, 'template',
                     req.params.collection_name + ':' + req.params.template_id,
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));

@@ -1,13 +1,13 @@
 import * as express from 'express';
 
-import PostgresConnection from '../../../connections/postgres';
 import { filterQueryArgs } from '../utils';
 import logger from '../../../utils/winston';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 import { SaleState } from '../../../filler/handlers/atomicmarket';
+import { HTTPServer } from '../../server';
 
 export async function getLogs(
-    db: PostgresConnection, contract: string, relationName: string, relationId: string,
+    server: HTTPServer, contract: string, relationName: string, relationId: string,
     offset: number = 0, limit: number = 100, order: 'asc' | 'desc' = 'asc'
 ): Promise<Array<{log_id: number, name: string, data: any, txid: string, created_at_block: string, created_at_time: string}>> {
     const queryStr = 'SELECT log_id, name, data, encode(txid::bytea, \'hex\') txid, created_at_block, created_at_time ' +
@@ -17,7 +17,7 @@ export async function getLogs(
 
     logger.debug(queryStr);
 
-    const query = await db.query(queryStr, [contract, relationName, relationId, limit, offset]);
+    const query = await server.query(queryStr, [contract, relationName, relationId, limit, offset]);
 
     return query.rows;
 }

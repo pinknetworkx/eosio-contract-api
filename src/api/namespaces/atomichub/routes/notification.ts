@@ -23,15 +23,13 @@ async function getNotifications(
 export function notificationsEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
     router.delete('/v1/notifications', bearerToken(core.connection), async (req, res) => {
         try {
-            const query = await core.connection.database.query(
+            const query = await server.query(
                 'DELETE FROM atomichub_notifications WHERE account = $1 RETURNING *',
                 [req.authorizedAccount]
             );
 
             return res.json({success: true, data: query.rowCount});
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
@@ -40,8 +38,6 @@ export function notificationsEndpoints(core: AtomicHubNamespace, server: HTTPSer
         try {
             res.json({success: true, data: await getNotifications(server, req.params.account, 100), query_time: Date.now()});
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });

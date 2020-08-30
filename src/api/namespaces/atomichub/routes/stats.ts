@@ -17,7 +17,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             return null;
         }
 
-        const query = await core.connection.database.query(
+        const query = await server.query(
             'SELECT token_symbol, token_contract, token_precision FROM atomicassets_tokens WHERE contract = $1 AND token_symbol = $2',
             [core.args.atomicassets_account, symbol]
         );
@@ -35,23 +35,23 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 symbol: {type: 'string', min: 1, max: 12, default: core.args.default_symbol}
             });
 
-            const nftsQuery = await core.connection.database.query(
+            const nftsQuery = await server.query(
                 'SELECT COUNT(*) as nfts FROM atomicassets_assets WHERE contract = $1',
                 [core.args.atomicassets_account]
             );
 
-            const transfersQuery = await core.connection.database.query(
+            const transfersQuery = await server.query(
                 'SELECT COUNT(*) as transfers FROM atomicassets_transfers WHERE contract = $1 AND created_at_time >= $2',
                 [core.args.atomicassets_account, Date.now() - 3600 * 24 * 1000]
             );
 
-            const salesQuery = await core.connection.database.query(
+            const salesQuery = await server.query(
                 'SELECT COUNT(*) sales, SUM(final_price) volume FROM atomicmarket_sales ' +
                 'WHERE market_contract = $1 AND state = $2 AND settlement_symbol = $3 AND updated_at_time >= $4',
                 [core.args.atomicmarket_account, SaleState.SOLD.valueOf(), args.symbol.toUpperCase(), Date.now() - 3600 * 24 * 1000]
             );
 
-            const symbolQuery = await core.connection.database.query(
+            const symbolQuery = await server.query(
                 'SELECT token_contract, token_symbol, token_precision FROM atomicmarket_tokens WHERE market_contract = $1 AND token_symbol = $2',
                 [core.args.atomicmarket_account, args.symbol]
             );
@@ -76,8 +76,6 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
@@ -96,8 +94,6 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
@@ -114,7 +110,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             });
 
             if (args.asset_id) {
-                const asset = await core.connection.database.query(
+                const asset = await server.query(
                     'SELECT template_id, collection_name, schema_name FROM atomicassets_assets ' +
                     'WHERE contract = $1 AND asset_id = $2',
                     [core.args.atomicassets_account, args.asset_id]
@@ -157,10 +153,10 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 queryValues.push(args.limit);
                 queryString += 'ORDER BY minted_at_block DESC LIMIT $' + queryValues.length;
 
-                const query = await core.connection.database.query(queryString, queryValues);
+                const query = await server.query(queryString, queryValues);
 
                 assets = await fillAssets(
-                    core.connection, core.args.atomicassets_account,
+                    server, core.args.atomicassets_account,
                     query.rows.map(row => row.asset_id),
                     formatListingAsset, 'atomicmarket_assets_master'
                 );
@@ -172,8 +168,6 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
@@ -193,7 +187,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             });
 
             if (args.sale_id) {
-                const dataQuery = await core.connection.database.query(
+                const dataQuery = await server.query(
                     'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = $2',
                     [core.args.atomicmarket_account, args.sale_id]
                 );
@@ -202,7 +196,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                     return res.status(416).json({success: false, message: 'Sale not found'});
                 }
 
-                const sale = await fillSales(core.connection, core.args.atomicassets_account, dataQuery.rows.map((row) => formatSale(row)));
+                const sale = await fillSales(server, core.args.atomicassets_account, dataQuery.rows.map((row) => formatSale(row)));
 
                 if (sale[0].assets[0].template) {
                     args.template_id = sale[0].assets[0].template.template_id;
@@ -251,11 +245,11 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
 
                 logger.debug(queryString);
 
-                saleQuery = await core.connection.database.query(queryString, queryValues);
+                saleQuery = await server.query(queryString, queryValues);
             }
 
             const saleLookup: {[key: string]: any} = {};
-            const query = await core.connection.database.query(
+            const query = await server.query(
                 'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY ($2)',
                 [core.args.atomicmarket_account, saleQuery.rows.map((row: any) => row.sale_id)]
             );
@@ -267,7 +261,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             }, saleLookup);
 
             const sales = await fillSales(
-                core.connection, core.args.atomicassets_account,
+                server, core.args.atomicassets_account,
                 saleQuery.rows.map((row: any) => formatSale(saleLookup[String(row.sale_id)]))
             );
 
@@ -277,8 +271,6 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
@@ -341,7 +333,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 queryValues.push(args.marketplace);
             }
 
-            const query = await core.connection.database.query(queryString, queryValues);
+            const query = await server.query(queryString, queryValues);
 
             res.json({
                 success: true,
@@ -358,8 +350,6 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });

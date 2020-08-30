@@ -58,7 +58,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
 
             logger.debug(queryString);
 
-            const prices = await core.connection.database.query(queryString, queryValues);
+            const prices = await server.query(queryString, queryValues);
 
             res.json({
                 success: true,
@@ -66,8 +66,6 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 query_time: Date.now()
             });
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });

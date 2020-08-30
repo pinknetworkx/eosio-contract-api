@@ -10,6 +10,7 @@ import { Namespace } from 'socket.io';
 import * as bodyParser from 'body-parser';
 import * as cors from 'cors';
 import * as cookieParser from 'cookie-parser';
+import { QueryResult } from 'pg';
 
 import ConnectionManager from '../connections/manager';
 import { IServerConfig } from '../types/config';
@@ -48,6 +49,29 @@ export class HTTPServer {
 
     listen(): void {
         this.httpServer.listen(this.config.server_port, this.config.server_addr);
+    }
+
+    async query(queryText: string, values?: any[]): Promise<QueryResult> {
+        const startTime = Date.now();
+
+        try {
+            const result = await this.connection.database.query(queryText, values);
+            const duration = Date.now() - startTime;
+
+            if (this.config.slow_query_threshold && duration >= this.config.slow_query_threshold) {
+                logger.warn('Query took longer than ' + duration + ' ms', {
+                    queryText, values
+                });
+            }
+
+            return result;
+        } catch (error) {
+            logger.warn('Query exception', {
+                error, queryText, values
+            });
+
+            throw error;
+        }
     }
 }
 

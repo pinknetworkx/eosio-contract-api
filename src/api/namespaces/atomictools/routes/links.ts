@@ -12,7 +12,7 @@ import { LinkState } from '../../../../filler/handlers/atomictools';
 import { greylistFilterParameters } from '../../atomicassets/openapi';
 
 export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/links', server.web.caching(), async (req, res) => {
+    router.get(['/v1/links', '/v1/links/_count'], server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 creator: {type: 'string', min: 1},
@@ -86,6 +86,15 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
             varCounter += boundaryFilter.values.length;
             queryString += boundaryFilter.str;
 
+            if (req.originalUrl.search('/_count') >= 0) {
+                const countQuery = await this.server.query(
+                    'SELECT COUNT(*) counter FROM (' + queryString + ') x',
+                    queryValues
+                );
+
+                return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
+            }
+
             const sortColumnMapping = {
                 created: 'link_id',
                 updated: 'updated_at_block'
@@ -99,23 +108,21 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
 
             logger.debug(queryString);
 
-            const query = await core.connection.database.query(queryString, queryValues);
+            const query = await server.query(queryString, queryValues);
 
             const links = await fillLinks(
-                core.connection, core.args.atomicassets_account, query.rows.map((row) => formatLink(row))
+                server, core.args.atomicassets_account, query.rows.map((row) => formatLink(row))
             );
 
             res.json({success: true, data: links, query_time: Date.now()});
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
 
     router.get('/v1/links/:link_id', server.web.caching(), async (req, res) => {
         try {
-            const query = await core.connection.database.query(
+            const query = await server.query(
                 'SELECT * FROM atomictools_links_master WHERE tools_contract = $1 AND link_id = $2',
                 [core.args.atomictools_account, req.params.link_id]
             );
@@ -124,14 +131,12 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
                 res.status(416).json({success: false, message: 'Link not found'});
             } else {
                 const links = await fillLinks(
-                    core.connection, core.args.atomicassets_account, query.rows.map((row) => formatLink(row))
+                    server, core.args.atomicassets_account, query.rows.map((row) => formatLink(row))
                 );
 
                 res.json({success: true, data: links[0], query_time: Date.now()});
             }
         } catch (e) {
-            logger.error(req.originalUrl + ' ', e);
-
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
