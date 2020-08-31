@@ -45,8 +45,8 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
             }
 
             if (args.match) {
-                queryString += 'AND collection_name ILIKE $' + ++varCounter + ' ';
-                queryValues.push('%' + args.match + '%');
+                queryString += 'AND POSITION($' + ++varCounter + ' IN collection_name) > 0 ';
+                queryValues.push(args.match.toLowerCase());
             }
 
             const boundaryFilter = buildBoundaryFilter(

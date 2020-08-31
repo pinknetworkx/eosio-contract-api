@@ -30,8 +30,8 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             const queryValues: any[] = [core.args.atomicassets_account];
 
             if (args.match) {
-                queryString += 'AND owner ILIKE $' + ++varCounter + ' ';
-                queryValues.push('%' + args.match + '%');
+                queryString += 'AND POSITION($' + ++varCounter + ' IN owner) > 0 ';
+                queryValues.push(args.match.toLowerCase());
             }
 
             if (args.collection_whitelist) {

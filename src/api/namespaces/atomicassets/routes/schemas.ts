@@ -49,8 +49,8 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
             }
 
             if (args.match) {
-                queryString += 'AND schema_name ILIKE $' + ++varCounter + ' ';
-                queryValues.push('%' + args.match + '%');
+                queryString += 'AND POSITION($' + ++varCounter + ' IN schema_name) > 0 ';
+                queryValues.push(args.match.toLowerCase());
             }
 
             const boundaryFilter = buildBoundaryFilter(

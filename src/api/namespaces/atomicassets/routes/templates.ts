@@ -59,8 +59,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             }
 
             if (args.match) {
-                queryString += 'AND POSITION($' + ++varCounter + ' IN "template".immutable_data->>\'name\') > 0 ';
-                queryValues.push(args.match);
+                queryString += 'AND POSITION($' + ++varCounter + ' IN LOWER("template".immutable_data->>\'name\')) > 0 ';
+                queryValues.push(args.match.toLowerCase());
             }
 
             const boundaryFilter = buildBoundaryFilter(
