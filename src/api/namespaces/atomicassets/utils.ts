@@ -105,11 +105,11 @@ export function buildAssetFilter(
 
     if (args.match) {
         queryString += 'AND (' +
-                templateTable + '.immutable_data->>\'name\' ILIKE $' + ++varCounter + ' OR ' +
-                assetTable + '.immutable_data->>\'name\' ILIKE $' + varCounter + ' OR ' +
-                assetTable + '.mutable_data->>\'name\' ILIKE $' + varCounter +
+                'POSITION($' + ++varCounter + ' IN ' + templateTable + '.immutable_data->>\'name\') > 0 OR ' +
+                'POSITION($' + varCounter + ' IN ' + assetTable + '.immutable_data->>\'name\') > 0 OR ' +
+                'POSITION($' + varCounter + ' IN ' + assetTable + '.mutable_data->>\'name\') > 0 ' +
             ') ';
-        queryValues.push('%' + args.match + '%');
+        queryValues.push(args.match);
     }
 
     return {

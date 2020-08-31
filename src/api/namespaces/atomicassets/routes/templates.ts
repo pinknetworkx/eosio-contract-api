@@ -25,7 +25,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             });
 
             let varCounter = 1;
-            let queryString = 'SELECT template.contract, template.template_id FROM atomicassets_templates "template" WHERE contract = $1 ';
+            let queryString = 'SELECT "template".template_id FROM atomicassets_templates "template" WHERE "template".contract = $1 ';
             let queryValues: any[] = [core.args.atomicassets_account];
 
             if (args.collection_name) {
@@ -59,8 +59,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             }
 
             if (args.match) {
-                queryString += 'AND ("template".immutable_data->>\'name\' ILIKE $' + ++varCounter + ') ';
-                queryValues.push('%' + args.match + '%');
+                queryString += 'AND POSITION($' + ++varCounter + ' IN "template".immutable_data->>\'name\') > 0 ';
+                queryValues.push(args.match);
             }
 
             const boundaryFilter = buildBoundaryFilter(
