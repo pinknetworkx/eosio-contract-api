@@ -312,16 +312,16 @@ export function buildAuctionFilter(
     }
 
     if (args.symbol) {
-        queryString += ' AND listing.raw_token_symbol = $' + ++varCounter + ' ';
+        queryString += ' AND listing.token_symbol = $' + ++varCounter + ' ';
         queryValues.push(args.symbol);
 
         if (args.min_price) {
-            queryString += 'AND listing.raw_price >= 1.0 * $' + ++varCounter + ' * POWER(10, listing.raw_token_precision) ';
+            queryString += 'AND listing.price >= 1.0 * $' + ++varCounter + ' * POWER(10, "token".token_precision) ';
             queryValues.push(args.min_price);
         }
 
         if (args.max_price) {
-            queryString += 'AND listing.raw_price <= 1.0 * $' + ++varCounter + ' * POWER(10, listing.raw_token_precision) ';
+            queryString += 'AND listing.price <= 1.0 * $' + ++varCounter + ' * POWER(10, "token".token_precision) ';
             queryValues.push(args.max_price);
         }
     }
