@@ -330,23 +330,23 @@ export function buildAuctionFilter(
         const stateConditions: string[] = [];
 
         if (args.state.split(',').indexOf(String(AuctionApiState.WAITING.valueOf())) >= 0) {
-            stateConditions.push(`(listing.auction_state = ${AuctionState.WAITING.valueOf()})`);
+            stateConditions.push(`(listing.state = ${AuctionState.WAITING.valueOf()})`);
         }
 
         if (args.state.split(',').indexOf(String(AuctionApiState.LISTED.valueOf())) >= 0) {
-            stateConditions.push(`(listing.auction_state = ${AuctionState.LISTED.valueOf()} AND listing.end_time > ${Date.now()})`);
+            stateConditions.push(`(listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time > ${Date.now()})`);
         }
 
         if (args.state.split(',').indexOf(String(AuctionApiState.CANCELED.valueOf())) >= 0) {
-            stateConditions.push(`(listing.auction_state = ${AuctionState.CANCELED.valueOf()})`);
+            stateConditions.push(`(listing.state = ${AuctionState.CANCELED.valueOf()})`);
         }
 
         if (args.state.split(',').indexOf(String(AuctionApiState.SOLD.valueOf())) >= 0) {
-            stateConditions.push(`(listing.auction_state = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Date.now()} AND listing.buyer IS NOT NULL)`);
+            stateConditions.push(`(listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Date.now()} AND listing.buyer IS NOT NULL)`);
         }
 
         if (args.state.split(',').indexOf(String(AuctionApiState.INVALID.valueOf())) >= 0) {
-            stateConditions.push(`(listing.auction_state = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Date.now()} AND listing.buyer IS NULL)`);
+            stateConditions.push(`(listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Date.now()} AND listing.buyer IS NULL)`);
         }
 
         queryString += 'AND (' + stateConditions.join(' OR ') + ') ';
