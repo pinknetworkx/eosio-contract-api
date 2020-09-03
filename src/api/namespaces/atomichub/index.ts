@@ -77,15 +77,20 @@ export class AtomicHubNamespace extends ApiNamespace {
 
         if (
             typeof this.args.avatar !== 'object' ||
-            typeof this.args.avatar.enable !== 'boolean' ||
+            typeof this.args.avatar.enable !== 'boolean'
+        ) {
+            throw new Error('Argument missing or invalid in atomichub api namespace: avatar');
+        }
+
+        if (this.args.avatar.enable && (
             typeof this.args.avatar.ipfs_key_name !== 'string' ||
             typeof this.args.avatar.default !== 'string' ||
             typeof this.args.avatar.contract !== 'object' ||
             typeof this.args.avatar.contract.code !== 'string' ||
             typeof this.args.avatar.contract.table !== 'string' ||
             typeof this.args.avatar.contract.scope !== 'string'
-        ) {
-            throw new Error('Argument missing or invalid in atomichub api namespace: avatar');
+        )) {
+            throw new Error('Argument missing or invalid in atomichub api namespace: avatar values');
         }
     }
 
