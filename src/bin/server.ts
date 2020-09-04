@@ -23,7 +23,11 @@ const connection = new ConnectionManager(connectionConfig);
         process.exit(1);
     }
 
-    const server = new Api(serverConfig, connection);
-    
-    await server.listen();
+    try {
+        const server = new Api(serverConfig, connection);
+
+        await server.listen();
+    } catch (e) {
+        logger.error(e);
+    }
 })();
