@@ -292,6 +292,20 @@ export const assetFilterParameters = [
         required: false,
         schema: {type: 'string'}
     },
+    {
+        name: 'is_transferable',
+        in: 'query',
+        description: 'Check if asset is transferable',
+        required: false,
+        schema: {type: 'boolean'}
+    },
+    {
+        name: 'is_burnable',
+        in: 'query',
+        description: 'Check if asset is burnable',
+        required: false,
+        schema: {type: 'boolean'}
+    },
     ...greylistFilterParameters
 ];
 

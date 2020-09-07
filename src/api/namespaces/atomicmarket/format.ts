@@ -2,6 +2,7 @@ import { formatAsset } from '../atomicassets/format';
 import { AuctionState, SaleState } from '../../../filler/handlers/atomicmarket';
 import { AuctionApiState, SaleApiState } from './index';
 import { OfferState } from '../../../filler/handlers/atomicassets';
+import { HTTPServer } from '../../server';
 
 export function formatAuction(row: any): any {
     const data = {...row};
@@ -57,4 +58,47 @@ export function formatSale(row: any): any {
 
 export function formatListingAsset(row: any): any {
     return formatAsset(row);
+}
+
+export async function hookAssetFiller(server: HTTPServer, contract: string, rows: any[]): Promise<any[]> {
+    const assetIDs = rows.map(asset => asset.asset_id);
+
+    const queries = await Promise.all([
+        server.query(
+            'SELECT sale.market_contract, sale.sale_id, asset.asset_id ' +
+            'FROM atomicmarket_sales sale, atomicassets_offers offer, atomicassets_offers_assets offer_asset ' +
+            'WHERE sale.assets_contract = offer.contract AND sale.offer_id = offer.offer_id AND ' +
+            'offer.contract = offer_asset.contract AND offer.offer_id = offer_asset.offer_id AND ' +
+            'offer_asset.contract = $1 AND offer_asset.asset_id = ANY($2) AND ' +
+            'sale.state = ' + SaleState.LISTED.valueOf() + ' AND offer.state = ' + OfferState.PENDING.valueOf(),
+            [contract, assetIDs]
+        ),
+        server.query(
+            'SELECT auction.market_contract, auction.auction_id, auction_asset.asset_id ' +
+            'FROM atomicmarket_auctions auction, atomicmarket_auctions_assets auction_asset ' +
+            'WHERE auction.market_contract = auction_asset.market_contract AND auction.auction_id = auction_asset.auction_id AND ' +
+            'auction_asset.assets_contract = asset.contract AND auction_asset.asset_id = asset.asset_id AND ' +
+            'auction_asset.contract = $1 AND auction_asset.asset_ids = ANY($2) AND ' +
+            'auction.state = ' + AuctionState.LISTED.valueOf() + ' AND auction.end_time > ' + Date.now(),
+            [contract, assetIDs]
+        )
+    ]);
+
+    const data: {[key: string]: {sales: any[], auctions: any[]}} = {};
+
+    for (const row of rows) {
+        data[row.asset_id] = {sales: [], auctions: []};
+    }
+
+    for (const row of queries[0].rows) {
+        data[row.asset_id].sales.push({market_contract: row.market_contract, sale_id: row.sale_id});
+    }
+
+    for (const row of queries[1].rows) {
+        data[row.asset_id].auctions.push({market_contract: row.market_contract, auction: row.sale_id});
+    }
+
+    return rows.map(row => ({
+        ...row, ...data[row.asset_id]
+    }));
 }

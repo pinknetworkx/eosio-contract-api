@@ -5,7 +5,7 @@ import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
-import { fillTransfers } from '../filler';
+import { FillerHook, fillTransfers } from '../filler';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import { greylistFilterParameters } from '../openapi';
 
@@ -17,7 +17,8 @@ export class TransferApi {
         readonly transferView: string,
         readonly transferFormatter: (_: any) => any,
         readonly assetView: string,
-        readonly assetFormatter: (_: any) => any
+        readonly assetFormatter: (_: any) => any,
+        readonly fillerHook?: FillerHook
     ) { }
 
     endpoints(router: express.Router): any {
@@ -118,7 +119,7 @@ export class TransferApi {
                 const transfers = await fillTransfers(
                     this.server, this.core.args.atomicassets_account,
                     query.rows.map((row) => this.transferFormatter(row)),
-                    this.assetFormatter, this.assetView
+                    this.assetFormatter, this.assetView, this.fillerHook
                 );
 
                 return res.json({success: true, data: transfers, query_time: Date.now()});

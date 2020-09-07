@@ -47,16 +47,16 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             if (args.collection_name) {
                 queryString += 'AND asset.collection_name = ANY ($' + ++varCounter + ') ';
                 queryValues.push(args.collection_name.split(','));
+            }
 
-                if (args.template_id) {
-                    queryString += 'AND asset.template_id = ANY ($' + ++varCounter + ') ';
-                    queryValues.push(args.template_id.split(','));
-                }
+            if (args.schema_name) {
+                queryString += 'AND asset.schema_name = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.schema_name.split(','));
+            }
 
-                if (args.schema_name) {
-                    queryString += 'AND asset.schema_name = ANY ($' + ++varCounter + ') ';
-                    queryValues.push(args.schema_name.split(','));
-                }
+            if (args.template_id) {
+                queryString += 'AND asset.template_id = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.template_id.split(','));
             }
 
             queryString += hideOfferAssets(req);

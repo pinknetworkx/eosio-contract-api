@@ -58,14 +58,16 @@ export function buildDataConditions(
 }
 
 export function buildAssetFilter(
-    req: express.Request, varOffset: number, assetTable: string = '"template"', templateTable: string = '"asset"'
+    req: express.Request, varOffset: number, assetTable: string = '"asset"', templateTable: string = '"template"'
 ): {str: string, values: any[]} {
     const args = filterQueryArgs(req, {
         owner: {type: 'string', min: 1, max: 12},
         template_id: {type: 'string', min: 1},
         collection_name: {type: 'string', min: 1},
         schema_name: {type: 'string', min: 1},
-        match: {type: 'string', min: 1}
+        match: {type: 'string', min: 1},
+        is_transferable: {type: 'bool'},
+        is_burnable: {type: 'bool'}
     });
 
     let queryString = '';
@@ -84,23 +86,39 @@ export function buildAssetFilter(
     }
 
     if (args.owner) {
-        queryString += 'AND asset.owner = ANY($' + ++varCounter + ') ';
+        queryString += 'AND ' + assetTable + '.owner = ANY($' + ++varCounter + ') ';
         queryValues.push(args.owner.split(','));
     }
 
     if (args.template_id) {
-        queryString += 'AND asset.template_id = ANY($' + ++varCounter + ') ';
+        queryString += 'AND ' + assetTable + '.template_id = ANY($' + ++varCounter + ') ';
         queryValues.push(args.template_id.split(','));
     }
 
     if (args.collection_name) {
-        queryString += 'AND asset.collection_name = ANY ($' + ++varCounter + ') ';
+        queryString += 'AND ' + assetTable + '.collection_name = ANY ($' + ++varCounter + ') ';
         queryValues.push(args.collection_name.split(','));
     }
 
     if (args.schema_name) {
-        queryString += 'AND asset.schema_name = ANY($' + ++varCounter + ') ';
+        queryString += 'AND ' + assetTable + '.schema_name = ANY($' + ++varCounter + ') ';
         queryValues.push(args.schema_name.split(','));
+    }
+
+    if (templateTable && typeof args.is_transferable === 'boolean') {
+        if (args.is_transferable) {
+            queryString += 'AND ' + templateTable + '.transferable IS NULL OR  ' + templateTable + '.transferable = TRUE ';
+        } else {
+            queryString += 'AND ' + templateTable + '.transferable = FALSE ';
+        }
+    }
+
+    if (templateTable && typeof args.is_burnable === 'boolean') {
+        if (args.is_burnable) {
+            queryString += 'AND ' + templateTable + '.burnable IS NULL OR  ' + templateTable + '.burnable = TRUE ';
+        } else {
+            queryString += 'AND ' + templateTable + '.burnable = FALSE ';
+        }
     }
 
     if (args.match) {

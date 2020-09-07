@@ -8,7 +8,7 @@ import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { primaryBoundaryParameters, getOpenAPI3Responses, paginationParameters, dateBoundaryParameters } from '../../../docs';
 import { assetFilterParameters, atomicDataFilter, greylistFilterParameters, hideOffersParameters } from '../openapi';
-import { fillAssets } from '../filler';
+import { fillAssets, FillerHook } from '../filler';
 
 export class AssetApi {
     constructor(
@@ -16,7 +16,8 @@ export class AssetApi {
         readonly server: HTTPServer,
         readonly schema: string,
         readonly assetView: string,
-        readonly assetFormatter: (_: any) => any
+        readonly assetFormatter: (_: any) => any,
+        readonly fillerHook?: FillerHook
     ) { }
 
     endpoints(router: express.Router): any {
@@ -171,7 +172,7 @@ export class AssetApi {
                 const assets = await fillAssets(
                     this.server, this.core.args.atomicassets_account,
                     query.rows.map(row => row.asset_id),
-                    this.assetFormatter, this.assetView
+                    this.assetFormatter, this.assetView, this.fillerHook
                 );
 
                 return res.json({success: true, data: assets, query_time: Date.now()});
@@ -182,16 +183,17 @@ export class AssetApi {
 
         router.get('/v1/assets/:asset_id', this.server.web.caching({ignoreQueryString: true}), (async (req, res) => {
             try {
-                const query = await this.server.query(
-                    'SELECT * FROM ' + this.assetView + ' WHERE contract = $1 AND asset_id = $2',
-                    [this.core.args.atomicassets_account, req.params.asset_id]
+                const assets = await fillAssets(
+                    this.server, this.core.args.atomicassets_account,
+                    [req.params.asset_id],
+                    this.assetFormatter, this.assetView, this.fillerHook
                 );
 
-                if (query.rowCount === 0) {
+                if (assets.length === 0 || typeof assets[0] === 'object') {
                     return res.status(416).json({success: false, message: 'Asset not found'});
                 }
 
-                return res.json({success: true, data: this.assetFormatter(query.rows[0]), query_time: Date.now()});
+                return res.json({success: true, data: assets[0], query_time: Date.now()});
             } catch (e) {
                 return res.status(500).json({success: false, message: 'Internal Server Error'});
             }

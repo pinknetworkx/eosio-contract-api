@@ -1,5 +1,7 @@
 import { HTTPServer } from '../../server';
 
+export type FillerHook = (server: HTTPServer, contract: string, rows: any[]) => Promise<any[]>;
+
 export class AssetFiller {
     private assets: Promise<{[key: string]: any}> | null;
 
@@ -8,7 +10,8 @@ export class AssetFiller {
         readonly contract: string,
         readonly assetIDs: string[],
         readonly formatter: (_: any) => any,
-        readonly view: string
+        readonly view: string,
+        readonly hook?: FillerHook
     ) {
         this.assets = null;
     }
@@ -37,9 +40,10 @@ export class AssetFiller {
                     [this.contract, this.assetIDs]
                 );
 
+                const rows = this.hook ? await this.hook(this.server, this.contract, query.rows) : query.rows;
                 const result: {[key: string]: any} = {};
 
-                for (const row of query.rows) {
+                for (const row of rows) {
                     result[String(row.asset_id)] = this.formatter(row);
                 }
 
@@ -52,15 +56,17 @@ export class AssetFiller {
 }
 
 export async function fillAssets(
-    server: HTTPServer, contract: string, assetIDs: any[], formatter: (_: any) => any, view: string
+    server: HTTPServer, contract: string, assetIDs: any[], formatter: (_: any) => any,
+    view: string, hook?: FillerHook
 ): Promise<any[]> {
-    const filler = new AssetFiller(server, contract, assetIDs, formatter, view);
+    const filler = new AssetFiller(server, contract, assetIDs, formatter, view, hook);
 
     return await filler.fill(assetIDs);
 }
 
 export async function fillOffers(
-    server: HTTPServer, contract: string, offers: any[], formatter: (_: any) => any, view: string
+    server: HTTPServer, contract: string, offers: any[], formatter: (_: any) => any,
+    view: string, hook?: FillerHook
 ): Promise<any[]> {
     const assetIDs: string[] = [];
 
@@ -69,7 +75,7 @@ export async function fillOffers(
         assetIDs.push(...offer.recipient_assets);
     }
 
-    const filler = new AssetFiller(server, contract, assetIDs, formatter, view);
+    const filler = new AssetFiller(server, contract, assetIDs, formatter, view, hook);
 
     return await Promise.all(offers.map(async (offer) => {
         offer.sender_assets = await filler.fill(offer.sender_assets);
@@ -80,7 +86,8 @@ export async function fillOffers(
 }
 
 export async function fillTransfers(
-    server: HTTPServer, contract: string, transfers: any[], formatter: (_: any) => any, view: string
+    server: HTTPServer, contract: string, transfers: any[], formatter: (_: any) => any,
+    view: string, hook?: FillerHook
 ): Promise<any[]> {
     const assetIDs: string[] = [];
 
@@ -88,7 +95,7 @@ export async function fillTransfers(
         assetIDs.push(...transfer.assets);
     }
 
-    const filler = new AssetFiller(server, contract, assetIDs, formatter, view);
+    const filler = new AssetFiller(server, contract, assetIDs, formatter, view, hook);
 
     return await Promise.all(transfers.map(async (transfer) => {
         transfer.assets = await filler.fill(transfer.assets);

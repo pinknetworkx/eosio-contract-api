@@ -5,7 +5,7 @@ import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
-import { fillOffers } from '../filler';
+import { FillerHook, fillOffers } from '../filler';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { getLogs } from '../utils';
@@ -19,7 +19,8 @@ export class OfferApi {
         readonly offerView: string,
         readonly offerFormatter: (_: any) => any,
         readonly assetView: string,
-        readonly assetFormatter: (_: any) => any
+        readonly assetFormatter: (_: any) => any,
+        readonly fillerHook?: FillerHook
     ) { }
 
     endpoints(router: express.Router): any {
@@ -149,7 +150,7 @@ export class OfferApi {
                 const offers = await fillOffers(
                     this.server, this.core.args.atomicassets_account,
                     offerQuery.rows.map((row) => this.offerFormatter(offerLookup[row.offer_id])),
-                    this.assetFormatter, this.assetView
+                    this.assetFormatter, this.assetView, this.fillerHook
                 );
 
                 return res.json({success: true, data: offers, query_time: Date.now()});
@@ -172,7 +173,7 @@ export class OfferApi {
                 const offers = await fillOffers(
                     this.server, this.core.args.atomicassets_account,
                     query.rows.map((row) => this.offerFormatter(row)),
-                    this.assetFormatter, this.assetView
+                    this.assetFormatter, this.assetView, this.fillerHook
                 );
 
                 return res.json({success: true, data: offers[0], query_time: Date.now()});

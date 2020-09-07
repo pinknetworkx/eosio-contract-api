@@ -15,7 +15,7 @@ import { atomicmarketComponents } from './openapi';
 import { configEndpoints } from './routes/config';
 import { marketplacesEndpoints } from './routes/marketplaces';
 import { formatOffer, formatTransfer } from '../atomicassets/format';
-import { formatListingAsset } from './format';
+import { formatListingAsset, hookAssetFiller } from './format';
 import { pricesEndpoints } from './routes/prices';
 import { statsEndpoints } from './routes/stats';
 
@@ -109,17 +109,20 @@ export class AtomicMarketNamespace extends ApiNamespace {
 
         const assetApi = new AssetApi(
             this, server, 'ListingAsset',
-            'atomicmarket_assets_master', formatListingAsset
+            'atomicassets_assets_master',
+            formatListingAsset, hookAssetFiller
         );
         const transferApi = new TransferApi(
             this, server, 'ListingTransfer',
             'atomicassets_transfers_master', formatTransfer,
-            'atomicmarket_assets_master', formatListingAsset
+            'atomicassets_assets_master',
+            formatListingAsset, hookAssetFiller
         );
         const offerApi = new OfferApi(
             this, server, 'ListingOffer',
             'atomicassets_offers_master', formatOffer,
-            'atomicmarket_assets_master', formatListingAsset
+            'atomicassets_assets_master',
+            formatListingAsset, hookAssetFiller
         );
 
         docs.push(assetApi.endpoints(router));
