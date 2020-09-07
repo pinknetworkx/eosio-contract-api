@@ -107,7 +107,7 @@ export function buildAssetFilter(
 
     if (templateTable && typeof args.is_transferable === 'boolean') {
         if (args.is_transferable) {
-            queryString += 'AND ' + templateTable + '.transferable IS NULL OR  ' + templateTable + '.transferable = TRUE ';
+            queryString += 'AND (' + templateTable + '.transferable IS NULL OR  ' + templateTable + '.transferable = TRUE) ';
         } else {
             queryString += 'AND ' + templateTable + '.transferable = FALSE ';
         }
@@ -115,7 +115,7 @@ export function buildAssetFilter(
 
     if (templateTable && typeof args.is_burnable === 'boolean') {
         if (args.is_burnable) {
-            queryString += 'AND ' + templateTable + '.burnable IS NULL OR  ' + templateTable + '.burnable = TRUE ';
+            queryString += 'AND (' + templateTable + '.burnable IS NULL OR  ' + templateTable + '.burnable = TRUE) ';
         } else {
             queryString += 'AND ' + templateTable + '.burnable = FALSE ';
         }
