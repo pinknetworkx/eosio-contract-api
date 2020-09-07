@@ -189,7 +189,7 @@ export class AssetApi {
                     this.assetFormatter, this.assetView, this.fillerHook
                 );
 
-                if (assets.length === 0 || typeof assets[0] === 'object') {
+                if (assets.length === 0 || typeof assets[0] === 'string') {
                     return res.status(416).json({success: false, message: 'Asset not found'});
                 }
 
