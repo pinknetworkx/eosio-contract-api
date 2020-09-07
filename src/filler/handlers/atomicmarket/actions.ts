@@ -118,7 +118,9 @@ export default class AtomicMarketActionHandler {
 
         await this.createLogMessage(
             db, block, tx, trace.global_sequence,
-            'create', 'auction', trace.act.data.auction_id, null
+            'create', 'auction', trace.act.data.auction_id, {
+                maker_marketplace: trace.act.data.maker_marketplace
+            }
         );
 
         this.core.pushNotificiation(block, tx, 'auctions', 'create', {
@@ -294,7 +296,9 @@ export default class AtomicMarketActionHandler {
 
         await this.createLogMessage(
             db, block, tx, trace.global_sequence,
-            'create', 'sale', trace.act.data.sale_id, null
+            'create', 'sale', trace.act.data.sale_id, {
+                maker_marketplace: trace.act.data.maker_marketplace
+            }
         );
 
         this.core.pushNotificiation(block, tx, 'sales', 'create', {
