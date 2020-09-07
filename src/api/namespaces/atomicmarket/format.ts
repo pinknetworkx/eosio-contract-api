@@ -65,7 +65,7 @@ export async function hookAssetFiller(server: HTTPServer, contract: string, rows
 
     const queries = await Promise.all([
         server.query(
-            'SELECT sale.market_contract, sale.sale_id, asset.asset_id ' +
+            'SELECT sale.market_contract, sale.sale_id, offer_asset.asset_id ' +
             'FROM atomicmarket_sales sale, atomicassets_offers offer, atomicassets_offers_assets offer_asset ' +
             'WHERE sale.assets_contract = offer.contract AND sale.offer_id = offer.offer_id AND ' +
             'offer.contract = offer_asset.contract AND offer.offer_id = offer_asset.offer_id AND ' +
