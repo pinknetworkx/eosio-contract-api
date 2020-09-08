@@ -122,15 +122,6 @@ export function buildAssetFilter(
         }
     }
 
-    if (args.match) {
-        queryString += 'AND (' +
-                'POSITION($' + ++varCounter + ' IN LOWER(' + templateTable + '.immutable_data->>\'name\')) > 0 OR ' +
-                'POSITION($' + varCounter + ' IN LOWER(' + assetTable + '.immutable_data->>\'name\')) > 0 OR ' +
-                'POSITION($' + varCounter + ' IN LOWER(' + assetTable + '.mutable_data->>\'name\')) > 0 ' +
-            ') ';
-        queryValues.push(args.match.toLowerCase());
-    }
-
     return {
         values: queryValues,
         str: queryString
