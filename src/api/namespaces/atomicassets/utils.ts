@@ -65,16 +65,24 @@ export function buildAssetFilter(
     if (args.collection_name) {
         const data = buildDataConditions(req.query, varCounter, '"data_table".data');
 
-        if (data.conditions.length > 0) {
+        const conditions = data.conditions;
+        queryValues = queryValues.concat(data.values);
+        varCounter += data.values.length;
+
+        if (args.match) {
+            conditions.push(
+                '"data_table".data->>\'name\' IS NOT NULL AND ' +
+                'POSITION($' + ++varCounter + ' IN LOWER("data_table".data->>\'name\')) > 0'
+            );
+            queryValues.push(args.match.toLowerCase());
+        }
+
+        if (conditions.length > 0) {
             queryString += 'AND EXISTS (' +
                 'SELECT * FROM atomicassets_asset_data "data_table" ' +
                 'WHERE "data_table".contract = ' + assetTable + '.contract AND ' +
-                '"data_table".asset_id = ' + assetTable + '.asset_id AND ' +
-                data.conditions.join(' AND ') +
+                '"data_table".asset_id = ' + assetTable + '.asset_id AND ' + conditions.join(' AND ') +
                 ') ';
-
-            queryValues = queryValues.concat(data.values);
-            varCounter += data.values.length;
         }
     }
 

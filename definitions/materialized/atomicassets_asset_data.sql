@@ -13,7 +13,8 @@ CREATE UNIQUE INDEX atomicassets_asset_data_pkey ON atomicassets_asset_data (con
 CREATE INDEX atomicassets_asset_data_contract ON atomicassets_asset_data USING btree (contract);
 CREATE INDEX atomicassets_asset_data_asset_id ON atomicassets_asset_data USING btree (asset_id);
 
-CREATE INDEX atomicassets_asset_data_name ON atomicassets_asset_data USING hash ((data->>'name')) WHERE data->>'name' IS NOT NULL;
+CREATE INDEX atomicassets_asset_data_name_btree ON atomicassets_asset_data USING btree ((data->>'name')) WHERE data->>'name' IS NOT NULL;
+CREATE INDEX atomicassets_asset_data_name_hash ON atomicassets_asset_data USING hash ((data->>'name')) WHERE data->>'name' IS NOT NULL;
 CREATE INDEX atomicassets_asset_data_rarity ON atomicassets_asset_data USING hash ((data->>'rarity')) WHERE data->>'rarity' IS NOT NULL;
 CREATE INDEX atomicassets_asset_data_cardid ON atomicassets_asset_data USING btree ((data->>'cardid')) WHERE data->>'cardid' IS NOT NULL;
 CREATE INDEX atomicassets_asset_data_quality ON atomicassets_asset_data USING hash ((data->>'quality')) WHERE data->>'quality' IS NOT NULL;
