@@ -157,16 +157,14 @@ export function buildSaleFilter(
     varCounter += listingFilter.values.length;
 
     if (hasAssetFilter(req)) {
-        const filter = buildAssetFilter(req, varCounter, '"asset"', '"template"');
+        const filter = buildAssetFilter(req, varCounter, '"asset"');
 
         queryString += 'AND EXISTS(' +
                 'SELECT asset.asset_id ' +
-                'FROM atomicassets_assets asset LEFT JOIN atomicassets_templates "template" ON ( ' +
-                    '"template".contract = asset.contract AND "template".template_id = asset.template_id ' +
-                '), atomicassets_offers_assets asset_o ' +
+                'FROM atomicassets_assets asset, atomicassets_offers_assets offer_asset ' +
                 'WHERE ' +
-                    'asset.contract = asset_o.contract AND asset.asset_id = asset_o.asset_id AND ' +
-                    'asset_o.offer_id = listing.offer_id AND asset_o.contract = listing.assets_contract ' + filter.str + ' ' +
+                    'asset.contract = offer_asset.contract AND asset.asset_id = offer_asset.asset_id AND ' +
+                    'offer_asset.offer_id = listing.offer_id AND offer_asset.contract = listing.assets_contract ' + filter.str + ' ' +
             ') ';
 
         queryValues.push(...filter.values);
@@ -275,12 +273,11 @@ export function buildAuctionFilter(
 
         queryString += 'AND EXISTS(' +
                 'SELECT asset.asset_id ' +
-                'FROM atomicassets_assets asset LEFT JOIN atomicassets_templates "template" ON ( ' +
-                    '"template".contract = asset.contract AND "template".template_id = asset.template_id ' +
-                '), atomicmarket_auctions_assets asset_a ' +
+                'FROM atomicassets_assets asset, atomicmarket_auctions_assets auction_asset ' +
                 'WHERE ' +
-                    'asset.contract = asset_a.assets_contract AND asset.asset_id = asset_a.asset_id AND ' +
-                    'asset_a.auction_id = listing.auction_id AND asset_a.market_contract = listing.market_contract ' + filter.str + ' ' +
+                    'asset.contract = auction_asset.assets_contract AND asset.asset_id = auction_asset.asset_id AND ' +
+                    'auction_asset.auction_id = listing.auction_id AND ' +
+                    'auction_asset.market_contract = listing.market_contract ' + filter.str + ' ' +
             ') ';
 
         queryValues.push(...filter.values);
