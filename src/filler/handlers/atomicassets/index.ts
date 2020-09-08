@@ -41,7 +41,8 @@ export enum JobPriority {
 export type AtomicAssetsReaderArgs = {
     atomicassets_account: string,
     store_transfers: boolean,
-    store_logs: boolean
+    store_logs: boolean,
+    collection_blacklist: string[]
 };
 
 export default class AtomicAssetsHandler extends ContractHandler {
@@ -78,6 +79,10 @@ export default class AtomicAssetsHandler extends ContractHandler {
             throw new Error('AtomicAssets: Argument missing in atomicassets handler: atomicassets_account');
         }
 
+        if (!Array.isArray(this.args.collection_blacklist)) {
+            this.args.collection_blacklist = [];
+        }
+
         if (!this.args.store_logs) {
             logger.warn('AtomicAssets: disabled store_logs');
         }
@@ -111,16 +116,12 @@ export default class AtomicAssetsHandler extends ContractHandler {
             [await this.connection.database.schema(), 'atomicassets_config']
         );
 
-        const materializedViews = ['atomicassets_asset_mints'];
+        const materializedViews = ['atomicassets_asset_mints', 'atomicassets_asset_data'];
 
         if (!existsQuery.rows[0].exists) {
             logger.info('Could not find AtomicAssets tables. Create them now...');
 
             await client.query(fs.readFileSync('./definitions/tables/atomicassets_tables.sql', {
-                encoding: 'utf8'
-            }));
-
-            await client.query(fs.readFileSync('./definitions/tables/atomicassets_indexes.sql', {
                 encoding: 'utf8'
             }));
 
@@ -254,7 +255,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
             );
         }
 
-        const views = ['atomicassets_asset_mints'];
+        const views = ['atomicassets_asset_mints', 'atomicassets_asset_data'];
 
         for (const view of views) {
             await client.query('REFRESH MATERIALIZED VIEW ' + client.escapeIdentifier(view) + '');

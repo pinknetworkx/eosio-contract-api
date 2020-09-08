@@ -4,16 +4,16 @@ import { ContractDBTransaction } from '../../database';
 import { ShipBlock } from '../../../types/ship';
 import { AssetsTableRow, OffersTableRow } from './types/tables';
 import { eosioTimestampToDate } from '../../../utils/eosio';
-import { OfferState } from './index';
+import { AtomicAssetsReaderArgs, OfferState } from './index';
 import { AttributeMap } from './types/actions';
 
 export async function saveAssetTableRow(
-    db: ContractDBTransaction, block: ShipBlock, contractName: string, scope: string, data: AssetsTableRow,
+    db: ContractDBTransaction, block: ShipBlock, args: AtomicAssetsReaderArgs, scope: string, data: AssetsTableRow,
     deleted: boolean, mutableDataMap?: AttributeMap, immutableDataMap?: AttributeMap
 ): Promise<void> {
     const schemaQuery = await db.query(
         'SELECT format FROM atomicassets_schemas WHERE contract = $1 AND collection_name = $2 AND schema_name = $3',
-        [contractName, data.collection_name, data.schema_name]
+        [args.atomicassets_account, data.collection_name, data.schema_name]
     );
 
     if (schemaQuery.rowCount === 0) {
@@ -41,15 +41,15 @@ export async function saveAssetTableRow(
     }
 
     await db.replace('atomicassets_assets', {
-        contract: contractName,
+        contract: args.atomicassets_account,
         asset_id: data.asset_id,
         collection_name: data.collection_name,
         schema_name: data.schema_name,
         template_id: data.template_id === -1 ? null : data.template_id,
         owner: deleted ? null : scope,
         ram_payer: data.ram_payer,
-        mutable_data: JSON.stringify(mutableData),
-        immutable_data: JSON.stringify(immutableData),
+        mutable_data: args.collection_blacklist.indexOf(data.collection_name) >= 0 ? '{}' : JSON.stringify(mutableData),
+        immutable_data: args.collection_blacklist.indexOf(data.collection_name) >= 0 ? '{}' : JSON.stringify(immutableData),
         burned_at_block: deleted ? block.block_num : null,
         burned_at_time: deleted ? eosioTimestampToDate(block.timestamp).getTime() : null,
         updated_at_block: block.block_num,
@@ -71,7 +71,7 @@ export async function saveAssetTableRow(
 
     const backedTokensQuery = await db.query(
         'SELECT token_symbol, amount FROM atomicassets_assets_backed_tokens WHERE contract = $1 AND asset_id = $2',
-        [contractName, data.asset_id]
+        [args.atomicassets_account, data.asset_id]
     );
 
     for (const dbBackedToken of backedTokensQuery.rows) {
@@ -80,7 +80,7 @@ export async function saveAssetTableRow(
         if (typeof localBackedTokens[symbol] === 'undefined') {
             await db.delete('atomicassets_assets_backed_tokens', {
                 str: 'contract = $1 AND asset_id = $2 AND token_symbol = $3',
-                values: [contractName, data.asset_id, dbBackedToken.token_symbol]
+                values: [args.atomicassets_account, data.asset_id, dbBackedToken.token_symbol]
             });
         } else {
             if (dbBackedToken.amount !== localBackedTokens[symbol].amount) {
@@ -89,7 +89,7 @@ export async function saveAssetTableRow(
                 }, {
                     str: 'contract = $1 AND asset_id = $2 AND token_symbol = $3',
                     values: [
-                        contractName,
+                        args.atomicassets_account,
                         data.asset_id, dbBackedToken.token_symbol
                     ]
                 }, ['contract', 'asset_id', 'token_symbol']);
@@ -103,7 +103,7 @@ export async function saveAssetTableRow(
         await db.insert('atomicassets_assets_backed_tokens', {
             ...localBackedTokens[key],
             asset_id: data.asset_id,
-            contract: contractName,
+            contract: args.atomicassets_account,
             updated_at_block: block.block_num,
             updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
         }, ['contract', 'asset_id', 'token_symbol']);

@@ -215,6 +215,10 @@ CREATE INDEX atomicassets_assets_updated_at_time ON atomicassets_assets USING bt
 CREATE INDEX atomicassets_assets_minted_at_block ON atomicassets_assets USING btree (minted_at_block);
 CREATE INDEX atomicassets_assets_minted_at_time ON atomicassets_assets USING btree (minted_at_time);
 
+CREATE INDEX atomicassets_assets_immutable_data_name ON atomicassets_assets USING btree ((immutable_data->>'name'));
+CREATE INDEX atomicassets_assets_mutable_data_name ON atomicassets_assets USING btree ((mutable_data->>'name'));
+CREATE INDEX atomicassets_templates_immutable_data_name ON atomicassets_templates USING btree ((immutable_data->>'name'));
+
 CREATE INDEX atomicassets_assets_backed_tokens_contract ON atomicassets_assets_backed_tokens USING btree (contract);
 CREATE INDEX atomicassets_assets_backed_tokens_asset_id ON atomicassets_assets_backed_tokens USING btree (asset_id);
 CREATE INDEX atomicassets_assets_backed_tokens_token_symbol ON atomicassets_assets_backed_tokens USING hash (token_symbol);

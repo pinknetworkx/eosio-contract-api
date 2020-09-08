@@ -29,10 +29,10 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             let queryValues: any[] = [core.args.atomicassets_account];
 
             if (args.collection_name) {
-                const data = buildDataConditions(req.query, varCounter, null, '"template"');
+                const data = buildDataConditions(req.query, varCounter, '"template".immutable_data');
 
                 if (data.conditions.length > 0) {
-                    queryString += 'AND (' + data.conditions.join(' AND ') + ') ';
+                    queryString += 'AND ' + data.conditions.join(' AND ') + ' ';
 
                     queryValues = queryValues.concat(data.values);
                     varCounter += data.values.length;

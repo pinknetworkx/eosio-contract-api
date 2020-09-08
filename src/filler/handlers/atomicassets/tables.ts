@@ -86,7 +86,7 @@ export default class AtomicAssetsTableHandler {
     async handleAssetsUpdate(
         db: ContractDBTransaction, block: ShipBlock, scope: string, data: AssetsTableRow, deleted: boolean
     ): Promise<void> {
-        await saveAssetTableRow(db, block, this.contractName, scope, data, deleted);
+        await saveAssetTableRow(db, block, this.core.args, scope, data, deleted);
 
         this.core.checkOfferState([], [data.asset_id]);
     }
@@ -181,7 +181,7 @@ export default class AtomicAssetsTableHandler {
             template_id: data.template_id,
             collection_name: scope,
             schema_name: data.schema_name,
-            immutable_data: JSON.stringify(immutableData),
+            immutable_data: this.core.args.collection_blacklist.indexOf(scope) >= 0 ? '{}' : JSON.stringify(immutableData),
             transferable: data.transferable,
             burnable: data.burnable,
             max_supply: data.max_supply,

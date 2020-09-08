@@ -210,7 +210,7 @@ export default class AtomicAssetsActionHandler {
             // @ts-ignore
             const data: LogBurnAssetActionData = trace.act.data;
 
-            await saveAssetTableRow(db, block, this.contractName, data.asset_owner, {
+            await saveAssetTableRow(db, block, this.core.args, data.asset_owner, {
                 asset_id: data.asset_id,
                 collection_name: data.collection_name,
                 schema_name: data.schema_name,

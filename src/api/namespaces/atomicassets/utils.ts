@@ -20,7 +20,7 @@ export async function getLogs(
 }
 
 export function buildDataConditions(
-    args: any, varCounter: number = 0, assetTable: string = '"asset"', templateTable: string = '"template"'
+    args: any, varCounter: number = 0, column: string
 ): {conditions: string[], values: any[]} {
     const keys = Object.keys(args);
     const dataConditions = [];
@@ -31,22 +31,10 @@ export function buildDataConditions(
             const keyVar = ++varCounter;
             const valVar = ++varCounter;
 
-            const conditions = [];
+            dataConditions.push(
+                `(${column}->>$${keyVar} IS NOT NULL AND ${column}->>$${keyVar} = $${valVar})`
+            );
 
-            if (assetTable) {
-                conditions.push(
-                    `(${assetTable}.immutable_data->>$${keyVar} IS NOT NULL AND ${assetTable}.immutable_data->>$${keyVar} = $${valVar})`,
-                    `(${assetTable}.mutable_data->>$${keyVar} IS NOT NULL AND ${assetTable}.mutable_data->>$${keyVar} = $${valVar})`
-                );
-            }
-
-            if (templateTable) {
-                conditions.push(
-                    `(${templateTable}.immutable_data->>$${keyVar} IS NOT NULL AND ${templateTable}.immutable_data->>$${keyVar} = $${valVar})`
-                );
-            }
-
-            dataConditions.push(`(${conditions.join(' OR ')})`);
             queryValues.push(key.substr('data.'.length), args[key]);
         }
     }
@@ -75,10 +63,15 @@ export function buildAssetFilter(
     let varCounter = varOffset;
 
     if (args.collection_name) {
-        const data = buildDataConditions(req.query, varCounter, assetTable, templateTable);
+        const data = buildDataConditions(req.query, varCounter, '"data_table".data');
 
         if (data.conditions.length > 0) {
-            queryString += 'AND (' + data.conditions.join(' AND ') + ') ';
+            queryString += 'AND EXISTS (' +
+                'SELECT * FROM atomicassets_asset_data "data_table" ' +
+                'WHERE "data_table".contract = ' + assetTable + '.contract AND ' +
+                '"data_table".asset_id = ' + assetTable + '.asset_id AND ' +
+                data.conditions.join(' AND ') +
+                ') ';
 
             queryValues = queryValues.concat(data.values);
             varCounter += data.values.length;
