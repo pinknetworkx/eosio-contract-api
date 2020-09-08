@@ -62,28 +62,29 @@ export function buildAssetFilter(
     let queryValues: any[] = [];
     let varCounter = varOffset;
 
+    const conditions = [];
     if (args.collection_name) {
         const data = buildDataConditions(req.query, varCounter, '"data_table".data');
 
-        const conditions = data.conditions;
         queryValues = queryValues.concat(data.values);
         varCounter += data.values.length;
+        conditions.push(...data.conditions);
+    }
 
-        if (args.match) {
-            conditions.push(
-                '"data_table".data->>\'name\' IS NOT NULL AND ' +
-                'POSITION($' + ++varCounter + ' IN LOWER("data_table".data->>\'name\')) > 0'
-            );
-            queryValues.push(args.match.toLowerCase());
-        }
+    if (args.match) {
+        conditions.push(
+            '"data_table".data->>\'name\' IS NOT NULL AND ' +
+            'POSITION($' + ++varCounter + ' IN LOWER("data_table".data->>\'name\')) > 0'
+        );
+        queryValues.push(args.match.toLowerCase());
+    }
 
-        if (conditions.length > 0) {
-            queryString += 'AND EXISTS (' +
-                'SELECT * FROM atomicassets_asset_data "data_table" ' +
-                'WHERE "data_table".contract = ' + assetTable + '.contract AND ' +
-                '"data_table".asset_id = ' + assetTable + '.asset_id AND ' + conditions.join(' AND ') +
-                ') ';
-        }
+    if (conditions.length > 0) {
+        queryString += 'AND EXISTS (' +
+            'SELECT * FROM atomicassets_asset_data "data_table" ' +
+            'WHERE "data_table".contract = ' + assetTable + '.contract AND ' +
+            '"data_table".asset_id = ' + assetTable + '.asset_id AND ' + conditions.join(' AND ') +
+            ') ';
     }
 
     if (args.owner) {
