@@ -10,7 +10,7 @@ import { Namespace } from 'socket.io';
 import * as bodyParser from 'body-parser';
 import * as cors from 'cors';
 import * as cookieParser from 'cookie-parser';
-import { QueryResult } from 'pg';
+import { Pool, QueryResult } from 'pg';
 
 import ConnectionManager from '../connections/manager';
 import { IServerConfig } from '../types/config';
@@ -26,7 +26,12 @@ export class HTTPServer {
     readonly web: WebServer;
     readonly socket: SocketServer;
 
+    readonly database: Pool;
+
     constructor(readonly config: IServerConfig, readonly connection: ConnectionManager) {
+        this.database = connection.database.createPool({
+            statement_timeout: 15000
+        });
         this.web = new WebServer(this);
 
         this.httpServer = http.createServer(this.web.express);
@@ -57,7 +62,7 @@ export class HTTPServer {
         logger.debug(queryText, values);
 
         try {
-            const result = await this.connection.database.query(queryText, values);
+            const result = await this.database.query(queryText, values);
             const duration = Date.now() - startTime;
 
             if (this.config.slow_query_threshold && duration >= this.config.slow_query_threshold) {

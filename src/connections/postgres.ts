@@ -1,13 +1,18 @@
-import { Pool, PoolClient, QueryResult } from 'pg';
+import { Pool, PoolClient, PoolConfig, QueryResult } from 'pg';
 
 export default class PostgresConnection {
     readonly pool: Pool;
     readonly name: string;
 
+    private readonly args: PoolConfig;
     private initialized = false;
 
     constructor(host: string, port: number, user: string, password: string, database: string) {
-        this.pool = new Pool({ host, port, user, password, database });
+        this.args = {
+            host, port, user, password, database,
+            application_name: 'eosio-contract-api'
+        };
+        this.pool = new Pool(this.args);
 
         this.name = host + '::' + port + '::' + database;
     }
@@ -19,6 +24,12 @@ export default class PostgresConnection {
 
         await this.pool.query('SET search_path TO public');
         this.initialized = true;
+    }
+
+    createPool(args: any): Pool {
+        return new Pool({
+            ...this.args, ...args
+        });
     }
 
     async query(queryText: string, values: any[] = []): Promise<QueryResult> {
