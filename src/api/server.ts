@@ -62,7 +62,14 @@ export class HTTPServer {
         logger.debug(queryText, values);
 
         try {
-            const result = await this.database.query(queryText, values);
+            return await this.database.query(queryText, values);
+        } catch (error) {
+            logger.warn('Query exception', {
+                message: String(error), error, queryText, values
+            });
+
+            throw error;
+        } finally {
             const duration = Date.now() - startTime;
 
             if (this.config.slow_query_threshold && duration >= this.config.slow_query_threshold) {
@@ -70,14 +77,6 @@ export class HTTPServer {
                     queryText, values
                 });
             }
-
-            return result;
-        } catch (error) {
-            logger.warn('Query exception', {
-                message: String(error), error, queryText, values
-            });
-
-            throw error;
         }
     }
 }
