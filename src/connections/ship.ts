@@ -28,7 +28,7 @@ export default class StateHistoryBlockReader {
     private stopped: boolean;
 
     private blocksQueue: PQueue;
-    private deserializeWorkers: StaticPool<{type: string, data: Uint8Array}, any>;
+    private deserializeWorkers: StaticPool<Array<{type: string, data: Uint8Array}>, any>;
 
     private unconfirmed: number;
     private consumer: BlockConsumer;
@@ -326,10 +326,10 @@ export default class StateHistoryBlockReader {
     }
 
     private async deserializeParallel(type: string, data: Uint8Array): Promise<any> {
-        const result = await this.deserializeWorkers.exec({type, data});
+        const result = await this.deserializeWorkers.exec([{type, data}]);
 
         if (result.success) {
-            return result.data;
+            return result.data[0];
         }
 
         throw new Error(result.message);
@@ -341,13 +341,21 @@ export default class StateHistoryBlockReader {
         return await Promise.all(deltas.map(async (delta: any) => {
             if (delta[0] === 'table_delta_v0') {
                 if (this.deltaWhitelist.indexOf(delta[1].name) >= 0) {
+                    const deserialized = await this.deserializeWorkers.exec(delta[1].rows.map((row: any) => ({
+                        type: delta[1].name, data: row.data
+                    })));
+
+                    if (!deserialized.success) {
+                        throw new Error(deserialized.message);
+                    }
+
                     return [
                         delta[0],
                         {
                             ...delta[1],
-                            rows: await Promise.all(delta[1].rows.map(async (row: any) => ({
-                                ...row, data: await this.deserializeParallel(delta[1].name, row.data)
-                            })))
+                            rows: delta[1].rows.map((row: any, index: number) => ({
+                                ...row, data: deserialized.data[index]
+                            }))
                         }
                     ];
                 }

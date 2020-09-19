@@ -77,7 +77,7 @@ export default class StateReceiver {
             fetch_block: true,
             fetch_traces: true,
             fetch_deltas: true
-        }, ['contract_row_v0']);
+        }, ['contract_row']);
     }
 
     private async consumer(resp: ShipBlockResponse): Promise<void> {

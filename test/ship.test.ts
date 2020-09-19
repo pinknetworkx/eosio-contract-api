@@ -30,7 +30,7 @@ describe('Ship Test', () => {
                 fetch_block: true,
                 fetch_traces: true,
                 fetch_deltas: true
-            }, ['contract_row_v0']);
+            }, ['contract_row']);
         }));
     }).timeout(20000);
 });

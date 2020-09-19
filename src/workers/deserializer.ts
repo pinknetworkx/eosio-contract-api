@@ -50,15 +50,19 @@ function deserialize(type: string, data: Uint8Array | string): any {
     return result;
 }
 
-parentPort.on('message', (param: {type: string, data: Uint8Array | string}) => {
-    if (param.data === null) {
-        return parentPort.postMessage({success: false, message: 'Empty data received on deserialize worker'});
-    }
-
+parentPort.on('message', (param: Array<{type: string, data: Uint8Array | string}>) => {
     try {
-        const data = deserialize(param.type, param.data);
+        const result = [];
 
-        return parentPort.postMessage({success: true, data});
+        for (const row of param) {
+            if (row.data === null) {
+                return parentPort.postMessage({success: false, message: 'Empty data received on deserialize worker'});
+            }
+
+            result.push(deserialize(row.type, row.data));
+        }
+
+        return parentPort.postMessage({success: true, data: result});
     } catch (e) {
         return parentPort.postMessage({success: false, message: String(e)});
     }
