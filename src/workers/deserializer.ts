@@ -52,7 +52,7 @@ function deserialize(type: string, data: Uint8Array | string): any {
 
 parentPort.on('message', (param: {type: string, data: Uint8Array | string}) => {
     if (param.data === null) {
-        return parentPort.postMessage(null);
+        return parentPort.postMessage({success: false, message: 'Empty data received on deserialize worker'});
     }
 
     try {

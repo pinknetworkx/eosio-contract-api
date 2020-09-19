@@ -346,7 +346,7 @@ export default class StateHistoryBlockReader {
                         {
                             ...delta[1],
                             rows: await Promise.all(delta[1].rows.map(async (row: any) => ({
-                                ...row, data: await this.deserializeParallel(delta[1], row.data)
+                                ...row, data: await this.deserializeParallel(delta[1].name, row.data)
                             })))
                         }
                     ];
