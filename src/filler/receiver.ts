@@ -334,17 +334,16 @@ export default class StateReceiver {
 
     private async handleAbiUpdate(block: ShipBlock, action: EosioAction): Promise<void> {
         if (typeof action.data !== 'string') {
-            let abiJson;
+            let abiJson, types;
 
             try {
                 abiJson = this.connection.chain.deserializeAbi(action.data.abi);
+                types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), abiJson);
             } catch (e) {
                 logger.warn('Could not deserialize ABI of ' + action.data.account, e);
 
                 return;
             }
-
-            const types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), abiJson);
 
             this.abis[action.data.account] = { json: abiJson, types, block_num: block.block_num };
 
