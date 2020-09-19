@@ -154,7 +154,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         return query.rows[0];
     }
 
-    router.get('/v1/stats/collections', server.web.caching(), async (req, res) => {
+    router.all('/v1/stats/collections', server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 symbol: {type: 'string', min: 1},
@@ -219,7 +219,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     });
 
-    router.get('/v1/stats/collections/:collection_name', server.web.caching(), async (req, res) => {
+    router.all('/v1/stats/collections/:collection_name', server.web.caching(), async (req, res) => {
         try {
             const symbol = await fetchSymbol(String(req.query.symbol));
 
@@ -246,7 +246,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     });
 
-    router.get('/v1/stats/accounts', server.web.caching(), async (req, res) => {
+    router.all('/v1/stats/accounts', server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 symbol: {type: 'string', min: 1},
@@ -292,7 +292,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     });
 
-    router.get('/v1/stats/accounts/:account', server.web.caching(), async (req, res) => {
+    router.all('/v1/stats/accounts/:account', server.web.caching(), async (req, res) => {
         try {
             const symbol = await fetchSymbol(String(req.query.symbol));
 
@@ -319,7 +319,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     });
 
-    router.get('/v1/stats/schemas/:collection_name', server.web.caching(), async (req, res) => {
+    router.all('/v1/stats/schemas/:collection_name', server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 symbol: {type: 'string', min: 1},
@@ -366,7 +366,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     });
 
-    router.get('/v1/stats/markets', server.web.caching(), async (req, res) => {
+    router.all('/v1/stats/markets', server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 symbol: {type: 'string', min: 1},
@@ -399,7 +399,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     });
 
-    router.get('/v1/stats/graph', server.web.caching(), async (req, res) => {
+    router.all('/v1/stats/graph', server.web.caching(), async (req, res) => {
         try {
             const symbol = await fetchSymbol(String(req.query.symbol));
 
@@ -422,7 +422,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     });
 
-    router.get('/v1/stats/sales', server.web.caching(), async (req, res) => {
+    router.all('/v1/stats/sales', server.web.caching(), async (req, res) => {
         try {
             const symbol = await fetchSymbol(String(req.query.symbol));
 

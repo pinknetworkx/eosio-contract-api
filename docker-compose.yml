@@ -38,6 +38,7 @@ services:
     container_name: eosio-contract-api-postgres
     image: postgres:12
     restart: on-failure
+    shm_size: '8gb'
     environment:
       - 'POSTGRES_USER=eosio-contract-api'
       - 'POSTGRES_PASSWORD=changeme'

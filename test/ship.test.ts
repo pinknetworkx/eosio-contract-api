@@ -25,12 +25,12 @@ describe('Ship Test', () => {
             });
 
             ship.startProcessing({
-                start_block_num: 28370000,
+                start_block_num: 142642897,
                 max_messages_in_flight: 1,
                 fetch_block: true,
                 fetch_traces: true,
                 fetch_deltas: true
-            });
+            }, ['contract_row_v0']);
         }));
     }).timeout(20000);
 });

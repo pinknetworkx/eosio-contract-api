@@ -11,7 +11,7 @@ import { LinkState } from '../../../../filler/handlers/atomictools';
 import { greylistFilterParameters } from '../../atomicassets/openapi';
 
 export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, router: express.Router): any {
-    router.get(['/v1/links', '/v1/links/_count'], server.web.caching(), async (req, res) => {
+    router.all(['/v1/links', '/v1/links/_count'], server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 creator: {type: 'string', min: 1},
@@ -117,7 +117,7 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
         }
     });
 
-    router.get('/v1/links/:link_id', server.web.caching(), async (req, res) => {
+    router.all('/v1/links/:link_id', server.web.caching(), async (req, res) => {
         try {
             const query = await server.query(
                 'SELECT * FROM atomictools_links_master WHERE tools_contract = $1 AND link_id = $2',

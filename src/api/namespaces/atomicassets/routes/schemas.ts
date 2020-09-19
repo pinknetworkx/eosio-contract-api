@@ -9,7 +9,7 @@ import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, pri
 import { greylistFilterParameters } from '../openapi';
 
 export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
-    router.get(['/v1/schemas', '/v1/schemas/_count'], server.web.caching(), (async (req, res) => {
+    router.all(['/v1/schemas', '/v1/schemas/_count'], server.web.caching(), (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
@@ -94,7 +94,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
         }
     }));
 
-    router.get('/v1/schemas/:collection_name/:schema_name', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+    router.all('/v1/schemas/:collection_name/:schema_name', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
             const query = await server.query(
                 'SELECT * FROM atomicassets_schemas_master WHERE contract = $1 AND collection_name = $2 AND schema_name = $3',
@@ -111,7 +111,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
         }
     }));
 
-    router.get('/v1/schemas/:collection_name/:schema_name/stats', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+    router.all('/v1/schemas/:collection_name/:schema_name/stats', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
             const query = await server.query(
                 'SELECT ' +
@@ -127,7 +127,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
         }
     }));
 
-    router.get('/v1/schemas/:collection_name/:schema_name/logs', server.web.caching(), (async (req, res) => {
+    router.all('/v1/schemas/:collection_name/:schema_name/logs', server.web.caching(), (async (req, res) => {
         const args = filterQueryArgs(req, {
             page: {type: 'int', min: 1, default: 1},
             limit: {type: 'int', min: 1, max: 100, default: 100},

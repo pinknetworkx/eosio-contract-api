@@ -9,7 +9,7 @@ import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, pri
 import { atomicDataFilter, greylistFilterParameters } from '../openapi';
 
 export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
-    router.get(['/v1/templates', '/v1/templates/_count'], server.web.caching(), (async (req, res) => {
+    router.all(['/v1/templates', '/v1/templates/_count'], server.web.caching(), (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
@@ -20,6 +20,11 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                 collection_name: {type: 'string', min: 1, max: 12},
                 schema_name: {type: 'string', min: 1, max: 12},
                 authorized_account: {type: 'string', min: 1, max: 12},
+
+                issued_supply: {type: 'int', min: 0},
+                max_supply: {type: 'int', min: 0},
+                is_transferable: {type: 'bool'},
+                is_burnable: {type: 'bool'},
 
                 match: {type: 'string', min: 1}
             });
@@ -47,6 +52,37 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             if (args.schema_name) {
                 queryString += 'AND template.schema_name = $' + ++varCounter + ' ';
                 queryValues.push(args.schema_name);
+            }
+
+            if (typeof args.issued_supply === 'number') {
+                queryString += 'AND template.issued_supply = $' + ++varCounter + ' ';
+                queryValues.push(args.issued_supply);
+            }
+
+            if (typeof args.max_supply === 'number') {
+                queryString += 'AND template.max_supply = $' + ++varCounter + ' ';
+                queryValues.push(args.max_supply);
+            }
+
+            if (typeof args.max_supply === 'number') {
+                queryString += 'AND template.max_supply = $' + ++varCounter + ' ';
+                queryValues.push(args.max_supply);
+            }
+
+            if (typeof args.is_transferable === 'boolean') {
+                if (args.is_transferable) {
+                    queryString += 'AND template.transferable = TRUE ';
+                } else {
+                    queryString += 'AND template.transferable = FALSE ';
+                }
+            }
+
+            if (typeof args.is_burnable === 'boolean') {
+                if (args.is_burnable) {
+                    queryString += 'AND template.burnable = TRUE ';
+                } else {
+                    queryString += 'AND template.burnable = FALSE ';
+                }
             }
 
             if (args.authorized_account) {
@@ -119,7 +155,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
         }
     }));
 
-    router.get('/v1/templates/:collection_name/:template_id', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+    router.all('/v1/templates/:collection_name/:template_id', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
             const query = await server.query(
                 'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND collection_name = $2 AND template_id = $3 LIMIT 1',
@@ -136,7 +172,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
         }
     }));
 
-    router.get('/v1/templates/:collection_name/:template_id/stats', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+    router.all('/v1/templates/:collection_name/:template_id/stats', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
             const query = await server.query(
                 'SELECT ' +
@@ -151,7 +187,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
         }
     }));
 
-    router.get('/v1/templates/:collection_name/:template_id/logs', server.web.caching(), (async (req, res) => {
+    router.all('/v1/templates/:collection_name/:template_id/logs', server.web.caching(), (async (req, res) => {
         const args = filterQueryArgs(req, {
             page: {type: 'int', min: 1, default: 1},
             limit: {type: 'int', min: 1, max: 100, default: 100},
@@ -197,6 +233,34 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                             description: 'Get all templates which implement that schema',
                             required: false,
                             schema: {type: 'string'}
+                        },
+                        {
+                            name: 'issued_supply',
+                            in: 'query',
+                            description: 'Filter by issued supply',
+                            required: false,
+                            schema: {type: 'number'}
+                        },
+                        {
+                            name: 'max_supply',
+                            in: 'query',
+                            description: 'Filter by max supply',
+                            required: false,
+                            schema: {type: 'number'}
+                        },
+                        {
+                            name: 'is_burnable',
+                            in: 'query',
+                            description: 'Filter by burnable',
+                            required: false,
+                            schema: {type: 'boolean'}
+                        },
+                        {
+                            name: 'is_transferable',
+                            in: 'query',
+                            description: 'Filter by transferable',
+                            required: false,
+                            schema: {type: 'boolean'}
                         },
                         {
                             name: 'authorized_account',

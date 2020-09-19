@@ -5,7 +5,7 @@ import { HTTPServer } from '../../../server';
 import { getOpenAPI3Responses } from '../../../docs';
 
 export function marketplacesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/marketplaces', server.web.caching(), async (_, res) => {
+    router.all('/v1/marketplaces', server.web.caching(), async (_, res) => {
         try {
             const query = await server.query(
                 'SELECT marketplace_name, creator, created_at_block, created_at_time FROM atomicmarket_marketplaces WHERE market_contract = $1',
@@ -18,7 +18,7 @@ export function marketplacesEndpoints(core: AtomicMarketNamespace, server: HTTPS
         }
     });
 
-    router.get('/v1/marketplaces/:name', server.web.caching(), async (req, res) => {
+    router.all('/v1/marketplaces/:name', server.web.caching(), async (req, res) => {
         try {
             const query = await server.query(
                 'SELECT marketplace_name, creator, created_at_block, created_at_time FROM atomicmarket_marketplaces WHERE market_contract = $1 AND marketplace_name = $2',

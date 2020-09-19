@@ -907,10 +907,10 @@ enhanced-resolve@^4.0.0:
     memory-fs "^0.5.0"
     tapable "^1.0.0"
 
-eosjs@^21.0.2:
-  version "21.0.2"
-  resolved "https://registry.yarnpkg.com/eosjs/-/eosjs-21.0.2.tgz#e2e675e13515f8a4b9947e968737452b1146fdfc"
-  integrity sha512-oRrjfzS6An825IupBGKnn9UXqVUSEpjKw5xH17OYtrlOoJdlDN97yuDITSTVOqBeryIBxHvss59FFgnx4c+YEg==
+eosjs@^21.0.3:
+  version "21.0.3"
+  resolved "https://registry.yarnpkg.com/eosjs/-/eosjs-21.0.3.tgz#126388f5045647f687fd0aacff4f08ed92d4369f"
+  integrity sha512-EO/lM1pvA1nohzmPnwyE6k5OvYqRo9ZkI6PfMI4npXkru04Nt/zBjcneNLFpRc7gg5W7vtGLzJeLB7NOFquDMg==
   dependencies:
     elliptic "6.5.3"
     hash.js "1.1.7"

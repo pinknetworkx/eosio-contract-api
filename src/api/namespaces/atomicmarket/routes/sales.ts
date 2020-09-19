@@ -15,7 +15,7 @@ import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { buildGreylistFilter, getLogs } from '../../atomicassets/utils';
 
 export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
-    router.get(['/v1/sales', '/v1/sales/_count'], server.web.caching(), async (req, res) => {
+    router.all(['/v1/sales', '/v1/sales/_count'], server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
@@ -106,7 +106,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     });
 
-    router.get('/v1/sales/:sale_id', server.web.caching(), async (req, res) => {
+    router.all('/v1/sales/:sale_id', server.web.caching(), async (req, res) => {
         try {
             const query = await server.query(
                 'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = $2',
@@ -127,7 +127,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     });
 
-    router.get('/v1/sales/:sale_id/logs', server.web.caching(), (async (req, res) => {
+    router.all('/v1/sales/:sale_id/logs', server.web.caching(), (async (req, res) => {
         const args = filterQueryArgs(req, {
             page: {type: 'int', min: 1, default: 1},
             limit: {type: 'int', min: 1, max: 100, default: 100},

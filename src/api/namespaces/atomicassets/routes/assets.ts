@@ -21,7 +21,7 @@ export class AssetApi {
     ) { }
 
     endpoints(router: express.Router): any {
-        router.get(['/v1/assets', '/v1/assets/_count'], this.server.web.caching(), (async (req, res) => {
+        router.all(['/v1/assets', '/v1/assets/_count'], this.server.web.caching(), (async (req, res) => {
             try {
                 const args = filterQueryArgs(req, {
                     page: {type: 'int', min: 1, default: 1},
@@ -181,7 +181,7 @@ export class AssetApi {
             }
         }));
 
-        router.get('/v1/assets/:asset_id', this.server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+        router.all('/v1/assets/:asset_id', this.server.web.caching({ignoreQueryString: true}), (async (req, res) => {
             try {
                 const assets = await fillAssets(
                     this.server, this.core.args.atomicassets_account,
@@ -199,7 +199,7 @@ export class AssetApi {
             }
         }));
 
-        router.get('/v1/assets/:asset_id/stats', this.server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+        router.all('/v1/assets/:asset_id/stats', this.server.web.caching({ignoreQueryString: true}), (async (req, res) => {
             try {
                 const assetQuery = await this.server.query(
                     'SELECT * FROM atomicassets_assets WHERE contract = $1 AND asset_id = $2',
@@ -223,7 +223,7 @@ export class AssetApi {
             }
         }));
 
-        router.get('/v1/assets/:asset_id/logs', this.server.web.caching(), (async (req, res) => {
+        router.all('/v1/assets/:asset_id/logs', this.server.web.caching(), (async (req, res) => {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100},

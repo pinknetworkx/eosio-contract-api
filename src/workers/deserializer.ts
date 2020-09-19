@@ -55,19 +55,11 @@ parentPort.on('message', (param: {type: string, data: Uint8Array | string}) => {
         return parentPort.postMessage(null);
     }
 
-    const data = deserialize(param.type, param.data);
+    try {
+        const data = deserialize(param.type, param.data);
 
-    if (param.type === 'table_delta[]') {
-        for (const delta of data) {
-            if (delta[0] === 'table_delta_v0') {
-                delta[1].rows = delta[1].rows.map((row: any) => ({
-                    ...row, data: deserialize(delta[1].name, row.data)
-                }));
-            } else {
-                throw Error('Unsupported table delta type received ' + delta[0]);
-            }
-        }
+        return parentPort.postMessage({success: true, data});
+    } catch (e) {
+        return parentPort.postMessage({success: false, message: String(e)});
     }
-
-    return parentPort.postMessage(data);
 });

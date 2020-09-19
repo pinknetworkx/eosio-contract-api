@@ -7,7 +7,7 @@ import { SaleState } from '../../../../filler/handlers/atomicmarket';
 import { filterQueryArgs } from '../../utils';
 
 export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/prices', server.web.caching(), async (req, res) => {
+    router.all('/v1/prices', server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 collection_name: {type: 'string', min: 1},

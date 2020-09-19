@@ -10,13 +10,20 @@ export type FilterDefinition = {
     }
 };
 
-export function filterQueryArgs(req: express.Request, filter: FilterDefinition, keyType: string = 'query'): {[key: string]: any} {
+export function filterQueryArgs(req: express.Request, filter: FilterDefinition, keyType: string = null): {[key: string]: any} {
     const keys = Object.keys(filter);
     const result: {[key: string]: any} = {};
 
     for (const key of keys) {
-        // @ts-ignore
-        const data = req[keyType] ? req[keyType][key] : undefined;
+        let data;
+        if (keyType) {
+            // @ts-ignore
+            data = req[keyType] ? req[keyType][key] : undefined;
+        } else if (typeof req.query[key] !== 'undefined') {
+            data = req.query[key];
+        } else if (typeof req.body[key] !== 'undefined') {
+            data = req.body[key];
+        }
 
         if (typeof data !== 'string') {
             result[key] = filter[key].default;

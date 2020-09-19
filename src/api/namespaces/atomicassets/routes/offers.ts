@@ -24,7 +24,7 @@ export class OfferApi {
     ) { }
 
     endpoints(router: express.Router): any {
-        router.get(['/v1/offers', '/v1/offers/_count'], this.server.web.caching(), (async (req, res) => {
+        router.all(['/v1/offers', '/v1/offers/_count'], this.server.web.caching(), (async (req, res) => {
             try {
                 const args = filterQueryArgs(req, {
                     page: {type: 'int', min: 1, default: 1},
@@ -159,7 +159,7 @@ export class OfferApi {
             }
         }));
 
-        router.get('/v1/offers/:offer_id', this.server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+        router.all('/v1/offers/:offer_id', this.server.web.caching({ignoreQueryString: true}), (async (req, res) => {
             try {
                 const query = await this.server.query(
                     'SELECT * FROM atomicassets_offers_master WHERE contract = $1 AND offer_id = $2',
@@ -182,7 +182,7 @@ export class OfferApi {
             }
         }));
 
-        router.get('/v1/offers/:offer_id/logs', this.server.web.caching(), (async (req, res) => {
+        router.all('/v1/offers/:offer_id/logs', this.server.web.caching(), (async (req, res) => {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100},

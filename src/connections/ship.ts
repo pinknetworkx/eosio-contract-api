@@ -15,6 +15,7 @@ export type BlockConsumer = (block: ShipBlockResponse) => any;
 
 export default class StateHistoryBlockReader {
     currentArgs: BlockRequestType;
+    deltaWhitelist: string[];
 
     abi: Abi;
     types: Map<string, Serialize.Type>;
@@ -48,10 +49,18 @@ export default class StateHistoryBlockReader {
         this.abi = null;
         this.types = null;
         this.tables = new Map();
+
+        this.deltaWhitelist = [];
     }
 
-    setOptions(options: IBlockReaderOptions): void {
-        this.options = {...this.options, ...options};
+    setOptions(options?: IBlockReaderOptions, deltas?: string[]): void {
+        if (options) {
+            this.options = {...this.options, ...options};
+        }
+
+        if (deltas) {
+            this.deltaWhitelist = deltas;
+        }
     }
 
     connect(): void {
@@ -161,19 +170,19 @@ export default class StateHistoryBlockReader {
 
                     if (response.this_block) {
                         if (response.block) {
-                            block = this.deserializeWorkers.exec({type: 'signed_block', data: response.block});
+                            block = this.deserializeParallel('signed_block', response.block);
                         } else {
                             logger.warn('Block #' + response.this_block.block_num + ' does not contain block data');
                         }
 
                         if (response.traces) {
-                            traces = this.deserializeWorkers.exec({type: 'transaction_trace[]', data: response.traces});
+                            traces = this.deserializeParallel('transaction_trace[]', response.traces);
                         } else {
                             logger.warn('Block #' + response.this_block.block_num + ' does not contain trace data');
                         }
 
                         if (response.deltas) {
-                            deltas = this.deserializeWorkers.exec({type: 'table_delta[]', data: response.deltas});
+                            deltas = this.deserializeDeltas(response.deltas);
                         } else {
                             logger.warn('Block #' + response.this_block.block_num + ' does not contain delta data');
                         }
@@ -195,13 +204,12 @@ export default class StateHistoryBlockReader {
                                 traces: await traces,
                                 deltas: await deltas
                             });
-                        } catch (e) {
+                        } catch (error) {
                             // abort reader if error is thrown
                             this.blocksQueue.clear();
                             this.blocksQueue.pause();
 
-                            logger.error('Ship blocks queue stopped duo to an error');
-                            logger.error(e);
+                            logger.error('Ship blocks queue stopped duo to an error', error);
 
                             return;
                         }
@@ -256,7 +264,7 @@ export default class StateHistoryBlockReader {
         this.send(['get_blocks_request_v0', this.currentArgs]);
     }
 
-    startProcessing(request: BlockRequestType = {}): void {
+    startProcessing(request: BlockRequestType = {}, deltas: string[] = []): void {
         this.currentArgs = {
             start_block_num: 0,
             end_block_num: 0xffffffff,
@@ -268,6 +276,7 @@ export default class StateHistoryBlockReader {
             fetch_deltas: false,
             ...request
         };
+        this.deltaWhitelist = deltas;
         this.stopped = false;
 
         if (this.connected && this.abi) {
@@ -314,5 +323,39 @@ export default class StateHistoryBlockReader {
 
     consume(consumer: BlockConsumer): void {
         this.consumer = consumer;
+    }
+
+    private async deserializeParallel(type: string, data: Uint8Array): Promise<any> {
+        const result = await this.deserializeWorkers.exec({type, data});
+
+        if (result.success) {
+            return result.data;
+        }
+
+        throw new Error(result.message);
+    }
+
+    private async deserializeDeltas(data: Uint8Array): Promise<any> {
+        const deltas = await this.deserializeParallel('table_delta[]', data);
+
+        return await Promise.all(deltas.map(async (delta: any) => {
+            if (delta[0] === 'table_delta_v0') {
+                if (this.deltaWhitelist.indexOf(delta[1].name) >= 0) {
+                    return [
+                        delta[0],
+                        {
+                            ...delta[1],
+                            rows: await Promise.all(delta[1].rows.map(async (row: any) => ({
+                                ...row, data: await this.deserializeParallel(delta[1], row.data)
+                            })))
+                        }
+                    ];
+                }
+
+                return delta;
+            }
+
+            throw Error('Unsupported table delta type received ' + delta[0]);
+        }));
     }
 }

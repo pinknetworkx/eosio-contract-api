@@ -22,7 +22,7 @@ export class TransferApi {
     ) { }
 
     endpoints(router: express.Router): any {
-        router.get(['/v1/transfers', '/v1/transfers/_count'], this.server.web.caching(), (async (req, res) => {
+        router.all(['/v1/transfers', '/v1/transfers/_count'], this.server.web.caching(), (async (req, res) => {
             try {
                 const args = filterQueryArgs(req, {
                     page: {type: 'int', min: 1, default: 1},
