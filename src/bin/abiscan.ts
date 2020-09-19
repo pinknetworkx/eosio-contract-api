@@ -4,6 +4,7 @@ import ConnectionManager from '../connections/manager';
 import logger from '../utils/winston';
 import { IConnectionsConfig } from '../types/config';
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const connectionConfig: IConnectionsConfig = require('../../config/connections.config.json');
 
 const endpoint = process.env.HYPERION;
@@ -36,6 +37,7 @@ const connection = new ConnectionManager(connectionConfig);
     let lastSequence = 0;
     let nextSequence = 0;
 
+    // eslint-disable-next-line no-constant-condition
     while (true) {
         logger.info('Fetch ABIs and Codes after ' + timestamp + '...');
 

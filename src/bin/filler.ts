@@ -6,7 +6,9 @@ import ConnectionManager from '../connections/manager';
 import logger from '../utils/winston';
 import { IConnectionsConfig, IReaderConfig } from '../types/config';
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const readerConfigs: IReaderConfig[] = require('../../config/readers.config.json');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const connectionConfig: IConnectionsConfig = require('../../config/connections.config.json');
 
 if (cluster.isMaster) {

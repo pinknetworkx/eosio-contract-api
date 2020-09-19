@@ -209,12 +209,8 @@ export default class AtomicMarketHandler extends ContractHandler {
         }
 
         setTimeout(async () => {
-            while (true) {
+            while (this.materializedViewRefresh) {
                 try {
-                    if (!this.materializedViewRefresh) {
-                        return;
-                    }
-
                     for (const view of materializedViews) {
                         const key = 'eosio-contract-api:' + this.connection.chain.name + ':' + this.connection.database.name + ':' + view;
 

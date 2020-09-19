@@ -79,7 +79,7 @@ export default class StateHistoryBlockReader {
     }
 
     reconnect(): void {
-        logger.info(`Reconnecting to Ship...`);
+        logger.info('Reconnecting to Ship...');
 
         setTimeout(() => {
             this.connect();
@@ -239,7 +239,7 @@ export default class StateHistoryBlockReader {
     }
 
     async onClose(): Promise<void> {
-        console.error(`Websocket disconnected`);
+        console.error('Websocket disconnected');
 
         await this.ws.terminate();
 

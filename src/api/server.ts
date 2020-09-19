@@ -18,6 +18,7 @@ import logger from '../utils/winston';
 import { expressRedisCache, ExpressRedisCacheHandler } from '../utils/cache';
 import { eosioTimestampToDate } from '../utils/eosio';
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson: any = require('../../package.json');
 
 export class HTTPServer {

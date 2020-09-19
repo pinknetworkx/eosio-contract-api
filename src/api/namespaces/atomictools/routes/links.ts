@@ -43,13 +43,11 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
             }
 
             if (args.public_key) {
-                try {
-                    const key = Numeric.stringToPublicKey(args.public_key);
+                const key = Numeric.stringToPublicKey(args.public_key);
 
-                    queryString += 'AND key_type = $' + ++varCounter + ' AND key_data = $' + ++varCounter + ' ';
-                    queryValues.push(key.type.valueOf());
-                    queryValues.push(key.data);
-                } catch (e) { }
+                queryString += 'AND key_type = $' + ++varCounter + ' AND key_data = $' + ++varCounter + ' ';
+                queryValues.push(key.type.valueOf());
+                queryValues.push(key.data);
             }
 
             if (args.state) {

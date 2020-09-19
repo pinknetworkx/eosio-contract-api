@@ -119,7 +119,7 @@ export class ContractDBTransaction {
     }
 
     async insert(
-        table: string, values: object, primaryKey: string[], reversible: boolean = true, lock: boolean = true
+        table: string, values: Record<string, any>, primaryKey: string[], reversible: boolean = true, lock: boolean = true
     ): Promise<QueryResult> {
         await this.acquireLock(lock);
 
@@ -279,7 +279,7 @@ export class ContractDBTransaction {
     }
 
     async replace(
-        table: string, values: object, primaryKey: string[], updateBlacklist: string[] = [],
+        table: string, values: Record<string, any>, primaryKey: string[], updateBlacklist: string[] = [],
         reversible: boolean = true, lock: boolean = true
     ): Promise<QueryResult> {
         await this.acquireLock(lock);

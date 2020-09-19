@@ -8,6 +8,7 @@ type BearerTokenOptions = {
 };
 
 declare global {
+    // eslint-disable-next-line @typescript-eslint/no-namespace
     namespace Express {
         interface Request {
             authorizedAccount: string;
@@ -38,7 +39,8 @@ export function bearerToken(connection: ConnectionManager, options: BearerTokenO
 
                         return next();
                     }
-                } catch (e) { }
+                    // eslint-disable-next-line no-empty
+                } catch { }
             }
         }
 

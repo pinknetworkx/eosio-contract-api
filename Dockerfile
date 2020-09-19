@@ -1,4 +1,4 @@
-FROM node:14.4-alpine
+FROM node:14.11-alpine
 
 RUN adduser --disabled-password application && \
   mkdir -p /home/application/app/ && \
