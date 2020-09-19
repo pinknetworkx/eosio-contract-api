@@ -144,7 +144,7 @@ export class WebServer {
     private routes(): void {
         const router = express.Router();
 
-        router.get('/health', this.caching() , async (_: express.Request, res: express.Response) => {
+        router.get(['/health', '/eosio-contract-api/health'], this.caching() , async (_: express.Request, res: express.Response) => {
             let databaseHealth = {status: 'INVALID', readers: <string[]>[]};
 
             try {
