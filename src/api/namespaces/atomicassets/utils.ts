@@ -26,16 +26,12 @@ export function buildDataConditions(
 
     const query: {[key: string]: string | number} = {};
     for (const key of keys) {
-        if (key.startsWith('data.')) {
-            query[key.substr('data.'.length)] = String(args[key]);
-        }
-
         if (key.startsWith('data::text.')) {
             query[key.substr('data::text.'.length)] = String(args[key]);
-        }
-
-        if (key.startsWith('data::number.')) {
+        } else if (key.startsWith('data::number.')) {
             query[key.substr('data::number.'.length)] = parseFloat(args[key]);
+        } else if (key.startsWith('data.')) {
+            query[key.substr('data.'.length)] = String(args[key]);
         }
     }
 
