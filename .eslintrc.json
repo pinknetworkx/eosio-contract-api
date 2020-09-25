@@ -16,7 +16,9 @@
     "@typescript-eslint/no-inferrable-types": 0,
     "@typescript-eslint/no-empty-function": 0,
     "@typescript-eslint/no-unused-vars": [2, {"args": "after-used", "argsIgnorePattern": "^_"}],
+    "@typescript-eslint/explicit-function-return-type": 2,
     "no-async-promise-executor": 0,
-    "quotes": ["error", "single"]
+    "quotes": [2, "single"],
+    "semi": [2, "always"]
   }
 }

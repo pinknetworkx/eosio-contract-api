@@ -15,7 +15,7 @@ export function expressRedisCache(
     redis: NodeRedis.RedisClient, prefix: string, expire: number, whitelistedIPs?: string[]
 ): ExpressRedisCacheHandler {
     return (options: ExpressRedisCacheOptions = {}) => {
-        return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        return (req: express.Request, res: express.Response, next: express.NextFunction): void => {
             const cacheLife = options.expire ? options.expire : expire;
 
             if (cacheLife === 0) {

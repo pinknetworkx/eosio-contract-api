@@ -18,7 +18,7 @@ declare global {
 }
 
 export function bearerToken(connection: ConnectionManager, options: BearerTokenOptions = {}): express.RequestHandler {
-    return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    return async (req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> => {
         const header = req.header('authorization');
 
         if (typeof header === 'string') {

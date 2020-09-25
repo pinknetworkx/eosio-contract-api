@@ -12,7 +12,7 @@ logger.info('Starting API Server...');
 
 const connection = new ConnectionManager(connectionConfig);
 
-(async () => {
+(async (): Promise<void> => {
     if (!(await connection.chain.checkChainId())) {
         logger.error('Chain Id in config mismatches node chain id. Stopping API...');
 

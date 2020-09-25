@@ -35,7 +35,7 @@ export default class StateHistoryBlockReader {
 
     constructor(
         private readonly endpoint: string,
-        private options: IBlockReaderOptions = {min_block_confirmation: 1, ds_threads: 4, ds_experimental: true}
+        private options: IBlockReaderOptions = {min_block_confirmation: 1, ds_threads: 4, ds_experimental: false}
     ) {
         this.connected = false;
         this.connecting = false;
@@ -171,19 +171,19 @@ export default class StateHistoryBlockReader {
                     if (response.this_block) {
                         if (response.block) {
                             block = this.deserializeParallel('signed_block', response.block);
-                        } else {
+                        } else if(this.currentArgs.fetch_block) {
                             logger.warn('Block #' + response.this_block.block_num + ' does not contain block data');
                         }
 
                         if (response.traces) {
                             traces = this.deserializeParallel('transaction_trace[]', response.traces);
-                        } else {
+                        } else if(this.currentArgs.fetch_traces) {
                             logger.warn('Block #' + response.this_block.block_num + ' does not contain trace data');
                         }
 
                         if (response.deltas) {
                             deltas = this.deserializeDeltas(response.deltas);
-                        } else {
+                        } else if(this.currentArgs.fetch_deltas) {
                             logger.warn('Block #' + response.this_block.block_num + ' does not contain delta data');
                         }
                     }
@@ -239,7 +239,7 @@ export default class StateHistoryBlockReader {
     }
 
     async onClose(): Promise<void> {
-        console.error('Websocket disconnected');
+        logger.error('Ship Websocket disconnected');
 
         await this.ws.terminate();
 

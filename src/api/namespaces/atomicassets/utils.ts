@@ -21,28 +21,32 @@ export async function getLogs(
 
 export function buildDataConditions(
     args: any, varCounter: number = 0, column: string
-): {conditions: string[], values: any[]} {
+): {str: string, values: any[]} | null {
     const keys = Object.keys(args);
-    const dataConditions = [];
-    const queryValues = [];
 
+    const query: {[key: string]: string | number} = {};
     for (const key of keys) {
         if (key.startsWith('data.')) {
-            const keyVar = ++varCounter;
-            const valVar = ++varCounter;
+            query[key.substr('data.'.length)] = String(args[key]);
+        }
 
-            dataConditions.push(
-                `(${column}->>$${keyVar} IS NOT NULL AND ${column}->>$${keyVar} = $${valVar})`
-            );
+        if (key.startsWith('data::text.')) {
+            query[key.substr('data::text.'.length)] = String(args[key]);
+        }
 
-            queryValues.push(key.substr('data.'.length), args[key]);
+        if (key.startsWith('data::number.')) {
+            query[key.substr('data::number.'.length)] = parseFloat(args[key]);
         }
     }
 
-    return {
-        conditions: dataConditions,
-        values: queryValues
-    };
+    if (Object.keys(query).length > 0) {
+        return {
+            str: ' ' + column + ' @> $' + ++varCounter + '::jsonb ',
+            values: [JSON.stringify(query)]
+        };
+    }
+
+    return null;
 }
 
 export function buildAssetFilter(
@@ -64,11 +68,14 @@ export function buildAssetFilter(
 
     const conditions = [];
     if (args.collection_name) {
-        const data = buildDataConditions(req.query, varCounter, '"data_table".data');
+        const dataCondition = buildDataConditions(req.query, varCounter, '"data_table".data');
 
-        queryValues = queryValues.concat(data.values);
-        varCounter += data.values.length;
-        conditions.push(...data.conditions);
+        if (dataCondition) {
+            queryValues = queryValues.concat(dataCondition.values);
+            varCounter += dataCondition.values.length;
+
+            conditions.push(dataCondition.str);
+        }
     }
 
     if (args.match) {

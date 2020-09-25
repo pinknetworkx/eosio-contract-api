@@ -267,6 +267,7 @@ CREATE INDEX atomicassets_templates_contract ON atomicassets_templates USING btr
 CREATE INDEX atomicassets_templates_template_id ON atomicassets_templates USING btree (template_id);
 CREATE INDEX atomicassets_templates_collection_name ON atomicassets_templates USING btree (collection_name);
 CREATE INDEX atomicassets_templates_schema_name ON atomicassets_templates USING btree (schema_name);
+CREATE INDEX atomicassets_templates_immutable_data_gin ON atomicassets_templates USING gin (immutable_data);
 CREATE INDEX atomicassets_templates_created_at_block ON atomicassets_templates USING btree (created_at_block);
 CREATE INDEX atomicassets_templates_created_at_time ON atomicassets_templates USING btree (created_at_time);
 

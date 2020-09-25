@@ -115,7 +115,6 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             }
 
             queryString += hideOfferAssets(req);
-
             queryString += 'GROUP BY collection_name ORDER BY assets DESC';
 
             const query = await server.query(queryString, queryValues);
