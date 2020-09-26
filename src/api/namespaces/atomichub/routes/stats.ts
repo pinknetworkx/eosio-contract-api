@@ -157,7 +157,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 assets = await fillAssets(
                     server, core.args.atomicassets_account,
                     query.rows.map(row => row.asset_id),
-                    formatListingAsset, 'atomicmarket_assets_master'
+                    formatListingAsset, 'atomicassets_assets_master'
                 );
             }
 

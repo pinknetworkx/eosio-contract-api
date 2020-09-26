@@ -109,7 +109,7 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
             const assets = await fillAssets(
                 server, core.args.atomicassets_account,
                 query.rows.map(row => row.asset_id),
-                formatListingAsset, 'atomicmarket_assets_master'
+                formatListingAsset, 'atomicassets_assets_master'
             );
 
             return res.json({success: true, data: assets, query_time: Date.now()});

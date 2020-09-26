@@ -80,24 +80,63 @@ export async function hookAssetFiller(server: HTTPServer, contract: string, rows
             'auction_asset.assets_contract = $1 AND auction_asset.asset_id = ANY($2) AND ' +
             'auction.state = ' + AuctionState.LISTED.valueOf() + ' AND auction.end_time > ' + Date.now(),
             [contract, assetIDs]
+        ),
+        server.query(
+            'SELECT DISTINCT ON (price.market_contract, price.collection_name, price.template_id, price.symbol) ' +
+                'price.market_contract, asset.collection_name, asset.template_id, ' +
+                'token.token_symbol, token.token_precision, token.token_contract, ' +
+                'price.median, price.average, price.min, price.max, price.sales ' +
+            'FROM atomicassets_assets asset, atomicmarket_template_prices price, atomicmarket_tokens token ' +
+            'WHERE asset.contract = price.assets_contract AND asset.collection_name = price.collection_name AND ' +
+                'asset.template_id = price.template_id AND asset.template_id IS NOT NULL AND ' +
+                'price.market_contract = token.market_contract AND price.symbol = token.token_symbol AND ' +
+                'asset.contract = $1 AND asset.asset_id = ANY($2)',
+            [contract, assetIDs] 
         )
     ]);
 
-    const data: {[key: string]: {sales: any[], auctions: any[]}} = {};
+    const assetData: {[key: string]: {sales: any[], auctions: any[]}} = {};
+    const templateData: {[key: string]: {prices: any[]}} = {};
 
     for (const row of rows) {
-        data[row.asset_id] = {sales: [], auctions: []};
+        assetData[row.asset_id] = {sales: [], auctions: []};
+    }
+
+    for (const row of rows) {
+        if (!row.template) {
+            continue;
+        }
+
+        templateData[row.collection.collection_name + ':' + row.template.template_id] = {prices: []};
     }
 
     for (const row of queries[0].rows) {
-        data[row.asset_id].sales.push({market_contract: row.market_contract, sale_id: row.sale_id});
+        assetData[row.asset_id].sales.push({market_contract: row.market_contract, sale_id: row.sale_id});
     }
 
     for (const row of queries[1].rows) {
-        data[row.asset_id].auctions.push({market_contract: row.market_contract, auction: row.sale_id});
+        assetData[row.asset_id].auctions.push({market_contract: row.market_contract, auction: row.sale_id});
     }
 
-    return rows.map(row => ({
-        ...row, ...data[row.asset_id]
-    }));
+    for (const row of queries[2].rows) {
+        templateData[row.collection_name + ':' + row.template_id].prices.push({
+            market_contract: row.market_contract,
+            token: {
+                token_symbol: row.token_symbol,
+                token_precision: row.token_precision,
+                token_contract: row.token_contract,
+            },
+            median: row.median,
+            average: row.average,
+            min: row.min,
+            max: row.max,
+            sales: row.sales,
+        });
+    }
+
+    return rows.map(row => {
+        const data = row.template ? templateData[row.collection_name + ':' + row.template_id] : {};
+
+        return {...row, ...assetData[row.asset_id], ...data};
+    });
 }
