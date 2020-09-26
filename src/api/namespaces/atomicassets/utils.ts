@@ -79,7 +79,7 @@ export function buildAssetFilter(
     let queryValues: any[] = [];
     let varCounter = varOffset;
 
-    if (options.allowDataFilter) {
+    if (options.allowDataFilter !== false) {
         const dataConditions = buildDataConditions(
             mergeRequestData(req), varCounter, '"data_table".data'
         );
