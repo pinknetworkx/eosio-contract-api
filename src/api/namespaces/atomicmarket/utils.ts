@@ -1,16 +1,28 @@
 import * as express from 'express';
 
-import { filterQueryArgs } from '../utils';
-import { buildAssetFilter } from '../atomicassets/utils';
+import { filterQueryArgs, mergeRequestData } from '../utils';
+import { buildAssetFilter, buildDataConditions } from '../atomicassets/utils';
 import { AuctionApiState, SaleApiState } from './index';
 import { AuctionState, SaleState } from '../../../filler/handlers/atomicmarket';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 
 function hasAssetFilter(req: express.Request): boolean {
-    const keys = Object.keys(req.query);
+    const keys = Object.keys(mergeRequestData(req));
 
     for (const key of keys) {
-        if (['template_id', 'schema_name', 'owner', 'match'].indexOf(key) >= 0) {
+        if (['template_id', 'schema_name', 'owner', 'is_transferable', 'is_burnable'].indexOf(key) >= 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function hasDataFilters(req: express.Request): boolean {
+    const keys = Object.keys(mergeRequestData(req));
+
+    for (const key of keys) {
+        if (['match'].indexOf(key) >= 0) {
             return true;
         }
 
@@ -157,11 +169,11 @@ export function buildSaleFilter(
     varCounter += listingFilter.values.length;
 
     if (hasAssetFilter(req)) {
-        const filter = buildAssetFilter(req, varCounter, '"asset"');
+        const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', allowDataFilter: false});
 
         queryString += 'AND EXISTS(' +
-                'SELECT asset.asset_id ' +
-                'FROM atomicassets_assets asset, atomicassets_offers_assets offer_asset ' +
+                'SELECT * ' +
+                'FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
                 'WHERE ' +
                     'asset.contract = offer_asset.contract AND asset.asset_id = offer_asset.asset_id AND ' +
                     'offer_asset.offer_id = listing.offer_id AND offer_asset.contract = listing.assets_contract ' + filter.str + ' ' +
@@ -169,6 +181,23 @@ export function buildSaleFilter(
 
         queryValues.push(...filter.values);
         varCounter += filter.values.length;
+    }
+
+    if (hasDataFilters(req)) {
+        const dataConditions = buildDataConditions(req, varCounter, '"asset_data"."data"');
+
+        if (dataConditions) {
+            queryString += 'AND EXISTS(' +
+                'SELECT * ' +
+                'FROM atomicassets_offers_assets offer_asset, atomicassets_asset_data asset_data ' +
+                'WHERE ' +
+                'asset_data.contract = offer_asset.contract AND asset_data.asset_id = offer_asset.asset_id AND ' +
+                'offer_asset.offer_id = listing.offer_id AND offer_asset.contract = listing.assets_contract ' + dataConditions.str + ' ' +
+                ') ';
+
+            queryValues.push(...dataConditions.values);
+            varCounter += dataConditions.values.length;
+        }
     }
 
     if (args.max_assets) {
@@ -269,10 +298,10 @@ export function buildAuctionFilter(
     varCounter += listingFilter.values.length;
 
     if (hasAssetFilter(req)) {
-        const filter = buildAssetFilter(req, varCounter, '"asset"', '"template"');
+        const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', allowDataFilter: false});
 
         queryString += 'AND EXISTS(' +
-                'SELECT asset.asset_id ' +
+                'SELECT * ' +
                 'FROM atomicassets_assets asset, atomicmarket_auctions_assets auction_asset ' +
                 'WHERE ' +
                     'asset.contract = auction_asset.assets_contract AND asset.asset_id = auction_asset.asset_id AND ' +
@@ -282,6 +311,24 @@ export function buildAuctionFilter(
 
         queryValues.push(...filter.values);
         varCounter += filter.values.length;
+    }
+
+    if (hasDataFilters(req)) {
+        const dataConditions = buildDataConditions(req, varCounter, '"asset_data"."data"');
+
+        if (dataConditions) {
+            queryString += 'AND EXISTS(' +
+                'SELECT * ' +
+                'FROM atomicmarket_auctions_assets auction_asset, atomicassets_asset_data asset_data ' +
+                'WHERE ' +
+                'asset_data.contract = auction_asset.assets_contract AND asset_data.asset_id = auction_asset.asset_id AND ' +
+                'auction_asset.auction_id = listing.auction_id AND ' +
+                'auction_asset.market_contract = listing.market_contract ' + dataConditions.str + ' ' +
+                ') ';
+
+            queryValues.push(...dataConditions.values);
+            varCounter += dataConditions.values.length;
+        }
     }
 
     if (args.max_assets) {

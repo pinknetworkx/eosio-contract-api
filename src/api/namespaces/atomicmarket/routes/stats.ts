@@ -2,7 +2,7 @@ import * as express from 'express';
 
 import { AtomicMarketNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { filterQueryArgs } from '../../utils';
+import { filterQueryArgs, mergeRequestData } from '../../utils';
 import { formatCollection } from '../../atomicassets/format';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
 import { atomicassetsComponents } from '../../atomicassets/openapi';
@@ -221,14 +221,15 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
     router.all('/v1/stats/collections/:collection_name', server.web.caching(), async (req, res) => {
         try {
-            const symbol = await fetchSymbol(String(req.query.symbol));
+            const data = mergeRequestData(req);
+            const symbol = await fetchSymbol(String(data.symbol));
 
             if (symbol === null) {
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
             const queryString = 'SELECT * FROM (' + getCollectionStatsQuery() + ') x WHERE x.collection_name = $3 ';
-            const queryValues = [core.args.atomicassets_account, req.query.symbol, req.params.collection_name];
+            const queryValues = [core.args.atomicassets_account, data.symbol, req.params.collection_name];
 
             const query = await server.query(queryString, queryValues);
 
@@ -294,14 +295,15 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
     router.all('/v1/stats/accounts/:account', server.web.caching(), async (req, res) => {
         try {
-            const symbol = await fetchSymbol(String(req.query.symbol));
+            const data = mergeRequestData(req);
+            const symbol = await fetchSymbol(String(data.symbol));
 
             if (symbol === null) {
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
             const queryString = 'SELECT * FROM (' + getAccountStatsQuery() + ') x WHERE x.account = $3 ';
-            const queryValues = [core.args.atomicmarket_account, req.query.symbol, req.params.account];
+            const queryValues = [core.args.atomicmarket_account, data.symbol, req.params.account];
 
             const query = await server.query(queryString, queryValues);
 
@@ -401,14 +403,15 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
     router.all('/v1/stats/graph', server.web.caching(), async (req, res) => {
         try {
-            const symbol = await fetchSymbol(String(req.query.symbol));
+            const data = mergeRequestData(req);
+            const symbol = await fetchSymbol(String(data.symbol));
 
             if (symbol === null) {
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
             const queryString = getGraphStatsQuery();
-            const queryValues = [core.args.atomicmarket_account, req.query.symbol];
+            const queryValues = [core.args.atomicmarket_account, data.symbol];
 
             const query = await server.query(queryString, queryValues);
 
@@ -424,7 +427,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
     router.all('/v1/stats/sales', server.web.caching(), async (req, res) => {
         try {
-            const symbol = await fetchSymbol(String(req.query.symbol));
+            const data = mergeRequestData(req);
+            const symbol = await fetchSymbol(String(data.symbol));
 
             if (symbol === null) {
                 return res.status(500).json({success: false, message: 'Symbol not found'});
@@ -434,7 +438,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 SELECT SUM(final_price) volume, COUNT(*) sales FROM atomicmarket_sales 
                 WHERE market_contract = $1 and settlement_symbol = $2 AND state = ${SaleState.SOLD.valueOf()}
             `;
-            const queryValues = [core.args.atomicmarket_account, req.query.symbol];
+            const queryValues = [core.args.atomicmarket_account, data.symbol];
 
             const query = await server.query(queryString, queryValues);
 

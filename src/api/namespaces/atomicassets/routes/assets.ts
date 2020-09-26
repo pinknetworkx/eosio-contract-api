@@ -123,7 +123,7 @@ export class AssetApi {
                     queryValues.push(args.max_collection_mint);
                 }
 
-                const assetFilter = buildAssetFilter(req, varCounter, '"asset"', '"template"');
+                const assetFilter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', templateTable: '"template"'});
                 queryValues = queryValues.concat(assetFilter.values);
                 varCounter += assetFilter.values.length;
                 queryString += assetFilter.str;

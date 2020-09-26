@@ -3,7 +3,7 @@ import * as express from 'express';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { buildGreylistFilter, buildDataConditions, getLogs } from '../utils';
-import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
+import { buildBoundaryFilter, filterQueryArgs, mergeRequestData } from '../../utils';
 import { formatTemplate } from '../format';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { atomicDataFilter, greylistFilterParameters } from '../openapi';
@@ -24,9 +24,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                 issued_supply: {type: 'int', min: 0},
                 max_supply: {type: 'int', min: 0},
                 is_transferable: {type: 'bool'},
-                is_burnable: {type: 'bool'},
-
-                match: {type: 'string', min: 1}
+                is_burnable: {type: 'bool'}
             });
 
             let varCounter = 1;
@@ -34,10 +32,10 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             let queryValues: any[] = [core.args.atomicassets_account];
 
             if (args.collection_name) {
-                const dataCondition = buildDataConditions(req.query, varCounter, '"template".immutable_data');
+                const dataCondition = buildDataConditions(mergeRequestData(req), varCounter, '"template".immutable_data');
 
                 if (dataCondition) {
-                    queryString += 'AND ' + dataCondition.str + ' ';
+                    queryString += dataCondition.str;
                     queryValues = queryValues.concat(dataCondition.values);
                     varCounter += dataCondition.values.length;
                 }
@@ -91,11 +89,6 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                     'AND $' + ++varCounter + ' = ANY(collection.authorized_accounts)' +
                     ') ';
                 queryValues.push(args.authorized_account);
-            }
-
-            if (args.match) {
-                queryString += 'AND POSITION($' + ++varCounter + ' IN LOWER("template".immutable_data->>\'name\')) > 0 ';
-                queryValues.push(args.match.toLowerCase());
             }
 
             const boundaryFilter = buildBoundaryFilter(

@@ -10,19 +10,22 @@ export type FilterDefinition = {
     }
 };
 
+export function mergeRequestData(req: express.Request): {[key: string]: any} {
+    return Object.assign({}, req.query || {}, req.body || {});
+}
+
 export function filterQueryArgs(req: express.Request, filter: FilterDefinition, keyType: string = null): {[key: string]: any} {
     const keys = Object.keys(filter);
     const result: {[key: string]: any} = {};
+    const merged = mergeRequestData(req);
 
     for (const key of keys) {
         let data;
         if (keyType) {
             // @ts-ignore
             data = req[keyType] ? req[keyType][key] : undefined;
-        } else if (typeof req.query[key] !== 'undefined') {
-            data = req.query[key];
-        } else if (typeof req.body[key] !== 'undefined') {
-            data = req.body[key];
+        } else {
+            data = merged[key];
         }
 
         if (typeof data !== 'string') {

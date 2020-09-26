@@ -77,7 +77,7 @@ export function watchlistEndpoints(core: AtomicHubNamespace, server: HTTPServer,
 
             let queryValues: any[] = [core.args.atomicassets_account, req.params.account];
 
-            const filter = buildAssetFilter(req, varCounter, '"asset"', '"template"');
+            const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', templateTable: '"template"'});
 
             queryValues = queryValues.concat(filter.values);
             varCounter += filter.values.length;
