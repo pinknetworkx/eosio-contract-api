@@ -91,7 +91,7 @@ export async function hookAssetFiller(server: HTTPServer, contract: string, rows
                 'asset.template_id = price.template_id AND asset.template_id IS NOT NULL AND ' +
                 'price.market_contract = token.market_contract AND price.symbol = token.token_symbol AND ' +
                 'asset.contract = $1 AND asset.asset_id = ANY($2)',
-            [contract, assetIDs] 
+            [contract, assetIDs]
         )
     ]);
 
