@@ -5,7 +5,7 @@ import fetch from 'node-fetch';
 import logger from '../src/utils/winston';
 
 describe('Endpoints Test', () => {
-    const endpoint = 'https://test.wax.api.atomicassets.io';
+    const endpoint = 'https://wax.api.atomicassets.io';
 
     async function testEndpoint(namespace: string, path: string, params: any): Promise<number> {
         const url = endpoint + '/' + namespace + path + '?' + Object.keys(params).map(key => key + '=' + params[key]).join('&');
@@ -259,7 +259,7 @@ describe('Endpoints Test', () => {
         expect(await testEndpoint(namespace, '/v1/links', {
             creator: 'test',
             claimer: 'test',
-            public_key: 'test',
+            public_key: 'EOS82UneDp9v87RPRXVgqHEvywAb6zMiXYYDvyVwRbWcvrUmuY5pQ',
             state: '0,1,2,3',
             page: 1,
             limit: 10,
@@ -289,7 +289,7 @@ describe('Endpoints Test', () => {
             schema_name: 'test'
         })).to.equal(200);
         expect(await testEndpoint(namespace, '/v1/sales/suggestions', {
-            sale_id: 100000
+            sale_id: 10000000
         })).to.equal(416);
         expect(await testEndpoint(namespace, '/v1/sales/suggestions', {
             collection_name: 'test',

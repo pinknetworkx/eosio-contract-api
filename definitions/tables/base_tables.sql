@@ -21,6 +21,14 @@ CREATE TABLE contract_readers (
     CONSTRAINT contract_readers_pkey PRIMARY KEY (name)
 );
 
+CREATE TABLE dbinfo (
+    "name" character varying(64) NOT NULL,
+    "value" text NOT NULL,
+    updated bigint NOT NULL,
+    CONSTRAINT dbinfo_pkey PRIMARY KEY (name)
+);
+INSERT INTO dbinfo ("name", "value", updated) VALUES ('version', '1.0.0', extract(epoch from current_timestamp)::bigint);
+
 CREATE SEQUENCE reversible_queries_id_seq;
 CREATE TABLE reversible_queries
 (

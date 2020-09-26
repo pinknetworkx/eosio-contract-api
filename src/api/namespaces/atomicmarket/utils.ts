@@ -26,7 +26,7 @@ function hasDataFilters(req: express.Request): boolean {
             return true;
         }
 
-        if (key.startsWith('data.')) {
+        if (key.startsWith('data.') || key.startsWith('data:')) {
             return true;
         }
     }
@@ -184,7 +184,7 @@ export function buildSaleFilter(
     }
 
     if (hasDataFilters(req)) {
-        const dataConditions = buildDataConditions(req, varCounter, '"asset_data"."data"');
+        const dataConditions = buildDataConditions(mergeRequestData(req), varCounter, '"asset_data"."data"');
 
         if (dataConditions) {
             queryString += 'AND EXISTS(' +
@@ -314,7 +314,7 @@ export function buildAuctionFilter(
     }
 
     if (hasDataFilters(req)) {
-        const dataConditions = buildDataConditions(req, varCounter, '"asset_data"."data"');
+        const dataConditions = buildDataConditions(mergeRequestData(req), varCounter, '"asset_data"."data"');
 
         if (dataConditions) {
             queryString += 'AND EXISTS(' +

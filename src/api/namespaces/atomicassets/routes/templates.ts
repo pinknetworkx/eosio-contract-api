@@ -31,14 +31,12 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             let queryString = 'SELECT "template".template_id FROM atomicassets_templates "template" WHERE "template".contract = $1 ';
             let queryValues: any[] = [core.args.atomicassets_account];
 
-            if (args.collection_name) {
-                const dataCondition = buildDataConditions(mergeRequestData(req), varCounter, '"template".immutable_data');
+            const dataCondition = buildDataConditions(mergeRequestData(req), varCounter, '"template".immutable_data');
 
-                if (dataCondition) {
-                    queryString += dataCondition.str;
-                    queryValues = queryValues.concat(dataCondition.values);
-                    varCounter += dataCondition.values.length;
-                }
+            if (dataCondition) {
+                queryString += dataCondition.str;
+                queryValues = queryValues.concat(dataCondition.values);
+                varCounter += dataCondition.values.length;
             }
 
             if (args.collection_name) {
