@@ -327,5 +327,7 @@ export const hideOffersParameters = [
 ];
 
 export const atomicDataFilter =
-    'You can filter the result by specific asset / template data fields. You need to define collection_name to enable this filter.' +
-    'You can add for example &data.rarity=common to only receive results which have an attribute "rarity" with the value "common"';
+    'You can filter the result by specific asset / template data fields.' +
+    'You can add for example &data.rarity=common to only receive results which have an attribute "rarity" with the value "common". ' +
+    'If you want to query a non text type you need to specify it explicitly (defaults to text type) like data:bool.foil=true or data:number.id=4 or data:text.rarity=common. ' +
+    'Integers which are defined greater than 32 bit (eg 64 bit) in the schema need to be queried as text.';
