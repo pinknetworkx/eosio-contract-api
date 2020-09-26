@@ -284,7 +284,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 multiplier_frame: {type: 'int', min: 0, default: 0},
 
                 marketplace: {type: 'string'},
-                collection_name: {type: 'string'}
+                collection_name: {type: 'string', min: 1}
             });
 
             const symbol = await fetchSymbol(args.symbol);
@@ -303,7 +303,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                             SUM(final_price) FILTER (WHERE sale.updated_at_time > $5) "bonus"
                         FROM atomicmarket_sales sale 
                         WHERE sale.market_contract = $1 AND sale.settlement_symbol = $2 AND sale.state = ${SaleState.SOLD.valueOf()}
-                            AND sale.updated_at_time > $3 AND sale.updated_at_time < $4 AND sale.collection_name = $6
+                            AND sale.updated_at_time > $3 AND sale.updated_at_time < $4 AND (sale.collection_name = ANY($6) OR array_length($6::text[], 1) = 0)
                             ${typeof args.marketplace === 'string' ? 'AND sale.maker_marketplace = $7' : ''}
                         GROUP BY seller
                     ) UNION ALL (
@@ -313,7 +313,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                             SUM(final_price) FILTER (WHERE sale.updated_at_time > $5) "bonus"
                         FROM atomicmarket_sales sale 
                         WHERE sale.market_contract = $1 AND sale.settlement_symbol = $2 AND sale.state = ${SaleState.SOLD.valueOf()}
-                            AND sale.updated_at_time > $3 AND sale.updated_at_time < $4 AND sale.collection_name = $6
+                            AND sale.updated_at_time > $3 AND sale.updated_at_time < $4 AND (sale.collection_name = ANY($6) OR array_length($6::text[], 1) = 0)
                             ${typeof args.marketplace === 'string' ? 'AND sale.taker_marketplace = $7' : ''}
                         GROUP BY buyer
                     )
@@ -323,7 +323,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             const queryValues = [
                 core.args.atomicmarket_account, args.symbol,
                 args.after, args.before, args.before - args.multiplier_frame,
-                args.collection_name
+                args.collection_name ? args.collection_name.split(',') : []
             ];
 
             if (typeof args.marketplace === 'string') {
