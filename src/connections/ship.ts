@@ -241,8 +241,10 @@ export default class StateHistoryBlockReader {
     async onClose(): Promise<void> {
         logger.error('Ship Websocket disconnected');
 
-        await this.ws.terminate();
-
+        if (this.ws) {
+            await this.ws.terminate();
+        }
+        
         this.abi = null;
         this.types = null;
         this.tables = new Map();
@@ -250,8 +252,10 @@ export default class StateHistoryBlockReader {
         this.connected = false;
         this.connecting = false;
 
-        await this.deserializeWorkers.destroy();
-        this.deserializeWorkers = null;
+        if (this.deserializeWorkers) {
+            await this.deserializeWorkers.destroy();
+            this.deserializeWorkers = null;
+        }
 
         this.blocksQueue.clear();
 
