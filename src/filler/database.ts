@@ -101,7 +101,7 @@ export class ContractDBTransaction {
 
         this.inTransaction = true;
 
-        await this.client.query('BEGIN');
+        await this.clientQuery('BEGIN');
 
         ContractDB.transactions.push(this);
     }
@@ -112,7 +112,7 @@ export class ContractDBTransaction {
         try {
             await this.begin();
 
-            return await this.client.query(queryStr, values);
+            return await this.clientQuery(queryStr, values);
         } finally {
             this.releaseLock(lock);
         }
@@ -170,7 +170,7 @@ export class ContractDBTransaction {
 
             queryStr += ';';
 
-            const query = await this.client.query(queryStr, queryValues);
+            const query = await this.clientQuery(queryStr, queryValues);
 
             if (this.currentBlock > this.lastIrreversibleBlock && reversible) {
                 const condition: Condition = {
@@ -206,7 +206,7 @@ export class ContractDBTransaction {
             let selectQuery = null;
 
             if (this.currentBlock > this.lastIrreversibleBlock && reversible) {
-                selectQuery = await this.client.query(
+                selectQuery = await this.clientQuery(
                     'SELECT * FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition.str + ';', condition.values
                 );
             }
@@ -229,7 +229,7 @@ export class ContractDBTransaction {
 
             queryValues = queryValues.concat(condition.values);
 
-            const query = await this.client.query(queryStr, queryValues);
+            const query = await this.clientQuery(queryStr, queryValues);
 
             if (selectQuery !== null && selectQuery.rows.length > 0) {
                 for (const row of selectQuery.rows) {
@@ -260,13 +260,13 @@ export class ContractDBTransaction {
             let selectQuery = null;
 
             if (this.currentBlock > this.lastIrreversibleBlock && reversible) {
-                selectQuery = await this.client.query(
+                selectQuery = await this.clientQuery(
                     'SELECT * FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition.str + ';', condition.values
                 );
             }
 
             const queryStr = 'DELETE FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition.str + ';';
-            const query = await this.client.query(queryStr, condition.values);
+            const query = await this.clientQuery(queryStr, condition.values);
 
             if (selectQuery !== null && selectQuery.rows.length > 0) {
                 await this.addRollbackQuery('insert', table, selectQuery.rows, null);
@@ -288,7 +288,7 @@ export class ContractDBTransaction {
             await this.begin();
 
             const condition = this.buildPrimaryCondition(values, primaryKey);
-            const selectQuery = await this.client.query(
+            const selectQuery = await this.clientQuery(
                 'SELECT * FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition.str + ' LIMIT 1;', condition.values
             );
 
@@ -350,7 +350,7 @@ export class ContractDBTransaction {
             }
         }
 
-        await this.client.query(
+        await this.clientQuery(
             'INSERT INTO reversible_queries (operation, "table", "values", condition, block_num, reader) ' +
             'VALUES ($1, $2, $3, $4, $5, $6);',
             [operation, table, JSON.stringify(serializedValues), JSON.stringify(serializedCondition), this.currentBlock, this.name]
@@ -363,7 +363,7 @@ export class ContractDBTransaction {
         try {
             await this.begin();
 
-            const query = await this.client.query(
+            const query = await this.clientQuery(
                 'SELECT operation, "table", "values", condition ' +
                 'FROM reversible_queries WHERE block_num >= $1 AND reader = $2' +
                 'ORDER BY block_num DESC, id DESC;',
@@ -403,17 +403,17 @@ export class ContractDBTransaction {
                 }
             }
 
-            await this.client.query(
+            await this.clientQuery(
                 'DELETE FROM reversible_queries WHERE block_num >= $1 AND reader = $2;',
                 [blockNum, this.name]
             );
 
-            await this.client.query(
+            await this.clientQuery(
                 'DELETE FROM reversible_blocks WHERE block_num >= $1 AND reader = $2;',
                 [blockNum, this.name]
             );
 
-            await this.client.query(
+            await this.clientQuery(
                 'UPDATE contract_readers SET block_num = $1 WHERE name = $2;',
                 [blockNum - 1, this.name]
             );
@@ -428,12 +428,12 @@ export class ContractDBTransaction {
         try {
             await this.begin();
 
-            await this.client.query(
+            await this.clientQuery(
                 'DELETE FROM reversible_queries WHERE block_num <= $1 AND reader = $2',
                 [this.lastIrreversibleBlock, this.name]
             );
 
-            await this.client.query(
+            await this.clientQuery(
                 'DELETE FROM reversible_blocks WHERE block_num <= $1 AND reader = $2',
                 [this.lastIrreversibleBlock, this.name]
             );
@@ -448,7 +448,7 @@ export class ContractDBTransaction {
         try {
             await this.begin();
 
-            await this.client.query(
+            await this.clientQuery(
                 'UPDATE contract_readers SET block_num = $1, block_time = $2, updated = $3 WHERE name = $4',
                 [block.block_num, eosioTimestampToDate(block.timestamp).getTime(), Date.now(), this.name]
             );
@@ -462,7 +462,7 @@ export class ContractDBTransaction {
 
         try {
             if (this.inTransaction) {
-                await this.client.query('COMMIT');
+                await this.clientQuery('COMMIT');
             }
         } finally {
             this.releaseLock();
@@ -480,7 +480,7 @@ export class ContractDBTransaction {
 
         try {
             if (this.inTransaction) {
-                await this.client.query('ROLLBACK');
+                await this.clientQuery('ROLLBACK');
             }
         } finally {
             this.releaseLock();
@@ -592,6 +592,16 @@ export class ContractDBTransaction {
         return queryStr;
     }
 
+    private async clientQuery(queryText: string, values: any[] = []): Promise<QueryResult> {
+        try {
+            return await this.client.query(queryText, values);
+        } catch (error) {
+            logger.error('Failed to execute SQL query ', {queryText, values, error});
+
+            throw error;
+        }
+    }
+
     private async acquireLock(lock: boolean = true): Promise<void> {
         if (!lock) {
             return;
@@ -604,7 +614,7 @@ export class ContractDBTransaction {
         if (!lock) {
             return;
         }
-        
+
         this.lock.release();
     }
 }

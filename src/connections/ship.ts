@@ -244,7 +244,7 @@ export default class StateHistoryBlockReader {
         if (this.ws) {
             await this.ws.terminate();
         }
-        
+
         this.abi = null;
         this.types = null;
         this.tables = new Map();

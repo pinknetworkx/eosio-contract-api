@@ -369,7 +369,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
             }, {
                 str: 'contract = $1 AND offer_id IN (' + invalidOffers.join(',') + ') AND state = $2',
                 values: [this.args.atomicassets_account, OfferState.PENDING.valueOf()]
-            }, ['contract', 'offer_id', 'asset_id']);
+            }, ['contract', 'offer_id']);
         }
 
         for (const row of relatedOffersQuery.rows) {
