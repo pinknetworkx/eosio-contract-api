@@ -79,7 +79,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                 return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
             }
 
-            queryString += 'ORDER BY assets DESC LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
+            queryString += 'ORDER BY assets, account DESC LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
 
