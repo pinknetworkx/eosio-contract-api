@@ -3,7 +3,6 @@ import * as NodeRedis from 'redis';
 import * as crypto from 'crypto';
 
 import logger from './winston';
-import has = Reflect.has;
 
 export type ExpressRedisCacheOptions = {
     expire?: number,
