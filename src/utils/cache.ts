@@ -1,7 +1,9 @@
 import * as express from 'express';
 import * as NodeRedis from 'redis';
+import * as crypto from 'crypto';
 
 import logger from './winston';
+import has = Reflect.has;
 
 export type ExpressRedisCacheOptions = {
     expire?: number,
@@ -30,9 +32,19 @@ export function expressRedisCache(
             if (options.urlHandler) {
                 key = prefix + ':' + String(options.urlHandler(req, res, next));
             } else if (options.ignoreQueryString) {
-                key = prefix + ':' + req.baseUrl + req.url;
+                key = prefix + ':' + req.baseUrl + req.path;
             } else {
-                key = prefix + ':' + req.originalUrl + ':' + JSON.stringify(req.body || {});
+                const hash = crypto.createHash('sha256');
+
+                if (req.body) {
+                    hash.update(JSON.stringify(req.body));
+                }
+
+                if (req.query) {
+                    hash.update(JSON.stringify(req.query));
+                }
+
+                key = prefix + ':' + req.baseUrl + req.path + ':' + hash.digest().toString('hex');
             }
 
             redis.get(key, (_, reply) => {
@@ -52,7 +64,7 @@ export function expressRedisCache(
                         redis.set(key, res.getHeader('content-type') + '::' + res.statusCode + '::' + content, () => {
                             redis.expire(key, Math.round(cacheLife));
 
-                            logger.debug('Cache request ' + req.originalUrl + ' for ' + cacheLife + ' seconds');
+                            logger.debug('Cache request ' + key + ' for ' + cacheLife + ' seconds');
                         });
 
                         return res;
