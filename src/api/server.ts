@@ -97,7 +97,7 @@ export class WebServer {
         }
 
         this.express.disable('x-powered-by');
-        this.express.disable('etag');
+        this.express.set('etag', false);
 
         this.limiter = expressRateLimit({
             windowMs: this.server.config.rate_limit.interval * 1000,
