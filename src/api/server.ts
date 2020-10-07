@@ -96,8 +96,13 @@ export class WebServer {
             this.express.set('trust proxy', 1);
         }
 
-        this.express.disable('x-powered-by');
         this.express.set('etag', false);
+        this.express.set('x-powered-by', false);
+
+        this.express.use(((req, res, next) => {
+            res.setHeader('Last-Modified', (new Date()).toUTCString());
+            next();
+        }));
 
         this.limiter = expressRateLimit({
             windowMs: this.server.config.rate_limit.interval * 1000,
