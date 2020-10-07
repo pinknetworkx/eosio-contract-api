@@ -32,7 +32,7 @@ export function expressRedisCache(
             } else if (options.ignoreQueryString) {
                 key = prefix + ':' + req.baseUrl + req.url;
             } else {
-                key = prefix + ':' + req.originalUrl;
+                key = prefix + ':' + req.originalUrl + ':' + JSON.stringify(req.body || {});
             }
 
             redis.get(key, (_, reply) => {
