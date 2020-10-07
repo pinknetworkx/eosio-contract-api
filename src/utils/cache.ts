@@ -3,6 +3,7 @@ import * as NodeRedis from 'redis';
 import * as crypto from 'crypto';
 
 import logger from './winston';
+import { mergeRequestData } from '../api/namespaces/utils';
 
 export type ExpressRedisCacheOptions = {
     expire?: number,
@@ -63,7 +64,7 @@ export function expressRedisCache(
                         redis.set(key, res.getHeader('content-type') + '::' + res.statusCode + '::' + content, () => {
                             redis.expire(key, Math.round(cacheLife));
 
-                            logger.debug('Cache request ' + key + ' for ' + cacheLife + ' seconds');
+                            logger.debug('Cache request ' + key + ' for ' + cacheLife + ' seconds', mergeRequestData(req));
                         });
 
                         return res;
@@ -71,7 +72,7 @@ export function expressRedisCache(
 
                     next();
                 } else {
-                    logger.debug('Request was cached - returning cached version for url: ' + req.originalUrl);
+                    logger.debug('Request was cached - returning cached version for ' + key, mergeRequestData(req));
 
                     const split = reply.split('::');
 
