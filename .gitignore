@@ -1,7 +1,9 @@
 .idea
-logs
 build
 node_modules
+
+# logs
+logs/*.log
 
 # config
 config/connections.config.json
