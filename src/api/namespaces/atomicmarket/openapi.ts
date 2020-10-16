@@ -11,7 +11,7 @@ export const atomicmarketComponents = {
                     type: 'object',
                     properties: {
                         market_contract: {type: 'string'},
-                        sale_id: {type: 'integer'}
+                        sale_id: {type: 'string'}
                     }
                 }
             },
@@ -21,7 +21,7 @@ export const atomicmarketComponents = {
                     type: 'object',
                     properties: {
                         market_contract: {type: 'string'},
-                        auction_id: {type: 'integer'}
+                        auction_id: {type: 'string'}
                     }
                 }
             }
@@ -35,17 +35,17 @@ export const atomicmarketComponents = {
         properties: {
             market_contract: {type: 'string'},
             assets_contract: {type: 'string'},
-            sale_id: {type: 'integer'},
+            sale_id: {type: 'string'},
 
             seller: {type: 'string'},
             buyer: {type: 'string'},
 
-            offer_id: {type: 'integer'},
+            offer_id: {type: 'string'},
 
             price: {
                 type: 'object',
                 properties: {
-                    amount: {type: 'integer'},
+                    amount: {type: 'string'},
                     token_precision: {type: 'integer'},
                     token_contract: {type: 'string'},
                     token_symbol: {type: 'string'}
@@ -67,10 +67,10 @@ export const atomicmarketComponents = {
 
             state: {type: 'integer'},
 
-            updated_at_block: {type: 'integer'},
-            updated_at_time: {type: 'integer'},
-            created_at_block: {type: 'integer'},
-            created_at_time: {type: 'integer'},
+            updated_at_block: {type: 'string'},
+            updated_at_time: {type: 'string'},
+            created_at_block: {type: 'string'},
+            created_at_time: {type: 'string'},
             created_at_txid: {type: 'string'}
         }
     },
@@ -79,7 +79,7 @@ export const atomicmarketComponents = {
         properties: {
             market_contract: {type: 'string'},
             assets_contract: {type: 'string'},
-            auction_id: {type: 'integer'},
+            auction_id: {type: 'string'},
 
             seller: {type: 'string'},
             buyer: {type: 'string', nullable: true},
@@ -87,7 +87,7 @@ export const atomicmarketComponents = {
             price: {
                 type: 'object',
                 properties: {
-                    amount: {type: 'integer'},
+                    amount: {type: 'string'},
                     token_precision: {type: 'integer'},
                     token_contract: {type: 'string'},
                     token_symbol: {type: 'string'}
@@ -106,9 +106,9 @@ export const atomicmarketComponents = {
                     properties: {
                         number: {type: 'integer'},
                         account: {type: 'string'},
-                        amount: {type: 'integer'},
-                        created_at_block: {type: 'integer'},
-                        created_at_time: {type: 'integer'},
+                        amount: {type: 'string'},
+                        created_at_block: {type: 'string'},
+                        created_at_time: {type: 'string'},
                         txid: {type: 'string'}
                     }
                 }
@@ -121,12 +121,12 @@ export const atomicmarketComponents = {
 
             state: {type: 'integer'},
 
-            end_time: {type: 'integer'},
+            end_time: {type: 'string'},
 
-            updated_at_block: {type: 'integer'},
-            updated_at_time: {type: 'integer'},
-            created_at_block: {type: 'integer'},
-            created_at_time: {type: 'integer'},
+            updated_at_block: {type: 'string'},
+            updated_at_time: {type: 'string'},
+            created_at_block: {type: 'string'},
+            created_at_time: {type: 'string'},
             created_at_txid: {type: 'string'}
         }
     },
@@ -135,8 +135,8 @@ export const atomicmarketComponents = {
         properties: {
             marketplace_name: {type: 'string'},
             creator: {type: 'string'},
-            created_at_block: {type: 'integer'},
-            created_at_time: {type: 'integer'}
+            created_at_block: {type: 'string'},
+            created_at_time: {type: 'string'}
         }
     },
     Collection: atomicassetsComponents.Collection,

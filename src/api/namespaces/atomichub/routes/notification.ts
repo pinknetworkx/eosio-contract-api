@@ -73,8 +73,8 @@ export function notificationsEndpoints(core: AtomicHubNamespace, server: HTTPSer
                                         type: {type: 'string'}
                                     }
                                 },
-                                block_num: {type: 'integer'},
-                                block_time: {type: 'integer'}
+                                block_num: {type: 'string'},
+                                block_time: {type: 'string'}
                             }
                         }
                     })

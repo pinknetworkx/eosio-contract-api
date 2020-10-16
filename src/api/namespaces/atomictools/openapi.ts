@@ -6,7 +6,7 @@ export const atomictoolsComponents = {
         properties: {
             tools_contract: {type: 'string'},
             assets_contract: {type: 'string'},
-            link_id: {type: 'integer'},
+            link_id: {type: 'string'},
             creator: {type: 'string'},
             claimer: {type: 'string', nullable: true},
             state: {type: 'integer'},
@@ -17,8 +17,8 @@ export const atomictoolsComponents = {
                 type: 'array',
                 items: {'$ref': '#/components/schemas/Asset'}
             },
-            created_at_block: {type: 'integer'},
-            created_at_time: {type: 'integer'}
+            created_at_block: {type: 'string'},
+            created_at_time: {type: 'string'}
         }
     },
     Asset: atomicassetsComponents.Asset

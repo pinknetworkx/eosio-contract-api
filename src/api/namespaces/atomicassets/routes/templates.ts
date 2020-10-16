@@ -331,8 +331,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'object',
                         properties: {
-                            assets: {type: 'integer'},
-                            burned: {type: 'integer'}
+                            assets: {type: 'string'},
+                            burned: {type: 'string'}
                         }
                     })
                 }

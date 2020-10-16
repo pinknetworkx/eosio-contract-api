@@ -252,9 +252,9 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'object',
                         properties: {
-                            assets: {type: 'integer'},
-                            burned: {type: 'integer'},
-                            templates: {type: 'integer'}
+                            assets: {type: 'string'},
+                            burned: {type: 'string'},
+                            templates: {type: 'string'}
                         }
                     })
                 }

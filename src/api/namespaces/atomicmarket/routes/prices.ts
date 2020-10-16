@@ -7,13 +7,14 @@ import { SaleState } from '../../../../filler/handlers/atomicmarket';
 import { filterQueryArgs } from '../../utils';
 
 export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
-    router.all('/v1/prices', server.web.caching(), async (req, res) => {
+    router.all(['/v1/prices/sales', '/v1/prices'], server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 collection_name: {type: 'string', min: 1},
                 template_id: {type: 'int', min: 1},
                 schema_name: {type: 'string', min: 1},
-                symbol: {type: 'string', min: 1}
+                symbol: {type: 'string', min: 1},
+                state: {type: 'int', min: 0, default: SaleState.SOLD.valueOf()}
             });
 
             let queryString = 'SELECT ' +
@@ -25,7 +26,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                     'atomicmarket_tokens symbol ' +
                 'WHERE sale.market_contract = $1 AND sale.state = $2 AND ' +
                 'sale.market_contract = symbol.market_contract AND sale.settlement_symbol = symbol.token_symbol ';
-            const queryValues = [core.args.atomicmarket_account, SaleState.SOLD.valueOf()];
+            const queryValues = [core.args.atomicmarket_account, args.state];
             let varCounter = queryValues.length;
 
             if (args.collection_name && args.schema_name && !args.template_id) {
@@ -67,13 +68,29 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
         }
     });
 
+    router.all('/v1/prices/templates', server.web.caching(), async (req, res) => {
+        try {
+
+        } catch (e) {
+            res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
+    });
+
+    router.all('/v1/prices/assets', server.web.caching(), async (req, res) => {
+        try {
+
+        } catch (e) {
+            res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
+    });
+
     return {
         tag: {
             name: 'pricing',
             description: 'Pricing'
         },
         paths: {
-            '/v1/prices': {
+            '/v1/prices/sales': {
                 get: {
                     tags: ['pricing'],
                     summary: 'Gets price history for a template or schema',
@@ -105,19 +122,26 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                             description: 'Token symbol',
                             required: false,
                             schema: {type: 'string'}
+                        },
+                        {
+                            name: 'state',
+                            in: 'query',
+                            description: ' 1: Listed; 3: Sold',
+                            required: false,
+                            schema: {type: 'integer', default: 3}
                         }
                     ],
                     responses: getOpenAPI3Responses([500, 200], {
                         type: 'object',
                         properties: {
-                            sale_id: {type: 'integer'},
-                            template_mint: {type: 'integer'},
-                            price: {type: 'integer'},
+                            sale_id: {type: 'string'},
+                            template_mint: {type: 'string'},
+                            price: {type: 'string'},
                             token_symbol: {type: 'string'},
                             token_precision: {type: 'integer'},
                             token_contract: {type: 'string'},
-                            block_time: {type: 'integer'},
-                            block_num: {type: 'integer'}
+                            block_time: {type: 'string'},
+                            block_num: {type: 'string'}
                         }
                     })
                 }

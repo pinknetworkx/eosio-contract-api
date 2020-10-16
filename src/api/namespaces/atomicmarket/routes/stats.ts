@@ -465,9 +465,9 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         type: 'object',
         properties: {
             ...atomicassetsComponents.Collection,
-            listings: {type: 'integer'},
-            volume: {type: 'integer'},
-            sales: {type: 'integer'}
+            listings: {type: 'string'},
+            volume: {type: 'string'},
+            sales: {type: 'string'}
         }
     };
 
@@ -475,8 +475,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         type: 'object',
         properties: {
             account: {type: 'string'},
-            buy_volume: {type: 'integer'},
-            sell_volume: {type: 'integer'}
+            buy_volume: {type: 'string'},
+            sell_volume: {type: 'string'}
         }
     };
 
@@ -484,8 +484,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         type: 'object',
         properties: {
             schema_name: {type: 'string'},
-            listings: {type: 'integer'},
-            volume: {type: 'integer'}
+            listings: {type: 'string'},
+            volume: {type: 'string'}
         }
     };
 
@@ -726,9 +726,9 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 items: {
                                     type: 'object',
                                     properties: {
-                                        time: {type: 'integer'},
-                                        volume: {type: 'integer'},
-                                        sales: {type: 'integer'}
+                                        time: {type: 'string'},
+                                        volume: {type: 'string'},
+                                        sales: {type: 'string'}
                                     }
                                 }
                             }
@@ -758,8 +758,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             results: {
                                 type: 'object',
                                 properties: {
-                                    volume: {type: 'integer'},
-                                    sales: {type: 'integer'}
+                                    volume: {type: 'string'},
+                                    sales: {type: 'string'}
                                 }
                             }
                         }

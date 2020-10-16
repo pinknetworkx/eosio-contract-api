@@ -15,7 +15,7 @@ CREATE OR REPLACE VIEW atomicmarket_auctions_master AS
             'token_contract', token.token_contract,
             'token_symbol', token.token_symbol,
             'token_precision', token.token_precision,
-            'amount', auction.price
+            'amount', auction.price::text
         ) price,
 
         ARRAY(
@@ -29,9 +29,9 @@ CREATE OR REPLACE VIEW atomicmarket_auctions_master AS
                 json_build_object(
                     'number', bid.bid_number,
                     'account', bid.account,
-                    'amount', bid.amount,
-                    'created_at_block', bid.created_at_block,
-                    'created_at_time', bid.created_at_time,
+                    'amount', bid.amount::text,
+                    'created_at_block', bid.created_at_block::text,
+                    'created_at_time', bid.created_at_time::text,
                     'txid', encode(bid.txid::bytea, 'hex')
                 )
             FROM atomicmarket_auctions_bids bid
@@ -55,8 +55,8 @@ CREATE OR REPLACE VIEW atomicmarket_auctions_master AS
             'authorized_accounts', collection.authorized_accounts,
             'notify_accounts', collection.notify_accounts,
             'market_fee', auction.collection_fee,
-            'created_at_block', collection.created_at_block,
-            'created_at_time', collection.created_at_time
+            'created_at_block', collection.created_at_block::text,
+            'created_at_time', collection.created_at_time::text
         ) collection,
 
         auction.state auction_state,

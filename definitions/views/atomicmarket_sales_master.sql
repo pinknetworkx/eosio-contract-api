@@ -49,8 +49,8 @@ CREATE OR REPLACE VIEW atomicmarket_sales_master AS
             'authorized_accounts', collection.authorized_accounts,
             'notify_accounts', collection.notify_accounts,
             'market_fee', sale.collection_fee,
-            'created_at_block', collection.created_at_block,
-            'created_at_time', collection.created_at_time
+            'created_at_block', collection.created_at_block::text,
+            'created_at_time', collection.created_at_time::text
         ) collection,
 
         sale.state sale_state,

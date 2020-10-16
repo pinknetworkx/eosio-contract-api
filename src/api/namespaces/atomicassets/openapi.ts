@@ -14,10 +14,10 @@ export function generateOfferSchema(assetSchema: string): any {
             sender_assets: {type: 'array', items: {'$ref': '#/components/schemas/' + assetSchema}},
             recipient_assets: {type: 'array', items: {'$ref': '#/components/schemas/' + assetSchema}},
 
-            updated_at_block: {type: 'integer'},
-            updated_at_time: {type: 'integer'},
-            created_at_block: {type: 'integer'},
-            created_at_time: {type: 'integer'}
+            updated_at_block: {type: 'string'},
+            updated_at_time: {type: 'string'},
+            created_at_block: {type: 'string'},
+            created_at_time: {type: 'string'}
         }
     };
 }
@@ -27,15 +27,15 @@ export function generateTransferSchema(assetSchema: string): any {
         type: 'object',
         properties: {
             contract: {type: 'string'},
-            transfer_id: {type: 'integer'},
+            transfer_id: {type: 'string'},
             sender_name: {type: 'string'},
             recipient_name: {type: 'string'},
             memo: {type: 'string'},
 
             assets: {type: 'array', items: {'$ref': '#/components/schemas/' + assetSchema}},
 
-            created_at_block: {type: 'integer'},
-            created_at_time: {type: 'integer'}
+            created_at_block: {type: 'string'},
+            created_at_time: {type: 'string'}
         }
     };
 }
@@ -45,7 +45,7 @@ export const atomicassetsComponents = {
         type: 'object',
         properties: {
             contract: {type: 'string'},
-            asset_id: {type: 'integer'},
+            asset_id: {type: 'string'},
             owner: {type: 'string'},
             name: {type: 'string'},
             is_transferable: {type: 'boolean'},
@@ -60,8 +60,8 @@ export const atomicassetsComponents = {
                     authorized_accounts: {type: 'array', items: {type: 'string'}},
                     notify_accounts: {type: 'array', items: {type: 'string'}},
                     market_fee: {type: 'number'},
-                    created_at_block: {type: 'integer'},
-                    created_at_time: {type: 'integer'}
+                    created_at_block: {type: 'string'},
+                    created_at_time: {type: 'string'}
                 }
             },
             schema: {
@@ -78,23 +78,23 @@ export const atomicassetsComponents = {
                             }
                         }
                     },
-                    created_at_block: {type: 'integer'},
-                    created_at_time: {type: 'integer'}
+                    created_at_block: {type: 'string'},
+                    created_at_time: {type: 'string'}
                 }
             },
             template: {
                 type: 'object',
                 properties: {
-                    template_id: {type: 'integer'},
-                    max_supply: {type: 'integer'},
-                    issued_supply: {type: 'integer'},
+                    template_id: {type: 'string'},
+                    max_supply: {type: 'string'},
+                    issued_supply: {type: 'string'},
                     is_transferable: {type: 'boolean'},
                     is_burnable: {type: 'boolean'},
 
                     immutable_data: {type: 'object'},
 
-                    created_at_time: {type: 'integer'},
-                    created_at_block: {type: 'integer'}
+                    created_at_time: {type: 'string'},
+                    created_at_block: {type: 'string'}
                 }
             },
 
@@ -105,7 +105,7 @@ export const atomicassetsComponents = {
                         token_contract: {type: 'string'},
                         token_symbol: {type: 'string'},
                         token_precision: {type: 'integer'},
-                        amount: {type: 'integer'}
+                        amount: {type: 'string'}
                     }
                 }
             },
@@ -114,12 +114,12 @@ export const atomicassetsComponents = {
             mutable_data: {type: 'object'},
             data: {type: 'object'},
 
-            burned_at_block: {type: 'integer'},
-            burned_at_time: {type: 'integer'},
-            updated_at_block: {type: 'integer'},
-            updated_at_time: {type: 'integer'},
-            minted_at_block: {type: 'integer'},
-            minted_at_time: {type: 'integer'}
+            burned_at_block: {type: 'string'},
+            burned_at_time: {type: 'string'},
+            updated_at_block: {type: 'string'},
+            updated_at_time: {type: 'string'},
+            minted_at_block: {type: 'string'},
+            minted_at_time: {type: 'string'}
         }
     },
     'Collection': {
@@ -136,8 +136,8 @@ export const atomicassetsComponents = {
 
             data: {type: 'object'},
 
-            created_at_block: {type: 'integer'},
-            created_at_time: {type: 'integer'}
+            created_at_block: {type: 'string'},
+            created_at_time: {type: 'string'}
         }
     },
     'Schema': {
@@ -155,8 +155,8 @@ export const atomicassetsComponents = {
                     }
                 }
             },
-            created_at_block: {type: 'integer'},
-            created_at_time: {type: 'integer'},
+            created_at_block: {type: 'string'},
+            created_at_time: {type: 'string'},
             collection: {
                 type: 'object',
                 properties: {
@@ -168,8 +168,8 @@ export const atomicassetsComponents = {
                     notify_accounts: {type: 'array', items: {type: 'string'}},
                     market_fee: {type: 'number'},
 
-                    created_at_block: {type: 'integer'},
-                    created_at_time: {type: 'integer'}
+                    created_at_block: {type: 'string'},
+                    created_at_time: {type: 'string'}
                 }
             }
         }
@@ -178,16 +178,16 @@ export const atomicassetsComponents = {
         type: 'object',
         properties: {
             contract: {type: 'string'},
-            template_id: {type: 'integer'},
-            max_supply: {type: 'integer'},
-            issued_supply: {type: 'integer'},
+            template_id: {type: 'string'},
+            max_supply: {type: 'string'},
+            issued_supply: {type: 'string'},
             is_transferable: {type: 'boolean'},
             is_burnable: {type: 'boolean'},
 
             immutable_data: {type: 'object'},
 
-            created_at_time: {type: 'integer'},
-            created_at_block: {type: 'integer'},
+            created_at_time: {type: 'string'},
+            created_at_block: {type: 'string'},
 
             scheme: {
                 type: 'object',
@@ -203,8 +203,8 @@ export const atomicassetsComponents = {
                             }
                         }
                     },
-                    created_at_block: {type: 'integer'},
-                    created_at_time: {type: 'integer'}
+                    created_at_block: {type: 'string'},
+                    created_at_time: {type: 'string'}
                 }
             },
             collection: {
@@ -218,8 +218,8 @@ export const atomicassetsComponents = {
                     notify_accounts: {type: 'array', items: {type: 'string'}},
                     market_fee: {type: 'number'},
 
-                    created_at_block: {type: 'integer'},
-                    created_at_time: {type: 'integer'}
+                    created_at_block: {type: 'string'},
+                    created_at_time: {type: 'string'}
                 }
             }
         }
@@ -229,12 +229,12 @@ export const atomicassetsComponents = {
     'Log': {
         type: 'object',
         properties: {
-            log_id: {type: 'integer'},
+            log_id: {type: 'string'},
             name: {type: 'string'},
             data: {type: 'object'},
             txid: {type: 'string'},
-            created_at_block: {type: 'integer'},
-            created_at_time: {type: 'integer'}
+            created_at_block: {type: 'string'},
+            created_at_time: {type: 'string'}
         }
     }
 };

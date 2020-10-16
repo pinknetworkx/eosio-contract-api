@@ -223,7 +223,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                             type: 'object',
                             properties: {
                                 account: {type: 'string'},
-                                assets: {type: 'integer'}
+                                assets: {type: 'string'}
                             }
                         }
                     })
@@ -255,11 +255,11 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                                         type: 'object',
                                         properties: {
                                             collection: {'$ref': '#/components/schemas/Collection'},
-                                            assets: {type: 'integer'}
+                                            assets: {type: 'string'}
                                         }
                                     }
                                 },
-                                assets: {type: 'integer'}
+                                assets: {type: 'string'}
                             }
                         }
                     })
@@ -295,8 +295,8 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                                     items: {
                                         type: 'object',
                                         properties: {
-                                            template_id: {type: 'integer'},
-                                            assets: {type: 'integer'}
+                                            template_id: {type: 'string'},
+                                            assets: {type: 'string'}
                                         }
                                     }
                                 },
@@ -306,7 +306,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                                         type: 'object',
                                         properties: {
                                             schema_name: {type: 'string'},
-                                            assets: {type: 'integer'}
+                                            assets: {type: 'string'}
                                         }
                                     }
                                 }

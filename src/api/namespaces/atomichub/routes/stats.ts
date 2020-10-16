@@ -376,14 +376,14 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                             total: {
                                 type: 'object',
                                 properties: {
-                                    nfts: {type: 'integer'}
+                                    nfts: {type: 'string'}
                                 }
                             },
                             today: {
                                 type: 'object',
                                 properties: {
-                                    transactions: {type: 'integer'},
-                                    sales_count: {type: 'integer'},
+                                    transactions: {type: 'string'},
+                                    sales_count: {type: 'string'},
                                     sales_volume: {type: 'number'}
                                 }
                             }
