@@ -48,7 +48,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                 ]
             );
 
-            let transfersQueryString = 'SELECT COUNT(*) as transfers transfer FROM atomicassets_transfers WHERE contract = $1 AND created_at_time >= $2 ';
+            let transfersQueryString = 'SELECT COUNT(*) as transfers FROM atomicassets_transfers transfer WHERE contract = $1 AND created_at_time >= $2 ';
             const transfersQueryValues = [core.args.atomicassets_account, Date.now() - 3600 * 24 * 1000];
 
             if (args.collection_whitelist) {
