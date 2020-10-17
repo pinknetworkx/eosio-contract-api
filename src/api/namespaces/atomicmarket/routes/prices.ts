@@ -152,7 +152,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
             });
 
             queryString += assetFilter.str;
-            varCounter += queryValues.length;
+            varCounter += assetFilter.values.length;
             queryValues = queryValues.concat(assetFilter.values);
 
             const boundaryFilter = buildBoundaryFilter(
