@@ -2,9 +2,9 @@ import * as express from 'express';
 
 import { AtomicMarketNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
+import { getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
-import { filterQueryArgs } from '../../utils';
+import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { buildAssetQueryCondition } from '../../atomicassets/routes/assets';
 import {
     assetFilterParameters,
@@ -145,13 +145,24 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                     'token.market_contract = price.market_contract AND token.token_symbol = price.symbol AND ' +
                     'price.assets_contract = $1 AND price.market_contract = $2 ';
             let queryValues: any[] = [core.args.atomicassets_account, core.args.atomicmarket_account];
+            let varCounter = queryValues.length;
 
-            const filter = buildAssetQueryCondition(req, queryValues.length, {
+            const assetFilter = buildAssetQueryCondition(req, varCounter, {
                 assetTable: '"asset"', templateTable: '"template"'
             });
 
-            queryString += filter.str;
-            queryValues = queryValues.concat(filter.values);
+            queryString += assetFilter.str;
+            varCounter += queryValues.length;
+            queryValues = queryValues.concat(assetFilter.values);
+
+            const boundaryFilter = buildBoundaryFilter(
+                req, varCounter,
+                'asset.asset_id', 'int',
+                null, null
+            );
+
+            queryValues = queryValues.concat(boundaryFilter.values);
+            queryString += boundaryFilter.str;
 
             queryString += 'GROUP BY token.token_symbol, token.token_precision, token.token_contract';
 
@@ -274,6 +285,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                         },
                         ...hideOffersParameters,
                         ...greylistFilterParameters,
+                        ...primaryBoundaryParameters
                     ],
                     responses: getOpenAPI3Responses([500, 200], {
                         type: 'array',
