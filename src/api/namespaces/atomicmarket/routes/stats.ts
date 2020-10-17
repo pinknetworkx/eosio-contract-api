@@ -483,11 +483,11 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             let queryString = `
                 SELECT SUM(final_price) volume, COUNT(*) sales FROM atomicmarket_sales 
-                WHERE market_contract = $1 and settlement_symbol = $2 AND state = ${SaleState.SOLD.valueOf()}
+                WHERE market_contract = $1 and settlement_symbol = $2 AND state = ${SaleState.SOLD.valueOf()} 
             `;
             let queryValues = [core.args.atomicmarket_account, args.symbol];
 
-            const greylistFilter = buildGreylistFilter(req, queryValues.length, 'sale.collection_name');
+            const greylistFilter = buildGreylistFilter(req, queryValues.length, 'collection_name');
 
             queryValues = queryValues.concat(greylistFilter.values);
             queryString += greylistFilter.str;

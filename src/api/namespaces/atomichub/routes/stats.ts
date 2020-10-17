@@ -31,23 +31,55 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
     router.get('/v1/stats', server.web.caching({expire: 60, ignoreQueryString: true}), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
+                collection_whitelist: {type: 'string', min: 1, default: ''},
+                collection_blacklist: {type: 'string', min: 1, default: ''},
+
                 symbol: {type: 'string', min: 1, max: 12, default: core.args.default_symbol}
             });
 
             const nftsQuery = await server.query(
-                'SELECT COUNT(*) as nfts FROM atomicassets_assets WHERE contract = $1',
-                [core.args.atomicassets_account]
+                'SELECT COUNT(*) as nfts FROM atomicassets_assets WHERE contract = $1 AND ' +
+                '(collection_name = ANY ($2) OR CARDINALITY($2) = 0) AND (NOT (collection_name = ANY ($3)) OR CARDINALITY($3) = 0)',
+                [
+                    core.args.atomicassets_account,
+                    args.collection_whitelist.split(',').filter((x: string) => !!x),
+                    args.collection_blacklist.split(',').filter((x: string) => !!x)
+                ]
             );
 
-            const transfersQuery = await server.query(
-                'SELECT COUNT(*) as transfers FROM atomicassets_transfers WHERE contract = $1 AND created_at_time >= $2',
-                [core.args.atomicassets_account, Date.now() - 3600 * 24 * 1000]
-            );
+            let transfersQueryString = 'SELECT COUNT(*) as transfers transfer FROM atomicassets_transfers WHERE contract = $1 AND created_at_time >= $2 ';
+            const transfersQueryValues = [core.args.atomicassets_account, Date.now() - 3600 * 24 * 1000];
+
+            if (args.collection_whitelist) {
+                transfersQueryValues.push(args.collection_whitelist.split(','));
+                transfersQueryString = 'AND EXISTS (' +
+                    'SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset WHERE ' +
+                    'transfer.contract = transfer_asset.contract AND transfer.transfer_id = transfer_asset.transfer_id AND ' +
+                    'transfer_asset.contract = asset.contract AND transfer_asset.asset_id = asset.asset_id AND ' +
+                    'asset.collection_name = ANY ($' + transfersQueryValues.length + '))';
+            }
+
+            if (args.collection_blacklist) {
+                transfersQueryValues.push(args.collection_blacklist.split(','));
+                transfersQueryString = 'AND NOT EXISTS (' +
+                    'SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset WHERE ' +
+                    'transfer.contract = transfer_asset.contract AND transfer.transfer_id = transfer_asset.transfer_id AND ' +
+                    'transfer_asset.contract = asset.contract AND transfer_asset.asset_id = asset.asset_id AND ' +
+                    'asset.collection_name = ANY ($' + transfersQueryValues.length + '))';
+            }
+
+            const transfersQuery = await server.query(transfersQueryString, transfersQueryValues);
 
             const salesQuery = await server.query(
                 'SELECT COUNT(*) sales, SUM(final_price) volume FROM atomicmarket_sales ' +
-                'WHERE market_contract = $1 AND state = $2 AND settlement_symbol = $3 AND updated_at_time >= $4',
-                [core.args.atomicmarket_account, SaleState.SOLD.valueOf(), args.symbol.toUpperCase(), Date.now() - 3600 * 24 * 1000]
+                'WHERE market_contract = $1 AND state = $2 AND settlement_symbol = $3 AND updated_at_time >= $4 AND ' +
+                '(collection_name = ANY ($5) OR CARDINALITY($5) = 0) AND (NOT (collection_name = ANY ($6)) OR CARDINALITY($6) = 0)',
+                [
+                    core.args.atomicmarket_account, SaleState.SOLD.valueOf(),
+                    args.symbol.toUpperCase(), Date.now() - 3600 * 24 * 1000,
+                    args.collection_whitelist.split(',').filter((x: string) => !!x),
+                    args.collection_blacklist.split(',').filter((x: string) => !!x)
+                ]
             );
 
             const symbolQuery = await server.query(
@@ -72,24 +104,6 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                         sales_volume: salesQuery.rows[0]['volume']
                     }
                 },
-                query_time: Date.now()
-            });
-        } catch (e) {
-            return res.status(500).json({success: false, message: 'Internal Server Error'});
-        }
-    });
-
-    router.get('/v1/sales/trending', server.web.caching({expire: 60}), async (_, res) => {
-        try {
-            /*const args = filterQueryArgs(req, {
-                limit: {type: 'int', min: 1, max: 100, default: 10}
-            });*/
-
-            // TODO do some market magic to find trending assets
-
-            res.json({
-                success: true,
-                data: [],
                 query_time: Date.now()
             });
         } catch (e) {
@@ -303,7 +317,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                             SUM(final_price) FILTER (WHERE sale.updated_at_time > $5) "bonus"
                         FROM atomicmarket_sales sale 
                         WHERE sale.market_contract = $1 AND sale.settlement_symbol = $2 AND sale.state = ${SaleState.SOLD.valueOf()}
-                            AND sale.updated_at_time > $3 AND sale.updated_at_time < $4 AND (sale.collection_name = ANY($6) OR array_length($6::text[], 1) = 0)
+                            AND sale.updated_at_time > $3 AND sale.updated_at_time < $4 AND (sale.collection_name = ANY($6) OR CARDINALITY($6) = 0)
                             ${typeof args.marketplace === 'string' ? 'AND sale.maker_marketplace = $7' : ''}
                         GROUP BY seller
                     ) UNION ALL (
@@ -313,7 +327,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                             SUM(final_price) FILTER (WHERE sale.updated_at_time > $5) "bonus"
                         FROM atomicmarket_sales sale 
                         WHERE sale.market_contract = $1 AND sale.settlement_symbol = $2 AND sale.state = ${SaleState.SOLD.valueOf()}
-                            AND sale.updated_at_time > $3 AND sale.updated_at_time < $4 AND (sale.collection_name = ANY($6) OR array_length($6::text[], 1) = 0)
+                            AND sale.updated_at_time > $3 AND sale.updated_at_time < $4 AND (sale.collection_name = ANY($6) OR CARDINALITY($6) = 0)
                             ${typeof args.marketplace === 'string' ? 'AND sale.taker_marketplace = $7' : ''}
                         GROUP BY buyer
                     )
