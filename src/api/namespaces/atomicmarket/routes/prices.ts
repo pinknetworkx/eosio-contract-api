@@ -89,7 +89,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
 
             let queryString = 'SELECT price.market_contract, price.assets_contract, ' +
                     'price.collection_name, price.template_id, ' +
-                    'token.token_symbol, token.token_contract, token.token_precision ' +
+                    'token.token_symbol, token.token_contract, token.token_precision, ' +
                     'price."median", price."averag"e, price."min", price."max", price.sales ' +
                 'FROM atomicassets_templates "template", atomicmarket_template_prices "price", atomicmarket_tokens "token" ' +
                 'WHERE "template".contract = "price".assets_contract AND "template".collection_name = "price".collection_name AND "template".template_id = "price".template_id AND ' +
