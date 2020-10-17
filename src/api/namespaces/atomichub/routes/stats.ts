@@ -9,6 +9,7 @@ import { SaleState } from '../../../../filler/handlers/atomicmarket';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { fillSales } from '../../atomicmarket/filler';
 import { fillAssets } from '../../atomicassets/filler';
+import { greylistFilterParameters } from '../../atomicassets/openapi';
 
 export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, router: express.Router): any {
     async function fetchSymbol(symbol: string): Promise<{token_symbol: string, token_contract: string, token_precision: number}> {
@@ -52,20 +53,20 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
 
             if (args.collection_whitelist) {
                 transfersQueryValues.push(args.collection_whitelist.split(','));
-                transfersQueryString = 'AND EXISTS (' +
-                    'SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset WHERE ' +
-                    'transfer.contract = transfer_asset.contract AND transfer.transfer_id = transfer_asset.transfer_id AND ' +
+                transfersQueryString += 'AND EXISTS (' +
+                    'SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset ' +
+                    'WHERE transfer.contract = transfer_asset.contract AND transfer.transfer_id = transfer_asset.transfer_id AND ' +
                     'transfer_asset.contract = asset.contract AND transfer_asset.asset_id = asset.asset_id AND ' +
-                    'asset.collection_name = ANY ($' + transfersQueryValues.length + '))';
+                    'asset.collection_name = ANY ($' + transfersQueryValues.length + ')) ';
             }
 
             if (args.collection_blacklist) {
                 transfersQueryValues.push(args.collection_blacklist.split(','));
-                transfersQueryString = 'AND NOT EXISTS (' +
-                    'SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset WHERE ' +
-                    'transfer.contract = transfer_asset.contract AND transfer.transfer_id = transfer_asset.transfer_id AND ' +
+                transfersQueryString += 'AND NOT EXISTS (' +
+                    'SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset ' +
+                    'WHERE transfer.contract = transfer_asset.contract AND transfer.transfer_id = transfer_asset.transfer_id AND ' +
                     'transfer_asset.contract = asset.contract AND transfer_asset.asset_id = asset.asset_id AND ' +
-                    'asset.collection_name = ANY ($' + transfersQueryValues.length + '))';
+                    'asset.collection_name = ANY ($' + transfersQueryValues.length + ')) ';
             }
 
             const transfersQuery = await server.query(transfersQueryString, transfersQueryValues);
@@ -382,7 +383,8 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                             required: false,
                             schema: {type: 'string'},
                             description: 'Token symbol'
-                        }
+                        },
+                        ...greylistFilterParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'object',
@@ -402,25 +404,6 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                                 }
                             }
                         }
-                    })
-                }
-            },
-            '/v1/sales/trending': {
-                get: {
-                    tags: ['stats'],
-                    summary: 'Get currently trending asset sales',
-                    parameters: [
-                        {
-                            in: 'query',
-                            name: 'limit',
-                            required: false,
-                            schema: {type: 'integer'},
-                            description: 'Size of the result'
-                        }
-                    ],
-                    responses: getOpenAPI3Responses([200, 500], {
-                        type: 'array',
-                        items: {'$ref': '#/components/schemas/Sale'}
                     })
                 }
             },
