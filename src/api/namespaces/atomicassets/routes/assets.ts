@@ -10,6 +10,111 @@ import { primaryBoundaryParameters, getOpenAPI3Responses, paginationParameters, 
 import { assetFilterParameters, atomicDataFilter, greylistFilterParameters, hideOffersParameters } from '../openapi';
 import { fillAssets, FillerHook } from '../filler';
 
+export function buildAssetQueryCondition(
+    req: express.Request, varOffset: number,
+    options: {assetTable?: string, templateTable?: string, mintTable?: string} = {}
+): {values: any[], str: string} {
+    const args = filterQueryArgs(req, {
+        authorized_account: {type: 'string', min: 1, max: 12},
+        only_duplicate_templates: {type: 'bool'},
+
+        template_mint: {type: 'int', min: 1},
+        schema_mint: {type: 'int', min: 1},
+        collection_mint: {type: 'int', min: 1},
+
+        min_template_mint: {type: 'int', min: 1},
+        max_template_mint: {type: 'int', min: 1},
+        min_schema_mint: {type: 'int', min: 1},
+        max_schema_mint: {type: 'int', min: 1},
+        min_collection_mint: {type: 'int', min: 1},
+        max_collection_mint: {type: 'int', min: 1}
+    });
+
+    let queryString = ' ';
+    let queryValues: any[] = [];
+    let varCounter = varOffset;
+
+    if (args.authorized_account) {
+        queryString += 'AND EXISTS(' +
+            'SELECT * FROM atomicassets_collections collection ' +
+            'WHERE collection.collection_name = ' + options.assetTable + '.collection_name AND collection.contract = ' + options.assetTable + '.contract ' +
+            'AND $' + ++varCounter + ' = ANY(collection.authorized_accounts)' +
+            ') ';
+        queryValues.push(args.authorized_account);
+    }
+
+    if (args.only_duplicate_templates) {
+        queryString += 'AND EXISTS (' +
+            'SELECT * FROM atomicassets_assets inner_asset ' +
+            'WHERE inner_asset.contract = asset.contract AND inner_asset.template_id = ' + options.assetTable + '.template_id ' +
+            'AND inner_asset.asset_id < ' + options.assetTable + '.asset_id AND inner_asset.owner = ' + options.assetTable + '.owner' +
+            ') AND ' + options.assetTable + '.template_id IS NOT NULL ';
+    }
+
+    queryString += hideOfferAssets(req);
+
+    if (options.mintTable) {
+        if (args.template_mint) {
+            queryString += 'AND ' + options.mintTable + '.template_mint = $' + ++varCounter + ' ';
+            queryValues.push(args.template_mint);
+        }
+
+        if (args.schema_mint) {
+            queryString += 'AND ' + options.mintTable + '.schema_mint = $' + ++varCounter + ' ';
+            queryValues.push(args.schema_mint);
+        }
+
+        if (args.collection_mint) {
+            queryString += 'AND ' + options.mintTable + '.collection_mint = $' + ++varCounter + ' ';
+            queryValues.push(args.collection_mint);
+        }
+
+        if (args.min_template_mint) {
+            queryString += 'AND ' + options.mintTable + '.template_mint >= $' + ++varCounter + ' ';
+            queryValues.push(args.min_template_mint);
+        }
+
+        if (args.max_template_mint) {
+            queryString += 'AND ' + options.mintTable + '.template_mint <= $' + ++varCounter + ' ';
+            queryValues.push(args.max_template_mint);
+        }
+
+        if (args.min_schema_mint) {
+            queryString += 'AND ' + options.mintTable + '.schema_mint >= $' + ++varCounter + ' ';
+            queryValues.push(args.min_schema_mint);
+        }
+
+        if (args.max_schema_mint) {
+            queryString += 'AND ' + options.mintTable + '.schema_mint <= $' + ++varCounter + ' ';
+            queryValues.push(args.max_schema_mint);
+        }
+
+        if (args.min_collection_mint) {
+            queryString += 'AND ' + options.mintTable + '.collection_mint >= $' + ++varCounter + ' ';
+            queryValues.push(args.min_collection_mint);
+        }
+
+        if (args.max_collection_mint) {
+            queryString += 'AND ' + options.mintTable + '.collection_mint <= $' + ++varCounter + ' ';
+            queryValues.push(args.max_collection_mint);
+        }
+    }
+
+    const assetFilter = buildAssetFilter(req, varCounter, {assetTable: options.assetTable, templateTable: options.templateTable});
+    queryValues = queryValues.concat(assetFilter.values);
+    varCounter += assetFilter.values.length;
+    queryString += assetFilter.str;
+
+    const blacklistFilter = buildGreylistFilter(req, varCounter, options.assetTable + '.collection_name');
+    queryValues.push(...blacklistFilter.values);
+    queryString += blacklistFilter.str;
+
+    return {
+        values: queryValues,
+        str: queryString
+    };
+}
+
 export class AssetApi {
     constructor(
         readonly core: AtomicAssetsNamespace,
@@ -32,20 +137,6 @@ export class AssetApi {
                         default: 'asset_id'
                     },
                     order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
-
-                    authorized_account: {type: 'string', min: 1, max: 12},
-                    only_duplicate_templates: {type: 'bool'},
-
-                    template_mint: {type: 'int', min: 1},
-                    schema_mint: {type: 'int', min: 1},
-                    collection_mint: {type: 'int', min: 1},
-
-                    min_template_mint: {type: 'int', min: 1},
-                    max_template_mint: {type: 'int', min: 1},
-                    min_schema_mint: {type: 'int', min: 1},
-                    max_schema_mint: {type: 'int', min: 1},
-                    min_collection_mint: {type: 'int', min: 1},
-                    max_collection_mint: {type: 'int', min: 1}
                 });
 
                 let varCounter = 1;
@@ -59,79 +150,13 @@ export class AssetApi {
                     'WHERE asset.contract = $1 ';
                 let queryValues: any[] = [this.core.args.atomicassets_account];
 
-                if (args.authorized_account) {
-                    queryString += 'AND EXISTS(' +
-                        'SELECT * FROM atomicassets_collections collection ' +
-                        'WHERE collection.collection_name = asset.collection_name AND collection.contract = asset.contract ' +
-                            'AND $' + ++varCounter + ' = ANY(collection.authorized_accounts)' +
-                        ') ';
-                    queryValues.push(args.authorized_account);
-                }
+                const filter = buildAssetQueryCondition(req, varCounter, {
+                    assetTable: '"asset"', templateTable: '"template"', mintTable: '"mint"'
+                });
 
-                if (args.only_duplicate_templates) {
-                    queryString += 'AND EXISTS (' +
-                        'SELECT * FROM atomicassets_assets inner_asset ' +
-                        'WHERE inner_asset.contract = asset.contract AND inner_asset.template_id = asset.template_id ' +
-                        'AND inner_asset.asset_id < asset.asset_id AND inner_asset.owner = asset.owner' +
-                        ') AND asset.template_id IS NOT NULL ';
-                }
-
-                queryString += hideOfferAssets(req);
-
-                if (args.template_mint) {
-                    queryString += 'AND mint.template_mint = $' + ++varCounter + ' ';
-                    queryValues.push(args.template_mint);
-                }
-
-                if (args.schema_mint) {
-                    queryString += 'AND mint.schema_mint = $' + ++varCounter + ' ';
-                    queryValues.push(args.schema_mint);
-                }
-
-                if (args.collection_mint) {
-                    queryString += 'AND mint.collection_mint = $' + ++varCounter + ' ';
-                    queryValues.push(args.collection_mint);
-                }
-
-                if (args.min_template_mint) {
-                    queryString += 'AND mint.template_mint >= $' + ++varCounter + ' ';
-                    queryValues.push(args.min_template_mint);
-                }
-
-                if (args.max_template_mint) {
-                    queryString += 'AND mint.template_mint <= $' + ++varCounter + ' ';
-                    queryValues.push(args.max_template_mint);
-                }
-
-                if (args.min_schema_mint) {
-                    queryString += 'AND mint.schema_mint >= $' + ++varCounter + ' ';
-                    queryValues.push(args.min_schema_mint);
-                }
-
-                if (args.max_schema_mint) {
-                    queryString += 'AND mint.schema_mint <= $' + ++varCounter + ' ';
-                    queryValues.push(args.max_schema_mint);
-                }
-
-                if (args.min_collection_mint) {
-                    queryString += 'AND mint.collection_mint >= $' + ++varCounter + ' ';
-                    queryValues.push(args.min_collection_mint);
-                }
-
-                if (args.max_collection_mint) {
-                    queryString += 'AND mint.collection_mint <= $' + ++varCounter + ' ';
-                    queryValues.push(args.max_collection_mint);
-                }
-
-                const assetFilter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', templateTable: '"template"'});
-                queryValues = queryValues.concat(assetFilter.values);
-                varCounter += assetFilter.values.length;
-                queryString += assetFilter.str;
-
-                const blacklistFilter = buildGreylistFilter(req, varCounter, 'asset.collection_name');
-                queryValues.push(...blacklistFilter.values);
-                varCounter += blacklistFilter.values.length;
-                queryString += blacklistFilter.str;
+                queryString += filter.str;
+                varCounter += filter.values.length;
+                queryValues = queryValues.concat(filter.values);
 
                 const boundaryFilter = buildBoundaryFilter(
                     req, varCounter,
@@ -139,6 +164,7 @@ export class AssetApi {
                     args.sort === 'updated' ? 'asset.updated_at_time' : 'asset.minted_at_time',
                     args.sort === 'updated' ? 'asset.updated_at_block' : 'asset.minted_at_block'
                 );
+
                 queryValues = queryValues.concat(boundaryFilter.values);
                 varCounter += boundaryFilter.values.length;
                 queryString += boundaryFilter.str;

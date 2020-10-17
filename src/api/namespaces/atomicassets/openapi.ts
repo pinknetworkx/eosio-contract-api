@@ -256,35 +256,39 @@ export const greylistFilterParameters = [
     }
 ];
 
-export const assetFilterParameters = [
-    {
-        name: 'owner',
-        in: 'query',
-        description: 'Get assets owned by the account',
-        required: false,
-        schema: {type: 'string'}
-    },
+export const baseAssetFilterParameters = [
     {
         name: 'collection_name',
         in: 'query',
-        description: 'Get all assets within the collection',
+        description: 'Filter by collection name',
         required: false,
         schema: {type: 'string'}
     },
     {
         name: 'schema_name',
         in: 'query',
-        description: 'Get all assets which use that schema',
+        description: 'Filter by schema name',
         required: false,
         schema: {type: 'string'}
     },
     {
         name: 'template_id',
         in: 'query',
-        description: 'Get all assets implement the template',
+        description: 'Filter by template id',
         required: false,
         schema: {type: 'integer'}
     },
+];
+
+export const assetFilterParameters = [
+    {
+        name: 'owner',
+        in: 'query',
+        description: 'Filter by owner',
+        required: false,
+        schema: {type: 'string'}
+    },
+    ...baseAssetFilterParameters,
     {
         name: 'match',
         in: 'query',

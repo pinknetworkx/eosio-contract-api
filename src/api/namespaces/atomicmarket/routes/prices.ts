@@ -2,9 +2,16 @@ import * as express from 'express';
 
 import { AtomicMarketNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { getOpenAPI3Responses } from '../../../docs';
+import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
 import { filterQueryArgs } from '../../utils';
+import { buildAssetQueryCondition } from '../../atomicassets/routes/assets';
+import {
+    assetFilterParameters,
+    baseAssetFilterParameters,
+    greylistFilterParameters,
+    hideOffersParameters
+} from '../../atomicassets/openapi';
 
 export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/prices/sales', '/v1/prices'], server.web.caching(), async (req, res) => {
@@ -70,7 +77,58 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
 
     router.all('/v1/prices/templates', server.web.caching(), async (req, res) => {
         try {
+            const args = filterQueryArgs(req, {
+                collection_name: {type: 'string', min: 1},
+                template_id: {type: 'string', min: 1},
+                schema_name: {type: 'string', min: 1},
+                symbol: {type: 'string', min: 1},
 
+                page: {type: 'int', min: 1, default: 1},
+                limit: {type: 'int', min: 1, max: 1000, default: 100},
+            });
+
+            let queryString = 'SELECT price.market_contract, price.assets_contract, ' +
+                    'price.collection_name, price.template_id, ' +
+                    'token.token_symbol, token.token_contract, token.token_precision ' +
+                    'price."median", price."averag"e, price."min", price."max", price.sales ' +
+                'FROM atomicassets_templates "template", atomicmarket_template_prices "price", atomicmarket_tokens "token" ' +
+                'WHERE "template".contract = "price".assets_contract AND "template".collection_name = "price".collection_name AND "template".template_id = "price".template_id AND ' +
+                    '"price".market_contract = "token".market_contract AND "price".symbol = "token".token_symbol WHERE "price".market_contract = $1 AND "price".assets_contract = $2 ';
+            const queryValues: any[] = [core.args.atomicmarket_account, core.args.atomicassets_account];
+            let varCounter = queryValues.length;
+
+            if (args.collection_name) {
+                queryString += 'AND "price".collection_name = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.collection_name.split(','));
+            }
+
+            if (args.template_id) {
+                queryString += 'AND "price".template_id = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.template_id.split(','));
+            }
+
+            if (args.schema_name) {
+                queryString += 'AND "template".schema_name = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.schema_name.split(','));
+            }
+
+            if (args.symbol) {
+                queryString += 'AND "price".symbol = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.symbol.split(','));
+            }
+
+            queryString += 'ORDER BY "price".template_id ASC, "price".symbol ASC ';
+            queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
+            queryValues.push(args.limit);
+            queryValues.push((args.page - 1) * args.limit);
+
+            const prices = await server.query(queryString, queryValues);
+
+            res.json({
+                success: true,
+                data: prices.rows,
+                query_time: Date.now()
+            });
         } catch (e) {
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
@@ -78,7 +136,31 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
 
     router.all('/v1/prices/assets', server.web.caching(), async (req, res) => {
         try {
+            let queryString = 'SELECT token.token_symbol, token.token_precision, token.token_contract, ' +
+                    'SUM(price."median") "median", SUM(price."average") "average", SUM(price."min") "min", SUM(price."max") "max" ' +
+                'FROM atomicassets_assets asset, atomicassets_templates "template", atomicmarket_template_prices "price", atomicmarket_tokens token ' +
+                'WHERE asset.contract = template.contract AND asset.template_id = template.template_id AND ' +
+                    'template.contract = price.assets_contract AND template.template_id = price.template_id AND ' +
+                    'token.market_contract = price.market_contract AND token.token_symbol = price.symbol AND ' +
+                    'price.assets_contract = $1 AND price.market_contract = $2 ';
+            let queryValues: any[] = [core.args.atomicassets_account, core.args.atomicmarket_account];
 
+            const filter = buildAssetQueryCondition(req, queryValues.length, {
+                assetTable: '"asset"', templateTable: '"template"'
+            });
+
+            queryString += filter.str;
+            queryValues = queryValues.concat(filter.values);
+
+            queryString += 'GROUP BY token.token_symbol, token.token_precision, token.token_contract';
+
+            const prices = await server.query(queryString, queryValues);
+
+            res.json({
+                success: true,
+                data: prices.rows,
+                query_time: Date.now()
+            });
         } catch (e) {
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
@@ -95,27 +177,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                     tags: ['pricing'],
                     summary: 'Gets price history for a template or schema',
                     parameters: [
-                        {
-                            name: 'collection_name',
-                            in: 'query',
-                            description: 'Collection Name',
-                            required: false,
-                            schema: {type: 'string'}
-                        },
-                        {
-                            name: 'template_id',
-                            in: 'query',
-                            description: 'Template id',
-                            required: false,
-                            schema: {type: 'integer'}
-                        },
-                        {
-                            name: 'schema_name',
-                            in: 'query',
-                            description: 'Schema Name',
-                            required: false,
-                            schema: {type: 'string'}
-                        },
+                        ...baseAssetFilterParameters,
                         {
                             name: 'symbol',
                             in: 'query',
@@ -132,16 +194,99 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                         }
                     ],
                     responses: getOpenAPI3Responses([500, 200], {
-                        type: 'object',
-                        properties: {
-                            sale_id: {type: 'string'},
-                            template_mint: {type: 'string'},
-                            price: {type: 'string'},
-                            token_symbol: {type: 'string'},
-                            token_precision: {type: 'integer'},
-                            token_contract: {type: 'string'},
-                            block_time: {type: 'string'},
-                            block_num: {type: 'string'}
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                sale_id: {type: 'string'},
+                                template_mint: {type: 'string'},
+                                price: {type: 'string'},
+                                token_symbol: {type: 'string'},
+                                token_precision: {type: 'integer'},
+                                token_contract: {type: 'string'},
+                                block_time: {type: 'string'},
+                                block_num: {type: 'string'}
+                            }
+                        }
+                    })
+                }
+            },
+            '/v1/prices/templates': {
+                get: {
+                    tags: ['pricing'],
+                    summary: 'Get template price stats',
+                    parameters: [
+                        baseAssetFilterParameters,
+                        {
+                            name: 'symbol',
+                            in: 'query',
+                            description: 'Token symbol',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        ...paginationParameters
+                    ],
+                    responses: getOpenAPI3Responses([500, 200], {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                token_symbol: {type: 'string'},
+                                token_precision: {type: 'integer'},
+                                token_contract: {type: 'string'},
+
+                                collection_name: {type: 'string'},
+                                template_id: {type: 'string'},
+
+                                average: {type: 'string'},
+                                median: {type: 'string'},
+                                min: {type: 'string'},
+                                max: {type: 'string'}
+                            }
+                        }
+                    })
+                }
+            },
+            '/v1/prices/assets': {
+                get: {
+                    tags: ['pricing'],
+                    summary: 'Gets price history for a template or schema',
+                    parameters: [
+                        ...assetFilterParameters,
+                        {
+                            name: 'only_duplicate_templates',
+                            in: 'query',
+                            description: 'Show only duplicate assets grouped by template',
+                            required: false,
+                            schema: {
+                                type: 'boolean'
+                            }
+                        },
+                        {
+                            name: 'authorized_account',
+                            in: 'query',
+                            description: 'Filter for assets the provided account can edit. ',
+                            required: false,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
+                        ...hideOffersParameters,
+                        ...greylistFilterParameters,
+                    ],
+                    responses: getOpenAPI3Responses([500, 200], {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                token_symbol: {type: 'string'},
+                                token_precision: {type: 'integer'},
+                                token_contract: {type: 'string'},
+                                median: {type: 'string'},
+                                average: {type: 'string'},
+                                min: {type: 'string'},
+                                max: {type: 'string'}
+                            }
                         }
                     })
                 }

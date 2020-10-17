@@ -5,8 +5,9 @@ import { HTTPServer } from '../../../server';
 import { filterQueryArgs, mergeRequestData } from '../../utils';
 import { formatCollection } from '../../atomicassets/format';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
-import { atomicassetsComponents } from '../../atomicassets/openapi';
+import { atomicassetsComponents, greylistFilterParameters } from '../../atomicassets/openapi';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
+import { buildGreylistFilter } from '../../atomicassets/utils';
 
 export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     function getSubCondition (state: number, after?: number, before?: number): string {
@@ -57,7 +58,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                     SELECT buyer account, SUM(final_price) buy_volume_inner, 0 sell_volume_inner 
                     FROM atomicmarket_sales sale
                     WHERE sale.state = ${SaleState.SOLD.valueOf()} AND sale.settlement_symbol = $2 AND sale.market_contract = $1
-                        ${getSubCondition(SaleState.SOLD.valueOf(), after, before)}
+                        ${getSubCondition(SaleState.SOLD.valueOf(), after, before)} AND 
+                        (sale.collection_name = ANY ($3) OR CARDINALITY($3) = 0) AND (NOT (sale.collection_name = ANY ($4)) OR CARDINALITY($4) = 0)
                     GROUP BY buyer
                 )
                 UNION ALL
@@ -65,7 +67,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                     SELECT seller account, 0 buy_volume_inner, SUM(final_price) sell_volume_inner 
                     FROM atomicmarket_sales sale
                     WHERE sale.state = ${SaleState.SOLD.valueOf()} AND sale.settlement_symbol = $2 AND sale.market_contract = $1
-                        ${getSubCondition(SaleState.SOLD.valueOf(), after, before)}
+                        ${getSubCondition(SaleState.SOLD.valueOf(), after, before)} AND 
+                        (sale.collection_name = ANY ($3) OR CARDINALITY($3) = 0) AND (NOT (sale.collection_name = ANY ($4)) OR CARDINALITY($4) = 0)
                     GROUP BY seller
                 )
             ) accounts
@@ -102,11 +105,13 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                     (
                         SELECT seller account FROM atomicmarket_sales sale
                         WHERE sale.market_contract = mp.market_contract ${getSubCondition(SaleState.LISTED.valueOf(), after, before)} AND
-                            (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name)
+                            (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name) AND
+                            (sale.collection_name = ANY ($3) OR CARDINALITY($3) = 0) AND (NOT (sale.collection_name = ANY ($4)) OR CARDINALITY($4) = 0)
                     ) UNION (
                         SELECT buyer account FROM atomicmarket_sales sale
                         WHERE sale.state = ${SaleState.SOLD.valueOf()} AND sale.market_contract = mp.market_contract ${getSubCondition(SaleState.SOLD.valueOf(), after, before)} AND
-                            (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name)
+                            (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name) AND 
+                            (sale.collection_name = ANY ($3) OR CARDINALITY($3) = 0) AND (NOT (sale.collection_name = ANY ($4)) OR CARDINALITY($4) = 0)
                     )
                 ) ut1
             ) users,
@@ -121,7 +126,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 WHERE
                     sale.state = ${SaleState.SOLD.valueOf()} AND sale.settlement_symbol = $2 AND
                     sale.market_contract = mp.market_contract ${getSubCondition(SaleState.SOLD.valueOf(), after, before)} AND
-                    (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name)
+                    (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name) AND 
+                    (sale.collection_name = ANY ($3) OR CARDINALITY($3) = 0) AND (NOT (sale.collection_name = ANY ($4)) OR CARDINALITY($4) = 0)
             ) volume
         FROM atomicmarket_marketplaces mp
         WHERE mp.market_contract = $1
@@ -132,7 +138,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         return `
         SELECT div(sale.updated_at_time, 24 * 3600 * 1000) "time", COUNT(*) sales, SUM(final_price) volume
         FROM atomicmarket_sales sale 
-        WHERE "state" = ${SaleState.SOLD.valueOf()} AND market_contract = $1 AND settlement_symbol = $2
+        WHERE "state" = ${SaleState.SOLD.valueOf()} AND market_contract = $1 AND settlement_symbol = $2 AND 
+            (sale.collection_name = ANY ($3) OR CARDINALITY($3) = 0) AND (NOT (sale.collection_name = ANY ($4)) OR CARDINALITY($4) = 0)
         GROUP BY "time" ORDER BY "time" ASC
         `;
     }
@@ -250,6 +257,9 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
     router.all('/v1/stats/accounts', server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
+                collection_whitelist: {type: 'string', min: 1, default: ''},
+                collection_blacklist: {type: 'string', min: 1, default: ''},
+
                 symbol: {type: 'string', min: 1},
 
                 before: {type: 'int', min: 1},
@@ -267,7 +277,11 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             }
 
             let queryString = 'SELECT * FROM (' + getAccountStatsQuery(args.after, args.before) + ') x ';
-            const queryValues = [core.args.atomicmarket_account, args.symbol];
+            const queryValues = [
+                core.args.atomicmarket_account, args.symbol,
+                args.collection_whitelist.split(',').filter((x: string) => !!x),
+                args.collection_blacklist.split(',').filter((x: string) => !!x)
+            ];
             let varCounter = queryValues.length;
 
             const sortColumnMapping = {
@@ -295,15 +309,26 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
     router.all('/v1/stats/accounts/:account', server.web.caching(), async (req, res) => {
         try {
-            const data = mergeRequestData(req);
-            const symbol = await fetchSymbol(String(data.symbol));
+            const args = filterQueryArgs(req, {
+                collection_whitelist: {type: 'string', min: 1, default: ''},
+                collection_blacklist: {type: 'string', min: 1, default: ''},
+
+                symbol: {type: 'string', min: 1}
+            });
+
+            const symbol = await fetchSymbol(args.symbol);
 
             if (symbol === null) {
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
-            const queryString = 'SELECT * FROM (' + getAccountStatsQuery() + ') x WHERE x.account = $3 ';
-            const queryValues = [core.args.atomicmarket_account, data.symbol, req.params.account];
+            const queryString = 'SELECT * FROM (' + getAccountStatsQuery() + ') x WHERE x.account = $5 ';
+            const queryValues = [
+                core.args.atomicmarket_account, args.symbol,
+                args.collection_whitelist.split(',').filter((x: string) => !!x),
+                args.collection_blacklist.split(',').filter((x: string) => !!x),
+                req.params.account
+            ];
 
             const query = await server.query(queryString, queryValues);
 
@@ -371,8 +396,10 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
     router.all('/v1/stats/markets', server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
-                symbol: {type: 'string', min: 1},
+                collection_whitelist: {type: 'string', min: 1, default: ''},
+                collection_blacklist: {type: 'string', min: 1, default: ''},
 
+                symbol: {type: 'string', min: 1},
                 before: {type: 'int', min: 1},
                 after: {type: 'int', min: 1}
             });
@@ -384,7 +411,11 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             }
 
             let queryString = 'SELECT * FROM (' + getMarketStatsQuery(args.after, args.before) + ') x ';
-            const queryValues = [core.args.atomicmarket_account, args.symbol];
+            const queryValues = [
+                core.args.atomicmarket_account, args.symbol,
+                args.collection_whitelist.split(',').filter((x: string) => !!x),
+                args.collection_blacklist.split(',').filter((x: string) => !!x),
+            ];
 
             // @ts-ignore
             queryString += 'ORDER BY users DESC NULLS LAST ';
@@ -403,15 +434,25 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
     router.all('/v1/stats/graph', server.web.caching(), async (req, res) => {
         try {
-            const data = mergeRequestData(req);
-            const symbol = await fetchSymbol(String(data.symbol));
+            const args = filterQueryArgs(req, {
+                collection_whitelist: {type: 'string', min: 1, default: ''},
+                collection_blacklist: {type: 'string', min: 1, default: ''},
+
+                symbol: {type: 'string', min: 1}
+            });
+
+            const symbol = await fetchSymbol(args.symbol);
 
             if (symbol === null) {
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
             const queryString = getGraphStatsQuery();
-            const queryValues = [core.args.atomicmarket_account, data.symbol];
+            const queryValues = [
+                core.args.atomicmarket_account, args.symbol,
+                args.collection_whitelist.split(',').filter((x: string) => !!x),
+                args.collection_blacklist.split(',').filter((x: string) => !!x),
+            ];
 
             const query = await server.query(queryString, queryValues);
 
@@ -427,18 +468,29 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
     router.all('/v1/stats/sales', server.web.caching(), async (req, res) => {
         try {
-            const data = mergeRequestData(req);
-            const symbol = await fetchSymbol(String(data.symbol));
+            const args = filterQueryArgs(req, {
+                collection_whitelist: {type: 'string', min: 1, default: ''},
+                collection_blacklist: {type: 'string', min: 1, default: ''},
+
+                symbol: {type: 'string', min: 1}
+            });
+
+            const symbol = await fetchSymbol(args.symbol);
 
             if (symbol === null) {
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
-            const queryString = `
+            let queryString = `
                 SELECT SUM(final_price) volume, COUNT(*) sales FROM atomicmarket_sales 
                 WHERE market_contract = $1 and settlement_symbol = $2 AND state = ${SaleState.SOLD.valueOf()}
             `;
-            const queryValues = [core.args.atomicmarket_account, data.symbol];
+            let queryValues = [core.args.atomicmarket_account, args.symbol];
+
+            const greylistFilter = buildGreylistFilter(req, queryValues.length, 'sale.collection_name');
+
+            queryValues = queryValues.concat(greylistFilter.values);
+            queryString += greylistFilter.str;
 
             const query = await server.query(queryString, queryValues);
 
@@ -532,6 +584,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                         },
                         ...boundaryParams,
                         ...paginationParameters,
+                        ...greylistFilterParameters,
                         {
                             name: 'sort',
                             in: 'query',
@@ -601,6 +654,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             }
                         },
                         ...boundaryParams,
+                        ...greylistFilterParameters,
                         ...paginationParameters,
                         {
                             name: 'sort',
@@ -645,7 +699,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             schema: {
                                 type: 'string'
                             }
-                        }
+                        },
+                        greylistFilterParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'object',
@@ -715,7 +770,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             schema: {
                                 type: 'string'
                             }
-                        }
+                        },
+                        greylistFilterParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'object',
@@ -749,7 +805,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             schema: {
                                 type: 'string'
                             }
-                        }
+                        },
+                        greylistFilterParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'object',

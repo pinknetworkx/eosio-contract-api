@@ -64,8 +64,10 @@ export function buildDataConditions(
 
 export function buildAssetFilter(
     req: express.Request, varOffset: number,
-    options: {assetTable?: string, templateTable?: string, allowDataFilter?: boolean} = {allowDataFilter: true}
+    options: {assetTable?: string, templateTable?: string, allowDataFilter?: boolean} = {}
 ): {str: string, values: any[]} {
+    options = Object.assign({allowDataFilter: true}, options);
+
     const args = filterQueryArgs(req, {
         owner: {type: 'string', min: 1, max: 12},
         template_id: {type: 'string', min: 1},
