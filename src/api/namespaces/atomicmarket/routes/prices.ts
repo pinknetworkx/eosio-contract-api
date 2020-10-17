@@ -93,7 +93,8 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                     'price."median", price."averag"e, price."min", price."max", price.sales ' +
                 'FROM atomicassets_templates "template", atomicmarket_template_prices "price", atomicmarket_tokens "token" ' +
                 'WHERE "template".contract = "price".assets_contract AND "template".collection_name = "price".collection_name AND "template".template_id = "price".template_id AND ' +
-                    '"price".market_contract = "token".market_contract AND "price".symbol = "token".token_symbol WHERE "price".market_contract = $1 AND "price".assets_contract = $2 ';
+                    '"price".market_contract = "token".market_contract AND "price".symbol = "token".token_symbol AND ' +
+                    '"price".market_contract = $1 AND "price".assets_contract = $2 ';
             const queryValues: any[] = [core.args.atomicmarket_account, core.args.atomicassets_account];
             let varCounter = queryValues.length;
 
