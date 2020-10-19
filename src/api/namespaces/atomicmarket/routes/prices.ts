@@ -36,24 +36,29 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
             const queryValues = [core.args.atomicmarket_account, args.state];
             let varCounter = queryValues.length;
 
-            if (args.collection_name && args.schema_name && !args.template_id) {
-                queryString += 'AND NOT EXISTS (' +
-                    'SELECT * FROM atomicassets_offers_assets asset_o, atomicassets_assets asset_a ' +
-                    'WHERE asset_a.contract = asset_o.contract AND asset_a.asset_id = asset_o.asset_id AND asset_o.offer_id = sale.offer_id AND ' +
-                    '(asset_a.collection_name != $' + ++varCounter + ' OR asset_a.schema_name != $' + ++varCounter + ') ' +
-                    ') ';
-
-                queryValues.push(args.collection_name, args.schema_name);
+            if (args.collection_name) {
+                queryString += 'AND sale.collection_name = $' + ++varCounter + ' ';
+                queryValues.push(args.collection_name);
             }
 
-            if (args.collection_name && args.template_id) {
+            if (args.schema_name) {
                 queryString += 'AND NOT EXISTS (' +
-                    'SELECT * FROM atomicassets_offers_assets asset_o, atomicassets_assets asset_a ' +
-                    'WHERE asset_a.contract = asset_o.contract AND asset_a.asset_id = asset_o.asset_id AND asset_o.offer_id = sale.offer_id AND ' +
-                    '(asset_a.collection_name != $' + ++varCounter + ' OR asset_a.template_id != $' + ++varCounter + ' OR asset_a.template_id IS NULL) ' +
+                    'SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
+                    'WHERE asset.contract = offer_asset.contract AND asset.asset_id = offer_asset.asset_id AND offer_asset.offer_id = sale.offer_id AND ' +
+                    'asset.schema_name != $' + ++varCounter + ' ' +
                     ') ';
 
-                queryValues.push(args.collection_name, args.template_id);
+                queryValues.push(args.schema_name);
+            }
+
+            if (args.template_id) {
+                queryString += 'AND NOT EXISTS (' +
+                    'SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
+                    'WHERE asset.contract = offer_asset.contract AND asset.asset_id = offer_asset.asset_id AND offer_asset.offer_id = sale.offer_id AND ' +
+                    '(asset.template_id != $' + ++varCounter + ' OR asset.template_id IS NULL) ' +
+                    ') ';
+
+                queryValues.push(args.template_id);
             }
 
             if (args.symbol) {
