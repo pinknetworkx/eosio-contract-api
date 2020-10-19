@@ -9,7 +9,7 @@ import { greylistFilterParameters, hideOffersParameters } from '../openapi';
 import { hideOfferAssets } from '../utils';
 
 export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
-    router.all(['/v1/accounts', '/v1/accounts/_count'], server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+    router.all(['/v1/accounts', '/v1/accounts/_count'], server.web.caching(), (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
@@ -91,7 +91,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
         }
     }));
 
-    router.all('/v1/accounts/:account', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+    router.all('/v1/accounts/:account', server.web.caching(), (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 collection_whitelist: {type: 'string', min: 1},

@@ -29,7 +29,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
         return query.rows[0];
     }
 
-    router.get('/v1/stats', server.web.caching({expire: 60, ignoreQueryString: true}), async (req, res) => {
+    router.all('/v1/stats', server.web.caching({expire: 60}), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 collection_whitelist: {type: 'string', min: 1, default: ''},
@@ -112,7 +112,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
         }
     });
 
-    router.get('/v1/assets/suggestions', server.web.caching({expire: 60}), async (req, res) => {
+    router.all('/v1/assets/suggestions', server.web.caching({expire: 60}), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 limit: {type: 'int', min: 1, max: 100, default: 10},
@@ -186,7 +186,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
         }
     });
 
-    router.get('/v1/sales/suggestions', server.web.caching({expire: 60}), async (req, res) => {
+    router.all('/v1/sales/suggestions', server.web.caching({expire: 60}), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 limit: {type: 'int', min: 1, max: 100, default: 10},
@@ -287,7 +287,7 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
         }
     });
 
-    router.get('/v1/giveaway', server.web.caching(), async (req, res) => {
+    router.all('/v1/giveaway', server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 symbol: {type: 'string', min: 1},
