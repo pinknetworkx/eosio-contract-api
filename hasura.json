@@ -1,0 +1,1299 @@
+{
+  "version": 2,
+  "tables": [
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicassets_asset_data"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "contract",
+              "asset_id",
+              "collection_name",
+              "schema_name",
+              "data"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicassets_asset_mints"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "contract",
+              "asset_id",
+              "collection_mint",
+              "schema_mint",
+              "template_mint"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicassets_assets"
+      },
+      "object_relationships": [
+        {
+          "name": "atomicassets_collection",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_collections"
+              },
+              "column_mapping": {
+                "collection_name": "collection_name",
+                "contract": "contract"
+              }
+            }
+          }
+        },
+        {
+          "name": "atomicassets_schema",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_schemas"
+              },
+              "column_mapping": {
+                "collection_name": "collection_name",
+                "contract": "contract",
+                "schema_name": "schema_name"
+              }
+            }
+          }
+        },
+        {
+          "name": "atomicassets_template",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_templates"
+              },
+              "column_mapping": {
+                "contract": "contract",
+                "template_id": "template_id"
+              }
+            }
+          }
+        }
+      ],
+      "array_relationships": [
+        {
+          "name": "atomicassets_assets_backed_tokens",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_assets_backed_tokens"
+              },
+              "column_mapping": {
+                "asset_id": "asset_id",
+                "contract": "contract"
+              }
+            }
+          }
+        },
+        {
+          "name": "atomicassets_mints",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_mints"
+              },
+              "column_mapping": {
+                "asset_id": "asset_id",
+                "contract": "contract"
+              }
+            }
+          }
+        }
+      ],
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "contract",
+              "asset_id",
+              "collection_name",
+              "schema_name",
+              "template_id",
+              "owner",
+              "mutable_data",
+              "immutable_data",
+              "ram_payer",
+              "burned_at_block",
+              "burned_at_time",
+              "updated_at_block",
+              "updated_at_time",
+              "minted_at_block",
+              "minted_at_time"
+            ],
+            "filter": {},
+            "limit": 980,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicassets_assets_backed_tokens"
+      },
+      "object_relationships": [
+        {
+          "name": "atomicassets_token",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_tokens"
+              },
+              "column_mapping": {
+                "contract": "contract",
+                "token_symbol": "token_symbol"
+              }
+            }
+          }
+        }
+      ],
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "contract",
+              "asset_id",
+              "token_symbol",
+              "amount",
+              "updated_at_block",
+              "updated_at_time"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicassets_balances"
+      },
+      "object_relationships": [
+        {
+          "name": "atomicassets_token",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_tokens"
+              },
+              "column_mapping": {
+                "contract": "contract",
+                "token_symbol": "token_symbol"
+              }
+            }
+          }
+        }
+      ],
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "contract",
+              "owner",
+              "token_symbol",
+              "amount",
+              "updated_at_block",
+              "updated_at_time"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicassets_collections"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "contract",
+              "collection_name",
+              "author",
+              "allow_notify",
+              "authorized_accounts",
+              "notify_accounts",
+              "market_fee",
+              "data",
+              "created_at_block",
+              "created_at_time"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicassets_config"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "contract",
+              "version",
+              "collection_format"
+            ],
+            "filter": {},
+            "limit": 1000
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicassets_logs"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "log_id",
+              "contract",
+              "name",
+              "relation_name",
+              "relation_id",
+              "data",
+              "txid",
+              "created_at_block",
+              "created_at_time"
+            ],
+            "filter": {},
+            "limit": 1000
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicassets_mints"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "contract",
+              "asset_id",
+              "receiver",
+              "txid",
+              "created_at_block",
+              "created_at_time"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicassets_offers"
+      },
+      "array_relationships": [
+        {
+          "name": "atomicassets_offers_assets",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_offers_assets"
+              },
+              "column_mapping": {
+                "offer_id": "offer_id",
+                "contract": "contract"
+              }
+            }
+          }
+        }
+      ],
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "contract",
+              "offer_id",
+              "sender",
+              "recipient",
+              "memo",
+              "state",
+              "updated_at_time",
+              "updated_at_block",
+              "created_at_time",
+              "created_at_block"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicassets_offers_assets"
+      },
+      "object_relationships": [
+        {
+          "name": "atomicassets_asset",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_assets"
+              },
+              "column_mapping": {
+                "asset_id": "asset_id",
+                "contract": "contract"
+              }
+            }
+          }
+        }
+      ],
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "contract",
+              "offer_id",
+              "owner",
+              "asset_id"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicassets_schemas"
+      },
+      "object_relationships": [
+        {
+          "name": "atomicassets_collection",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_collections"
+              },
+              "column_mapping": {
+                "collection_name": "collection_name",
+                "contract": "contract"
+              }
+            }
+          }
+        }
+      ],
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "contract",
+              "collection_name",
+              "schema_name",
+              "format",
+              "created_at_block",
+              "created_at_time"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicassets_templates"
+      },
+      "object_relationships": [
+        {
+          "name": "atomicassets_collection",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_collections"
+              },
+              "column_mapping": {
+                "collection_name": "collection_name",
+                "contract": "contract"
+              }
+            }
+          }
+        },
+        {
+          "name": "atomicassets_schema",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_schemas"
+              },
+              "column_mapping": {
+                "collection_name": "collection_name",
+                "contract": "contract",
+                "schema_name": "schema_name"
+              }
+            }
+          }
+        }
+      ],
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "contract",
+              "template_id",
+              "collection_name",
+              "schema_name",
+              "transferable",
+              "burnable",
+              "max_supply",
+              "issued_supply",
+              "immutable_data",
+              "created_at_time",
+              "created_at_block"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicassets_tokens"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "contract",
+              "token_symbol",
+              "token_contract",
+              "token_precision"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicassets_transfers"
+      },
+      "array_relationships": [
+        {
+          "name": "atomicassets_transfers_assets",
+          "using": {
+            "foreign_key_constraint_on": {
+              "column": "transfer_id",
+              "table": {
+                "schema": "public",
+                "name": "atomicassets_transfers_assets"
+              }
+            }
+          }
+        }
+      ],
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "transfer_id",
+              "contract",
+              "sender",
+              "recipient",
+              "memo",
+              "txid",
+              "created_at_block",
+              "created_at_time"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicassets_transfers_assets"
+      },
+      "object_relationships": [
+        {
+          "name": "atomicassets_asset",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_assets"
+              },
+              "column_mapping": {
+                "asset_id": "asset_id",
+                "contract": "contract"
+              }
+            }
+          }
+        }
+      ],
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "transfer_id",
+              "contract",
+              "asset_id"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicmarket_auction_mints"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "market_contract",
+              "auction_id",
+              "max_template_mint",
+              "min_template_mint",
+              "max_schema_mint",
+              "min_schema_mint",
+              "max_collection_mint",
+              "min_collection_mint"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicmarket_auctions"
+      },
+      "object_relationships": [
+        {
+          "name": "atomicassets_collection",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_collections"
+              },
+              "column_mapping": {
+                "collection_name": "collection_name",
+                "assets_contract": "contract"
+              }
+            }
+          }
+        },
+        {
+          "name": "atomicmarket_marketplace",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicmarket_marketplaces"
+              },
+              "column_mapping": {
+                "taker_marketplace": "marketplace_name",
+                "market_contract": "market_contract"
+              }
+            }
+          }
+        },
+        {
+          "name": "atomicmarketMarketplaceByMakerMarketplaceMarketContract",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicmarket_marketplaces"
+              },
+              "column_mapping": {
+                "maker_marketplace": "marketplace_name",
+                "market_contract": "market_contract"
+              }
+            }
+          }
+        },
+        {
+          "name": "atomicmarket_token",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicmarket_tokens"
+              },
+              "column_mapping": {
+                "token_symbol": "token_symbol",
+                "market_contract": "market_contract"
+              }
+            }
+          }
+        }
+      ],
+      "array_relationships": [
+        {
+          "name": "atomicmarket_auctions_assets",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicmarket_auctions_assets"
+              },
+              "column_mapping": {
+                "auction_id": "auction_id",
+                "market_contract": "market_contract"
+              }
+            }
+          }
+        },
+        {
+          "name": "atomicmarket_auctions_bids",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicmarket_auctions_bids"
+              },
+              "column_mapping": {
+                "auction_id": "auction_id",
+                "market_contract": "market_contract"
+              }
+            }
+          }
+        }
+      ],
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "market_contract",
+              "auction_id",
+              "seller",
+              "buyer",
+              "price",
+              "token_symbol",
+              "assets_contract",
+              "maker_marketplace",
+              "taker_marketplace",
+              "collection_name",
+              "collection_fee",
+              "claimed_by_buyer",
+              "claimed_by_seller",
+              "state",
+              "end_time",
+              "updated_at_block",
+              "updated_at_time",
+              "created_at_block",
+              "created_at_time",
+              "created_at_txid"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicmarket_auctions_assets"
+      },
+      "object_relationships": [
+        {
+          "name": "atomicassets_asset",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_assets"
+              },
+              "column_mapping": {
+                "asset_id": "asset_id",
+                "assets_contract": "contract"
+              }
+            }
+          }
+        }
+      ],
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "market_contract",
+              "auction_id",
+              "assets_contract",
+              "asset_id"
+            ],
+            "filter": {},
+            "limit": 1000
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicmarket_auctions_bids"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "market_contract",
+              "auction_id",
+              "bid_number",
+              "account",
+              "amount",
+              "txid",
+              "created_at_block",
+              "created_at_time"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicmarket_balances"
+      },
+      "object_relationships": [
+        {
+          "name": "atomicmarket_token",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicmarket_tokens"
+              },
+              "column_mapping": {
+                "token_symbol": "token_symbol",
+                "market_contract": "market_contract"
+              }
+            }
+          }
+        }
+      ],
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "market_contract",
+              "owner",
+              "token_symbol",
+              "amount",
+              "updated_at_block",
+              "updated_at_time"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicmarket_config"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "market_contract",
+              "assets_contract",
+              "delphi_contract",
+              "version",
+              "maker_market_fee",
+              "taker_market_fee",
+              "minimum_auction_duration",
+              "maximum_auction_duration",
+              "minimum_bid_increase",
+              "auction_reset_duration"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicmarket_marketplaces"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "market_contract",
+              "marketplace_name",
+              "creator",
+              "created_at_block",
+              "created_at_time"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicmarket_sale_mints"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "market_contract",
+              "sale_id",
+              "max_template_mint",
+              "min_template_mint",
+              "max_schema_mint",
+              "min_schema_mint",
+              "max_collection_mint",
+              "min_collection_mint"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicmarket_sale_prices"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "market_contract",
+              "sale_id",
+              "state",
+              "price",
+              "settlement_contract",
+              "settlement_precision",
+              "settlement_symbol",
+              "median",
+              "median_precision",
+              "listing_price",
+              "listing_symbol",
+              "listing_precision"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicmarket_sales"
+      },
+      "object_relationships": [
+        {
+          "name": "atomicassets_offer",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_offers"
+              },
+              "column_mapping": {
+                "offer_id": "offer_id",
+                "assets_contract": "contract"
+              }
+            }
+          }
+        },
+        {
+          "name": "atomicmarket_token",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicmarket_tokens"
+              },
+              "column_mapping": {
+                "settlement_symbol": "token_symbol",
+                "market_contract": "market_contract"
+              }
+            }
+          }
+        }
+      ],
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "market_contract",
+              "sale_id",
+              "seller",
+              "buyer",
+              "listing_price",
+              "final_price",
+              "listing_symbol",
+              "settlement_symbol",
+              "assets_contract",
+              "offer_id",
+              "maker_marketplace",
+              "taker_marketplace",
+              "collection_name",
+              "collection_fee",
+              "state",
+              "updated_at_block",
+              "updated_at_time",
+              "created_at_block",
+              "created_at_time",
+              "created_at_txid"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicmarket_symbol_pairs"
+      },
+      "object_relationships": [
+        {
+          "name": "delphioracle_pair",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "delphioracle_pairs"
+              },
+              "column_mapping": {
+                "delphi_contract": "contract",
+                "delphi_pair_name": "delphi_pair_name"
+              }
+            }
+          }
+        }
+      ],
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "market_contract",
+              "listing_symbol",
+              "settlement_symbol",
+              "delphi_contract",
+              "delphi_pair_name",
+              "invert_delphi_pair"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicmarket_template_prices"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "market_contract",
+              "assets_contract",
+              "collection_name",
+              "template_id",
+              "symbol",
+              "median",
+              "average",
+              "min",
+              "max",
+              "sales"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicmarket_tokens"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "market_contract",
+              "token_contract",
+              "token_symbol",
+              "token_precision"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomictools_config"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "tools_contract",
+              "version",
+              "assets_contract"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomictools_links"
+      },
+      "array_relationships": [
+        {
+          "name": "atomictools_links_assets",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomictools_links_assets"
+              },
+              "column_mapping": {
+                "link_id": "link_id",
+                "tools_contract": "tools_contract"
+              }
+            }
+          }
+        }
+      ],
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "tools_contract",
+              "link_id",
+              "assets_contract",
+              "creator",
+              "claimer",
+              "state",
+              "key_type",
+              "key_data",
+              "txid",
+              "memo",
+              "created_at_block",
+              "created_at_time",
+              "updated_at_block",
+              "updated_at_time"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomictools_links_assets"
+      },
+      "object_relationships": [
+        {
+          "name": "atomicassets_asset",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_assets"
+              },
+              "column_mapping": {
+                "asset_id": "asset_id",
+                "assets_contract": "contract"
+              }
+            }
+          }
+        }
+      ],
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "tools_contract",
+              "link_id",
+              "assets_contract",
+              "asset_id"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "delphioracle_pairs"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "contract",
+              "delphi_pair_name",
+              "base_symbol",
+              "base_precision",
+              "quote_symbol",
+              "quote_precision",
+              "median",
+              "median_precision",
+              "updated_at_time",
+              "updated_at_block"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    }
+  ]
+}
