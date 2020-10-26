@@ -54,6 +54,36 @@
       },
       "object_relationships": [
         {
+          "name": "atomicassets_asset_data",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_asset_data"
+              },
+              "column_mapping": {
+                "asset_id": "asset_id",
+                "contract": "contract"
+              }
+            }
+          }
+        },
+        {
+          "name": "atomicassets_asset_mints",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_asset_mints"
+              },
+              "column_mapping": {
+                "asset_id": "asset_id",
+                "contract": "contract"
+              }
+            }
+          }
+        },
+        {
           "name": "atomicassets_collection",
           "using": {
             "manual_configuration": {
@@ -503,6 +533,23 @@
           }
         }
       ],
+      "array_relationships": [
+        {
+          "name": "atomicmarket_template_prices",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicmarket_template_prices"
+              },
+              "column_mapping": {
+                "contract": "assets_contract",
+                "template_id": "template_id"
+              }
+            }
+          }
+        }
+      ],
       "select_permissions": [
         {
           "role": "anonymous",
@@ -670,6 +717,21 @@
               "column_mapping": {
                 "collection_name": "collection_name",
                 "assets_contract": "contract"
+              }
+            }
+          }
+        },
+        {
+          "name": "atomicmarket_auction_mints",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicmarket_auction_mints"
+              },
+              "column_mapping": {
+                "auction_id": "auction_id",
+                "market_contract": "market_contract"
               }
             }
           }
@@ -1014,6 +1076,36 @@
               "column_mapping": {
                 "offer_id": "offer_id",
                 "assets_contract": "contract"
+              }
+            }
+          }
+        },
+        {
+          "name": "atomicmarket_sale_mints",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicmarket_sale_mints"
+              },
+              "column_mapping": {
+                "sale_id": "sale_id",
+                "market_contract": "market_contract"
+              }
+            }
+          }
+        },
+        {
+          "name": "atomicmarket_sale_prices",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicmarket_sale_prices"
+              },
+              "column_mapping": {
+                "sale_id": "sale_id",
+                "market_contract": "market_contract"
               }
             }
           }
