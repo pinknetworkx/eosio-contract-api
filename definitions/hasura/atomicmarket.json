@@ -974,8 +974,7 @@
               "auction_reset_duration"
             ],
             "filter": {},
-            "limit": 1000,
-            "allow_aggregations": true
+            "limit": 1000
           }
         }
       ]
@@ -1034,6 +1033,23 @@
         "schema": "public",
         "name": "atomicmarket_sale_prices"
       },
+      "object_relationships": [
+        {
+          "name": "atomicmarket_tokens",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicmarket_tokens"
+              },
+              "column_mapping": {
+                "settlement_symbol": "token_symbol",
+                "market_contract": "market_contract"
+              }
+            }
+          }
+        }
+      ],
       "select_permissions": [
         {
           "role": "anonymous",
@@ -1166,6 +1182,21 @@
       },
       "object_relationships": [
         {
+          "name": "atomicmarket_tokens",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicmarket_tokens"
+              },
+              "column_mapping": {
+                "settlement_symbol": "token_symbol",
+                "market_contract": "market_contract"
+              }
+            }
+          }
+        },
+        {
           "name": "delphioracle_pair",
           "using": {
             "manual_configuration": {
@@ -1205,6 +1236,23 @@
         "schema": "public",
         "name": "atomicmarket_template_prices"
       },
+      "object_relationships": [
+        {
+          "name": "atomicmarket_tokens",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicmarket_tokens"
+              },
+              "column_mapping": {
+                "symbol": "token_symbol",
+                "market_contract": "market_contract"
+              }
+            }
+          }
+        }
+      ],
       "select_permissions": [
         {
           "role": "anonymous",
