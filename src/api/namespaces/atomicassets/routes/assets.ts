@@ -144,7 +144,7 @@ export class AssetApi {
                         'asset.contract = mint.contract AND asset.asset_id = mint.asset_id' +
                     ') ';
 
-                if (args.sort && args.sort.startsWith('data:')) {
+                if (args.sort && args.sort.startsWith('data')) {
                     queryString += 'LEFT JOIN atomicassets_asset_data data_table ON (' +
                             'asset.contract = data_table.contract AND asset.asset_id = data_table.asset_id' +
                         ') ';
@@ -184,13 +184,13 @@ export class AssetApi {
                 let sortColumn: string;
 
                 if (args.sort) {
-                    if (args.sort.startsWith('data:')) {
-                        if (args.sort.startsWith('data:text:')) {
-                            sortColumn = '"data_table"."data"->>\'' + args.sort.substr('data:text:'.length).replace('\'', '') + '\'';
-                        } else if (args.sort.startsWith('data:number:')) {
-                            sortColumn = '("data_table"."data"->>\'' + args.sort.substr('data:number:'.length).replace('\'', '') + '\')::double precision';
+                    if (args.sort.startsWith('data')) {
+                        if (args.sort.startsWith('data:text.')) {
+                            sortColumn = '"data_table"."data"->>\'' + args.sort.substr('data:text.'.length).replace('\'', '') + '\'';
+                        } else if (args.sort.startsWith('data:number.')) {
+                            sortColumn = '("data_table"."data"->>\'' + args.sort.substr('data:number.'.length).replace('\'', '') + '\')::double precision';
                         } else {
-                            sortColumn = '"data_table"."data"->>\'' + args.sort.substr('data:'.length).replace('\'', '') + '\'';
+                            sortColumn = '"data_table"."data"->>\'' + args.sort.substr('data.'.length).replace('\'', '') + '\'';
                         }
                     } else {
                         const sortColumnMapping: {[key: string]: string} = {
