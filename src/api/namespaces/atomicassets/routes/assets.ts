@@ -131,11 +131,7 @@ export class AssetApi {
                 const args = filterQueryArgs(req, {
                     page: {type: 'int', min: 1, default: 1},
                     limit: {type: 'int', min: 1, max: 1000, default: 100},
-                    sort: {
-                        type: 'string',
-                        values: ['asset_id', 'updated', 'minted', 'template_mint', 'schema_mint', 'collection_mint'],
-                        default: 'asset_id'
-                    },
+                    sort: {type: 'string', min: 1},
                     order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
                 });
 
@@ -146,8 +142,15 @@ export class AssetApi {
                     ') ' +
                     'LEFT JOIN atomicassets_asset_mints mint ON (' +
                         'asset.contract = mint.contract AND asset.asset_id = mint.asset_id' +
-                    ') ' +
-                    'WHERE asset.contract = $1 ';
+                    ') ';
+
+                if (args.sort && args.sort.startsWith('data:')) {
+                    queryString += 'LEFT JOIN atomicassets_asset_data data_table ON (' +
+                            'asset.contract = data_table.contract AND asset.asset_id = data_table.asset_id' +
+                        ') ';
+                }
+
+                queryString += 'WHERE asset.contract = $1 ';
                 let queryValues: any[] = [this.core.args.atomicassets_account];
 
                 const filter = buildAssetQueryCondition(req, varCounter, {
@@ -178,17 +181,37 @@ export class AssetApi {
                     return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
                 }
 
-                const sortColumnMapping = {
-                    asset_id: 'asset.asset_id',
-                    updated: 'asset.updated_at_block',
-                    minted: 'asset.asset_id',
-                    collection_mint: 'mint.collection_mint',
-                    schema_mint: 'mint.schema_mint',
-                    template_mint: 'mint.template_mint'
-                };
+                let sortColumn: string;
+
+                if (args.sort) {
+                    if (args.sort.startsWith('data:')) {
+                        if (args.sort.startsWith('data:text:')) {
+                            sortColumn = '"data_table"."data"->>\'' + args.sort.substr('data:text:'.length).replace('\'', '') + '\'';
+                        } else if (args.sort.startsWith('data:number:')) {
+                            sortColumn = '("data_table"."data"->>\'' + args.sort.substr('data:number:'.length).replace('\'', '') + '\')::double precision';
+                        } else {
+                            sortColumn = '"data_table"."data"->>\'' + args.sort.substr('data:'.length).replace('\'', '') + '\'';
+                        }
+                    } else {
+                        const sortColumnMapping: {[key: string]: string} = {
+                            asset_id: 'asset.asset_id',
+                            updated: 'asset.updated_at_block',
+                            minted: 'asset.asset_id',
+                            collection_mint: 'mint.collection_mint',
+                            schema_mint: 'mint.schema_mint',
+                            template_mint: 'mint.template_mint'
+                        };
+
+                        sortColumn = sortColumnMapping[args.sort];
+                    }
+                }
+
+                if (!sortColumn) {
+                    sortColumn = 'asset.asset_id';
+                }
 
                 // @ts-ignore
-                queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' NULLS LAST, asset.asset_id ASC ';
+                queryString += 'ORDER BY ' + sortColumn + ' ' + args.order + ' NULLS LAST, asset.asset_id ASC ';
                 queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
                 queryValues.push(args.limit);
                 queryValues.push((args.page - 1) * args.limit);
