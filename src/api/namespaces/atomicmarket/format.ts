@@ -11,11 +11,11 @@ export function formatAuction(row: any): any {
 
     if (row.auction_state === AuctionState.WAITING.valueOf()) {
         data.state = AuctionApiState.WAITING.valueOf();
-    } else if (row.auction_state === AuctionState.LISTED.valueOf() && row.end_time > Date.now()) {
+    } else if (row.auction_state === AuctionState.LISTED.valueOf() && row.end_time > Date.now() / 1000) {
         data.state = AuctionApiState.LISTED.valueOf();
     } else if (row.auction_state === AuctionState.CANCELED.valueOf()) {
         data.state = AuctionApiState.CANCELED.valueOf();
-    } else if (row.auction_state === AuctionState.LISTED.valueOf() && row.end_time <= Date.now() && row.buyer !== null) {
+    } else if (row.auction_state === AuctionState.LISTED.valueOf() && row.end_time <= Date.now() / 1000 && row.buyer !== null) {
         data.state = AuctionApiState.SOLD.valueOf();
     } else {
         data.state = AuctionApiState.INVALID.valueOf();
