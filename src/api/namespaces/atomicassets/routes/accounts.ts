@@ -175,13 +175,13 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
 
     return {
         tag: {
-            name: 'stats',
-            description: 'Stats'
+            name: 'accounts',
+            description: 'Accounts'
         },
         paths: {
             '/v1/accounts': {
                 get: {
-                    tags: ['stats'],
+                    tags: ['accounts'],
                     summary: 'Get accounts which own atomicassets NFTs',
                     parameters: [
                         {
@@ -231,7 +231,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             },
             '/v1/accounts/{account}': {
                 get: {
-                    tags: ['stats'],
+                    tags: ['accounts'],
                     summary: 'Get a specific account',
                     parameters: [
                         {
@@ -267,7 +267,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             },
             '/v1/accounts/{account}/{collection_name}': {
                 get: {
-                    tags: ['stats'],
+                    tags: ['accounts'],
                     summary: 'Get templates and schemas count by account',
                     parameters: [
                         {

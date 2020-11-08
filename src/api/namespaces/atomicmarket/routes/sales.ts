@@ -336,8 +336,8 @@ export function salesSockets(core: AtomicMarketNamespace, server: HTTPServer): v
 
                 await queue.add(async () => {
                     const sales = await server.query(
-                        'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = $2',
-                        [core.args.atomicmarket_account, msg.data.sale_id]
+                        'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND offer_id = $2',
+                        [core.args.atomicmarket_account, msg.data.offer_id]
                     );
 
                     for (const sale of sales.rows) {
