@@ -117,7 +117,7 @@ export async function hookAssetFiller(server: HTTPServer, contract: string, rows
     }
 
     for (const row of queries[1].rows) {
-        assetData[row.asset_id].auctions.push({market_contract: row.market_contract, auction: row.auction_id});
+        assetData[row.asset_id].auctions.push({market_contract: row.market_contract, auction_id: row.auction_id});
     }
 
     for (const row of queries[2].rows) {
