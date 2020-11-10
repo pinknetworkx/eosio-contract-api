@@ -220,12 +220,6 @@ export default class AtomicMarketActionHandler {
             auction_id: trace.act.data.auction_id, bid_number: parseInt(bidCount.rows[0].count, 10) + 1
         });
 
-        await this.createLogMessage(
-            db, block, tx, trace.global_sequence,
-            'bid', 'auction', trace.act.data.auction_id,
-            {bid_number: bidData.bid_number, account: bidData.account, amount: bidData.amount}
-        );
-
         this.core.pushNotificiation(block, tx, 'auctions', 'bid', {
             auction_id: trace.act.data.auction_id, bid: bidData, trace
         });

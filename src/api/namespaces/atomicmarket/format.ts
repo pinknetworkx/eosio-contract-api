@@ -21,7 +21,7 @@ export function formatAuction(row: any): any {
         data.state = AuctionApiState.INVALID.valueOf();
     }
 
-    data.end_time = data.end_time * 1000;
+    data.end_time = String(data.end_time * 1000);
 
     delete data.raw_price;
     delete data.raw_token_symbol;

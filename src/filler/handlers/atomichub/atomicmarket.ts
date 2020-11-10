@@ -75,20 +75,20 @@ export default class AtomicMarketActionHandler {
             );
         }
 
-        const saleQuery = await db.query(
+        const bidQuery = await db.query(
             'SELECT bid.account, auction.seller FROM atomicmarket_auctions auction, atomicmarket_auctions_bids bid ' +
             'WHERE bid.market_contract = auction.market_contract AND bid.auction_id = auction.auction_id AND ' +
             'bid.market_contract = $1 AND bid.auction_id = $2 AND bid.bid_number = $3',
             [this.core.args.atomicmarket_account, auctionID, bidNumber]
         );
 
-        if (saleQuery.rowCount === 0) {
+        if (bidQuery.rowCount === 0) {
             throw new Error('AtomicHub: Bid not found');
         }
 
         await this.core.createNotification(
-            db, block, this.contractName, saleQuery.rows[0].seller,
-            saleQuery.rows[0].seller + ' has made a bid on your auction #' + auctionID + '',
+            db, block, this.contractName, bidQuery.rows[0].seller,
+            bidQuery.rows[0].account + ' has made a bid on your auction #' + auctionID + '',
             {type: 'auction', id: auctionID}
         );
     }

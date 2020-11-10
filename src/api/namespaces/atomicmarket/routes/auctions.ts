@@ -261,7 +261,7 @@ export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer):
         concurrency: 1
     });
 
-    async function checkAuction(auctionID: string): Promise<void> {
+    /*async function checkAuction(auctionID: string): Promise<void> {
         await queue.add(async () => {
             const query = await server.query(
                 'SELECT * FROM atomicmarket_auctions_master WHERE market_contract = $1 AND auction_id = $2',
@@ -282,7 +282,7 @@ export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer):
                 });
             }
         });
-    }
+    }*/
 
     const auctionChannelName = [
         'eosio-contract-api', core.connection.chain.name, core.args.connected_reader,
@@ -349,9 +349,9 @@ export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer):
                         auction: auction
                     });
 
-                    setTimeout(() => {
+                    /*setTimeout(() => {
                         checkAuction(auction.auction_id);
-                    }, Date.now() + 1000 - auction.end_time * 1000);
+                    }, Date.now() + 1000 - auction.end_time);*/
                 }
             });
         });
