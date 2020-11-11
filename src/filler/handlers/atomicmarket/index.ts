@@ -102,6 +102,11 @@ export default class AtomicMarketHandler extends ContractHandler {
         );
 
         const materializedViews = ['atomicmarket_sale_prices', 'atomicmarket_auction_mints', 'atomicmarket_sale_mints', 'atomicmarket_template_prices'];
+        const views = [
+            'atomicmarket_assets_master', 'atomicmarket_auctions_master',
+            'atomicmarket_sales_master', 'atomicmarket_sale_prices_master',
+            'atomicmarket_template_prices_master'
+        ];
 
         if (!existsQuery.rows[0].exists) {
             logger.info('Could not find AtomicMarket tables. Create them now...');
@@ -109,12 +114,6 @@ export default class AtomicMarketHandler extends ContractHandler {
             await client.query(fs.readFileSync('./definitions/tables/atomicmarket_tables.sql', {
                 encoding: 'utf8'
             }));
-
-            const views = [
-                'atomicmarket_assets_master', 'atomicmarket_auctions_master',
-                'atomicmarket_sales_master', 'atomicmarket_sale_prices_master',
-                'atomicmarket_template_prices_master'
-            ];
 
             for (const view of views) {
                 await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
@@ -125,6 +124,10 @@ export default class AtomicMarketHandler extends ContractHandler {
             }
 
             logger.info('AtomicMarket tables successfully created');
+        } else {
+            for (const view of views) {
+                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
+            }
         }
 
         const configQuery = await client.query(

@@ -117,6 +117,11 @@ export default class AtomicAssetsHandler extends ContractHandler {
         );
 
         const materializedViews = ['atomicassets_asset_mints', 'atomicassets_asset_data'];
+        const views = [
+            'atomicassets_asset_mints_master', 'atomicassets_templates_master',
+            'atomicassets_schemas_master', 'atomicassets_collections_master', 'atomicassets_offers_master',
+            'atomicassets_transfers_master'
+        ];
 
         if (!existsQuery.rows[0].exists) {
             logger.info('Could not find AtomicAssets tables. Create them now...');
@@ -124,12 +129,6 @@ export default class AtomicAssetsHandler extends ContractHandler {
             await client.query(fs.readFileSync('./definitions/tables/atomicassets_tables.sql', {
                 encoding: 'utf8'
             }));
-
-            const views = [
-                'atomicassets_asset_mints_master', 'atomicassets_templates_master',
-                'atomicassets_schemas_master', 'atomicassets_collections_master', 'atomicassets_offers_master',
-                'atomicassets_transfers_master'
-            ];
 
             for (const view of views) {
                 await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
@@ -142,6 +141,10 @@ export default class AtomicAssetsHandler extends ContractHandler {
             await client.query(fs.readFileSync('./definitions/views/atomicassets_assets_master.sql', {encoding: 'utf8'}));
 
             logger.info('AtomicAssets tables successfully created');
+        } else {
+            for (const view of views) {
+                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
+            }
         }
 
         const configQuery = await client.query(
