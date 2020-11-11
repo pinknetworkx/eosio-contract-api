@@ -22,6 +22,16 @@ export function serializeUInt(n: bigint | string, size: number = 8): bigint {
     return num;
 }
 
+export function preventInt64Overflow(n: bigint | string): string {
+    const num = BigInt(n);
+
+    if (num > BigInt('9223372036854775807')) {
+        return '9223372036854775807';
+    }
+
+    return String(num);
+}
+
 export function binToHex(data: any): string {
     let hex = '';
 

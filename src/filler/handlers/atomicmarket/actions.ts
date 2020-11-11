@@ -14,6 +14,7 @@ import {
     PurchaseSaleActionData
 } from './types/actions';
 import { eosioTimestampToDate } from '../../../utils/eosio';
+import { preventInt64Overflow } from '../../../utils/binary';
 
 export default class AtomicMarketActionHandler {
     private readonly contractName: string;
@@ -87,7 +88,7 @@ export default class AtomicMarketActionHandler {
             auction_id: trace.act.data.auction_id,
             seller: trace.act.data.seller,
             buyer: null,
-            price: trace.act.data.starting_bid.split(' ')[0].replace('.', ''),
+            price: preventInt64Overflow(trace.act.data.starting_bid.split(' ')[0].replace('.', '')),
             token_symbol: trace.act.data.starting_bid.split(' ')[1],
             assets_contract: this.core.args.atomicassets_account,
             maker_marketplace: trace.act.data.maker_marketplace,
@@ -187,7 +188,7 @@ export default class AtomicMarketActionHandler {
     ): Promise<void> {
         await db.update('atomicmarket_auctions', {
             buyer: trace.act.data.bidder,
-            price: trace.act.data.bid.split(' ')[0].replace('.', ''),
+            price: preventInt64Overflow(trace.act.data.bid.split(' ')[0].replace('.', '')),
             token_symbol: trace.act.data.bid.split(' ')[1],
             taker_marketplace: trace.act.data.taker_marketplace,
             updated_at_block: block.block_num,
@@ -207,7 +208,7 @@ export default class AtomicMarketActionHandler {
             auction_id: trace.act.data.auction_id,
             bid_number: parseInt(bidCount.rows[0].count, 10) + 1,
             account: trace.act.data.bidder,
-            amount: trace.act.data.bid.split(' ')[0].replace('.', ''),
+            amount: preventInt64Overflow(trace.act.data.bid.split(' ')[0].replace('.', '')),
             txid: Buffer.from(tx.id, 'hex'),
             created_at_block: block.block_num,
             created_at_time: eosioTimestampToDate(block.timestamp).getTime()
@@ -270,7 +271,7 @@ export default class AtomicMarketActionHandler {
             sale_id: trace.act.data.sale_id,
             seller: trace.act.data.seller,
             buyer: null,
-            listing_price: trace.act.data.listing_price.split(' ')[0].replace('.', ''),
+            listing_price: preventInt64Overflow(trace.act.data.listing_price.split(' ')[0].replace('.', '')),
             final_price: null,
             listing_symbol: trace.act.data.listing_price.split(' ')[1],
             settlement_symbol: trace.act.data.settlement_symbol.split(',')[1],
@@ -398,7 +399,7 @@ export default class AtomicMarketActionHandler {
 
         await db.update('atomicmarket_sales', {
             buyer: trace.act.data.buyer,
-            final_price: finalPrice,
+            final_price: preventInt64Overflow(finalPrice),
             state: SaleState.SOLD.valueOf(),
             taker_marketplace: trace.act.data.taker_marketplace,
             updated_at_block: block.block_num,
