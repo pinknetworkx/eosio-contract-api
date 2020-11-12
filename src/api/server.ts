@@ -198,6 +198,10 @@ export class WebServer {
             });
         });
 
+        router.get(['/eosio-contract-api/timestamp'], this.caching() , async (_: express.Request, res: express.Response) => {
+            res.json({success: true, data: Date.now()});
+        });
+
         router.use('/docs/assets', express.static(path.resolve(__dirname, '../../docs/assets')));
 
         this.express.use(router);

@@ -5,7 +5,7 @@ import { HTTPServer } from '../../../server';
 import { filterQueryArgs } from '../../utils';
 import { getOpenAPI3Responses } from '../../../docs';
 import { formatListingAsset, formatSale } from '../../atomicmarket/format';
-import { SaleState } from '../../../../filler/handlers/atomicmarket';
+import { AuctionState, SaleState } from '../../../../filler/handlers/atomicmarket';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { fillSales } from '../../atomicmarket/filler';
 import { fillAssets } from '../../atomicassets/filler';
@@ -72,12 +72,27 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
             const transfersQuery = await server.query(transfersQueryString, transfersQueryValues);
 
             const salesQuery = await server.query(
-                'SELECT COUNT(*) sales, SUM(final_price) volume FROM atomicmarket_sales ' +
-                'WHERE market_contract = $1 AND state = $2 AND settlement_symbol = $3 AND updated_at_time >= $4 AND ' +
-                '(collection_name = ANY ($5) OR CARDINALITY($5) = 0) AND (NOT (collection_name = ANY ($6)) OR CARDINALITY($6) = 0)',
+                'SELECT COUNT(*) "count", SUM(final_price) volume FROM atomicmarket_sales ' +
+                'WHERE market_contract = $1 AND state = ' + SaleState.SOLD.valueOf() + ' AND ' +
+                'updated_at_time >= ' + (Date.now() - 3600 * 24 * 1000) + ' AND ' +
+                'settlement_symbol = $2 AND (collection_name = ANY ($3) OR CARDINALITY($3) = 0) AND (NOT (collection_name = ANY ($4)) OR CARDINALITY($4) = 0)',
                 [
-                    core.args.atomicmarket_account, SaleState.SOLD.valueOf(),
-                    args.symbol.toUpperCase(), Date.now() - 3600 * 24 * 1000,
+                    core.args.atomicmarket_account,
+                    args.symbol.toUpperCase(),
+                    args.collection_whitelist.split(',').filter((x: string) => !!x),
+                    args.collection_blacklist.split(',').filter((x: string) => !!x)
+                ]
+            );
+
+            const auctionsQuery = await server.query(
+                'SELECT COUNT(*) "count", SUM(price) volume FROM atomicmarket_auctions ' +
+                'WHERE market_contract = $1 AND state = ' + AuctionState.LISTED.valueOf() + ' AND token_symbol = $2 AND ' +
+                'end_time >= ' + ((Date.now() - 3600 * 24 * 1000) / 1000) + ' AND end_time < ' + (Date.now() / 1000) + ' AND ' +
+                'buyer IS NOT NULL AND ' +
+                '(collection_name = ANY ($3) OR CARDINALITY($3) = 0) AND (NOT (collection_name = ANY ($4)) OR CARDINALITY($4) = 0)',
+                [
+                    core.args.atomicmarket_account,
+                    args.symbol.toUpperCase(),
                     args.collection_whitelist.split(',').filter((x: string) => !!x),
                     args.collection_blacklist.split(',').filter((x: string) => !!x)
                 ]
@@ -101,8 +116,10 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                     },
                     today: {
                         transactions: transfersQuery.rows[0]['transfers'],
-                        sales_count: salesQuery.rows[0]['sales'],
-                        sales_volume: salesQuery.rows[0]['volume']
+                        sales_count: salesQuery.rows[0]['count'],
+                        sales_volume: salesQuery.rows[0]['volume'],
+                        auctions_count: auctionsQuery.rows[0]['count'],
+                        auctions_volume: auctionsQuery.rows[0]['volume']
                     }
                 },
                 query_time: Date.now()
@@ -400,7 +417,9 @@ export function statsEndpoints(core: AtomicHubNamespace, server: HTTPServer, rou
                                 properties: {
                                     transactions: {type: 'string'},
                                     sales_count: {type: 'string'},
-                                    sales_volume: {type: 'number'}
+                                    sales_volume: {type: 'number'},
+                                    auctions_count: {type: 'string'},
+                                    auctions_volume: {type: 'number'}
                                 }
                             }
                         }
