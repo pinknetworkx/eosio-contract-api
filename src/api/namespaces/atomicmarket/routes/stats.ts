@@ -255,7 +255,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 SELECT div(sale.updated_at_time, 24 * 3600 * 1000) "time", COUNT(*) sales, SUM(final_price) volume
                 FROM atomicmarket_sales sale 
                 WHERE market_contract = $1 AND settlement_symbol = $2 
-                    ${getSaleSubCondition(SaleApiState.SOLD, 'auction')}
+                    ${getSaleSubCondition(SaleApiState.SOLD, 'sale')}
                     ${getGreylistCondition('sale.collection_name', 3, 4)}
                 GROUP BY "time"
             ) UNION ALL (
