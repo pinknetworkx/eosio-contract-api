@@ -194,12 +194,12 @@ export class WebServer {
                         status: this.server.connection.redis.ioRedis.status === 'ready' ? 'OK' : 'ERROR'
                     },
                     chain: chainHealth
-                }
+                }, query_time: Date.now()
             });
         });
 
-        router.get(['/eosio-contract-api/timestamp'], this.caching() , async (_: express.Request, res: express.Response) => {
-            res.json({success: true, data: Date.now()});
+        router.get(['/eosio-contract-api/timestamp'], async (_: express.Request, res: express.Response) => {
+            res.json({success: true, data: Date.now(), query_time: Date.now()});
         });
 
         router.use('/docs/assets', express.static(path.resolve(__dirname, '../../docs/assets')));
