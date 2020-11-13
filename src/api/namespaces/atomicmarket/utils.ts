@@ -339,14 +339,14 @@ export function buildAuctionFilter(
         const accountVar = ++varCounter;
         queryValues.push(args.participant);
 
-        queryString += `(listing.seller = $${accountVar} AND listing.claimed_by_seller = FALSE and listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Date.now() / 1000})`;
-        queryString += `OR (listing.buyer = $${accountVar} AND listing.claimed_by_buyer = FALSE and listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Date.now() / 1000})`;
+        queryString += `(listing.seller = $${accountVar} AND listing.claimed_by_seller IS FALSE and listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Date.now() / 1000})`;
+        queryString += `OR (listing.buyer = $${accountVar} AND listing.claimed_by_buyer IS FALSE and listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Date.now() / 1000})`;
         queryString += `OR (listing.seller = $${accountVar} and listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time > ${Date.now() / 1000})`;
         queryString += `OR (listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time > ${Date.now() / 1000} AND EXISTS(
-            SELECT * FROM atomicmarket_auctions_bids bid WHERE bid.market_contract = listing.market_contract AND bid.auction_id = listing.auction_id AND bid.account = ${accountVar}
+            SELECT * FROM atomicmarket_auctions_bids bid WHERE bid.market_contract = listing.market_contract AND bid.auction_id = listing.auction_id AND bid.account = $${accountVar}
         ))`;
 
-        queryString += ')';
+        queryString += ') ';
     }
 
     if (args.max_assets) {
