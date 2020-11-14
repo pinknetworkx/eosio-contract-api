@@ -239,8 +239,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                                 token_symbol: {type: 'string'},
                                 token_precision: {type: 'integer'},
                                 token_contract: {type: 'string'},
-                                block_time: {type: 'string'},
-                                block_num: {type: 'string'}
+                                block_time: {type: 'string'}
                             }
                         }
                     })
