@@ -46,7 +46,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 queryValues.push(args.symbol.split(','));
             }
 
-            let queryString = `
+            const queryString = `
             SELECT * FROM (
                 (
                     SELECT
