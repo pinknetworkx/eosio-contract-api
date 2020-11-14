@@ -1,4 +1,4 @@
-CREATE MATERIALIZED VIEW atomicmarket_sale_prices AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS atomicmarket_sale_prices AS
     SELECT * FROM atomicmarket_sale_prices_master;
 
 CREATE UNIQUE INDEX atomicmarket_sale_prices_pkey ON atomicmarket_sale_prices (market_contract, sale_id);

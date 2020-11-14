@@ -1,4 +1,4 @@
-CREATE MATERIALIZED VIEW atomicassets_asset_data AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS atomicassets_asset_data AS
     SELECT
         "asset".contract, "asset".asset_id, "asset".collection_name, "asset".schema_name,
     	("asset".mutable_data || asset.immutable_data || COALESCE("template".immutable_data, '{}'::jsonb)) "data"

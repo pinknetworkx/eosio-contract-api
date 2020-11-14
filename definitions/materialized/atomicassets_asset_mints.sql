@@ -1,4 +1,4 @@
-CREATE MATERIALIZED VIEW atomicassets_asset_mints AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS atomicassets_asset_mints AS
     SELECT * FROM atomicassets_asset_mints_master;
 
 CREATE UNIQUE INDEX atomicassets_asset_mints_pkey ON atomicassets_asset_mints (contract, asset_id);

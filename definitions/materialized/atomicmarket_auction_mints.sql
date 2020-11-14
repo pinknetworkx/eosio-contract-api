@@ -1,4 +1,4 @@
-CREATE MATERIALIZED VIEW atomicmarket_auction_mints AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS atomicmarket_auction_mints AS
     SELECT
         listing.market_contract, listing.auction_id,
         MAX(mint.template_mint) max_template_mint, MIN(mint.template_mint) min_template_mint,

@@ -101,7 +101,10 @@ export default class AtomicMarketHandler extends ContractHandler {
             [await this.connection.database.schema(), 'atomicmarket_config']
         );
 
-        const materializedViews = ['atomicmarket_sale_prices', 'atomicmarket_auction_mints', 'atomicmarket_sale_mints', 'atomicmarket_template_prices'];
+        const materializedViews = [
+            'atomicmarket_sale_prices', 'atomicmarket_auction_mints', 'atomicmarket_sale_mints',
+            'atomicmarket_template_prices', 'atomicmarket_auction_stats', 'atomicmarket_sale_stats'
+        ];
         const views = [
             'atomicmarket_assets_master', 'atomicmarket_auctions_master',
             'atomicmarket_sales_master', 'atomicmarket_sale_prices_master',
