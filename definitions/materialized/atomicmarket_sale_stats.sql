@@ -2,7 +2,8 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS atomicmarket_sale_stats AS
     SELECT
         sale.market_contract, sale.sale_id,
         SUM(price.suggested_average) suggested_average, SUM(price.suggested_median) suggested_median,
-        SUM(price.average) average, SUM(price.median) median
+        SUM(price.average) average, SUM(price.median) median,
+        MIN(price.sales) sales
     FROM atomicmarket_sales sale, atomicassets_offers offer, atomicassets_offers_assets offer_asset, atomicassets_assets asset, atomicmarket_template_prices price
     WHERE sale.assets_contract = offer.contract AND sale.offer_id = offer.offer_id AND
         offer.contract = offer_asset.contract AND offer.offer_id = offer_asset.offer_id AND

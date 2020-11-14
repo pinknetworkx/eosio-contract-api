@@ -228,11 +228,11 @@ export function buildSaleFilter(
     }
 
     if (args.below_suggested_median) {
-        queryString += 'AND stats.suggested_median > price.price ';
+        queryString += 'AND stats.suggested_median > price.price AND stats.sales > 3 ';
     }
 
     if (args.below_suggested_average) {
-        queryString += 'AND stats.suggested_average > price.price ';
+        queryString += 'AND stats.suggested_average > price.price AND stats.sales > 3 ';
     }
 
     if (args.symbol) {
@@ -388,11 +388,11 @@ export function buildAuctionFilter(
     }
 
     if (args.below_suggested_median) {
-        queryString += 'AND stats.suggested_median > listing.price ';
+        queryString += 'AND stats.suggested_median > listing.price AND stats.sales > 3 ';
     }
 
     if (args.below_suggested_average) {
-        queryString += 'AND stats.suggested_average > listing.price ';
+        queryString += 'AND stats.suggested_average > listing.price AND stats.sales > 3 ';
     }
 
     if (args.symbol) {
