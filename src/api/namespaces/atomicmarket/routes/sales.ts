@@ -34,11 +34,12 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             const filter = buildSaleFilter(req, 1);
 
             let queryString = `
-                SELECT listing.sale_id 
+                SELECT DISTINCT ON (listing.market_contract, listing.sale_id) listing.sale_id 
                 FROM atomicmarket_sales listing 
                     JOIN atomicassets_offers offer ON (listing.assets_contract = offer.contract AND listing.offer_id = offer.offer_id)
                     LEFT JOIN atomicmarket_sale_prices price ON (price.market_contract = listing.market_contract AND price.sale_id = listing.sale_id)
                     LEFT JOIN atomicmarket_sale_mints mint ON (mint.market_contract = listing.market_contract AND mint.sale_id = listing.sale_id)
+                    LEFT JOIN atomicmarket_sale_stats stats ON (stats.market_contract = listing.market_contract AND stats.sale_id = listing.sale_id)
                 WHERE listing.market_contract = $1 ` + filter.str;
             const queryValues = [core.args.atomicmarket_account, ...filter.values];
             let varCounter = queryValues.length;

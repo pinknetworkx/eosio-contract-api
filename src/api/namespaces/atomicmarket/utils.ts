@@ -150,6 +150,9 @@ export function buildSaleFilter(
         state: {type: 'string', min: 0},
         asset_id: {type: 'int', min: 1},
 
+        below_suggested_median: {type: 'bool'},
+        below_suggested_average: {type: 'bool'},
+
         max_assets: {type: 'int', min: 1},
         min_assets: {type: 'int', min: 1},
 
@@ -172,11 +175,11 @@ export function buildSaleFilter(
         const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', allowDataFilter: false});
 
         queryString += 'AND EXISTS(' +
-                'SELECT * ' +
-                'FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
-                'WHERE ' +
-                    'asset.contract = offer_asset.contract AND asset.asset_id = offer_asset.asset_id AND ' +
-                    'offer_asset.offer_id = listing.offer_id AND offer_asset.contract = listing.assets_contract ' + filter.str + ' ' +
+            'SELECT * ' +
+            'FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
+            'WHERE ' +
+                'asset.contract = offer_asset.contract AND asset.asset_id = offer_asset.asset_id AND ' +
+                'offer_asset.offer_id = listing.offer_id AND offer_asset.contract = listing.assets_contract ' + filter.str + ' ' +
             ') ';
 
         queryValues.push(...filter.values);
@@ -222,6 +225,14 @@ export function buildSaleFilter(
             'asset.asset_id = $' + ++varCounter + ' ' +
             ') ';
         queryValues.push(args.asset_id);
+    }
+
+    if (args.below_suggested_median) {
+        queryString += 'AND stats.suggested_median > price.price ';
+    }
+
+    if (args.below_suggested_average) {
+        queryString += 'AND stats.suggested_average > price.price ';
     }
 
     if (args.symbol) {
@@ -278,6 +289,9 @@ export function buildAuctionFilter(
     const args = filterQueryArgs(req, {
         state: {type: 'string', min: 0},
         asset_id: {type: 'int', min: 1},
+
+        below_suggested_median: {type: 'bool'},
+        below_suggested_average: {type: 'bool'},
 
         min_assets: {type: 'int', min: 1},
         max_assets: {type: 'int', min: 1},
@@ -371,6 +385,14 @@ export function buildAuctionFilter(
             'asset.asset_id = $' + ++varCounter + ' ' +
             ') ';
         queryValues.push(args.asset_id);
+    }
+
+    if (args.below_suggested_median) {
+        queryString += 'AND stats.suggested_median > listing.price ';
+    }
+
+    if (args.below_suggested_average) {
+        queryString += 'AND stats.suggested_average > listing.price ';
     }
 
     if (args.symbol) {
