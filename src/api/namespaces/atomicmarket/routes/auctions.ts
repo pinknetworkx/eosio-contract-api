@@ -32,7 +32,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
 
             const auctionFilter = buildAuctionFilter(req, 1);
 
-            let queryString = 'SELECT DISTINCT ON (listing.market_contract, listing.auction_id) listing.auction_id ' +
+            let queryString = 'SELECT listing.auction_id ' +
                 'FROM atomicmarket_auctions listing ' +
                     'JOIN atomicmarket_tokens "token" ON (listing.market_contract = "token".market_contract AND listing.token_symbol = "token".token_symbol) ' +
                     'LEFT JOIN atomicmarket_auction_mints mint ON (mint.market_contract = listing.market_contract AND mint.auction_id = listing.auction_id) ' +
