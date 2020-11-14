@@ -11,7 +11,6 @@ import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, pri
 import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
-import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { buildGreylistFilter, getLogs } from '../../atomicassets/utils';
 
 export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
