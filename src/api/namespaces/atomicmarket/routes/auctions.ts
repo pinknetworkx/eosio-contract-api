@@ -262,29 +262,6 @@ export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer):
         concurrency: 1
     });
 
-    /*async function checkAuction(auctionID: string): Promise<void> {
-        await queue.add(async () => {
-            const query = await server.query(
-                'SELECT * FROM atomicmarket_auctions_master WHERE market_contract = $1 AND auction_id = $2',
-                [core.args.atomicmarket_account, auctionID]
-            );
-
-            const auction = formatAuction(query.rows[0]);
-
-            if ([AuctionApiState.SOLD.valueOf(), AuctionApiState.INVALID.valueOf()].indexOf(parseInt(auction.state, 10))) {
-                const filledAuction = (await fillAuctions(server, core.args.atomicassets_account, [auction]))[0];
-
-                namespace.emit('state_change', {
-                    transaction: null,
-                    block: null,
-                    auction_id: auction.auction_id,
-                    state: auction.state,
-                    auction: filledAuction
-                });
-            }
-        });
-    }*/
-
     const auctionChannelName = [
         'eosio-contract-api', core.connection.chain.name, core.args.connected_reader,
         'atomicmarket', core.args.atomicmarket_account, 'auctions'
@@ -326,14 +303,6 @@ export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer):
                         auction_id: auction.auction_id,
                         auction: auction
                     });
-                } else if (msg.action === 'state_change') {
-                    namespace.emit('state_change', {
-                        transaction: msg.transaction,
-                        block: msg.block,
-                        auction_id: auction.auction_id,
-                        state: auction.state,
-                        auction: auction
-                    });
                 } else if (msg.action === 'bid') {
                     namespace.emit('new_bid', {
                         transaction: msg.transaction,
@@ -349,10 +318,6 @@ export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer):
                         },
                         auction: auction
                     });
-
-                    /*setTimeout(() => {
-                        checkAuction(auction.auction_id);
-                    }, Date.now() + 1000 - auction.end_time);*/
                 }
             });
         });

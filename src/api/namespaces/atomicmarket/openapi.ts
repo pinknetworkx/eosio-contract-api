@@ -250,6 +250,20 @@ export const listingFilterParameters = [
         schema: {type: 'number'}
     },
     {
+        name: 'below_suggested_average',
+        in: 'query',
+        description: 'Only show listings with a price below the suggested average price',
+        required: false,
+        schema: {type: 'boolean'}
+    },
+    {
+        name: 'below_suggested_median',
+        in: 'query',
+        description: 'Only show listings with a price below the suggested median price',
+        required: false,
+        schema: {type: 'boolean'}
+    },
+    {
         name: 'min_template_mint',
         in: 'query',
         description: 'Min template mint',

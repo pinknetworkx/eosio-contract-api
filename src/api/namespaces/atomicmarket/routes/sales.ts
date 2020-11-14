@@ -302,56 +302,8 @@ export function salesSockets(core: AtomicMarketNamespace, server: HTTPServer): v
                         sale_id: sale.sale_id,
                         sale: sale
                     });
-                } else if (msg.action === 'state_change') {
-                    namespace.emit('state_change', {
-                        transaction: msg.transaction,
-                        block: msg.block,
-                        sale_id: sale.sale_id,
-                        state: sale.state,
-                        sale: sale
-                    });
                 }
             });
-        });
-    });
-
-    const offerChannelName = [
-        'eosio-contract-api', core.connection.chain.name, core.args.connected_reader,
-        'atomicassets', core.args.atomicassets_account, 'offers'
-    ].join(':');
-    core.connection.redis.ioRedisSub.setMaxListeners(core.connection.redis.ioRedisSub.getMaxListeners() + 1);
-    core.connection.redis.ioRedisSub.subscribe(offerChannelName, () => {
-        core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
-            if (channel !== offerChannelName) {
-                return;
-            }
-
-            const msg = JSON.parse(message);
-
-            logger.debug('received sales notification', msg);
-
-            if (msg.action === 'state_change') {
-                if ([OfferState.PENDING.valueOf(), OfferState.INVALID.valueOf()].indexOf(parseInt(msg.data.state, 10)) === -1) {
-                    return;
-                }
-
-                await queue.add(async () => {
-                    const sales = await server.query(
-                        'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND offer_id = $2',
-                        [core.args.atomicmarket_account, msg.data.offer_id]
-                    );
-
-                    for (const sale of sales.rows) {
-                        namespace.emit('state_change', {
-                            transaction: msg.transaction,
-                            block: msg.block,
-                            sale_id: msg.data.sale_id,
-                            state: sale.state,
-                            sale: formatSale(sale)
-                        });
-                    }
-                });
-            }
         });
     });
 

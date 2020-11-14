@@ -384,14 +384,6 @@ export class OfferApi {
                             block: msg.block,
                             offer: offer
                         });
-                    } else if (msg.action === 'state_change') {
-                        offer.state = msg.data.state;
-
-                        namespace.emit('state_change', {
-                            transaction: msg.transaction,
-                            block: msg.block,
-                            offer: offer
-                        });
                     }
                 });
             });
