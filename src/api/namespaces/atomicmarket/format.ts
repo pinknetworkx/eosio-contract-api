@@ -130,6 +130,8 @@ export async function hookAssetFiller(server: HTTPServer, contract: string, rows
             },
             median: row.median,
             average: row.average,
+            suggested_median: row.suggested_median,
+            suggested_average: row.suggested_average,
             min: row.min,
             max: row.max,
             sales: row.sales,
