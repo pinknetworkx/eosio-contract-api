@@ -87,7 +87,7 @@ export async function hookAssetFiller(server: HTTPServer, contract: string, rows
             'SELECT DISTINCT ON (price.market_contract, price.collection_name, price.template_id, price.symbol) ' +
                 'price.market_contract, asset.collection_name, asset.template_id, ' +
                 'token.token_symbol, token.token_precision, token.token_contract, ' +
-                'price.median, price.average, price.min, price.max, price.sales ' +
+                'price.median, price.average, price.suggested_median, price.suggested_average, price.min, price.max, price.sales ' +
             'FROM atomicassets_assets asset, atomicmarket_template_prices price, atomicmarket_tokens token ' +
             'WHERE asset.contract = price.assets_contract AND asset.collection_name = price.collection_name AND ' +
                 'asset.template_id = price.template_id AND asset.template_id IS NOT NULL AND ' +
