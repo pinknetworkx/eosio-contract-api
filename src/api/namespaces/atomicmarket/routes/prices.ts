@@ -168,7 +168,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
         try {
             let queryString = 'SELECT token.token_symbol, token.token_precision, token.token_contract, ' +
                     'SUM(price."median") "median", SUM(price."average") "average", SUM(price."min") "min", SUM(price."max") "max", ' +
-                    'SUM(price.suggested_median) suggested_median, SUM(price.suggested_average) suggested_average' +
+                    'SUM(price.suggested_median) suggested_median, SUM(price.suggested_average) suggested_average ' +
                 'FROM atomicassets_assets asset, atomicassets_templates "template", atomicmarket_template_prices "price", atomicmarket_tokens token ' +
                 'WHERE asset.contract = template.contract AND asset.template_id = template.template_id AND ' +
                     'template.contract = price.assets_contract AND template.template_id = price.template_id AND ' +
