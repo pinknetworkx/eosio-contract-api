@@ -17,7 +17,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
         try {
             const args = filterQueryArgs(req, {
                 collection_name: {type: 'string', min: 1},
-                template_id: {type: 'int', min: 1},
+                template_id: {type: 'string', min: 1},
                 schema_name: {type: 'string', min: 1},
                 symbol: {type: 'string', min: 1}
             });
@@ -27,22 +27,22 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
             let varCounter = queryValues.length;
 
             if (args.collection_name) {
-                subQueryString += 'AND asset.collection_name = ANY($' + ++varCounter + ') ';
+                subQueryString += 'AND asset.collection_name = ANY ($' + ++varCounter + ') ';
                 queryValues.push(args.collection_name.split(','));
             }
 
             if (args.schema_name) {
-                subQueryString += 'AND asset.schema_name = ANY($' + ++varCounter + ') ';
+                subQueryString += 'AND asset.schema_name = ANY ($' + ++varCounter + ') ';
                 queryValues.push(args.schema_name.split(','));
             }
 
             if (args.template_id) {
-                subQueryString += 'AND asset.template_id = ANY($' + ++varCounter + ') ';
-                queryValues.push(args.template_id);
+                subQueryString += 'AND asset.template_id = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.template_id.split(','));
             }
 
             if (args.symbol) {
-                subQueryString += 'AND symbol.token_symbol = ANY($' + ++varCounter + ') ';
+                subQueryString += 'AND symbol.token_symbol = ANY ($' + ++varCounter + ') ';
                 queryValues.push(args.symbol.split(','));
             }
 
