@@ -78,7 +78,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                         atomicassets_assets asset, atomicmarket_auctions_assets auction_asset, atomicmarket_auctions listing, 
                         atomicmarket_auction_mints mint, atomicmarket_tokens symbol
                     WHERE
-                        listing.assets_contract = auction_asset.assets_contract AND auction.auction_id = auction_asset.auction_id AND
+                        listing.assets_contract = auction_asset.assets_contract AND listing.auction_id = auction_asset.auction_id AND
                         mint.market_contract = listing.market_contract AND mint.auction_id = listing.auction_id AND
                         listing.market_contract = symbol.market_contract AND listing.token_symbol = symbol.token_symbol AND
                         listing.assets_contract = asset.contract AND auction_asset.asset_id = asset.asset_id AND
