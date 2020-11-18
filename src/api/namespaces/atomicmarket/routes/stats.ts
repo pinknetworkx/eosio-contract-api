@@ -55,7 +55,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             let queryString = '';
 
             if (filterState) {
-                queryString += 'AND ' + table + '.state = ' + AuctionState.LISTED.valueOf() + ' AND ' + table + '.end_time < ' + (currentTime / 1000) + ' ';
+                queryString += 'AND ' + table + '.state = ' + AuctionState.LISTED.valueOf() + ' AND ' + table + '.end_time > ' + (currentTime / 1000) + ' ';
             }
 
             if (typeof after === 'number') {
@@ -71,7 +71,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             let queryString = '';
 
             if (filterState) {
-                queryString += 'AND ' + table + '.state = ' + AuctionState.LISTED.valueOf() + ' AND ' + table + '.end_time > ' + (currentTime / 1000) + ' AND ' + table + '.buyer IS NOT NULL ';
+                queryString += 'AND ' + table + '.state = ' + AuctionState.LISTED.valueOf() + ' AND ' + table + '.end_time < ' + (currentTime / 1000) + ' AND ' + table + '.buyer IS NOT NULL ';
             }
 
             if (typeof after === 'number') {
