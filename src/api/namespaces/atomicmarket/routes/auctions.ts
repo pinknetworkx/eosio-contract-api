@@ -56,7 +56,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             queryString += boundaryFilter.str;
 
             if (req.originalUrl.search('/_count') >= 0) {
-                const countQuery = await this.server.query(
+                const countQuery = await server.query(
                     'SELECT COUNT(*) counter FROM (' + queryString + ') x',
                     queryValues
                 );

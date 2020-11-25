@@ -58,7 +58,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             queryString += boundaryFilter.str;
 
             if (req.originalUrl.search('/_count') >= 0) {
-                const countQuery = await this.server.query(
+                const countQuery = await server.query(
                     'SELECT COUNT(*) counter FROM (' + queryString + ') x',
                     queryValues
                 );
