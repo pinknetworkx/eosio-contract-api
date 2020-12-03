@@ -10,7 +10,11 @@ import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import { buildGreylistFilter } from '../../atomicassets/utils';
 
 export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
-    const currentTime = Date.now();
+    // use fixed time to avoid that one query uses multiple different timestamps
+    let currentTime = Date.now();
+    setInterval(() => {
+        currentTime = Date.now();
+    }, 1000);
 
     function getSaleSubCondition (state: SaleApiState, table: string, after?: number, before?: number, filterState: boolean = true): string {
         if (state.valueOf() === SaleApiState.LISTED.valueOf()) {
@@ -460,7 +464,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             const query = await server.query(queryString, queryValues);
 
             if (query.rowCount === 0) {
-                return res.status(416).json({success: false, message: 'Account does not have any sales'});
+                return res.status(416).json({success: false, message: 'Account does not have any ended listings'});
             }
 
             res.json({
