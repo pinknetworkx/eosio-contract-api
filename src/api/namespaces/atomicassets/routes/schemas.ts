@@ -229,7 +229,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                     responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/Schema'})
                 }
             },
-            '/v1/schemas/{collection_name}/{template_id}/stats': {
+            '/v1/schemas/{collection_name}/{schema_name}/stats': {
                 get: {
                     tags: ['schemas'],
                     summary: 'Get stats about a specific schema',
