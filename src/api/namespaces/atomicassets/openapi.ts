@@ -288,6 +288,13 @@ export const assetFilterParameters = [
         required: false,
         schema: {type: 'string'}
     },
+    {
+        name: 'burned',
+        in: 'query',
+        description: 'Filter by burned',
+        required: false,
+        schema: {type: 'boolean'}
+    },
     ...baseAssetFilterParameters,
     {
         name: 'match',
