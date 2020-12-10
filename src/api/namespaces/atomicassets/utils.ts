@@ -70,6 +70,7 @@ export function buildAssetFilter(
 
     const args = filterQueryArgs(req, {
         owner: {type: 'string', min: 1, max: 12},
+        burned: {type: 'bool'},
         template_id: {type: 'string', min: 1},
         collection_name: {type: 'string', min: 1},
         schema_name: {type: 'string', min: 1},
@@ -102,6 +103,10 @@ export function buildAssetFilter(
     if (args.owner) {
         queryString += 'AND ' + options.assetTable + '.owner = ANY($' + ++varCounter + ') ';
         queryValues.push(args.owner.split(','));
+    }
+
+    if (args.burned) {
+        queryString += 'AND ' + options.assetTable + '.owner IS NULL ';
     }
 
     if (args.template_id) {

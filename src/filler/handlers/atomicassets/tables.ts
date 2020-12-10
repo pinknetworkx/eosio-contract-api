@@ -100,7 +100,7 @@ export default class AtomicAssetsTableHandler {
             values: [this.contractName, data.owner]
         });
 
-        if (deleted) {
+        if (deleted || data.quantities.length === 0) {
             return;
         }
 
