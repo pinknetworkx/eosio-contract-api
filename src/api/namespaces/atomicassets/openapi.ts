@@ -114,6 +114,7 @@ export const atomicassetsComponents = {
             mutable_data: {type: 'object'},
             data: {type: 'object'},
 
+            burned_by_account: {type: 'string'},
             burned_at_block: {type: 'string'},
             burned_at_time: {type: 'string'},
             updated_at_block: {type: 'string'},
@@ -277,6 +278,27 @@ export const baseAssetFilterParameters = [
         description: 'Filter by template id',
         required: false,
         schema: {type: 'integer'}
+    },
+    {
+        name: 'is_transferable',
+        in: 'query',
+        description: 'Filter for transferable assets',
+        required: false,
+        schema: {type: 'boolean'}
+    },
+    {
+        name: 'is_burnable',
+        in: 'query',
+        description: 'Filter for burnable assets',
+        required: false,
+        schema: {type: 'boolean'}
+    },
+    {
+        name: 'burned',
+        in: 'query',
+        description: 'Filter for burned assets',
+        required: false,
+        schema: {type: 'boolean'}
     },
 ];
 

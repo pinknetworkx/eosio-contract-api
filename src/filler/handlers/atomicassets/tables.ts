@@ -13,15 +13,15 @@ import {
     SchemasTableRow,
     TokenConfigsTableRow
 } from './types/tables';
-import AtomicAssetsHandler, { JobPriority } from './index';
+import AtomicAssetsHandler, { AtomicAssetsUpdatePriority } from './index';
 import logger from '../../../utils/winston';
 import { eosioTimestampToDate } from '../../../utils/eosio';
 import { saveAssetTableRow, saveOfferTableRow } from './helper';
 
 export default class AtomicAssetsTableHandler {
     private readonly contractName: string;
-    
-    constructor(readonly core: AtomicAssetsHandler) { 
+
+    constructor(readonly core: AtomicAssetsHandler) {
         this.contractName = this.core.args.atomicassets_account;
     }
 
@@ -42,42 +42,42 @@ export default class AtomicAssetsTableHandler {
             this.core.addUpdateJob(async () => {
                 // @ts-ignore
                 await this.handleAssetsUpdate(db, block, delta.scope, delta.value, !delta.present);
-            }, JobPriority.TABLE_ASSETS);
+            }, AtomicAssetsUpdatePriority.TABLE_ASSETS);
         } else if (delta.table === 'balances' && delta.scope === this.core.args.atomicassets_account) {
             this.core.addUpdateJob(async () => {
                 // @ts-ignore
                 await this.handleBalancesUpdate(db, block, delta.value, !delta.present);
-            }, JobPriority.TABLE_BALANCES);
+            }, AtomicAssetsUpdatePriority.TABLE_BALANCES);
         } else if (delta.table === 'collections' && delta.scope === this.core.args.atomicassets_account) {
             this.core.addUpdateJob(async () => {
                 // @ts-ignore
                 await this.handleCollectionsUpdate(db, block, delta.value, !delta.present);
-            }, JobPriority.TABLE_COLLECTIONS);
+            }, AtomicAssetsUpdatePriority.TABLE_COLLECTIONS);
         } else if (delta.table === 'offers' && delta.scope === this.core.args.atomicassets_account) {
             this.core.addUpdateJob(async () => {
                 // @ts-ignore
                 await this.handleOffersUpdate(db, block, delta.value, !delta.present);
-            }, JobPriority.TABLE_OFFERS);
+            }, AtomicAssetsUpdatePriority.TABLE_OFFERS);
         } else if (delta.table === 'templates') {
             this.core.addUpdateJob(async () => {
                 // @ts-ignore
                 await this.handleTemplatesUpdate(db, block, delta.scope, delta.value, !delta.present);
-            }, JobPriority.TABLE_PRESETS);
+            }, AtomicAssetsUpdatePriority.TABLE_PRESETS);
         } else if (delta.table === 'schemas') {
             this.core.addUpdateJob(async () => {
                 // @ts-ignore
                 await this.handleSchemasUpdate(db, block, delta.scope, delta.value, !delta.present);
-            }, JobPriority.TABLE_SCHEMES);
+            }, AtomicAssetsUpdatePriority.TABLE_SCHEMES);
         } else if (delta.table === 'config' && delta.scope === this.core.args.atomicassets_account) {
             this.core.addUpdateJob(async () => {
                 // @ts-ignore
                 await this.handleConfigUpdate(db, block, delta.value, !delta.present);
-            }, JobPriority.TABLE_CONFIG);
+            }, AtomicAssetsUpdatePriority.TABLE_CONFIG);
         } else if (delta.table === 'tokenconfigs' && delta.scope === this.core.args.atomicassets_account) {
             this.core.addUpdateJob(async () => {
                 // @ts-ignore
-                await this.handleTokenconfigsUpdate(db, block, delta.value, !delta.present);
-            }, JobPriority.TABLE_TOKENCONFIGS);
+                await this.handleTokenConfigsUpdate(db, block, delta.value, !delta.present);
+            }, AtomicAssetsUpdatePriority.TABLE_TOKENCONFIGS);
         } else {
             logger.warn('[atomicassets] Received table delta from unknown table: ' + delta.table + ' - ' + delta.scope);
         }
@@ -88,7 +88,8 @@ export default class AtomicAssetsTableHandler {
     ): Promise<void> {
         await saveAssetTableRow(db, block, this.core.args, scope, data, deleted);
 
-        this.core.checkOfferState([], [data.asset_id]);
+        this.core.cacheAssetUpdate(scope, data);
+        this.core.queueOfferStateCheck([], [data.asset_id]);
     }
 
     async handleBalancesUpdate(
@@ -148,7 +149,7 @@ export default class AtomicAssetsTableHandler {
     ): Promise<void> {
         await saveOfferTableRow(db, block, this.contractName, data, deleted);
 
-        this.core.checkOfferState([data.offer_id], []);
+        this.core.queueOfferStateCheck([data.offer_id], []);
     }
 
     async handleTemplatesUpdate(
@@ -212,7 +213,7 @@ export default class AtomicAssetsTableHandler {
         db: ContractDBTransaction, _: ShipBlock, data: ConfigTableRow, deleted: boolean
     ): Promise<void> {
         if (deleted) {
-            throw new Error('AtomicAssets: The config was deleted. Should not be possible by contract');
+            throw new Error('AtomicAssets: config row was deleted. Should not be possible by contract');
         }
 
         if (this.core.config.supported_tokens.length !== data.supported_tokens.length) {
@@ -246,11 +247,11 @@ export default class AtomicAssetsTableHandler {
         this.core.config = data;
     }
 
-    async handleTokenconfigsUpdate(
+    async handleTokenConfigsUpdate(
         db: ContractDBTransaction, _: ShipBlock, data: TokenConfigsTableRow, deleted: boolean
     ): Promise<void> {
         if (deleted) {
-            throw new Error('AtomicAssets: Tokenconfigs were deleted. Should not be possible by contract');
+            throw new Error('AtomicAssets: tokenconfigs row was deleted. Should not be possible by contract');
         }
 
         if (this.core.tokenconfigs.version !== data.version) {

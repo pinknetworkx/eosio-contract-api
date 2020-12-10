@@ -9,7 +9,7 @@ import logger from '../../../utils/winston';
 import AtomicAssetsTableHandler from './tables';
 import AtomicAssetsActionHandler from './actions';
 import { getStackTrace } from '../../../utils';
-import { ConfigTableRow, TokenConfigsTableRow } from './types/tables';
+import { AssetsTableRow, ConfigTableRow, TokenConfigsTableRow } from './types/tables';
 import StateReceiver from '../../receiver';
 
 export enum OfferState {
@@ -21,7 +21,7 @@ export enum OfferState {
     CANCELLED = 5
 }
 
-export enum JobPriority {
+export enum AtomicAssetsUpdatePriority {
     INDEPENDENT = 100,
     TABLE_BALANCES = 90,
     TABLE_CONFIG = 90,
@@ -65,7 +65,8 @@ export default class AtomicAssetsHandler extends ContractHandler {
         fn: () => any
     }> = [];
 
-    offerState: {assets: string[], offers: string[]} = {assets: [], offers: []};
+    blockOffers: {assets: string[], offers: string[]} = {assets: [], offers: []};
+    blockAssets: {[key: string]: {scope: string, row: AssetsTableRow}};
 
     tableHandler: AtomicAssetsTableHandler;
     actionHandler: AtomicAssetsActionHandler;
@@ -273,8 +274,8 @@ export default class AtomicAssetsHandler extends ContractHandler {
         this.jobs = [];
         this.notifications = [];
 
-        this.offerState.offers = [];
-        this.offerState.assets = [];
+        this.blockOffers.offers = [];
+        this.blockOffers.assets = [];
     }
 
     async onBlockComplete(db: ContractDBTransaction, block: ShipBlock): Promise<void> {
@@ -298,7 +299,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
 
         this.jobs = [];
 
-        await this.updateOfferStates(db, block, this.offerState.offers, this.offerState.assets);
+        await this.updateOfferStates(db, block, this.blockOffers.offers, this.blockOffers.assets);
     }
 
     async onCommit(): Promise<void> {
@@ -313,21 +314,25 @@ export default class AtomicAssetsHandler extends ContractHandler {
         this.notifications = [];
     }
 
-    checkOfferState(offerIDs: string[], assetIDs: string[]): void {
+    cacheAssetUpdate(owner: string, row: AssetsTableRow): void {
+        this.blockAssets[String(row.asset_id)] = {row, scope: owner};
+    }
+
+    queueOfferStateCheck(offerIDs: string[], assetIDs: string[]): void {
         for (const offerID of offerIDs) {
-            if (this.offerState.offers.indexOf(offerID) >= 0) {
+            if (this.blockOffers.offers.indexOf(offerID) >= 0) {
                 continue;
             }
 
-            this.offerState.offers.push(offerID);
+            this.blockOffers.offers.push(offerID);
         }
 
         for (const assetID of assetIDs) {
-            if (this.offerState.assets.indexOf(assetID) >= 0) {
+            if (this.blockOffers.assets.indexOf(assetID) >= 0) {
                 continue;
             }
 
-            this.offerState.assets.push(assetID);
+            this.blockOffers.assets.push(assetID);
         }
     }
 
@@ -406,7 +411,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
         }
     }
 
-    addUpdateJob(fn: () => any, priority: JobPriority): void {
+    addUpdateJob(fn: () => any, priority: AtomicAssetsUpdatePriority): void {
         this.jobs.push({
             priority: priority.valueOf(),
             index: this.jobs.length,

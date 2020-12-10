@@ -1,7 +1,7 @@
 import { ContractDBTransaction } from '../../database';
 import { ShipBlock } from '../../../types/ship';
 import { EosioActionTrace, EosioTransaction } from '../../../types/eosio';
-import AtomicAssetsHandler, { JobPriority, OfferState } from './index';
+import AtomicAssetsHandler, { AtomicAssetsUpdatePriority, OfferState } from './index';
 import logger from '../../../utils/winston';
 import { eosioTimestampToDate } from '../../../utils/eosio';
 import {
@@ -48,43 +48,43 @@ export default class AtomicAssetsActionHandler {
         if (['lognewoffer'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleOfferCreateTrace(db, block, trace, tx);
-            }, JobPriority.ACTION_CREATE_OFFER);
+            }, AtomicAssetsUpdatePriority.ACTION_CREATE_OFFER);
         }
 
         if (['acceptoffer', 'declineoffer', 'canceloffer'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleOfferUpdateTrace(db, block, trace, tx);
-            }, JobPriority.ACTION_UPDATE_OFFER);
+            }, AtomicAssetsUpdatePriority.ACTION_UPDATE_OFFER);
         }
 
         if (['logtransfer'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleTransferTrace(db, block, trace, tx);
-            }, JobPriority.ACTION_TRANSFER_ASSET);
+            }, AtomicAssetsUpdatePriority.ACTION_TRANSFER_ASSET);
         }
 
         if (['logburnasset'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleAssetBurnTrace(db, block, trace, tx);
-            }, JobPriority.ACTION_BURN_ASSET);
+            }, AtomicAssetsUpdatePriority.ACTION_BURN_ASSET);
         }
 
         if (['logmint'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleAssetMintTrace(db, block, trace, tx);
-            }, JobPriority.ACTION_MINT_ASSET);
+            }, AtomicAssetsUpdatePriority.ACTION_MINT_ASSET);
         }
 
         if (['logmint', 'logburnasset', 'logbackasset', 'logsetdata'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleAssetUpdateTrace(db, block, trace, tx);
-            }, JobPriority.INDEPENDENT);
+            }, AtomicAssetsUpdatePriority.INDEPENDENT);
         }
 
         if (['lognewtempl', 'locktemplate'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleTemplateTrace(db, block, trace, tx);
-            }, JobPriority.INDEPENDENT);
+            }, AtomicAssetsUpdatePriority.INDEPENDENT);
         }
 
         if ([
@@ -93,13 +93,13 @@ export default class AtomicAssetsActionHandler {
         ].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleCollectionTrace(db, block, trace, tx);
-            }, JobPriority.INDEPENDENT);
+            }, AtomicAssetsUpdatePriority.INDEPENDENT);
         }
 
         if (['createschema', 'extendschema'].indexOf(trace.act.name) >= 0) {
             this.core.addUpdateJob(async () => {
                 await this.handleSchemaTrace(db, block, trace, tx);
-            }, JobPriority.INDEPENDENT);
+            }, AtomicAssetsUpdatePriority.INDEPENDENT);
         }
     }
 
@@ -266,7 +266,7 @@ export default class AtomicAssetsActionHandler {
                 backed_tokens: data.backed_tokens
             });
 
-            this.core.checkOfferState([], [data.asset_id]);
+            this.core.queueOfferStateCheck([], [data.asset_id]);
 
             this.core.pushNotificiation(block, tx, 'assets', 'burn', {
                 asset_id: data.asset_id,

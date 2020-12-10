@@ -1,4 +1,4 @@
-import AtomicMarketHandler, { AuctionState, JobPriority, SaleState } from './index';
+import AtomicMarketHandler, { AuctionState, AtomicMarketUpdatePriority, SaleState } from './index';
 import { ContractDBTransaction } from '../../database';
 import { ShipBlock } from '../../../types/ship';
 import { EosioTableRow } from '../../../types/eosio';
@@ -30,27 +30,27 @@ export default class AtomicMarketTableHandler {
             this.core.addUpdateJob(async () => {
                 // @ts-ignore
                 await this.handleSalesUpdate(db, block, delta.value, !delta.present);
-            }, JobPriority.TABLE_SALES);
+            }, AtomicMarketUpdatePriority.TABLE_SALES);
         } else if (delta.table === 'auctions' && delta.scope === this.core.args.atomicmarket_account) {
             this.core.addUpdateJob(async () => {
                 // @ts-ignore
                 await this.handleAuctionsUpdate(db, block, delta.value, !delta.present);
-            }, JobPriority.TABLE_AUCTIONS);
+            }, AtomicMarketUpdatePriority.TABLE_AUCTIONS);
         } else if (delta.table === 'balances' && delta.scope === this.core.args.atomicmarket_account) {
             this.core.addUpdateJob(async () => {
                 // @ts-ignore
                 await this.handleBalancesUpdate(db, block, delta.value, !delta.present);
-            }, JobPriority.TABLE_BALANCES);
+            }, AtomicMarketUpdatePriority.TABLE_BALANCES);
         } else if (delta.table === 'marketplaces' && delta.scope === this.core.args.atomicmarket_account) {
             this.core.addUpdateJob(async () => {
                 // @ts-ignore
                 await this.handleMarketplacesUpdate(db, block, delta.value, !delta.present);
-            }, JobPriority.TABLE_MARKETPLACES);
+            }, AtomicMarketUpdatePriority.TABLE_MARKETPLACES);
         } else if (delta.table === 'config' && delta.scope === this.core.args.atomicmarket_account) {
             this.core.addUpdateJob(async () => {
                 // @ts-ignore
                 await this.handleConfigUpdate(db, block, delta.value, !delta.present);
-            }, JobPriority.TABLE_CONFIG);
+            }, AtomicMarketUpdatePriority.TABLE_CONFIG);
         }
     }
 

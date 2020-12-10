@@ -33,7 +33,7 @@ export enum AuctionState {
     CANCELED = 2
 }
 
-export enum JobPriority {
+export enum AtomicMarketUpdatePriority {
     TABLE_BALANCES = 90,
     TABLE_MARKETPLACES = 90,
     TABLE_CONFIG = 90,
@@ -306,7 +306,7 @@ export default class AtomicMarketHandler extends ContractHandler {
         this.notifications = [];
     }
 
-    addUpdateJob(fn: () => any, priority: JobPriority): void {
+    addUpdateJob(fn: () => any, priority: AtomicMarketUpdatePriority): void {
         this.jobs.push({
             priority: priority.valueOf(),
             index: this.jobs.length,

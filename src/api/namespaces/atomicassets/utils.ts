@@ -74,7 +74,8 @@ export function buildAssetFilter(
         collection_name: {type: 'string', min: 1},
         schema_name: {type: 'string', min: 1},
         is_transferable: {type: 'bool'},
-        is_burnable: {type: 'bool'}
+        is_burnable: {type: 'bool'},
+        burned: {type: 'bool'},
     });
 
     let queryString = '';
@@ -116,6 +117,14 @@ export function buildAssetFilter(
     if (args.schema_name) {
         queryString += 'AND ' + options.assetTable + '.schema_name = ANY($' + ++varCounter + ') ';
         queryValues.push(args.schema_name.split(','));
+    }
+
+    if (typeof args.burned === 'boolean') {
+        if (args.burned) {
+            queryString += 'AND ' + options.assetTable + '.owner IS NULL ';
+        } else {
+            queryString += 'AND ' + options.assetTable + '.owner IS NOT NULL ';
+        }
     }
 
     if (options.templateTable && typeof args.is_transferable === 'boolean') {

@@ -1,4 +1,4 @@
-import AtomicMarketHandler, { AuctionState, JobPriority, SaleState } from './index';
+import AtomicMarketHandler, { AuctionState, AtomicMarketUpdatePriority, SaleState } from './index';
 import { ContractDBTransaction } from '../../database';
 import { ShipBlock } from '../../../types/ship';
 import { EosioActionTrace, EosioTransaction } from '../../../types/eosio';
@@ -39,43 +39,43 @@ export default class AtomicMarketActionHandler {
         if (trace.act.name === 'lognewauct') {
             this.core.addUpdateJob(async () => {
                 await this.lognewauct(db, block, <EosioActionTrace<LogNewAuctionActionData>>trace, tx);
-            }, JobPriority.ACTION_CREATE_AUCTION);
+            }, AtomicMarketUpdatePriority.ACTION_CREATE_AUCTION);
         } else if (trace.act.name === 'lognewsale') {
             this.core.addUpdateJob(async () => {
                 await this.lognewsale(db, block, <EosioActionTrace<LogNewSaleActionData>>trace, tx);
-            }, JobPriority.ACTION_CREATE_SALE);
+            }, AtomicMarketUpdatePriority.ACTION_CREATE_SALE);
         } else if (trace.act.name === 'logauctstart') {
             this.core.addUpdateJob(async () => {
                 await this.logauctstart(db, block, <EosioActionTrace<LogAuctionStartActionData>>trace, tx);
-            }, JobPriority.ACTION_UPDATE_AUCTION);
+            }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION);
         } else if (trace.act.name === 'cancelauct') {
             this.core.addUpdateJob(async () => {
                 await this.cancelauct(db, block, <EosioActionTrace<CancelAuctionActionData>>trace, tx);
-            }, JobPriority.ACTION_UPDATE_AUCTION);
+            }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION);
         } else if (trace.act.name === 'auctionbid') {
             this.core.addUpdateJob(async () => {
                 await this.auctionbid(db, block, <EosioActionTrace<AuctionBidActionData>>trace, tx);
-            }, JobPriority.ACTION_UPDATE_AUCTION);
+            }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION);
         } else if (trace.act.name === 'auctclaimbuy') {
             this.core.addUpdateJob(async () => {
                 await this.auctclaimbuy(db, block, <EosioActionTrace<AuctionClaimBuyerActionData>>trace, tx);
-            }, JobPriority.ACTION_UPDATE_AUCTION);
+            }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION);
         } else if (trace.act.name === 'auctclaimsel') {
             this.core.addUpdateJob(async () => {
                 await this.auctclaimsel(db, block, <EosioActionTrace<AuctionClaimSellerActionData>>trace, tx);
-            }, JobPriority.ACTION_UPDATE_AUCTION);
+            }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION);
         } else if (trace.act.name === 'logsalestart') {
             this.core.addUpdateJob(async () => {
                 await this.logsalestart(db, block, <EosioActionTrace<LogSaleStartActionData>>trace, tx);
-            }, JobPriority.ACTION_UPDATE_SALE);
+            }, AtomicMarketUpdatePriority.ACTION_UPDATE_SALE);
         } else if (trace.act.name === 'cancelsale') {
             this.core.addUpdateJob(async () => {
                 await this.cancelsale(db, block, <EosioActionTrace<CancelSaleActionData>>trace, tx);
-            }, JobPriority.ACTION_UPDATE_SALE);
+            }, AtomicMarketUpdatePriority.ACTION_UPDATE_SALE);
         } else if (trace.act.name === 'purchasesale') {
             this.core.addUpdateJob(async () => {
                 await this.purchasesale(db, block, <EosioActionTrace<PurchaseSaleActionData>>trace, tx);
-            }, JobPriority.ACTION_UPDATE_SALE);
+            }, AtomicMarketUpdatePriority.ACTION_UPDATE_SALE);
         }
     }
 
