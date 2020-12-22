@@ -74,7 +74,7 @@ export default class Reader {
         let lastBlockNum = 0;
         let lastBlockTime = Date.now();
 
-        this.interval = setInterval(() => {
+        this.interval = setInterval(async () => {
             if (lastBlockNum === 0) {
                 lastBlockNum = this.reader.currentBlock;
 
@@ -96,6 +96,10 @@ export default class Reader {
 
                 // exit failure when no blocks processed
                 if (staleTime > threshold) {
+                    process.send({msg: 'failure'});
+
+                    await new Promise(resolve => setTimeout(resolve, logInterval / 2 * 1000));
+
                     process.exit(1);
                 }
 

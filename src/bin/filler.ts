@@ -35,8 +35,12 @@ if (cluster.isMaster) {
         }
 
         for (let i = 0; i < readerConfigs.length; i++) {
-            cluster.fork({
-                config_index: i
+            const worker = cluster.fork({config_index: i});
+
+            worker.on('message', data => {
+                if (data.msg === 'failure') {
+                    process.exit(-1);
+                }
             });
         }
     })();
