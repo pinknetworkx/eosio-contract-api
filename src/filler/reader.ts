@@ -68,27 +68,49 @@ export default class Reader {
 
         await this.reader.startProcessing();
 
-        let lastBlock = 0;
+        const lastBlockSpeeds: number[] = [];
+        let lastBlockNum = 0;
+        let lastBlockTime = Date.now();
+
         setInterval(() => {
-            if (lastBlock === 0) {
-                lastBlock = this.reader.currentBlock;
+            if (lastBlockNum === 0) {
+                lastBlockNum = this.reader.currentBlock;
 
                 return;
             }
 
-            const speed = (this.reader.currentBlock - lastBlock) / logInterval;
+            const speed = (this.reader.currentBlock - lastBlockNum) / logInterval;
 
-            if (lastBlock === this.reader.currentBlock && lastBlock > 0) {
-                logger.warn('Reader ' + this.config.name + ' - No blocks processed');
+            lastBlockSpeeds.push(speed);
+            if (lastBlockSpeeds.length > 12) {
+                lastBlockSpeeds.shift();
+            }
+
+            const averageSpeed = lastBlockSpeeds.reduce((prev, curr) => prev + curr, 0) / lastBlockSpeeds.length;
+
+            if (lastBlockNum === this.reader.currentBlock && lastBlockNum > 0) {
+                const staleTime = Date.now() - lastBlockTime;
+                const threshold = 120000;
+
+                // exit failure when no blocks processed
+                if (staleTime > threshold) {
+                    process.exit(1);
+                }
+
+                logger.warn('Reader ' + this.config.name + ' - No blocks processed - Stopping in ' + Math.round((threshold - staleTime) / 1000) + ' seconds');
             } else if (this.reader.currentBlock < this.reader.lastIrreversibleBlock) {
+                lastBlockTime = Date.now();
+
                 logger.info(
                     'Reader ' + this.config.name + ' - ' +
                     'Progress: ' + this.reader.currentBlock + ' / ' + this.reader.headBlock + ' ' +
                     '(' + (100 * this.reader.currentBlock / this.reader.headBlock).toFixed(2) + '%) ' +
                     'Speed: ' + speed.toFixed(1) + ' B/s ' +
-                    '(Syncs ' + formatSecondsLeft(Math.floor((this.reader.headBlock - this.reader.currentBlock) / speed)) + ')'
+                    '(Syncs ' + formatSecondsLeft(Math.floor((this.reader.headBlock - this.reader.currentBlock) / averageSpeed)) + ')'
                 );
             } else {
+                lastBlockTime = Date.now();
+
                 logger.info(
                     'Reader ' + this.config.name + ' - ' +
                     'Current Block: ' + this.reader.currentBlock + ' ' +
@@ -96,7 +118,7 @@ export default class Reader {
                 );
             }
 
-            lastBlock = this.reader.currentBlock;
+            lastBlockNum = this.reader.currentBlock;
         }, logInterval * 1000);
     }
 }
