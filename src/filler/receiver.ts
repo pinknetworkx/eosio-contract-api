@@ -57,7 +57,7 @@ export default class StateReceiver {
         let startBlock = await this.database.getReaderPosition() + 1;
 
         if (this.config.start_block > 0 && this.config.start_block < startBlock) {
-            logger.error('Reader start block cannot be lower than the last processed block. Ignoring config.');
+            logger.warn('Reader start block cannot be lower than the last processed block. Ignoring config.');
         }
 
         startBlock = Math.max(startBlock, this.config.start_block);
@@ -78,6 +78,12 @@ export default class StateReceiver {
             fetch_traces: true,
             fetch_deltas: true
         }, ['contract_row']);
+    }
+
+    async stopProcessing(): Promise<void> {
+        this.ship.stopProcessing();
+
+        logger.info('Reader stopped on block #' + this.currentBlock);
     }
 
     private async consumer(resp: ShipBlockResponse): Promise<void> {

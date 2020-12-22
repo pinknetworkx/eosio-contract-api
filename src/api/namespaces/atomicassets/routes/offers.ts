@@ -37,10 +37,13 @@ export class OfferApi {
                     recipient: {type: 'string', min: 1},
                     state: {type: 'string', min: 1},
 
+                    asset_id: {type: 'string', min: 1},
+                    collection_name: {type: 'string', min: 1},
+                    template_id: {type: 'string', min: 1},
+                    schema_name: {type: 'string', min: 1},
                     collection_blacklist: {type: 'string', min: 1},
                     collection_whitelist: {type: 'string', min: 1},
 
-                    asset_id: {type: 'string', min: 1},
                     is_recipient_contract: {type: 'bool'}
                 });
 
@@ -75,14 +78,33 @@ export class OfferApi {
                     queryString += 'AND NOT EXISTS(SELECT * FROM contract_codes WHERE account = offer.recipient) ';
                 }
 
-                if (args.asset_id) {
+                if (['asset_id', 'collection_name', 'template_id', 'schema_name'].find(key => args[key])) {
+                    const conditions: string[] = [];
+
+                    if (args.asset_id) {
+                        conditions.push('offer_asset.asset_id = ANY ($' + ++varCounter + ')');
+                        queryValues.push(args.asset_id.split(','));
+                    }
+
+                    if (args.collection_name) {
+                        conditions.push('asset.collection_name = ANY ($' + ++varCounter + ')');
+                        queryValues.push(args.collection_name.split(','));
+                    }
+
+                    if (args.template_id) {
+                        conditions.push('asset.template_id = ANY ($' + ++varCounter + ')');
+                        queryValues.push(args.template_id.split(','));
+                    }
+
+                    if (args.schema_name) {
+                        conditions.push('asset.schema_name = ANY ($' + ++varCounter + ')');
+                        queryValues.push(args.schema_name.split(','));
+                    }
+
                     queryString += 'AND EXISTS(' +
-                        'SELECT * FROM atomicassets_offers_assets asset ' +
-                        'WHERE asset.contract = offer.contract AND ' +
-                        'asset.offer_id = offer.offer_id AND ' +
-                        'asset.asset_id = ANY ($' + ++varCounter + ')' +
-                        ') ';
-                    queryValues.push(args.asset_id.split(','));
+                        'SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
+                        'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
+                        'offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND (' + conditions.join(' OR ') + ')) ';
                 }
 
                 if (args.collection_blacklist) {
@@ -260,7 +282,28 @@ export class OfferApi {
                             {
                                 name: 'asset_id',
                                 in: 'query',
-                                description: 'Asset which is in the offer - separate multiple with ","',
+                                description: 'only offers which contain this asset_id - separate multiple with ","',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
+                            {
+                                name: 'template_id',
+                                in: 'query',
+                                description: 'only offers which contain assets of this template - separate multiple with ","',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
+                            {
+                                name: 'schema_name',
+                                in: 'query',
+                                description: 'only offers which contain assets of this schema - separate multiple with ","',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
+                            {
+                                name: 'collection_name',
+                                in: 'query',
+                                description: 'only offers which contain assets of this collection - separate multiple with ","',
                                 required: false,
                                 schema: {type: 'string'}
                             },

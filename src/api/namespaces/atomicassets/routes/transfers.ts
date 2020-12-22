@@ -30,13 +30,16 @@ export class TransferApi {
                     sort: {type: 'string', values: ['created'], default: 'created'},
                     order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
+                    asset_id: {type: 'string', min: 1},
+                    collection_name: {type: 'string', min: 1},
+                    template_id: {type: 'string', min: 1},
+                    schema_name: {type: 'string', min: 1},
                     collection_blacklist: {type: 'string', min: 1},
                     collection_whitelist: {type: 'string', min: 1},
 
                     account: {type: 'string', min: 1},
                     sender: {type: 'string', min: 1},
-                    recipient: {type: 'string', min: 1},
-                    asset_id: {type: 'string', min: 1}
+                    recipient: {type: 'string', min: 1}
                 });
 
                 let varCounter = 1;
@@ -59,6 +62,35 @@ export class TransferApi {
                     queryValues.push(args.recipient.split(','));
                 }
 
+                if (['asset_id', 'collection_name', 'template_id', 'schema_name'].find(key => args[key])) {
+                    const conditions: string[] = [];
+
+                    if (args.asset_id) {
+                        conditions.push('transfer_asset.asset_id = ANY ($' + ++varCounter + ')');
+                        queryValues.push(args.asset_id.split(','));
+                    }
+
+                    if (args.collection_name) {
+                        conditions.push('asset.collection_name = ANY ($' + ++varCounter + ')');
+                        queryValues.push(args.collection_name.split(','));
+                    }
+
+                    if (args.template_id) {
+                        conditions.push('asset.template_id = ANY ($' + ++varCounter + ')');
+                        queryValues.push(args.template_id.split(','));
+                    }
+
+                    if (args.schema_name) {
+                        conditions.push('asset.schema_name = ANY ($' + ++varCounter + ')');
+                        queryValues.push(args.schema_name.split(','));
+                    }
+
+                    queryString += 'AND EXISTS(' +
+                        'SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset ' +
+                        'WHERE transfer_asset.contract = transfer.contract AND transfer_asset.transfer_id = transfer.transfer_id AND ' +
+                        'transfer_asset.contract = asset.contract AND transfer_asset.asset_id = asset.asset_id AND (' + conditions.join(' OR ') + ')) ';
+                }
+
                 if (args.asset_id) {
                     queryString += 'AND EXISTS(' +
                         'SELECT transfer_id FROM atomicassets_transfers_assets asset ' +
@@ -70,20 +102,20 @@ export class TransferApi {
 
                 if (args.collection_blacklist) {
                     queryString += 'AND NOT EXISTS(' +
-                        'SELECT * FROM atomicassets_transfers_assets asset_t, atomicassets_assets asset_a ' +
-                        'WHERE asset_t.contract = transfer.contract AND asset_t.transfer_id = transfer.transfer_id AND ' +
-                        'asset_t.contract = asset_a.contract AND asset_t.asset_id = asset_a.asset_id AND ' +
-                        'asset_a.collection_name = ANY ($' + ++varCounter + ')' +
+                        'SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset ' +
+                        'WHERE transfer_asset.contract = transfer.contract AND transfer_asset.transfer_id = transfer.transfer_id AND ' +
+                        'transfer_asset.contract = asset.contract AND transfer_asset.asset_id = asset.asset_id AND ' +
+                        'asset.collection_name = ANY ($' + ++varCounter + ')' +
                         ') ';
                     queryValues.push(args.collection_blacklist.split(','));
                 }
 
                 if (args.collection_whitelist) {
                     queryString += 'AND NOT EXISTS(' +
-                        'SELECT * FROM atomicassets_transfers_assets asset_t, atomicassets_assets asset_a ' +
-                        'WHERE asset_t.contract = transfer.contract AND asset_t.transfer_id = transfer.transfer_id AND ' +
-                        'asset_t.contract = asset_a.contract AND asset_t.asset_id = asset_a.asset_id AND ' +
-                        'NOT (asset_a.collection_name = ANY ($' + ++varCounter + '))' +
+                        'SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset ' +
+                        'WHERE transfer_asset.contract = transfer.contract AND transfer_asset.transfer_id = transfer.transfer_id AND ' +
+                        'transfer_asset.contract = asset.contract AND transfer_asset.asset_id = asset.asset_id AND ' +
+                        'NOT (asset.collection_name = ANY ($' + ++varCounter + '))' +
                         ') ';
                     queryValues.push(args.collection_whitelist.split(','));
                 }
@@ -163,7 +195,28 @@ export class TransferApi {
                             {
                                 name: 'asset_id',
                                 in: 'query',
-                                description: 'Asset which is in the transfer - separate multiple with ","',
+                                description: 'only transfers which contain this asset_id - separate multiple with ","',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
+                            {
+                                name: 'template_id',
+                                in: 'query',
+                                description: 'only transfers which contain assets of this template - separate multiple with ","',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
+                            {
+                                name: 'schema_name',
+                                in: 'query',
+                                description: 'only transfers which contain assets of this schema - separate multiple with ","',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
+                            {
+                                name: 'collection_name',
+                                in: 'query',
+                                description: 'only transfers which contain assets of this collection - separate multiple with ","',
                                 required: false,
                                 schema: {type: 'string'}
                             },

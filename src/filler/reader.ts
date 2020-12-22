@@ -9,6 +9,8 @@ export default class Reader {
     private readonly reader: StateReceiver;
     private readonly events: PromiseEventHandler;
 
+    private interval: NodeJS.Timeout;
+
     constructor(private readonly config: IReaderConfig, private readonly connection: ConnectionManager) {
         this.events = new PromiseEventHandler();
         this.reader = new StateReceiver(config, connection, this.events);
@@ -72,7 +74,7 @@ export default class Reader {
         let lastBlockNum = 0;
         let lastBlockTime = Date.now();
 
-        setInterval(() => {
+        this.interval = setInterval(() => {
             if (lastBlockNum === 0) {
                 lastBlockNum = this.reader.currentBlock;
 
@@ -80,8 +82,8 @@ export default class Reader {
             }
 
             const speed = (this.reader.currentBlock - lastBlockNum) / logInterval;
-
             lastBlockSpeeds.push(speed);
+
             if (lastBlockSpeeds.length > 12) {
                 lastBlockSpeeds.shift();
             }
@@ -120,5 +122,10 @@ export default class Reader {
 
             lastBlockNum = this.reader.currentBlock;
         }, logInterval * 1000);
+    }
+
+    async stopFiller(): Promise<void> {
+        clearInterval(this.interval);
+        await this.reader.stopProcessing();
     }
 }
