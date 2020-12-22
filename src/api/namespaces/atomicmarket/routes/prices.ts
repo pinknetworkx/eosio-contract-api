@@ -50,10 +50,10 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
             SELECT * FROM (
                 (
                     SELECT
-                        listing.market_contract, MIN(asset.contract) assets_contract, NULL auction_id, listing.sale_id,
-                        listing.collection_name, MIN(asset.schema_name) "schema_name", MIN(asset.template_id) template_id,
-                        MIN(mint.min_template_mint) template_mint,
-                        MIN(symbol.token_symbol) token_symbol, MIN(symbol.token_precision) token_precision, MIN(symbol.token_contract) token_contract, 
+                        listing.market_contract, asset.contract assets_contract, NULL auction_id, listing.sale_id,
+                        listing.collection_name, asset.schema_name "schema_name", asset.template_id template_id,
+                        mint.min_template_mint template_mint,
+                        symbol.token_symbol token_symbol, symbol.token_precision token_precision, symbol.token_contract token_contract, 
                         listing.final_price price, listing.updated_at_time block_time
                     FROM
                         atomicassets_assets asset, atomicassets_offers_assets offer_asset, atomicmarket_sales listing, 
@@ -63,16 +63,18 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                         listing.market_contract = mint.market_contract AND listing.sale_id = mint.sale_id AND
                         listing.market_contract = symbol.market_contract AND listing.settlement_symbol = symbol.token_symbol AND
                         offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND
-                        asset.template_id IS NOT NULL AND listing.final_price IS NOT NULL AND listing.state = 3
-                        ${subQueryString}
-                    GROUP BY listing.market_contract, listing.sale_id
-                    HAVING COUNT(*) = 1
+                        asset.template_id IS NOT NULL AND listing.final_price IS NOT NULL AND listing.state = 3 AND
+                        NOT EXISTS(
+                            SELECT * FROM atomicassets_offers_assets inner_asset 
+                            WHERE inner_asset.contract = offer_asset.contract AND inner_asset.offer_id = offer_asset.offer_id AND 
+                            inner_asset.asset_id != offer_asset.asset_id
+                        ) ${subQueryString}
                 ) UNION ALL (
                     SELECT
-                        listing.market_contract, MIN(asset.contract) assets_contract,  listing.auction_id, NULL sale_id,
-                        listing.collection_name, MIN(asset.schema_name) "schema_name", MIN(asset.template_id) template_id,
-                        MIN(mint.min_template_mint) template_mint,
-                        MIN(symbol.token_symbol) token_symbol, MIN(symbol.token_precision) token_precision, MIN(symbol.token_contract) token_contract, 
+                        listing.market_contract, asset.contract assets_contract,  listing.auction_id, NULL sale_id,
+                        listing.collection_name, asset.schema_name "schema_name", asset.template_id template_id,
+                        mint.min_template_mint template_mint,
+                        symbol.token_symbol token_symbol, symbol.token_precision token_precision, symbol.token_contract token_contract, 
                         listing.price, (listing.end_time * 1000) block_time
                     FROM
                         atomicassets_assets asset, atomicmarket_auctions_assets auction_asset, atomicmarket_auctions listing, 
@@ -82,10 +84,12 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                         mint.market_contract = listing.market_contract AND mint.auction_id = listing.auction_id AND
                         listing.market_contract = symbol.market_contract AND listing.token_symbol = symbol.token_symbol AND
                         listing.assets_contract = asset.contract AND auction_asset.asset_id = asset.asset_id AND
-                        asset.template_id IS NOT NULL AND listing.buyer IS NOT NULL AND listing.state = 1 AND listing.end_time < extract(epoch from now())
-                        ${subQueryString}
-                    GROUP BY listing.market_contract, listing.auction_id
-                    HAVING COUNT(*) = 1
+                        asset.template_id IS NOT NULL AND listing.buyer IS NOT NULL AND listing.state = 1 AND listing.end_time < extract(epoch from now()) AND
+                        NOT EXISTS(
+                            SELECT * FROM atomicmarket_auctions_assets inner_asset 
+                            WHERE inner_asset.market_contract = auction_asset.market_contract AND inner_asset.auction_id = auction_asset.auction_id AND 
+                            inner_asset.asset_id != auction_asset.asset_id
+                        ) ${subQueryString}
                 )
             ) t1
             ORDER BY t1.block_time DESC LIMIT 500
