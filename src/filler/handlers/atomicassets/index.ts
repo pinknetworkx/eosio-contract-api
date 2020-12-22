@@ -276,6 +276,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
 
         this.blockOffers.offers = [];
         this.blockOffers.assets = [];
+        this.blockAssets = {};
     }
 
     async onBlockComplete(db: ContractDBTransaction, block: ShipBlock): Promise<void> {
