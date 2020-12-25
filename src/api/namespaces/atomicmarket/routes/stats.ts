@@ -196,27 +196,33 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             mp.market_contract, mp.marketplace_name,
             (
                 SELECT COUNT(*) FROM (
-                    (
-                        SELECT seller account FROM atomicmarket_sales sale
-                        WHERE sale.market_contract = mp.market_contract ${getSaleSubCondition(SaleApiState.LISTED, 'sale', after, before, false)} 
-                            AND (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name) 
-                            ${getGreylistCondition('sale.collection_name', 3, 4)}
-                    ) UNION (
-                        SELECT buyer account FROM atomicmarket_sales sale
-                        WHERE sale.market_contract = mp.market_contract ${getSaleSubCondition(SaleApiState.SOLD, 'sale', after, before)} 
-                            AND (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name) 
-                            ${getGreylistCondition('sale.collection_name', 3, 4)}
-                    ) UNION (
-                        SELECT seller account FROM atomicmarket_auctions auction
-                        WHERE auction.market_contract = mp.market_contract ${getAuctionSubCondition(AuctionApiState.LISTED, 'auction', after, before, false)} 
-                            AND (auction.maker_marketplace = mp.marketplace_name OR auction.taker_marketplace = mp.marketplace_name) 
-                            ${getGreylistCondition('auction.collection_name', 3, 4)}
-                    ) UNION (
-                        SELECT buyer account FROM atomicmarket_auctions auction
-                        WHERE auction.market_contract = mp.market_contract ${getAuctionSubCondition(AuctionApiState.SOLD, 'auction', after, before)} 
-                            AND (auction.maker_marketplace = mp.marketplace_name OR auction.taker_marketplace = mp.marketplace_name) 
-                            ${getGreylistCondition('auction.collection_name', 3, 4)}
-                    )
+                    SELECT ut2.account FROM (
+                        (
+                            SELECT seller account FROM atomicmarket_sales sale
+                            WHERE sale.market_contract = mp.market_contract ${getSaleSubCondition(SaleApiState.LISTED, 'sale', after, before, false)} 
+                                AND (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name) 
+                                ${getGreylistCondition('sale.collection_name', 3, 4)}
+                            GROUP BY account
+                        ) UNION (
+                            SELECT buyer account FROM atomicmarket_sales sale
+                            WHERE sale.market_contract = mp.market_contract ${getSaleSubCondition(SaleApiState.SOLD, 'sale', after, before)} 
+                                AND (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name) 
+                                ${getGreylistCondition('sale.collection_name', 3, 4)}
+                            GROUP BY account
+                        ) UNION (
+                            SELECT seller account FROM atomicmarket_auctions auction
+                            WHERE auction.market_contract = mp.market_contract ${getAuctionSubCondition(AuctionApiState.LISTED, 'auction', after, before, false)} 
+                                AND (auction.maker_marketplace = mp.marketplace_name OR auction.taker_marketplace = mp.marketplace_name) 
+                                ${getGreylistCondition('auction.collection_name', 3, 4)}
+                            GROUP BY account
+                        ) UNION (
+                            SELECT buyer account FROM atomicmarket_auctions auction
+                            WHERE auction.market_contract = mp.market_contract ${getAuctionSubCondition(AuctionApiState.SOLD, 'auction', after, before)} 
+                                AND (auction.maker_marketplace = mp.marketplace_name OR auction.taker_marketplace = mp.marketplace_name) 
+                                ${getGreylistCondition('auction.collection_name', 3, 4)}
+                            GROUP BY account
+                        )
+                    ) ut2 GROUP BY ut2.account
                 ) ut1
             ) users,
             (
