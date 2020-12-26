@@ -189,6 +189,21 @@ export default class StateHistoryBlockReader {
                     }
 
                     this.blocksQueue.add(async () => {
+                        let deserializedTraces = [];
+                        let deserializedDeltas = [];
+
+                        try {
+                            deserializedTraces = await traces;
+                        } catch (error) {
+                            logger.warn('Failed to deserialize traces at block #' + response.this_block.block_num, error);
+                        }
+
+                        try {
+                            deserializedDeltas = await deltas;
+                        } catch (error) {
+                            logger.warn('Failed to deserialize deltas at block #' + response.this_block.block_num, error);
+                        }
+
                         try {
                             await this.processBlock({
                                 this_block: response.this_block,
@@ -201,15 +216,15 @@ export default class StateHistoryBlockReader {
                                     {last_irreversible: response.last_irreversible},
                                     {head: response.head}
                                 ),
-                                traces: await traces,
-                                deltas: await deltas
+                                traces: deserializedTraces,
+                                deltas: deserializedDeltas
                             });
                         } catch (error) {
                             // abort reader if error is thrown
                             this.blocksQueue.clear();
                             this.blocksQueue.pause();
 
-                            logger.error('Ship blocks queue stopped duo to an error', error);
+                            logger.error('Ship blocks queue stopped duo to an error at #' + response.this_block.block_num, error);
 
                             return;
                         }

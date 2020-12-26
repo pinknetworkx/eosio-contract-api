@@ -151,7 +151,13 @@ export class WebServer {
     private routes(): void {
         const router = express.Router();
 
-        router.get(['/health', '/eosio-contract-api/health'], this.caching() , async (_: express.Request, res: express.Response) => {
+        let infoRequest = this.server.connection.chain.rpc.get_info();
+
+        setInterval(() => {
+            infoRequest = this.server.connection.chain.rpc.get_info();
+        }, 500);
+
+        router.get(['/health', '/eosio-contract-api/health'], async (_: express.Request, res: express.Response) => {
             let databaseHealth = {status: 'INVALID', readers: <string[]>[]};
 
             try {
@@ -167,7 +173,7 @@ export class WebServer {
             let chainHealth;
 
             try {
-                const info = await this.server.connection.chain.rpc.get_info();
+                const info = await infoRequest;
 
                 if (Date.now() - 20 * 1000 < new Date(info.head_block_time + '+0000').getTime()) {
                     chainHealth = {
