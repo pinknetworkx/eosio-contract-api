@@ -131,8 +131,9 @@ export default class DelphiOracleHandler extends ContractHandler {
                 await this.fillPair(db, block, delta.scope);
             }
 
+            // TODO remove median limit when data field ist bigint
             await db.update('delphioracle_pairs', {
-                median: delta.value.median,
+                median: Math.min(delta.value.median, Math.pow(2, 31) - 1),
                 updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
                 updated_at_block: block.block_num
             }, {
