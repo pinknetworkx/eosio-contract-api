@@ -99,29 +99,37 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             });
 
             let varCounter = 2;
-            let queryString = 'SELECT collection_name, COUNT(*) as assets ' +
+            let collectionQueryString = 'SELECT collection_name, COUNT(*) as assets ' +
+                'FROM atomicassets_assets asset ' +
+                'WHERE contract = $1 AND owner = $2 ';
+            let templateQueryString = 'SELECT template_id, COUNT(*) as assets ' +
                 'FROM atomicassets_assets asset ' +
                 'WHERE contract = $1 AND owner = $2 ';
             const queryValues: any[] = [core.args.atomicassets_account, req.params.account];
 
             if (args.collection_whitelist) {
-                queryString += 'AND asset.collection_name = ANY ($' + ++varCounter + ') ';
+                collectionQueryString += 'AND asset.collection_name = ANY ($' + ++varCounter + ') ';
+                templateQueryString += 'AND asset.collection_name = ANY ($' + ++varCounter + ') ';
                 queryValues.push(args.collection_whitelist.split(','));
             }
 
             if (args.collection_blacklist) {
-                queryString += 'AND NOT (asset.collection_name = ANY ($' + ++varCounter + ')) ';
+                collectionQueryString += 'AND NOT (asset.collection_name = ANY ($' + ++varCounter + ')) ';
+                templateQueryString += 'AND NOT (asset.collection_name = ANY ($' + ++varCounter + ')) ';
                 queryValues.push(args.collection_blacklist.split(','));
             }
 
-            queryString += hideOfferAssets(req);
-            queryString += 'GROUP BY collection_name ORDER BY assets DESC';
+            collectionQueryString += hideOfferAssets(req);
+            collectionQueryString += 'GROUP BY contract, collection_name ORDER BY assets DESC';
 
-            const query = await server.query(queryString, queryValues);
+            templateQueryString += hideOfferAssets(req);
+            templateQueryString += 'GROUP BY contract, template_id ORDER BY assets DESC';
+
+            const collectionQuery = await server.query(collectionQueryString, queryValues);
 
             const collections = await server.query(
                 'SELECT * FROM atomicassets_collections_master WHERE contract = $1 AND collection_name = ANY ($2)',
-                [core.args.atomicassets_account, query.rows.map(row => row.collection_name)]
+                [core.args.atomicassets_account, collectionQuery.rows.map(row => row.collection_name)]
             );
 
             const lookupCollections = collections.rows.reduce(
@@ -131,11 +139,12 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             return res.json({
                 success: true,
                 data: {
-                    collections: query.rows.map(row => ({
+                    collections: collectionQuery.rows.map(row => ({
                         collection: lookupCollections[row.collection_name],
                         assets: row.assets
                     })),
-                    assets: query.rows.reduce((prev, current) => prev + parseInt(current.assets, 10), 0)
+                    templates: await server.query(templateQueryString, queryValues),
+                    assets: collectionQuery.rows.reduce((prev, current) => prev + parseInt(current.assets, 10), 0)
                 }
             });
         } catch (e) {
@@ -255,6 +264,16 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                                         type: 'object',
                                         properties: {
                                             collection: {'$ref': '#/components/schemas/Collection'},
+                                            assets: {type: 'string'}
+                                        }
+                                    }
+                                },
+                                templates: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            template_id: {type: 'string'},
                                             assets: {type: 'string'}
                                         }
                                     }
