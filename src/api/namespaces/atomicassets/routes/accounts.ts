@@ -108,14 +108,20 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             const queryValues: any[] = [core.args.atomicassets_account, req.params.account];
 
             if (args.collection_whitelist) {
-                collectionQueryString += 'AND asset.collection_name = ANY ($' + ++varCounter + ') ';
-                templateQueryString += 'AND asset.collection_name = ANY ($' + ++varCounter + ') ';
+                const condition = 'AND asset.collection_name = ANY ($' + ++varCounter + ') ';
+
+                collectionQueryString += condition;
+                templateQueryString += condition;
+
                 queryValues.push(args.collection_whitelist.split(','));
             }
 
             if (args.collection_blacklist) {
-                collectionQueryString += 'AND NOT (asset.collection_name = ANY ($' + ++varCounter + ')) ';
-                templateQueryString += 'AND NOT (asset.collection_name = ANY ($' + ++varCounter + ')) ';
+                const condition = 'AND NOT (asset.collection_name = ANY ($' + ++varCounter + ')) ';
+
+                collectionQueryString += condition;
+                templateQueryString += condition;
+                
                 queryValues.push(args.collection_blacklist.split(','));
             }
 
