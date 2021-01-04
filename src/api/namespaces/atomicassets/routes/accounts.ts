@@ -102,7 +102,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             let collectionQueryString = 'SELECT collection_name, COUNT(*) as assets ' +
                 'FROM atomicassets_assets asset ' +
                 'WHERE contract = $1 AND owner = $2 ';
-            let templateQueryString = 'SELECT template_id, COUNT(*) as assets ' +
+            let templateQueryString = 'SELECT collection_name, template_id, COUNT(*) as assets ' +
                 'FROM atomicassets_assets asset ' +
                 'WHERE contract = $1 AND owner = $2 ';
             const queryValues: any[] = [core.args.atomicassets_account, req.params.account];
@@ -123,7 +123,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             collectionQueryString += 'GROUP BY contract, collection_name ORDER BY assets DESC';
 
             templateQueryString += hideOfferAssets(req);
-            templateQueryString += 'GROUP BY contract, template_id ORDER BY assets DESC';
+            templateQueryString += 'GROUP BY contract, collection_name, template_id ORDER BY assets DESC';
 
             const collectionQuery = await server.query(collectionQueryString, queryValues);
 
