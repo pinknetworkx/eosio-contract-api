@@ -126,6 +126,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             templateQueryString += 'GROUP BY contract, collection_name, template_id ORDER BY assets DESC';
 
             const collectionQuery = await server.query(collectionQueryString, queryValues);
+            const templateQuery = await server.query(templateQueryString, queryValues);
 
             const collections = await server.query(
                 'SELECT * FROM atomicassets_collections_master WHERE contract = $1 AND collection_name = ANY ($2)',
@@ -143,7 +144,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                         collection: lookupCollections[row.collection_name],
                         assets: row.assets
                     })),
-                    templates: await server.query(templateQueryString, queryValues),
+                    templates: templateQuery.rows,
                     assets: collectionQuery.rows.reduce((prev, current) => prev + parseInt(current.assets, 10), 0)
                 }
             });
