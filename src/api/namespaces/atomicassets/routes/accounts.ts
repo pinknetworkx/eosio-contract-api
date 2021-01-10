@@ -121,7 +121,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
 
                 collectionQueryString += condition;
                 templateQueryString += condition;
-                
+
                 queryValues.push(args.collection_blacklist.split(','));
             }
 
