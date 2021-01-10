@@ -288,6 +288,7 @@ export default class AtomicAssetsActionHandler {
             // @ts-ignore
             const data: LogSetDataActionData = trace.act.data;
 
+            // TODO: alien worlds hotfix ->> remove
             try {
                 if (data.new_data.find(row => row.key === 'last_mine')) {
                     return;

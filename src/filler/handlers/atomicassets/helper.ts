@@ -40,6 +40,7 @@ export async function saveAssetTableRow(
         immutableData = deserialize(new Uint8Array(data.immutable_serialized_data), schema);
     }
 
+    // TODO: alien worlds hotfix ->> remove
     let shouldUpdate = true;
     if (data.collection_name === 'alien.worlds' && !deleted) {
         const assetQuery = await db.query(
