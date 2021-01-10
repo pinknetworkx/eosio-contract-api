@@ -288,6 +288,13 @@ export default class AtomicAssetsActionHandler {
             // @ts-ignore
             const data: LogSetDataActionData = trace.act.data;
 
+            try {
+                if (data.new_data.find(row => row.key === 'last_mine')) {
+                    return;
+                }
+                // eslint-disable-next-line no-empty
+            } catch { }
+
             await this.createLogMessage(db, block, tx, trace.global_sequence, 'update', 'asset', data.asset_id, {
                 old_data: data.old_data,
                 new_data: data.new_data
