@@ -24,10 +24,16 @@ export class ContractDB {
 
     constructor(readonly name: string, readonly connection: ConnectionManager) { }
 
-    async startTransaction(currentBlock: number, lastIrreversibleBlock: number): Promise<ContractDBTransaction> {
-        const client = await this.connection.database.pool.connect();
+    async startTransaction(currentBlock: number, lastIrreversibleBlock: number, lastTransaction?: ContractDBTransaction): Promise<ContractDBTransaction> {
+        let client;
 
-        return new ContractDBTransaction(client, this.name, currentBlock, lastIrreversibleBlock);
+        if (lastTransaction && !lastTransaction.committed) {
+            client = lastTransaction.client;
+        } else {
+            client = await this.connection.database.pool.connect();
+        }
+
+        return new ContractDBTransaction(client, this.name, currentBlock, lastIrreversibleBlock, lastTransaction);
     }
 
     async fetchAbi(contract: string, blockNum: number): Promise<{data: Uint8Array, block_num: number} | null> {
@@ -86,12 +92,15 @@ export class ContractDBTransaction {
     readonly lock: AwaitLock;
 
     inTransaction: boolean;
+    committed: boolean;
 
     constructor(
-        readonly client: PoolClient, readonly name: string, readonly currentBlock: number, readonly lastIrreversibleBlock: number
+        readonly client: PoolClient, readonly name: string, readonly currentBlock: number,
+        readonly lastIrreversibleBlock: number, private lastTransaction?: ContractDBTransaction
     ) {
         this.lock = new AwaitLock();
-        this.inTransaction = false;
+        this.committed = false;
+        this.inTransaction = lastTransaction && lastTransaction.countUncommittedBlocks() > 0;
     }
 
     async begin(): Promise<void> {
@@ -218,6 +227,10 @@ export class ContractDBTransaction {
             let varCounter = 0;
 
             for (const key of keys) {
+                if (primaryKey.indexOf(key) >= 0) {
+                    continue;
+                }
+
                 varCounter += 1;
                 queryUpdates.push('' + this.client.escapeIdentifier(key) + ' = $' + varCounter);
                 queryValues.push(values[key]);
@@ -231,7 +244,7 @@ export class ContractDBTransaction {
 
             const query = await this.clientQuery(queryStr, queryValues);
 
-            if (selectQuery !== null && selectQuery.rows.length > 0) {
+            if (selectQuery && selectQuery.rows.length > 0) {
                 for (const row of selectQuery.rows) {
                     const filteredValues = this.removeIdenticalValues(row, values, primaryKey);
 
@@ -457,18 +470,45 @@ export class ContractDBTransaction {
         }
     }
 
+    countUncommittedBlocks(): number {
+        if (this.committed) {
+            return 0;
+        }
+
+        const ownCounter = this.inTransaction ? 1 : 0;
+
+        if (this.lastTransaction) {
+            return this.lastTransaction.countUncommittedBlocks() + ownCounter;
+        }
+
+        return ownCounter;
+    }
+
     async commit(): Promise<void> {
         await this.acquireLock();
 
         try {
-            if (this.inTransaction) {
-                await this.clientQuery('COMMIT');
+            let commitThreshold = 1;
+
+            if (this.currentBlock <= this.lastIrreversibleBlock) {
+                commitThreshold = 12;
+            }
+
+            if (this.countUncommittedBlocks() >= commitThreshold) {
+                try {
+                    await this.clientQuery('COMMIT');
+
+                    this.committed = true;
+                    this.lastTransaction = null;
+                } finally {
+                    this.client.release();
+                }
             }
         } finally {
             this.releaseLock();
-            this.client.release();
 
             const index = ContractDB.transactions.indexOf(this);
+
             if (index >= 0) {
                 ContractDB.transactions.splice(index, 1);
             }
@@ -545,11 +585,11 @@ export class ContractDBTransaction {
             return true;
         }
 
-        if (serializedValue1.type === 'raw' && String(serializedValue1.data) === String(serializedValue2.data)) {
+        if (serializedValue1.type === 'raw' && JSON.stringify(serializedValue1.data) === JSON.stringify(serializedValue2.data)) {
             return true;
         }
 
-        return serializedValue1.data === serializedValue2.data;
+        return JSON.stringify(serializedValue1.data) === JSON.stringify(serializedValue2.data);
     }
 
     private buildPrimaryCondition(values: {[key: string]: any}, primaryKey: string[], offset: number = 0): Condition {

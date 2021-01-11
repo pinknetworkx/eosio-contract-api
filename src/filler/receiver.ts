@@ -25,6 +25,8 @@ export default class StateReceiver {
     headBlock = 0;
     lastIrreversibleBlock = 0;
 
+    lastDatabaseTransaction?: ContractDBTransaction;
+
     readonly name: string;
 
     readonly ship: StateHistoryBlockReader;
@@ -90,7 +92,7 @@ export default class StateReceiver {
         // process deltas of first block because it could be started from a snapshot
         let processDeltas = this.currentBlock === 0;
 
-        const db = await this.database.startTransaction(resp.this_block.block_num, resp.last_irreversible.block_num);
+        const db = await this.database.startTransaction(resp.this_block.block_num, resp.last_irreversible.block_num, this.lastDatabaseTransaction);
 
         try {
             if (resp.this_block.block_num <= (this.currentBlock || this.ship.currentArgs.start_block_num)) {
@@ -145,6 +147,8 @@ export default class StateReceiver {
             this.lastIrreversibleBlock = resp.last_irreversible.block_num;
 
             await db.commit();
+
+            this.lastDatabaseTransaction = db;
         } catch (e) {
             logger.error('Error occurred while processing block #' + resp.this_block.block_num);
 
