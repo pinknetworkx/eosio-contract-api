@@ -40,42 +40,24 @@ export async function saveAssetTableRow(
         immutableData = deserialize(new Uint8Array(data.immutable_serialized_data), schema);
     }
 
-    // TODO: alien worlds hotfix ->> remove
-    let shouldUpdate = true;
-    if (data.collection_name === 'alien.worlds' && !deleted) {
-        const assetQuery = await db.query(
-            'SELECT * FROM atomicassets_assets WHERE contract = $1 AND asset_id = $2',
-            [args.atomicassets_account, data.asset_id]
-        );
+    await db.replace('atomicassets_assets', {
+        contract: args.atomicassets_account,
+        asset_id: data.asset_id,
+        collection_name: data.collection_name,
+        schema_name: data.schema_name,
+        template_id: data.template_id === -1 ? null : data.template_id,
+        owner: deleted ? null : scope,
+        ram_payer: data.ram_payer,
+        mutable_data: args.collection_blacklist.indexOf(data.collection_name) >= 0 ? '{}' : JSON.stringify(mutableData),
+        immutable_data: args.collection_blacklist.indexOf(data.collection_name) >= 0 ? '{}' : JSON.stringify(immutableData),
+        burned_at_block: deleted ? block.block_num : null,
+        burned_at_time: deleted ? eosioTimestampToDate(block.timestamp).getTime() : null,
+        updated_at_block: block.block_num,
+        updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
+        minted_at_block: block.block_num,
+        minted_at_time: eosioTimestampToDate(block.timestamp).getTime()
+    }, ['contract', 'asset_id'], ['minted_at_block', 'minted_at_time']);
 
-        if (assetQuery.rows.length > 0) {
-            const asset = assetQuery.rows[0];
-
-            if (asset.owner === scope) {
-                shouldUpdate = false;
-            }
-        }
-    }
-
-    if (shouldUpdate) {
-        await db.replace('atomicassets_assets', {
-            contract: args.atomicassets_account,
-            asset_id: data.asset_id,
-            collection_name: data.collection_name,
-            schema_name: data.schema_name,
-            template_id: data.template_id === -1 ? null : data.template_id,
-            owner: deleted ? null : scope,
-            ram_payer: data.ram_payer,
-            mutable_data: args.collection_blacklist.indexOf(data.collection_name) >= 0 ? '{}' : JSON.stringify(mutableData),
-            immutable_data: args.collection_blacklist.indexOf(data.collection_name) >= 0 ? '{}' : JSON.stringify(immutableData),
-            burned_at_block: deleted ? block.block_num : null,
-            burned_at_time: deleted ? eosioTimestampToDate(block.timestamp).getTime() : null,
-            updated_at_block: block.block_num,
-            updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
-            minted_at_block: block.block_num,
-            minted_at_time: eosioTimestampToDate(block.timestamp).getTime()
-        }, ['contract', 'asset_id'], ['minted_at_block', 'minted_at_time']);
-    }
 
     // updated backed tokens
     const localBackedTokens: {[key: string]: {amount: string, token_symbol: string}} = {};
