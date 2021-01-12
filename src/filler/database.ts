@@ -490,7 +490,7 @@ export class ContractDBTransaction {
         try {
             let commitThreshold = 1;
 
-            if (this.currentBlock <= this.lastIrreversibleBlock) {
+            if (this.currentBlock <= this.lastIrreversibleBlock - 60) {
                 commitThreshold = 12;
             }
 
