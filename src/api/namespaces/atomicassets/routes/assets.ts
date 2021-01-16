@@ -441,6 +441,11 @@ export class AssetApi {
 
                 const msg = JSON.parse(message);
 
+                // TODO: remove ALIEN WORLD FIX 3
+                if (msg.action === 'update') {
+                    return;
+                }
+
                 logger.debug('received asset notification', msg);
 
                 await queue.add(async () => {
