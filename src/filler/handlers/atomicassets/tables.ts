@@ -89,7 +89,6 @@ export default class AtomicAssetsTableHandler {
         await saveAssetTableRow(db, block, this.core.args, scope, data, deleted);
 
         this.core.cacheAssetUpdate(scope, data);
-        this.core.queueOfferStateCheck([], [data.asset_id]);
     }
 
     async handleBalancesUpdate(

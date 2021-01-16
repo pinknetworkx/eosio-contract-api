@@ -182,6 +182,8 @@ export default class AtomicAssetsActionHandler {
         // @ts-ignore
         const data: LogTransferActionData = trace.act.data;
 
+        this.core.queueOfferStateCheck([], data.asset_ids);
+
         await db.insert('atomicassets_transfers', {
             transfer_id: trace.global_sequence,
             contract: this.contractName,
