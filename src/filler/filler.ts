@@ -3,17 +3,28 @@ import StateReceiver from './receiver';
 import logger from '../utils/winston';
 import { IReaderConfig } from '../types/config';
 import { formatSecondsLeft } from '../utils/time';
-import { PromiseEventHandler } from '../utils/event';
 
-export default class Reader {
+function estimateSeconds(blocks: number, speed: number): number {
+    if (blocks <= 2) {
+        return 1;
+    }
+
+    if (speed < 2) {
+        return -1;
+    }
+
+    const seconds = Math.floor(blocks / speed);
+
+    return seconds + estimateSeconds(seconds * 2, speed);
+}
+
+export default class Filler {
     private readonly reader: StateReceiver;
-    private readonly events: PromiseEventHandler;
 
     private interval: NodeJS.Timeout;
 
     constructor(private readonly config: IReaderConfig, private readonly connection: ConnectionManager) {
-        this.events = new PromiseEventHandler();
-        this.reader = new StateReceiver(config, connection, this.events);
+        this.reader = new StateReceiver(config, connection);
     }
 
     async deleteDB(): Promise<void> {
@@ -92,7 +103,7 @@ export default class Reader {
 
             if (lastBlockNum === this.reader.currentBlock && lastBlockNum > 0) {
                 const staleTime = Date.now() - lastBlockTime;
-                const threshold = 120000;
+                const threshold = 90000;
 
                 // exit failure when no blocks processed
                 if (staleTime > threshold) {
@@ -112,7 +123,7 @@ export default class Reader {
                     'Progress: ' + this.reader.currentBlock + ' / ' + this.reader.headBlock + ' ' +
                     '(' + (100 * this.reader.currentBlock / this.reader.headBlock).toFixed(2) + '%) ' +
                     'Speed: ' + speed.toFixed(1) + ' B/s ' +
-                    '(Syncs ' + formatSecondsLeft(Math.floor((this.reader.headBlock - this.reader.currentBlock) / averageSpeed)) + ')'
+                    '(Syncs ' + formatSecondsLeft(estimateSeconds(this.reader.headBlock - this.reader.currentBlock, averageSpeed)) + ')'
                 );
             } else {
                 lastBlockTime = Date.now();
@@ -130,6 +141,7 @@ export default class Reader {
 
     async stopFiller(): Promise<void> {
         clearInterval(this.interval);
+
         await this.reader.stopProcessing();
     }
 }

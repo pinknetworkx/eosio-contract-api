@@ -1,4 +1,8 @@
 export function formatSecondsLeft(n: number): string {
+    if (n < 0) {
+        return 'never';
+    }
+
     const hours = Math.floor(n / 3600);
     const minutes = Math.floor((n % 3600) / 60);
     const seconds = Math.floor(n % 60);

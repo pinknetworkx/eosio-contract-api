@@ -11,8 +11,8 @@ import { ContractDB, ContractDBTransaction } from './database';
 import { ContractHandler } from './handlers/interfaces';
 import { binToHex } from '../utils/binary';
 import { eosioTimestampToDate } from '../utils/eosio';
-import { PromiseEventHandler } from '../utils/event';
 import { getHandlers } from './handlers';
+import DataProcessor, { ProcessingState } from './processor';
 
 type AbiCache = {
     types: Map<string, Serialize.Type>,
@@ -30,6 +30,7 @@ export default class StateReceiver {
     readonly name: string;
 
     readonly ship: StateHistoryBlockReader;
+    readonly processor: DataProcessor;
     readonly handlers: ContractHandler[];
 
     private readonly database: ContractDB;
@@ -37,8 +38,7 @@ export default class StateReceiver {
 
     constructor(
         readonly config: IReaderConfig,
-        readonly connection: ConnectionManager,
-        readonly events: PromiseEventHandler
+        readonly connection: ConnectionManager
     ) {
         this.name = config.name;
         this.database = new ContractDB(this.config.name, this.connection);
@@ -46,6 +46,7 @@ export default class StateReceiver {
 
         this.handlers = getHandlers(this, config.contracts);
 
+        this.processor = new DataProcessor(ProcessingState.CATCHUP);
         this.ship = connection.createShipBlockReader({
             min_block_confirmation: config.ship_min_block_confirmation,
             ds_threads: config.ds_threads,
@@ -89,10 +90,11 @@ export default class StateReceiver {
     }
 
     private async consumer(resp: ShipBlockResponse): Promise<void> {
-        // process deltas of first block because it could be started from a snapshot
-        let processDeltas = this.currentBlock === 0;
+        // TODO set current consuming mode
+        // TODO queue blocks
+        // TODO only start transaction when needed
 
-        const db = await this.database.startTransaction(resp.this_block.block_num, resp.last_irreversible.block_num, this.lastDatabaseTransaction);
+        const db = await this.database.startTransaction(resp.this_block.block_num);
 
         try {
             if (resp.this_block.block_num <= (this.currentBlock || this.ship.currentArgs.start_block_num)) {
@@ -133,8 +135,8 @@ export default class StateReceiver {
                     block_num: resp.this_block.block_num
                 }, ['reader', 'block_num']);
 
-                await db.clearForkDatabase();
-            } else if (resp.this_block.block_num % 100 === 0) {
+                await db.clearForkDatabase(resp.last_irreversible.block_num);
+            } else if (resp.this_block.block_num % 1000 === 0) {
                 await db.updateReaderPosition(resp.block);
             }
 

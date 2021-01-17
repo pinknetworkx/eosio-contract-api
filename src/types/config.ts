@@ -60,6 +60,7 @@ export interface IReaderConfig {
 
     ship_prefetch_blocks: number;
     ship_min_block_confirmation: number;
+    db_group_blocks: number,
 
     ds_threads: number;
     ds_experimental: boolean;
