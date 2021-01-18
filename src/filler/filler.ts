@@ -3,6 +3,8 @@ import StateReceiver from './receiver';
 import logger from '../utils/winston';
 import { IReaderConfig } from '../types/config';
 import { formatSecondsLeft } from '../utils/time';
+import { getHandlers } from './handlers';
+import { ContractHandler } from './handlers/interfaces';
 
 function estimateSeconds(blocks: number, speed: number): number {
     if (blocks <= 2) {
@@ -20,11 +22,13 @@ function estimateSeconds(blocks: number, speed: number): number {
 
 export default class Filler {
     private readonly reader: StateReceiver;
+    private readonly handlers: ContractHandler[];
 
     private interval: NodeJS.Timeout;
 
     constructor(private readonly config: IReaderConfig, private readonly connection: ConnectionManager) {
-        this.reader = new StateReceiver(config, connection);
+        this.handlers = getHandlers(config.contracts);
+        this.reader = new StateReceiver(config, connection, this.handlers);
     }
 
     async deleteDB(): Promise<void> {
@@ -34,7 +38,7 @@ export default class Filler {
         await transaction.query('DELETE FROM reversible_queries WHERE reader = $1', [this.config.name]);
 
         try {
-            for (const handler of this.reader.handlers) {
+            for (const handler of this.handlers) {
                 await handler.deleteDB(transaction);
             }
         } catch (e) {
@@ -51,10 +55,10 @@ export default class Filler {
     async startFiller(logInterval: number): Promise<void> {
         const initTransaction = await this.connection.database.begin();
 
-        for (let i = 0; i < this.reader.handlers.length; i++) {
+        for (let i = 0; i < this.handlers.length; i++) {
             logger.info('Init handler ' + this.config.contracts[i].handler + ' for reader ' + this.config.name);
 
-            await this.reader.handlers[i].init(initTransaction);
+            await this.handlers[i].init(initTransaction);
         }
 
         await initTransaction.query('COMMIT');

@@ -8,11 +8,10 @@ import { IReaderConfig } from '../types/config';
 import { ShipActionTrace, ShipBlock, ShipBlockResponse, ShipContractRow, ShipTableDelta, ShipTransactionTrace } from '../types/ship';
 import { EosioAction, EosioActionTrace, EosioTableRow, EosioTransaction } from '../types/eosio';
 import { ContractDB, ContractDBTransaction } from './database';
-import { ContractHandler } from './handlers/interfaces';
 import { binToHex } from '../utils/binary';
 import { eosioTimestampToDate } from '../utils/eosio';
-import { getHandlers } from './handlers';
 import DataProcessor, { ProcessingState } from './processor';
+import { ContractHandler } from './handlers/interfaces';
 
 type AbiCache = {
     types: Map<string, Serialize.Type>,
@@ -20,33 +19,94 @@ type AbiCache = {
     json: Abi
 };
 
+function extractShipTraces(transactions: ShipTransactionTrace[]): Array<{trace: ShipActionTrace, tx: EosioTransaction}> {
+    const result: Array<{trace: ShipActionTrace, tx: EosioTransaction}> = [];
+
+    for (const transaction of transactions) {
+        if (transaction[0] === 'transaction_trace_v0') {
+            // transaction failed
+            if (transaction[1].status !== 0) {
+                continue;
+            }
+
+            const tx: EosioTransaction = {
+                id: transaction[1].id,
+                cpu_usage_us: transaction[1].cpu_usage_us,
+                net_usage_words: transaction[1].net_usage_words
+            };
+
+            result.push(...transaction[1].action_traces.map((trace) => {
+                return {trace, tx};
+            }));
+        } else {
+            throw new Error('unsupported transaction response received: ' + transaction[0]);
+        }
+    }
+
+    // sort by global_sequence because inline actions do not have the correct order
+    result.sort((a, b) => {
+        if (a.trace[0] === 'action_trace_v0' && b.trace[0] === 'action_trace_v0') {
+            if (a.trace[1].receipt[0] === 'action_receipt_v0' && b.trace[1].receipt[0] === 'action_receipt_v0') {
+                return parseInt(a.trace[1].receipt[1].global_sequence, 10) - parseInt(b.trace[1].receipt[1].global_sequence, 10);
+            }
+
+            throw new Error('unsupported trace receipt response received: ' + a.trace[0] + ' ' + b.trace[0]);
+        }
+
+        throw new Error('unsupported trace response received: ' + a.trace[0] + ' ' + b.trace[0]);
+    });
+
+    return result;
+}
+
+function extractShipDeltas(deltas: ShipTableDelta[]): Array<{present: boolean, data: ShipContractRow}> {
+    const result: Array<{present: boolean, data: ShipContractRow}> = [];
+
+    for (const delta of deltas) {
+        if (delta[0] !== 'table_delta_v0') {
+            throw new Error('Unsupported table delta response received: ' + delta[0]);
+        }
+
+        if (delta[1].name === 'contract_row') {
+            for (const row of delta[1].rows) {
+                result.push({present: row.present, data: <ShipContractRow>row.data});
+            }
+        }
+    }
+
+    return result;
+}
+
 export default class StateReceiver {
     currentBlock = 0;
     headBlock = 0;
     lastIrreversibleBlock = 0;
 
+    collectedBlocks = 0;
     lastDatabaseTransaction?: ContractDBTransaction;
+    handlerDestructors: Array<() => void> = [];
 
     readonly name: string;
 
     readonly ship: StateHistoryBlockReader;
     readonly processor: DataProcessor;
-    readonly handlers: ContractHandler[];
 
     private readonly database: ContractDB;
     private readonly abis: {[key: string]: AbiCache};
 
     constructor(
         readonly config: IReaderConfig,
-        readonly connection: ConnectionManager
+        readonly connection: ConnectionManager,
+        readonly handlers: ContractHandler[]
     ) {
         this.name = config.name;
         this.database = new ContractDB(this.config.name, this.connection);
         this.abis = {};
 
-        this.handlers = getHandlers(this, config.contracts);
-
         this.processor = new DataProcessor(ProcessingState.CATCHUP);
+        this.processor.onTrace('eosio', 'setcode', () => null);
+        this.processor.onTrace('eosio', 'setabi', () => null);
+
         this.ship = connection.createShipBlockReader({
             min_block_confirmation: config.ship_min_block_confirmation,
             ds_threads: config.ds_threads,
@@ -71,6 +131,10 @@ export default class StateReceiver {
 
         logger.info('Reader ' + this.config.name + ' starting on block #' + startBlock);
 
+        for (const handler of this.handlers) {
+            this.handlerDestructors.push(await handler.register(this.processor));
+        }
+
         this.ship.startProcessing({
             start_block_num: startBlock,
             end_block_num: this.config.stop_block || 0xffffffff,
@@ -86,20 +150,26 @@ export default class StateReceiver {
     async stopProcessing(): Promise<void> {
         this.ship.stopProcessing();
 
-        logger.info('Reader stopped on block #' + this.currentBlock);
+        this.handlerDestructors.map(unregister => unregister());
+        this.handlerDestructors = [];
+
+        logger.info('Reader stopped at block #' + this.currentBlock);
     }
 
     private async consumer(resp: ShipBlockResponse): Promise<void> {
-        // TODO set current consuming mode
-        // TODO queue blocks
-        // TODO only start transaction when needed
+        const dbGroupBlocks = this.config.db_group_blocks || 12;
 
-        const db = await this.database.startTransaction(resp.this_block.block_num);
+        const blocksUntilHead = (this.config.irreversible_only ? resp.last_irreversible.block_num : resp.head.block_num) - resp.this_block.block_num;
+        const isReversible = resp.this_block.block_num > resp.last_irreversible.block_num ? resp.this_block.block_num : 0;
+        let commitSize = (isReversible || blocksUntilHead < dbGroupBlocks * 2) ? 1 : dbGroupBlocks;
+
+        const db = (this.lastDatabaseTransaction && !isReversible) ? this.lastDatabaseTransaction : await this.database.startTransaction(isReversible);
 
         try {
             if (resp.this_block.block_num <= (this.currentBlock || this.ship.currentArgs.start_block_num)) {
                 logger.info('Chain fork detected. Reverse all blocks which were affected');
 
+                commitSize = 1;
                 await db.rollbackReversibleBlocks(resp.this_block.block_num);
 
                 const channelName = ['eosio-contract-api', this.connection.chain.name, this.name, 'chain'].join(':');
@@ -108,49 +178,27 @@ export default class StateReceiver {
                 }));
             }
 
-            for (const handler of this.handlers) {
-                await handler.onBlockStart(db, resp.block);
+            const traces = extractShipTraces(resp.traces);
+            for (const row of traces) {
+                await this.handleTrace(db, resp.block, row.trace, row.tx);
             }
 
-            const actionTraces = this.extractTransactionTraces(resp.traces);
-
-            for (const row of actionTraces) {
-                processDeltas = await this.handleActionTrace(db, resp.block, row.trace, row.tx) || processDeltas;
+            const deltas = extractShipDeltas(resp.deltas);
+            for (const delta of deltas) {
+                await this.handleDelta(db, resp.block, delta.data, delta.present);
             }
 
-            if (processDeltas) {
-                for (const delta of resp.deltas) {
-                    await this.handleDelta(db, resp.block, delta);
-                }
-
-                await db.updateReaderPosition(resp.block);
-            }
-
-            if (resp.this_block.block_num > resp.last_irreversible.block_num) {
-                await db.updateReaderPosition(resp.block);
-
+            if (isReversible) {
                 await db.insert('reversible_blocks', {
                     reader: this.config.name,
                     block_id: Buffer.from(resp.this_block.block_id, 'hex'),
                     block_num: resp.this_block.block_num
                 }, ['reader', 'block_num']);
 
-                await db.clearForkDatabase(resp.last_irreversible.block_num);
-            } else if (resp.this_block.block_num % 1000 === 0) {
-                await db.updateReaderPosition(resp.block);
+                if (isReversible % 10 === 0) {
+                    await db.clearForkDatabase(resp.last_irreversible.block_num);
+                }
             }
-
-            for (const handler of this.handlers) {
-                await handler.onBlockComplete(db, resp.block);
-            }
-
-            this.currentBlock = resp.this_block.block_num;
-            this.headBlock = resp.head.block_num;
-            this.lastIrreversibleBlock = resp.last_irreversible.block_num;
-
-            await db.commit();
-
-            this.lastDatabaseTransaction = db;
         } catch (e) {
             logger.error('Error occurred while processing block #' + resp.this_block.block_num);
 
@@ -159,64 +207,38 @@ export default class StateReceiver {
             throw e;
         }
 
-        for (const handler of this.handlers) {
-            await handler.onCommit(resp.block);
+        this.collectedBlocks += 1;
+        this.currentBlock = resp.this_block.block_num;
+        this.headBlock = resp.head.block_num;
+        this.lastIrreversibleBlock = resp.last_irreversible.block_num;
+
+        if (this.collectedBlocks >= commitSize) {
+            try {
+                await this.processor.execute();
+
+                await db.updateReaderPosition(resp.block);
+                await db.commit();
+
+                this.collectedBlocks = 0;
+                this.lastDatabaseTransaction = null;
+            } catch (e) {
+                if (this.collectedBlocks === 1) {
+                    logger.error('Error occurred while executing block #' + resp.this_block.block_num);
+                } else {
+                    logger.error('Error occurred while executing block range from #' + (resp.this_block.block_num - this.collectedBlocks + 1) + ' to ' + resp.this_block.block_num);
+                }
+
+                await db.abort();
+
+                throw e;
+            }
         }
     }
 
-    private extractTransactionTraces(transactions: ShipTransactionTrace[]): Array<{trace: ShipActionTrace, tx: EosioTransaction}> {
-        const traces: Array<{trace: ShipActionTrace, tx: EosioTransaction}> = [];
-
-        for (const transaction of transactions) {
-            if (transaction[0] === 'transaction_trace_v0') {
-                // transaction failed
-                if (transaction[1].status !== 0) {
-                    continue;
-                }
-
-                const tx: EosioTransaction = {
-                    id: transaction[1].id,
-                    cpu_usage_us: transaction[1].cpu_usage_us,
-                    net_usage_words: transaction[1].net_usage_words
-                };
-
-                traces.push(...transaction[1].action_traces.map((trace) => {
-                    return {trace, tx};
-                }));
-            } else {
-                throw new Error('unsupported transaction response received: ' + transaction[0]);
-            }
-        }
-
-        // sort by global_sequence because inline actions do not have the correct order
-        traces.sort((a, b) => {
-            if (a.trace[0] === 'action_trace_v0' && b.trace[0] === 'action_trace_v0') {
-                if (a.trace[1].receipt[0] === 'action_receipt_v0' && b.trace[1].receipt[0] === 'action_receipt_v0') {
-                    return parseInt(a.trace[1].receipt[1].global_sequence, 10) - parseInt(b.trace[1].receipt[1].global_sequence, 10);
-                }
-
-                throw new Error('unsupported trace receipt response received: ' + a.trace[0] + ' ' + b.trace[0]);
-            }
-
-            throw new Error('unsupported trace response received: ' + a.trace[0] + ' ' + b.trace[0]);
-        });
-
-        return traces;
-    }
-
-    private async handleActionTrace(
+    private async handleTrace(
         db: ContractDBTransaction, block: ShipBlock, actionTrace: ShipActionTrace, tx: EosioTransaction
-    ): Promise<boolean> {
+    ): Promise<void> {
         if (actionTrace[0] === 'action_trace_v0') {
-            // ignore if its a notification
-            if (actionTrace[1].receiver !== actionTrace[1].act.account) {
-                return this.areDeltasNeeded(actionTrace[1].receiver);
-            }
-
-            if (this.isActionBlacklisted(actionTrace[1].act.account, actionTrace[1].act.name)) {
-                return false;
-            }
-
             const trace: EosioActionTrace = {
                 action_ordinal: actionTrace[1].action_ordinal,
                 creator_action_ordinal: actionTrace[1].creator_action_ordinal,
@@ -230,17 +252,12 @@ export default class StateReceiver {
                 }
             };
 
-            const rawHandlers = this.getActionHandlers(actionTrace[1].act.account, actionTrace[1].act.name, false);
-            if (rawHandlers.length > 0) {
-                await this.handleAction(rawHandlers, db, block, trace, tx);
-            }
+            const processingInfo = this.processor.traceNeeded(trace.act.account, trace.act.name);
 
-            const dataHandlers = this.getActionHandlers(actionTrace[1].act.account, actionTrace[1].act.name, true);
-            if (dataHandlers.length > 0 || this.isActionWhitelisted(actionTrace[1].act.account, actionTrace[1].act.name)) {
+            if (processingInfo.deserialize) {
                 const types = await this.fetchContractAbiTypes(actionTrace[1].act.account, block.block_num);
                 const type = await this.getActionAbiType(actionTrace[1].act.account, actionTrace[1].act.name, block.block_num);
 
-                // save hex data if ABI does not exist for contract
                 if (types !== null && type !== null) {
                     try {
                         trace.act.data = this.ship.deserialize(type, actionTrace[1].act.data, types, false);
@@ -249,99 +266,71 @@ export default class StateReceiver {
                     }
                 }
 
-                await this.handleAction(dataHandlers, db, block, trace, tx);
-            }
+                if (trace.act.account === 'eosio' && trace.act.name === 'setcode') {
+                    await this.handleCodeUpdate(block, trace.act);
+                } else if (trace.act.account === 'eosio' && trace.act.name === 'setabi') {
+                    await this.handleAbiUpdate(block, trace.act);
+                } else {
+                    logger.debug('Trace for reader ' + this.config.name + ' received', {
+                        contract: trace.act.account, action: trace.act.name, data: trace.act.data
+                    });
 
-            return this.areDeltasNeeded(actionTrace[1].act.account);
-        }
-
-        throw new Error('Unsupported trace response received: ' + actionTrace[0]);
-    }
-
-    private async handleAction(
-        handlers: ContractHandler[], db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction
-    ): Promise<void> {
-        if (trace.act.account === 'eosio') {
-            if (trace.act.name === 'setcode') {
-                await this.handleCodeUpdate(block, trace.act);
-            } else if (trace.act.name === 'setabi') {
-                await this.handleAbiUpdate(block, trace.act);
-            }
-        }
-
-        logger.debug('Action for reader ' + this.config.name + ' received', {
-            account: trace.act.account, name: trace.act.name, txid: tx.id
-        });
-
-        for (const handler of handlers) {
-            await handler.onAction(db, block, trace, tx);
-        }
-    }
-
-    private async handleDelta(db: ContractDBTransaction, block: ShipBlock, delta: ShipTableDelta): Promise<void> {
-        if (delta[0] === 'table_delta_v0') {
-            if (delta[1].name === 'contract_row') {
-                for (const row of delta[1].rows) {
-                    await this.handleContractRow(db, block, <ShipContractRow>(<unknown>row.data), row.present);
+                    this.processor.processTrace(db, block, tx, trace);
                 }
+            } else if (processingInfo.process) {
+                logger.debug('Trace for reader ' + this.config.name + ' received', {
+                    contract: trace.act.account, action: trace.act.name
+                });
+
+                this.processor.processTrace(db, block, tx, trace);
             }
 
             return;
         }
 
-        throw new Error('Unsupported table delta response received: ' + delta[0]);
+        throw new Error('Unsupported trace response received: ' + actionTrace[0]);
     }
 
-    private async handleContractRow(
+    private async handleDelta(
         db: ContractDBTransaction, block: ShipBlock, contractRow: ShipContractRow, present: boolean
     ): Promise<void> {
         if (contractRow[0] === 'contract_row_v0') {
-            if (this.isTableBlacklisted(contractRow[1].code, contractRow[1].table)) {
-                return;
-            }
-
-            const tableDelta = {
+            const delta: EosioTableRow = {
                 ...contractRow[1], present,
                 value: typeof contractRow[1].value === 'string' ? contractRow[1].value : binToHex(contractRow[1].value)
             };
 
-            const rawHandlers = this.getTableHandlers(contractRow[1].code, contractRow[1].table, false);
-            if (rawHandlers.length > 0) {
-                await this.handleTableDelta(rawHandlers, db, block, tableDelta);
-            }
+            const processingInfo = this.processor.deltaNeeded(delta.code, delta.table);
 
-            const dataHandlers = this.getTableHandlers(contractRow[1].code, contractRow[1].table, true);
-            if (dataHandlers.length > 0) {
+            if (processingInfo.deserialize) {
                 const types = await this.fetchContractAbiTypes(contractRow[1].code, block.block_num);
                 const type = await this.getTableAbiType(contractRow[1].code, contractRow[1].table, block.block_num);
 
                 if (type !== null && types !== null) {
                     try {
-                        tableDelta.value = this.ship.deserialize(type, contractRow[1].value, types);
+                        delta.value = this.ship.deserialize(type, contractRow[1].value, types);
                     } catch (e) {
                         logger.warn(e);
                     }
                 }
 
-                await this.handleTableDelta(dataHandlers, db, block, tableDelta);
+                logger.debug('Table delta for reader ' + this.config.name + ' received', {
+                    contract: delta.code, table: delta.table, scope: delta.scope, value: delta.value
+                });
+
+                this.processor.processDelta(db, block, delta);
+            } else if (processingInfo.process) {
+                logger.debug('Table delta for reader ' + this.config.name + ' received', {
+                    contract: delta.code, table: delta.table, scope: delta.scope
+                });
+
+                this.processor.processDelta(db, block, delta);
             }
 
             return;
         }
 
         throw new Error('Unsupported contract row response received: ' + contractRow[0]);
-    }
-
-    private async handleTableDelta(
-        handlers: ContractHandler[], db: ContractDBTransaction, block: ShipBlock, tableData: EosioTableRow
-    ): Promise<void> {
-        logger.debug('Table delta for reader ' + this.config.name + ' received', {
-            contract: tableData.code, table: tableData.table, scope: tableData.scope
-        });
-
-        for (const handler of handlers) {
-            await handler.onTableChange(db, block, tableData);
-        }
     }
 
     private async handleAbiUpdate(block: ShipBlock, action: EosioAction): Promise<void> {
@@ -489,109 +478,5 @@ export default class StateReceiver {
         }
 
         return null;
-    }
-
-    private getTableHandlers(contract: string, table?: string, deserialize: boolean | null = null): ContractHandler[] {
-        return this.getHandlers('tables', contract, table, deserialize);
-    }
-
-    private getActionHandlers(contract: string, action?: string, deserialize: boolean | null = null): ContractHandler[] {
-        return this.getHandlers('actions', contract, action, deserialize);
-    }
-
-    private getHandlers(group: string, contract: string, name: string, deserialize: boolean | null = null): ContractHandler[] {
-        const handlers = [];
-
-        for (const handler of this.handlers) {
-            if (!Array.isArray(handler.scope[group])) {
-                continue;
-            }
-
-            if (this.currentBlock < handler.minBlock) {
-                continue;
-            }
-
-            for (const config of handler.scope[group]) {
-                if (deserialize !== null && config.deserialize !== deserialize) {
-                    continue;
-                }
-
-                if (!StateReceiver.matchFilter(config.filter, contract, name)) {
-                    continue;
-                }
-
-                handlers.push(handler);
-            }
-        }
-
-        return handlers;
-    }
-
-    private areDeltasNeeded(account: string): boolean {
-        for (const handler of this.handlers) {
-            if (!Array.isArray(handler.scope.tables)) {
-                continue;
-            }
-
-            if (this.currentBlock < handler.minBlock) {
-                continue;
-            }
-
-            for (const config of handler.scope.tables) {
-                if (config.filter.split(':')[0] === account) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private isActionBlacklisted(contract: string, action: string): boolean {
-        const blacklist = ['eosio.null:*', 'eosio:onblock', 'eosio:onerror'];
-
-        for (const filter of blacklist) {
-            if (!StateReceiver.matchFilter(filter, contract, action)) {
-                continue;
-            }
-
-            return true;
-        }
-
-        return false;
-    }
-
-    private isTableBlacklisted(_1: string, _2: string): boolean {
-        return false;
-    }
-
-    private isActionWhitelisted(contract: string, action: string): boolean {
-        const whitelist = ['eosio:setcode', 'eosio:setabi'];
-
-        for (const filter of whitelist) {
-            if (!StateReceiver.matchFilter(filter, contract, action)) {
-                continue;
-            }
-
-            return true;
-        }
-
-        return false;
-    }
-
-    private static matchFilter(filter: string, contract: string, name?: string): boolean {
-        const split = filter.split(':');
-
-        if (split[0] === contract || split[0] === '*') {
-            if (split[1] === '*' || !name) {
-                return true;
-            }
-
-            if (split[1] === name) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

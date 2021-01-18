@@ -29,8 +29,8 @@ function matchFilter(val1: string, val2: string, filter1: string, filter2: strin
 }
 
 export default class DataProcessor {
-    private readonly traceListeners: Array<{contract: string, action: string, callback: TraceListener, priority: number}>;
-    private readonly deltaListeners: Array<{contract: string, table: string, callback: DeltaListener, priority: number}>;
+    private readonly traceListeners: Array<{contract: string, action: string, callback: TraceListener, priority: number, deserialize: boolean}>;
+    private readonly deltaListeners: Array<{contract: string, table: string, callback: DeltaListener, priority: number, deserialize: boolean}>;
     private readonly commitListeners: Array<{callback: CommitListener, priority: number}>;
 
     private state: ProcessingState;
@@ -49,8 +49,8 @@ export default class DataProcessor {
         this.state = state;
     }
 
-    onTrace(contract: string, action: string, listener: TraceListener, priority = 100): () => void {
-        const element = {contract, action, callback: listener, priority};
+    onTrace(contract: string, action: string, listener: TraceListener, priority = 100, deserialize = true): () => void {
+        const element = {contract, action, callback: listener, priority, deserialize};
 
         this.traceListeners.push(element);
 
@@ -63,8 +63,8 @@ export default class DataProcessor {
         };
     }
 
-    onDelta(contract: string, table: string, listener: DeltaListener, priority = 100): () => void {
-        const element = {contract, table, callback: listener, priority};
+    onDelta(contract: string, table: string, listener: DeltaListener, priority = 100, deserialize = true): () => void {
+        const element = {contract, table, callback: listener, priority, deserialize};
 
         this.deltaListeners.push(element);
 
@@ -95,12 +95,22 @@ export default class DataProcessor {
         };
     }
 
-    traceNeeded(contract: string, action: string): boolean {
-        return !!this.traceListeners.find(element => matchFilter(contract, action, element.contract, element.action));
+    traceNeeded(contract: string, action: string): { process: boolean, deserialize: boolean } {
+        const listeners = this.traceListeners.filter(element => matchFilter(contract, action, element.contract, element.action));
+
+        return {
+            process: listeners.length > 0,
+            deserialize: !!listeners.find(element => element.deserialize)
+        };
     }
 
-    deltaNeeded(contract: string, table: string): boolean {
-        return !!this.deltaListeners.find(element => matchFilter(contract, table, element.contract, element.table));
+    deltaNeeded(contract: string, table: string): { process: boolean, deserialize: boolean } {
+        const listeners = this.deltaListeners.filter(element => matchFilter(contract, table, element.contract, element.table));
+
+        return {
+            process: listeners.length > 0,
+            deserialize: !!listeners.find(element => element.deserialize)
+        };
     }
 
     processTrace(db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<any>): void {
