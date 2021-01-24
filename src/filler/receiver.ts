@@ -12,6 +12,7 @@ import { binToHex } from '../utils/binary';
 import { eosioTimestampToDate } from '../utils/eosio';
 import DataProcessor, { ProcessingState } from './processor';
 import { ContractHandler } from './handlers/interfaces';
+import ApiNotificationSender from './notifier';
 
 type AbiCache = {
     types: Map<string, Serialize.Type>,
@@ -90,6 +91,7 @@ export default class StateReceiver {
 
     readonly ship: StateHistoryBlockReader;
     readonly processor: DataProcessor;
+    readonly notifier: ApiNotificationSender;
 
     private readonly database: ContractDB;
     private readonly abis: {[key: string]: AbiCache};
@@ -107,6 +109,8 @@ export default class StateReceiver {
         this.processor.onTrace('eosio', 'setcode', () => null);
         this.processor.onTrace('eosio', 'setabi', () => null);
 
+        this.notifier = new ApiNotificationSender(this.connection, this.processor, this.name);
+
         this.ship = connection.createShipBlockReader({
             min_block_confirmation: config.ship_min_block_confirmation,
             ds_threads: config.ds_threads,
@@ -117,7 +121,10 @@ export default class StateReceiver {
     }
 
     async startProcessing(): Promise<void> {
-        let startBlock = await this.database.getReaderPosition() + 1;
+        const position = await this.database.getReaderPosition();
+        this.processor.setState(position.live ? ProcessingState.HEAD : ProcessingState.CATCHUP);
+
+        let startBlock = position.block_num + 1;
 
         if (this.config.start_block > 0 && this.config.start_block < startBlock) {
             logger.warn('Reader start block cannot be lower than the last processed block. Ignoring config.');
@@ -132,7 +139,7 @@ export default class StateReceiver {
         logger.info('Reader ' + this.config.name + ' starting on block #' + startBlock);
 
         for (const handler of this.handlers) {
-            this.handlerDestructors.push(await handler.register(this.processor));
+            this.handlerDestructors.push(await handler.register(this.processor, this.notifier));
         }
 
         this.ship.startProcessing({
@@ -163,6 +170,10 @@ export default class StateReceiver {
         const isReversible = resp.this_block.block_num > resp.last_irreversible.block_num ? resp.this_block.block_num : 0;
         let commitSize = (isReversible || blocksUntilHead < dbGroupBlocks * 2) ? 1 : dbGroupBlocks;
 
+        if (this.processor.getState() === ProcessingState.CATCHUP && (isReversible || blocksUntilHead < dbGroupBlocks * 2)) {
+            this.processor.setState(ProcessingState.HEAD);
+        }
+
         const db = (this.lastDatabaseTransaction && !isReversible) ? this.lastDatabaseTransaction : await this.database.startTransaction(isReversible);
 
         try {
@@ -172,20 +183,17 @@ export default class StateReceiver {
                 commitSize = 1;
                 await db.rollbackReversibleBlocks(resp.this_block.block_num);
 
-                const channelName = ['eosio-contract-api', this.connection.chain.name, this.name, 'chain'].join(':');
-                await this.connection.redis.ioRedis.publish(channelName, JSON.stringify({
-                    action: 'fork', block_num: resp.this_block.block_num
-                }));
+                this.notifier.sendFork(resp.block);
             }
 
             const traces = extractShipTraces(resp.traces);
             for (const row of traces) {
-                await this.handleTrace(db, resp.block, row.trace, row.tx);
+                await this.handleTrace(resp.block, row.trace, row.tx);
             }
 
             const deltas = extractShipDeltas(resp.deltas);
             for (const delta of deltas) {
-                await this.handleDelta(db, resp.block, delta.data, delta.present);
+                await this.handleDelta(resp.block, delta.data, delta.present);
             }
 
             if (isReversible) {
@@ -207,20 +215,27 @@ export default class StateReceiver {
             throw e;
         }
 
+        this.lastDatabaseTransaction = db;
         this.collectedBlocks += 1;
+
         this.currentBlock = resp.this_block.block_num;
         this.headBlock = resp.head.block_num;
         this.lastIrreversibleBlock = resp.last_irreversible.block_num;
 
         if (this.collectedBlocks >= commitSize) {
             try {
-                await this.processor.execute();
+                await this.processor.execute(db);
 
-                await db.updateReaderPosition(resp.block);
+                if (db.inTransaction || resp.this_block.block_num % 100 === 0) {
+                    await db.updateReaderPosition(resp.block, this.processor.getState() === ProcessingState.HEAD);
+                }
+
                 await db.commit();
 
                 this.collectedBlocks = 0;
                 this.lastDatabaseTransaction = null;
+
+                await this.processor.notifyCommit();
             } catch (e) {
                 if (this.collectedBlocks === 1) {
                     logger.error('Error occurred while executing block #' + resp.this_block.block_num);
@@ -235,9 +250,7 @@ export default class StateReceiver {
         }
     }
 
-    private async handleTrace(
-        db: ContractDBTransaction, block: ShipBlock, actionTrace: ShipActionTrace, tx: EosioTransaction
-    ): Promise<void> {
+    private async handleTrace(block: ShipBlock, actionTrace: ShipActionTrace, tx: EosioTransaction): Promise<void> {
         if (actionTrace[0] === 'action_trace_v0') {
             const trace: EosioActionTrace = {
                 action_ordinal: actionTrace[1].action_ordinal,
@@ -275,14 +288,14 @@ export default class StateReceiver {
                         contract: trace.act.account, action: trace.act.name, data: trace.act.data
                     });
 
-                    this.processor.processTrace(db, block, tx, trace);
+                    this.processor.processTrace(block, tx, trace);
                 }
             } else if (processingInfo.process) {
                 logger.debug('Trace for reader ' + this.config.name + ' received', {
                     contract: trace.act.account, action: trace.act.name
                 });
 
-                this.processor.processTrace(db, block, tx, trace);
+                this.processor.processTrace(block, tx, trace);
             }
 
             return;
@@ -291,9 +304,7 @@ export default class StateReceiver {
         throw new Error('Unsupported trace response received: ' + actionTrace[0]);
     }
 
-    private async handleDelta(
-        db: ContractDBTransaction, block: ShipBlock, contractRow: ShipContractRow, present: boolean
-    ): Promise<void> {
+    private async handleDelta(block: ShipBlock, contractRow: ShipContractRow, present: boolean): Promise<void> {
         if (contractRow[0] === 'contract_row_v0') {
             const delta: EosioTableRow = {
                 ...contractRow[1], present,
@@ -318,13 +329,13 @@ export default class StateReceiver {
                     contract: delta.code, table: delta.table, scope: delta.scope, value: delta.value
                 });
 
-                this.processor.processDelta(db, block, delta);
+                this.processor.processDelta(block, delta);
             } else if (processingInfo.process) {
                 logger.debug('Table delta for reader ' + this.config.name + ' received', {
                     contract: delta.code, table: delta.table, scope: delta.scope
                 });
 
-                this.processor.processDelta(db, block, delta);
+                this.processor.processDelta(block, delta);
             }
 
             return;

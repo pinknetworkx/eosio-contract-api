@@ -2,8 +2,9 @@ import { IContractConfig } from '../../types/config';
 import { ContractHandler } from './interfaces';
 
 import { handlers } from './loader';
+import Filler from '../filler';
 
-export function getHandlers(configs: IContractConfig[]): ContractHandler[] {
+export function getHandlers(configs: IContractConfig[], filler: Filler): ContractHandler[] {
     const configHandlers = [];
 
     for (const config of configs) {
@@ -15,7 +16,7 @@ export function getHandlers(configs: IContractConfig[]): ContractHandler[] {
             }
 
             // @ts-ignore
-            configHandlers.push(new handler(reader, config.args));
+            configHandlers.push(new handler(filler, config.args));
 
             handlerFound = true;
 

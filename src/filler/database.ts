@@ -8,6 +8,7 @@ import { ShipBlock } from '../types/ship';
 import { eosioTimestampToDate } from '../utils/eosio';
 import { arraysEqual } from '../utils';
 import logger from '../utils/winston';
+import { EosioActionTrace, EosioTransaction } from '../types/eosio';
 
 export type Condition = {
     str: string,
@@ -106,7 +107,7 @@ function compareValues(value1: any, value2: any): boolean {
         return true;
     }
 
-    return JSON.stringify(serializedValue1.data) === JSON.stringify(serializedValue2.data);
+    return serializedValue1.data === serializedValue2.data;
 }
 
 function buildPrimaryCondition(values: {[key: string]: any}, primaryKey: string[], offset: number = 0): Condition {
@@ -161,14 +162,20 @@ export class ContractDB {
         };
     }
 
-    async getReaderPosition(): Promise<number> {
-        const query = await this.connection.database.query('SELECT block_num FROM contract_readers WHERE name = $1', [this.name]);
+    async getReaderPosition(): Promise<{ live: boolean, block_num: number }> {
+        const query = await this.connection.database.query('SELECT live, block_num FROM contract_readers WHERE name = $1', [this.name]);
 
         if (query.rows.length === 0) {
-            return 0;
+            return {
+                live: false,
+                block_num: 0
+            };
         }
 
-        return parseInt(query.rows[0].block_num, 10);
+        return {
+            live: query.rows[0].live,
+            block_num: parseInt(query.rows[0].block_num, 10)
+        };
     }
 
     async getLastReaderBlocks(): Promise<Array<{block_num: number, block_id: string}>> {
@@ -547,19 +554,31 @@ export class ContractDBTransaction {
         }
     }
 
-    async updateReaderPosition(block: ShipBlock, lock: boolean = true): Promise<void> {
+    async updateReaderPosition(block: ShipBlock, live: boolean, lock: boolean = true): Promise<void> {
         await this.acquireLock(lock);
 
         try {
             await this.begin();
 
             await this.clientQuery(
-                'UPDATE contract_readers SET block_num = $1, block_time = $2, updated = $3 WHERE name = $4',
-                [block.block_num, eosioTimestampToDate(block.timestamp).getTime(), Date.now(), this.name]
+                'UPDATE contract_readers SET block_num = $1, block_time = $2, updated = $3, live = $4 WHERE name = $5',
+                [block.block_num, eosioTimestampToDate(block.timestamp).getTime(), Date.now(), live, this.name]
             );
         } finally {
             this.releaseLock(lock);
         }
+    }
+
+    async logTrace(block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace, metadata: any): Promise<void> {
+        await this.insert('contract_action_logs', {
+            global_sequence: trace.global_sequence,
+            account: trace.act.account,
+            name: trace.act.name,
+            metadata: JSON.stringify(metadata),
+            txid: Buffer.from(tx.id, 'hex'),
+            created_at_block: block.block_num,
+            created_at_time: eosioTimestampToDate(block.timestamp).getTime()
+        }, ['global_sequence']);
     }
 
     async commit(): Promise<void> {

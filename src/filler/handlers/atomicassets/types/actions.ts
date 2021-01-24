@@ -10,12 +10,16 @@ export type LogTransferActionData = {
 };
 
 export type LogMintAssetActionData = {
-    minter: string,
-    asset_id: string,
+    asset_id: string;
+    authorized_minter: string,
     collection_name: string,
     schema_name: string,
     template_id: number,
-    new_asset_owner: string
+    new_asset_owner: string,
+    immutable_data: AttributeMap,
+    mutable_data: AttributeMap,
+    backed_tokens: string[],
+    immutable_template_data: AttributeMap
 };
 
 export type LogBurnAssetActionData = {

@@ -21,13 +21,15 @@ function estimateSeconds(blocks: number, speed: number): number {
 }
 
 export default class Filler {
-    private readonly reader: StateReceiver;
+    readonly reader: StateReceiver;
+
+    private materializedViews: Array<{name: string, interval: number, refreshed: number}>;
+    private running: boolean;
+
     private readonly handlers: ContractHandler[];
 
-    private interval: NodeJS.Timeout;
-
-    constructor(private readonly config: IReaderConfig, private readonly connection: ConnectionManager) {
-        this.handlers = getHandlers(config.contracts);
+    constructor(private readonly config: IReaderConfig, readonly connection: ConnectionManager) {
+        this.handlers = getHandlers(config.contracts, this);
         this.reader = new StateReceiver(config, connection, this.handlers);
     }
 
@@ -89,7 +91,11 @@ export default class Filler {
         let lastBlockNum = 0;
         let lastBlockTime = Date.now();
 
-        this.interval = setInterval(async () => {
+        const interval = setInterval(async () => {
+            if (!this.running) {
+                clearInterval(interval);
+            }
+
             if (lastBlockNum === 0) {
                 lastBlockNum = this.reader.currentBlock;
 
@@ -107,7 +113,7 @@ export default class Filler {
 
             if (lastBlockNum === this.reader.currentBlock && lastBlockNum > 0) {
                 const staleTime = Date.now() - lastBlockTime;
-                const threshold = 90000;
+                const threshold = 60000;
 
                 // exit failure when no blocks processed
                 if (staleTime > threshold) {
@@ -141,11 +147,35 @@ export default class Filler {
 
             lastBlockNum = this.reader.currentBlock;
         }, logInterval * 1000);
+
+        this.running = true;
+
+        setTimeout(async () => {
+            while (this.running) {
+                for (const view of this.materializedViews) {
+                    if (view.refreshed + view.interval < Date.now()) {
+                        try {
+                            await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view.name);
+                        } catch (err){
+                            logger.error('Error while refreshing materalized view ' + view.name, err);
+                        } finally {
+                            view.refreshed = Date.now();
+                        }
+                    }
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }, 5000);
     }
 
     async stopFiller(): Promise<void> {
-        clearInterval(this.interval);
+        this.running = false;
 
         await this.reader.stopProcessing();
+    }
+
+    registerMaterializedViewRefresh(name: string, interval: number): void {
+        this.materializedViews.push({name, interval, refreshed: Date.now()});
     }
 }
