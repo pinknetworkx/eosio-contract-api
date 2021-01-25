@@ -123,7 +123,7 @@ export function offerProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 'WHERE offer.contract = asset.contract AND offer.offer_id = asset.offer_id AND ' +
                 'offer.state IN (' + [OfferState.PENDING.valueOf(), OfferState.INVALID.valueOf()].join(',') + ') AND ' +
                 'asset.asset_id = ANY ($2) AND offer.contract = $1',
-                [this.args.atomicassets_account, transferredAssets]
+                [core.args.atomicassets_account, transferredAssets]
             );
 
             if (relatedOffersQuery.rowCount === 0) {
@@ -136,29 +136,40 @@ export function offerProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 'WHERE o_asset.contract = a_asset.contract AND o_asset.asset_id = a_asset.asset_id AND ' +
                 'o_asset.offer_id = ANY ($2) AND ' +
                 '(o_asset.owner != a_asset.owner OR a_asset.owner IS NULL) AND o_asset.contract = $1',
-                [this.args.atomicassets_account, relatedOffersQuery.rows.map(row => row.offer_id)]
+                [core.args.atomicassets_account, relatedOffersQuery.rows.map(row => row.offer_id)]
             );
 
-            const invalidOffers = invalidOffersQuery.rows.map((row) => row.offer_id);
+            const currentInvalidOffers = relatedOffersQuery.rows
+                .filter(row => row.state === OfferState.INVALID.valueOf())
+                .map(row => row.offer_id);
+            const currentValidOffers = relatedOffersQuery.rows
+                .filter(row => row.state === OfferState.PENDING.valueOf())
+                .map(row => row.offer_id);
+
+            const invalidOffers = invalidOffersQuery.rows
+                .map((row) => row.offer_id)
+                .filter(row => currentInvalidOffers.indexOf(row) === -1);
+            const validOffers = relatedOffersQuery.rows
+                .map(row => row.offer_id)
+                .filter(row => invalidOffers.indexOf(row) === -1)
+                .filter(row => currentValidOffers.indexOf(row) === -1);
 
             if (invalidOffers.length > 0) {
                 await db.update('atomicassets_offers', {
                     state: OfferState.INVALID.valueOf()
                 }, {
-                    str: 'contract = $1 AND offer_id IN (' + invalidOffers.join(',') + ') AND state = $2',
-                    values: [this.args.atomicassets_account, OfferState.PENDING.valueOf()]
+                    str: 'contract = $1 AND offer_id = ANY ($2) AND state = $3',
+                    values: [core.args.atomicassets_account, invalidOffers, OfferState.PENDING.valueOf()]
                 }, ['contract', 'offer_id']);
             }
 
-            for (const row of relatedOffersQuery.rows) {
-                if (invalidOffers.indexOf(row.offer_id) === -1 && row.state === OfferState.INVALID.valueOf()) {
-                    await db.update('atomicassets_offers', {
-                        state: OfferState.PENDING.valueOf()
-                    }, {
-                        str: 'contract = $1 AND offer_id = $2',
-                        values: [this.args.atomicassets_account, row.offer_id]
-                    }, ['contract', 'offer_od']);
-                }
+            if (validOffers.length > 0) {
+                await db.update('atomicassets_offers', {
+                    state: OfferState.INVALID.valueOf()
+                }, {
+                    str: 'contract = $1 AND offer_id = ANY ($2) AND state = $3',
+                    values: [core.args.atomicassets_account, validOffers, OfferState.INVALID.valueOf()]
+                }, ['contract', 'offer_id']);
             }
 
             transferredAssets = [];

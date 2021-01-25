@@ -82,6 +82,7 @@ export default class StateReceiver {
     currentBlock = 0;
     headBlock = 0;
     lastIrreversibleBlock = 0;
+    blocksUntilHead = 0;
 
     collectedBlocks = 0;
     lastDatabaseTransaction?: ContractDBTransaction;
@@ -122,6 +123,7 @@ export default class StateReceiver {
 
     async startProcessing(): Promise<void> {
         const position = await this.database.getReaderPosition();
+
         this.processor.setState(position.live ? ProcessingState.HEAD : ProcessingState.CATCHUP);
 
         let startBlock = position.block_num + 1;
@@ -221,6 +223,7 @@ export default class StateReceiver {
         this.currentBlock = resp.this_block.block_num;
         this.headBlock = resp.head.block_num;
         this.lastIrreversibleBlock = resp.last_irreversible.block_num;
+        this.blocksUntilHead = blocksUntilHead;
 
         if (this.collectedBlocks >= commitSize) {
             try {
@@ -252,6 +255,10 @@ export default class StateReceiver {
 
     private async handleTrace(block: ShipBlock, actionTrace: ShipActionTrace, tx: EosioTransaction): Promise<void> {
         if (actionTrace[0] === 'action_trace_v0') {
+            if (actionTrace[1].receiver !== actionTrace[1].act.account) {
+                return;
+            }
+
             const trace: EosioActionTrace = {
                 action_ordinal: actionTrace[1].action_ordinal,
                 creator_action_ordinal: actionTrace[1].creator_action_ordinal,
@@ -266,6 +273,10 @@ export default class StateReceiver {
             };
 
             const processingInfo = this.processor.traceNeeded(trace.act.account, trace.act.name);
+
+            if (!processingInfo.process) {
+                return;
+            }
 
             if (processingInfo.deserialize) {
                 const types = await this.fetchContractAbiTypes(actionTrace[1].act.account, block.block_num);
@@ -314,6 +325,10 @@ export default class StateReceiver {
             };
 
             const processingInfo = this.processor.deltaNeeded(delta.code, delta.table);
+
+            if (!processingInfo.process) {
+                return;
+            }
 
             if (processingInfo.deserialize) {
                 const types = await this.fetchContractAbiTypes(contractRow[1].code, block.block_num);

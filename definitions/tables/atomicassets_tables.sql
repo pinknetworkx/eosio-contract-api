@@ -8,7 +8,7 @@ CREATE TABLE atomicassets_assets (
     owner character varying(12),
     mutable_data jsonb,
     immutable_data jsonb,
-    burned_by_account character varying(12) NOT NULL,
+    burned_by_account character varying(12),
     burned_at_block bigint,
     burned_at_time bigint,
     transferred_at_block bigint NOT NULL,
@@ -205,8 +205,8 @@ CREATE INDEX atomicassets_assets_burned_at_block ON atomicassets_assets USING bt
 CREATE INDEX atomicassets_assets_burned_at_time ON atomicassets_assets USING btree (burned_at_time);
 CREATE INDEX atomicassets_assets_updated_at_block ON atomicassets_assets USING btree (updated_at_block);
 CREATE INDEX atomicassets_assets_updated_at_time ON atomicassets_assets USING btree (updated_at_time);
-CREATE INDEX atomicassets_assets_updated_at_block ON atomicassets_assets USING btree (transferred_at_block);
-CREATE INDEX atomicassets_assets_updated_at_time ON atomicassets_assets USING btree (transferred_at_time);
+CREATE INDEX atomicassets_assets_transferred_at_block ON atomicassets_assets USING btree (transferred_at_block);
+CREATE INDEX atomicassets_assets_transferred_at_time ON atomicassets_assets USING btree (transferred_at_time);
 CREATE INDEX atomicassets_assets_minted_at_block ON atomicassets_assets USING btree (minted_at_block);
 CREATE INDEX atomicassets_assets_minted_at_time ON atomicassets_assets USING btree (minted_at_time);
 

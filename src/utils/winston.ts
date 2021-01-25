@@ -18,13 +18,17 @@ const options = {
 const logger = createLogger(options);
 
 if (process.env.NODE_ENV === 'production') {
-    logger.add(new transports.Console());
+    logger.add(new transports.Console({
+        level: 'info'
+    }));
 } else {
     logger.add(new transports.Console({
-        level: 'debug'
+        level: defaultLevel
     }));
 }
 
 logger.add(new transports.File({ filename: './logs/error.log', level: 'error' }));
+
+logger.debug('Logger initialized with level ' + defaultLevel);
 
 export default logger;

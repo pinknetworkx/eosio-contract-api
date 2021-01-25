@@ -31,8 +31,8 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 mutable_data: JSON.stringify(convertAttributeMapToObject(trace.act.data.mutable_data)),
                 immutable_data: JSON.stringify(convertAttributeMapToObject(trace.act.data.immutable_data)),
                 burned_by_account: null,
-                burned_at_block: 0,
-                burned_at_time: 0,
+                burned_at_block: null,
+                burned_at_time: null,
                 transferred_at_block: block.block_num,
                 transferred_at_time: eosioTimestampToDate(block.timestamp).getTime(),
                 updated_at_block: block.block_num,
@@ -144,8 +144,8 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 updated_at_block: block.block_num,
                 updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
             }, {
-                str: 'contract = $1 AND asset_id IN ($2)',
-                values: [contract, trace.act.data.asset_ids]
+                str: 'contract = $1 AND asset_id = ANY ($2) AND owner = $3',
+                values: [contract, trace.act.data.asset_ids, trace.act.data.from]
             }, ['contract', 'asset_id']);
 
             if (core.args.store_transfers) {
@@ -160,15 +160,16 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                     created_at_time: eosioTimestampToDate(block.timestamp).getTime()
                 }, ['contract', 'transfer_id']);
 
-                await db.insert('atomicassets_transfers_assets', trace.act.data.asset_ids.map((assetID) => ({
+                await db.insert('atomicassets_transfers_assets', trace.act.data.asset_ids.map((assetID, index) => ({
                     transfer_id: trace.global_sequence,
                     contract: contract,
+                    index: index + 1,
                     asset_id: assetID
                 })), ['contract', 'transfer_id', 'asset_id']);
             }
 
             notifier.sendTrace('transfer', block, tx, trace);
-        }, AtomicAssetsUpdatePriority.ACTION_TRANSFER_ASSET
+        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_OFFER
     ));
 
     return (): any => destructors.map(fn => fn());

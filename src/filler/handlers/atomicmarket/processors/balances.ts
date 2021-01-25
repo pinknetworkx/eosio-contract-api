@@ -30,7 +30,7 @@ export function balanceProcessor(core: AtomicMarketHandler, processor: DataProce
                         updated_at_block: block.block_num,
                         updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
                     };
-                }), ['contract', 'owner']);
+                }), ['market_contract', 'owner']);
             }
         }, AtomicMarketUpdatePriority.TABLE_BALANCES
     ));

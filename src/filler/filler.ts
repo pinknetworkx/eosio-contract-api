@@ -23,7 +23,7 @@ function estimateSeconds(blocks: number, speed: number): number {
 export default class Filler {
     readonly reader: StateReceiver;
 
-    private materializedViews: Array<{name: string, interval: number, refreshed: number}>;
+    private readonly materializedViews: Array<{name: string, interval: number, refreshed: number}>;
     private running: boolean;
 
     private readonly handlers: ContractHandler[];
@@ -31,6 +31,14 @@ export default class Filler {
     constructor(private readonly config: IReaderConfig, readonly connection: ConnectionManager) {
         this.handlers = getHandlers(config.contracts, this);
         this.reader = new StateReceiver(config, connection, this.handlers);
+
+        this.materializedViews = [];
+        this.running = false;
+
+        logger.info(this.handlers.length + ' contract handlers registered');
+        for (const handler of this.handlers) {
+            logger.info('Contract handler ' + handler.getName() + ' registered', handler.args);
+        }
     }
 
     async deleteDB(): Promise<void> {
@@ -78,8 +86,8 @@ export default class Filler {
             logger.info('First run of reader. Initializing tables...');
 
             await this.connection.database.query(
-                'INSERT INTO contract_readers(name, block_num, block_time, updated) VALUES ($1, $2, $3, $4)',
-                [this.config.name, 0, 0, Date.now()]
+                'INSERT INTO contract_readers(name, block_num, block_time, live, updated) VALUES ($1, $2, $3, $4, $5)',
+                [this.config.name, 0, 0, false, Date.now()]
             );
         }
 
@@ -88,6 +96,7 @@ export default class Filler {
         await this.reader.startProcessing();
 
         const lastBlockSpeeds: number[] = [];
+        let blockRange = 0;
         let lastBlockNum = 0;
         let lastBlockTime = Date.now();
 
@@ -97,7 +106,12 @@ export default class Filler {
             }
 
             if (lastBlockNum === 0) {
-                lastBlockNum = this.reader.currentBlock;
+                if (this.reader.currentBlock) {
+                    blockRange = this.reader.blocksUntilHead;
+                    lastBlockNum = this.reader.currentBlock;
+                } else {
+                    logger.warn('Not receiving any blocks');
+                }
 
                 return;
             }
@@ -109,13 +123,10 @@ export default class Filler {
                 lastBlockSpeeds.shift();
             }
 
-            const averageSpeed = lastBlockSpeeds.reduce((prev, curr) => prev + curr, 0) / lastBlockSpeeds.length;
-
             if (lastBlockNum === this.reader.currentBlock && lastBlockNum > 0) {
                 const staleTime = Date.now() - lastBlockTime;
                 const threshold = 60000;
 
-                // exit failure when no blocks processed
                 if (staleTime > threshold) {
                     process.send({msg: 'failure'});
 
@@ -125,15 +136,18 @@ export default class Filler {
                 }
 
                 logger.warn('Reader ' + this.config.name + ' - No blocks processed - Stopping in ' + Math.round((threshold - staleTime) / 1000) + ' seconds');
-            } else if (this.reader.currentBlock < this.reader.lastIrreversibleBlock) {
+            } else if (this.reader.blocksUntilHead > 120) {
                 lastBlockTime = Date.now();
+
+                const averageSpeed = lastBlockSpeeds.reduce((prev, curr) => prev + curr, 0) / lastBlockSpeeds.length;
+                const currentBlock = Math.max(blockRange - this.reader.blocksUntilHead, 0);
 
                 logger.info(
                     'Reader ' + this.config.name + ' - ' +
-                    'Progress: ' + this.reader.currentBlock + ' / ' + this.reader.headBlock + ' ' +
-                    '(' + (100 * this.reader.currentBlock / this.reader.headBlock).toFixed(2) + '%) ' +
+                    'Progress: ' + currentBlock + ' / ' + blockRange + ' ' +
+                    '(' + (100 * currentBlock / blockRange).toFixed(2) + '%) ' +
                     'Speed: ' + speed.toFixed(1) + ' B/s ' +
-                    '(Syncs ' + formatSecondsLeft(estimateSeconds(this.reader.headBlock - this.reader.currentBlock, averageSpeed)) + ')'
+                    '(Syncs ' + formatSecondsLeft(estimateSeconds(this.reader.blocksUntilHead, averageSpeed)) + ')'
                 );
             } else {
                 lastBlockTime = Date.now();

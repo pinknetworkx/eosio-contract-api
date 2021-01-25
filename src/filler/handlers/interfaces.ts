@@ -22,6 +22,10 @@ export abstract class ContractHandler {
         this.connection = filler.connection;
     }
 
+    getName(): string {
+        return ContractHandler.handlerName;
+    }
+
     abstract init(transaction: PoolClient): Promise<void>;
     abstract deleteDB(transaction: PoolClient): Promise<void>;
 

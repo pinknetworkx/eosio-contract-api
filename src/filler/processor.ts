@@ -1,7 +1,6 @@
 import { ContractDBTransaction } from './database';
 import { ShipBlock } from '../types/ship';
 import { EosioActionTrace, EosioTableRow, EosioTransaction } from '../types/eosio';
-import { getStackTrace } from '../utils';
 import logger from '../utils/winston';
 
 export type TraceListener = (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<any>) => Promise<any>;
@@ -16,7 +15,7 @@ export type ListenerOptions = {
 }
 
 export enum ProcessingState {
-    HEAD = 1,
+    HEAD = 0,
     CATCHUP = 1,
 }
 
@@ -24,11 +23,11 @@ function matchFilter(val1: string, val2: string, filter1: string, filter2: strin
     let match1 = filter1 === '*';
     let match2 = filter2 === '*';
 
-    if (!filter1 && val1 === filter1) {
+    if (!match1 && val1 === filter1) {
         match1 = true;
     }
 
-    if (!filter2 && val2 === filter2) {
+    if (!match2 && val2 === filter2) {
         match2 = true;
     }
 
@@ -50,6 +49,9 @@ export default class DataProcessor {
         this.deltaListeners = [];
         this.commitListeners = [];
 
+        this.priorityListeners = [];
+        this.committedListeners = [];
+
         this.state = initialState;
         this.queue = [];
     }
@@ -65,8 +67,10 @@ export default class DataProcessor {
     onTrace(contract: string, action: string, listener: TraceListener, priority = 100, options: ListenerOptions = {}): () => void {
         const element = {
             contract, action, callback: listener, priority,
-            options: Object.assign({deserialize: true, headOnly: false}, options)
+            options: {deserialize: true, headOnly: false, ...options}
         };
+
+        logger.debug('Trace listener registered', {contract, action, priority, options: element.options});
 
         this.traceListeners.push(element);
 
@@ -82,8 +86,10 @@ export default class DataProcessor {
     onDelta(contract: string, table: string, listener: DeltaListener, priority = 100, options: ListenerOptions = {}): () => void {
         const element = {
             contract, table, callback: listener, priority,
-            options: Object.assign({deserialize: true, headOnly: false}, options)
+            options: {deserialize: true, headOnly: false, ...options}
         };
+
+        logger.debug('Delta listener registered', {contract, table, priority, options: element.options});
 
         this.deltaListeners.push(element);
 
@@ -97,6 +103,8 @@ export default class DataProcessor {
     }
 
     onPriorityComplete(threshold: number, listener: PriorityListener, priority = 100): () => void {
+        logger.debug('Priority listener registered', {threshold, priority});
+
         const element = {callback: listener, threshold, priority};
 
         this.priorityListeners.push(element);
@@ -115,6 +123,8 @@ export default class DataProcessor {
     }
 
     onCommit(listener: CommitListener, priority = 100): () => void {
+        logger.debug('Commit listener registered', {priority});
+
         const element = {callback: listener, priority};
 
         this.commitListeners.push(element);
@@ -133,6 +143,8 @@ export default class DataProcessor {
     }
 
     onCommitted(listener: CommittedListener, priority = 100): () => void {
+        logger.debug('Committed listener registered', {priority});
+
         const element = {callback: listener, priority};
 
         this.committedListeners.push(element);
@@ -178,9 +190,13 @@ export default class DataProcessor {
                 continue;
             }
 
+            if (listener.options.headOnly && this.state !== ProcessingState.HEAD) {
+                continue;
+            }
+
             this.queue.push({
                 callback: async (db: ContractDBTransaction) => await listener.callback(db, block, tx, trace),
-                priority: listener.priority, index: this.queue.length + 1, trace: getStackTrace()
+                priority: listener.priority, index: this.queue.length + 1, trace: {block, tx, trace}
             });
         }
     }
@@ -191,9 +207,13 @@ export default class DataProcessor {
                 continue;
             }
 
+            if (listener.options.headOnly && this.state !== ProcessingState.HEAD) {
+                continue;
+            }
+
             this.queue.push({
                 callback: async (db: ContractDBTransaction) => await listener.callback(db, block, delta),
-                priority: listener.priority, index: this.queue.length + 1, trace: getStackTrace()
+                priority: listener.priority, index: this.queue.length + 1, trace: {block, delta}
             });
         }
     }
@@ -223,7 +243,7 @@ export default class DataProcessor {
             try {
                 await job.callback(db);
             } catch (e) {
-                logger.error('Error while processing queue', job.trace);
+                logger.error('Error while processing data', job.trace);
 
                 throw e;
             }
