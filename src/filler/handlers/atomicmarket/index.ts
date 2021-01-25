@@ -231,9 +231,12 @@ export default class AtomicMarketHandler extends ContractHandler {
         destructors.push(bonusfeeProcessor(this, processor));
         destructors.push(buyofferProcessor(this, processor, notifier));
         destructors.push(configProcessor(this, processor));
-        destructors.push(logProcessor(this, processor));
         destructors.push(marketplaceProcessor(this, processor));
         destructors.push(saleProcessor(this, processor, notifier));
+
+        if (this.args.store_logs) {
+            destructors.push(logProcessor(this, processor));
+        }
 
         return (): any => destructors.map(fn => fn());
     }

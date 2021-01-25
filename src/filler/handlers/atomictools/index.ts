@@ -15,7 +15,8 @@ export const ATOMICTOOLS_BASE_PRIORITY = ATOMICASSETS_BASE_PRIORITY + 1000;
 
 export type AtomicToolsArgs = {
     atomictools_account: string,
-    atomicassets_account: string
+    atomicassets_account: string,
+    store_logs: boolean
 };
 
 export enum AtomicToolsUpdatePriority {
@@ -44,6 +45,10 @@ export default class AtomicToolsHandler extends ContractHandler {
 
         if (typeof this.args.atomictools_account !== 'string') {
             throw new Error('AtomicTools: Argument missing in handler: atomictools_account');
+        }
+
+        if (typeof this.args.store_logs !== 'boolean') {
+            throw new Error('AtomicTools: Argument missing in handler: store_logs');
         }
     }
 
@@ -126,7 +131,10 @@ export default class AtomicToolsHandler extends ContractHandler {
 
         destructors.push(configProcessor(this, processor));
         destructors.push(linkProcessor(this, processor));
-        destructors.push(logProcessor(this, processor));
+
+        if (this.args.store_logs) {
+            destructors.push(logProcessor(this, processor));
+        }
 
         return (): any => destructors.map(fn => fn());
     }

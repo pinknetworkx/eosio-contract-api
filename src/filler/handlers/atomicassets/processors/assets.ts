@@ -148,22 +148,24 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 values: [contract, trace.act.data.asset_ids]
             }, ['contract', 'asset_id']);
 
-            await db.insert('atomicassets_transfers', {
-                contract: contract,
-                transfer_id: trace.global_sequence,
-                sender: trace.act.data.from,
-                recipient: trace.act.data.to,
-                memo: String(trace.act.data.memo).substr(0, 256),
-                txid: Buffer.from(tx.id, 'hex'),
-                created_at_block: block.block_num,
-                created_at_time: eosioTimestampToDate(block.timestamp).getTime()
-            }, ['contract', 'transfer_id']);
+            if (core.args.store_transfers) {
+                await db.insert('atomicassets_transfers', {
+                    contract: contract,
+                    transfer_id: trace.global_sequence,
+                    sender: trace.act.data.from,
+                    recipient: trace.act.data.to,
+                    memo: String(trace.act.data.memo).substr(0, 256),
+                    txid: Buffer.from(tx.id, 'hex'),
+                    created_at_block: block.block_num,
+                    created_at_time: eosioTimestampToDate(block.timestamp).getTime()
+                }, ['contract', 'transfer_id']);
 
-            await db.insert('atomicassets_transfers_assets', trace.act.data.asset_ids.map((assetID) => ({
-                transfer_id: trace.global_sequence,
-                contract: contract,
-                asset_id: assetID
-            })), ['contract', 'transfer_id', 'asset_id']);
+                await db.insert('atomicassets_transfers_assets', trace.act.data.asset_ids.map((assetID) => ({
+                    transfer_id: trace.global_sequence,
+                    contract: contract,
+                    asset_id: assetID
+                })), ['contract', 'transfer_id', 'asset_id']);
+            }
 
             notifier.sendTrace('transfer', block, tx, trace);
         }, AtomicAssetsUpdatePriority.ACTION_TRANSFER_ASSET

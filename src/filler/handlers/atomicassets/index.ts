@@ -45,8 +45,7 @@ export enum AtomicAssetsUpdatePriority {
 export type AtomicAssetsReaderArgs = {
     atomicassets_account: string,
     store_transfers: boolean,
-    store_logs: boolean,
-    collection_blacklist: string[]
+    store_logs: boolean
 };
 
 export default class AtomicAssetsHandler extends ContractHandler {
@@ -62,10 +61,6 @@ export default class AtomicAssetsHandler extends ContractHandler {
 
         if (typeof args.atomicassets_account !== 'string') {
             throw new Error('AtomicAssets: Argument missing in atomicassets handler: atomicassets_account');
-        }
-
-        if (!Array.isArray(this.args.collection_blacklist)) {
-            this.args.collection_blacklist = [];
         }
 
         if (!this.args.store_logs) {
@@ -206,10 +201,13 @@ export default class AtomicAssetsHandler extends ContractHandler {
         destructors.push(balanceProcessor(this, processor));
         destructors.push(collectionProcessor(this, processor));
         destructors.push(configProcessor(this, processor));
-        destructors.push(logProcessor(this, processor));
         destructors.push(offerProcessor(this, processor, notifier));
         destructors.push(schemaProcessor(this, processor));
         destructors.push(templateProcessor(this, processor));
+
+        if (this.args.store_logs) {
+            destructors.push(logProcessor(this, processor));
+        }
 
         return (): any => destructors.map(fn => fn());
     }
