@@ -44,7 +44,6 @@ CREATE INDEX atomictools_links_state ON atomictools_links USING hash (state);
 CREATE INDEX atomictools_links_creator ON atomictools_links USING hash (creator);
 CREATE INDEX atomictools_links_key_type ON atomictools_links USING hash (key_type);
 CREATE INDEX atomictools_links_key_data ON atomictools_links USING hash (key_data);
-CREATE INDEX atomictools_links_txid ON atomictools_links USING hash (txid);
 CREATE INDEX atomictools_links_created_at_block ON atomictools_links USING btree (created_at_block);
 CREATE INDEX atomictools_links_created_at_time ON atomictools_links USING btree (created_at_time);
 CREATE INDEX atomictools_links_updated_at_block ON atomictools_links USING btree (updated_at_block);
@@ -52,4 +51,4 @@ CREATE INDEX atomictools_links_updated_at_time ON atomictools_links USING btree 
 
 CREATE INDEX atomictools_links_assets_tools_contract ON atomictools_links_assets USING btree (tools_contract);
 CREATE INDEX atomictools_links_assets_assets_contract ON atomictools_links_assets USING btree (assets_contract);
-CREATE INDEX atomictools_links_assets_index ON atomictools_links_assets USING btree (index);
+CREATE INDEX atomictools_links_assets_index ON atomictools_links_assets USING btree ("index");

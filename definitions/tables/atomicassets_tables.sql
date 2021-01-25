@@ -33,6 +33,7 @@ CREATE TABLE atomicassets_assets_backed_tokens (
 CREATE TABLE atomicassets_mints (
     contract character varying(12) NOT NULL,
     asset_id bigint NOT NULL,
+    minter character varying(12) NOT NULL,
     receiver character varying(12) NOT NULL,
     txid bytea NOT NULL,
     created_at_block bigint NOT NULL,
@@ -220,6 +221,7 @@ CREATE INDEX atomicassets_assets_backed_tokens_updated_at_block ON atomicassets_
 
 CREATE INDEX atomicassets_mints_contract ON atomicassets_mints USING btree (contract);
 CREATE INDEX atomicassets_mints_asset_id ON atomicassets_mints USING btree (asset_id);
+CREATE INDEX atomicassets_mints_minter ON atomicassets_mints USING btree (minter);
 CREATE INDEX atomicassets_mints_receiver ON atomicassets_mints USING btree (receiver);
 CREATE INDEX atomicassets_mints_created_at_block ON atomicassets_mints USING btree (created_at_block);
 CREATE INDEX atomicassets_mints_created_at_time ON atomicassets_mints USING btree (created_at_time);

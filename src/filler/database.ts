@@ -337,11 +337,19 @@ export class ContractDBTransaction {
 
             let queryStr = 'UPDATE ' + this.client.escapeIdentifier(table) + ' SET ';
             queryStr += queryUpdates.join(', ') + ' ';
-            queryStr += 'WHERE ' + changeQueryVarOffset(condition.str, condition.values.length, varCounter) + ';';
+            queryStr += 'WHERE ' + changeQueryVarOffset(condition.str, condition.values.length, varCounter) + ' ';
+
+            if (primaryKey.length > 0) {
+                queryStr += 'RETURNING ' + primaryKey.map(key => this.client.escapeIdentifier(key)).join(', ') + ' ';
+            }
 
             queryValues = queryValues.concat(condition.values);
 
             const query = await this.clientQuery(queryStr, queryValues);
+
+            if (query.rowCount === 0) {
+                throw new Error('Table ' + table + ' updated but no rows affacted ' + JSON.stringify(values) + ' ' + JSON.stringify(condition));
+            }
 
             if (selectQuery && selectQuery.rows.length > 0) {
                 for (const row of selectQuery.rows) {
