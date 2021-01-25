@@ -89,7 +89,7 @@ CREATE TABLE atomicassets_offers_assets (
     contract character varying(12) NOT NULL,
     offer_id bigint NOT NULL,
     owner character varying(12) NOT NULL,
-    "position" integer NOT NULL,
+    "index" integer NOT NULL,
     asset_id bigint NOT NULL,
     CONSTRAINT atomicassets_offers_assets_pkey PRIMARY KEY (contract, offer_id, asset_id)
 );
@@ -142,7 +142,7 @@ CREATE TABLE atomicassets_transfers (
 CREATE TABLE atomicassets_transfers_assets (
     transfer_id bigint NOT NULL,
     contract character varying(12) NOT NULL,
-    "position" integer NOT NULL,
+    "index" integer NOT NULL,
     asset_id bigint NOT NULL,
     CONSTRAINT atomicassets_transfers_assets_pkey PRIMARY KEY (transfer_id, contract, asset_id)
 );
@@ -248,7 +248,7 @@ CREATE INDEX atomicassets_offers_created_at_time ON atomicassets_offers USING bt
 
 CREATE INDEX atomicassets_offers_assets_contract ON atomicassets_offers_assets USING btree (contract);
 CREATE INDEX atomicassets_offers_assets_offer_id ON atomicassets_offers_assets USING btree (offer_id);
-CREATE INDEX atomicassets_offers_assets_position ON atomicassets_offers_assets USING btree ("position");
+CREATE INDEX atomicassets_offers_assets_index ON atomicassets_offers_assets USING btree ("index");
 CREATE INDEX atomicassets_offers_assets_owner ON atomicassets_offers_assets USING btree (owner);
 
 CREATE INDEX atomicassets_templates_contract ON atomicassets_templates USING btree (contract);
@@ -273,4 +273,4 @@ CREATE INDEX atomicassets_transfers_created_at_time ON atomicassets_transfers US
 
 CREATE INDEX atomicassets_transfers_assets_contract ON atomicassets_transfers_assets USING btree (contract);
 CREATE INDEX atomicassets_transfers_assets_transfer_id ON atomicassets_transfers_assets USING btree (transfer_id);
-CREATE INDEX atomicassets_transfers_assets_position ON atomicassets_transfers_assets USING btree ("position");
+CREATE INDEX atomicassets_transfers_assets_index ON atomicassets_transfers_assets USING btree ("index");

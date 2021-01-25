@@ -114,8 +114,6 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 values: [contract, trace.act.data.asset_id]
             }, ['contract', 'asset_id']);
 
-            core.queueOfferStateCheck([], [trace.act.data.asset_id]);
-
             notifier.sendTrace('asset', block, tx, trace);
         }, AtomicAssetsUpdatePriority.ACTION_UPDATE_ASSET
     ));
@@ -166,8 +164,6 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 contract: contract,
                 asset_id: assetID
             })), ['contract', 'transfer_id', 'asset_id']);
-
-            core.queueOfferStateCheck([], trace.act.data.asset_ids);
 
             notifier.sendTrace('transfer', block, tx, trace);
         }, AtomicAssetsUpdatePriority.ACTION_TRANSFER_ASSET

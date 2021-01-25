@@ -19,7 +19,6 @@ CREATE TABLE atomicmarket_auctions
     updated_at_time bigint NOT NULL,
     created_at_block bigint NOT NULL,
     created_at_time bigint NOT NULL,
-    created_at_txid bytea,
     CONSTRAINT atomicmarket_auctions_pkey PRIMARY KEY (market_contract, auction_id)
 );
 
@@ -41,6 +40,7 @@ CREATE TABLE atomicmarket_auctions_assets
     market_contract character varying(12) NOT NULL,
     auction_id bigint NOT NULL,
     assets_contract character varying(12) NOT NULL,
+    "index" integer NOT NULL,
     asset_id bigint NOT NULL,
     CONSTRAINT atomicmarket_auctions_assets_pkey PRIMARY KEY (market_contract, auction_id, assets_contract, asset_id)
 );
@@ -97,6 +97,24 @@ CREATE TABLE atomicmarket_marketplaces
     CONSTRAINT atomicmarket_marketplaces_pkey PRIMARY KEY (market_contract, marketplace_name)
 );
 
+CREATE TABLE atomicmarket_bonusfees
+(
+    market_contract character varying(12) NOT NULL,
+    bonusfee_id character varying(12) NOT NULL,
+    name character varying(12) NOT NULL,
+    recipient character varying(12) NOT NULL,
+    fee character varying(12) NOT NULL,
+    start_sale_id integer NOT NULL,
+    end_sale_id integer,
+    start_auction_id integer,
+    end_auction_id integer,
+    start_buyoffer_id integer,
+    end_buyoffer_id integer,
+    created_at_block bigint NOT NULL,
+    created_at_time bigint NOT NULL,
+    CONSTRAINT atomicmarket_bonusfees_pkey PRIMARY KEY (market_contract, bonusfee_id)
+);
+
 CREATE TABLE atomicmarket_sales
 (
     market_contract character varying(12) NOT NULL,
@@ -118,9 +136,41 @@ CREATE TABLE atomicmarket_sales
     updated_at_time bigint NOT NULL,
     created_at_block bigint NOT NULL,
     created_at_time bigint NOT NULL,
-    created_at_txid bytea,
     CONSTRAINT atomicmarket_sales_pkey PRIMARY KEY (market_contract, sale_id),
     CONSTRAINT atomicmarket_sales_offer_id_key UNIQUE (market_contract, assets_contract, offer_id)
+);
+
+CREATE TABLE atomicmarket_buyoffers
+(
+    market_contract character varying(12) NOT NULL,
+    buyoffer_id bigint NOT NULL,
+    buyer character varying(12) NOT NULL,
+    recipient character varying(12),
+    price bigint,
+    token_symbol character varying(12),
+    assets_contract character varying(12) NOT NULL,
+    maker_marketplace character varying(12) NOT NULL,
+    taker_marketplace character varying(12),
+    collection_name character varying(12),
+    collection_fee double precision NOT NULL,
+    state smallint NOT NULL,
+    memo character varying(256) NOT NULL,
+    decline_memo character varying(256),
+    updated_at_block bigint NOT NULL,
+    updated_at_time bigint NOT NULL,
+    created_at_block bigint NOT NULL,
+    created_at_time bigint NOT NULL,
+    CONSTRAINT atomicmarket_buyoffers_pkey PRIMARY KEY (market_contract, buyoffer_id)
+);
+
+CREATE TABLE atomicmarket_buyoffers_assets
+(
+    market_contract character varying(12) NOT NULL,
+    buyoffer_id bigint NOT NULL,
+    assets_contract character varying(12) NOT NULL,
+    "index" integer NOT NULL,
+    asset_id bigint NOT NULL,
+    CONSTRAINT atomicmarket_buyoffers_assets_pkey PRIMARY KEY (market_contract, buyoffer_id, assets_contract, asset_id)
 );
 
 -- Foreign Keys
@@ -198,6 +248,7 @@ CREATE INDEX atomicmarket_auctions_bids_created_at_block ON atomicmarket_auction
 
 CREATE INDEX atomicmarket_auctions_assets_market_contract ON atomicmarket_auctions_assets USING btree (market_contract);
 CREATE INDEX atomicmarket_auctions_assets_assets_contract ON atomicmarket_auctions_assets USING btree (assets_contract);
+CREATE INDEX atomicmarket_auctions_assets_index ON atomicmarket_auctions_assets USING btree ("index");
 
 CREATE INDEX atomicmarket_balances_market_contract ON atomicmarket_balances USING btree (market_contract);
 CREATE INDEX atomicmarket_balances_owner ON atomicmarket_balances USING btree (owner);

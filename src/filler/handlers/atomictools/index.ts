@@ -2,26 +2,27 @@ import * as fs from 'fs';
 import { PoolClient } from 'pg';
 
 import { ContractHandler } from '../interfaces';
-import { ShipBlock } from '../../../types/ship';
-import { EosioActionTrace, EosioTableRow, EosioTransaction } from '../../../types/eosio';
-import { ContractDBTransaction } from '../../database';
 import logger from '../../../utils/winston';
-import StateReceiver from '../../receiver';
 import { ConfigTableRow } from './types/tables';
-import { getStackTrace } from '../../../utils';
-import AtomicToolsTableHandler from './tables';
-import AtomicToolsActionHandler from './actions';
+import Filler from '../../filler';
+import DataProcessor from '../../processor';
+import { configProcessor } from './processors/config';
+import { linkProcessor } from './processors/links';
+import { ATOMICASSETS_BASE_PRIORITY } from '../atomicassets';
+import { logProcessor } from './processors/logs';
+
+export const ATOMICTOOLS_BASE_PRIORITY = ATOMICASSETS_BASE_PRIORITY + 1000;
 
 export type AtomicToolsArgs = {
     atomictools_account: string,
     atomicassets_account: string
 };
 
-export enum JobPriority {
-    TABLE_CONFIG = 90,
-    ACTION_CREATE_LINK = 80,
-    TABLE_LINKS = 70,
-    ACTION_UPDATE_LINK = 50
+export enum AtomicToolsUpdatePriority {
+    TABLE_CONFIG = ATOMICTOOLS_BASE_PRIORITY + 10,
+    ACTION_CREATE_LINK = ATOMICTOOLS_BASE_PRIORITY + 20,
+    ACTION_UPDATE_LINK = ATOMICTOOLS_BASE_PRIORITY + 30,
+    LOGS = ATOMICASSETS_BASE_PRIORITY
 }
 
 export enum LinkState {
@@ -38,40 +39,12 @@ export default class AtomicToolsHandler extends ContractHandler {
 
     config: ConfigTableRow;
 
-    jobs: Array<{
-        priority: number,
-        index: number,
-        trace: any,
-        fn: () => any
-    }> = [];
-
-    tableHandler: AtomicToolsTableHandler;
-    actionHandler: AtomicToolsActionHandler;
-
-    constructor(reader: StateReceiver, args: {[key: string]: any}, minBlock: number = 0) {
-        super(reader, args, minBlock);
+    constructor(filler: Filler, args: {[key: string]: any}) {
+        super(filler, args);
 
         if (typeof this.args.atomictools_account !== 'string') {
             throw new Error('AtomicTools: Argument missing in handler: atomictools_account');
         }
-
-        this.scope = {
-            actions: [
-                {
-                    filter: this.args.atomictools_account + ':*',
-                    deserialize: true
-                }
-            ],
-            tables: [
-                {
-                    filter: this.args.atomictools_account + ':*',
-                    deserialize: true
-                }
-            ]
-        };
-
-        this.tableHandler = new AtomicToolsTableHandler(this);
-        this.actionHandler = new AtomicToolsActionHandler(this);
     }
 
     async init(client: PoolClient): Promise<void> {
@@ -148,48 +121,13 @@ export default class AtomicToolsHandler extends ContractHandler {
         }
     }
 
-    async onTableChange(db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow): Promise<void> {
-        await this.tableHandler.handleUpdate(db, block, delta);
-    }
+    async register(processor: DataProcessor): Promise<() => any> {
+        const destructors: Array<() => any> = [];
 
-    async onAction(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
-        await this.actionHandler.handleTrace(db, block, trace, tx);
-    }
+        destructors.push(configProcessor(this, processor));
+        destructors.push(linkProcessor(this, processor));
+        destructors.push(logProcessor(this, processor));
 
-    async onBlockStart(): Promise<void> {
-        this.jobs = [];
-    }
-
-    async onBlockComplete(): Promise<void> {
-        this.jobs.sort((a, b) => {
-            if (a.priority === b.priority) {
-                return a.index - b.index;
-            }
-
-            return b.priority - a.priority;
-        });
-
-        for (const job of this.jobs) {
-            try {
-                await job.fn();
-            } catch (e) {
-                logger.error('Error while processing update job', job.trace);
-
-                throw e;
-            }
-        }
-
-        this.jobs = [];
-    }
-
-    async onCommit(): Promise<void> { }
-
-    addUpdateJob(fn: () => any, priority: JobPriority): void {
-        this.jobs.push({
-            priority: priority.valueOf(),
-            index: this.jobs.length,
-            trace: getStackTrace(),
-            fn: fn
-        });
+        return (): any => destructors.map(fn => fn());
     }
 }

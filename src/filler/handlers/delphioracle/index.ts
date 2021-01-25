@@ -10,6 +10,8 @@ import { eosioTimestampToDate } from '../../../utils/eosio';
 import Filler from '../../filler';
 import DataProcessor from '../../processor';
 
+export const DELPHIORACLE_BASE_PRIORITY = 0;
+
 export type DelphiOracleArgs = {
     delphioracle_account: string
 };
@@ -145,13 +147,13 @@ export default class DelphiOracleHandler extends ContractHandler {
                     lastUpdated[delta.scope] = block.block_num;
                 }
 
-            }, 100, {headOnly: true})
+            }, DELPHIORACLE_BASE_PRIORITY + 20, {headOnly: true})
         );
 
         destructors.push(
             processor.onDelta(this.args.delphioracle_account, 'pairs', async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<PairsTableRow>) => {
                 await this.savePair(db, block, delta.value);
-            }, 100, {headOnly: true})
+            }, DELPHIORACLE_BASE_PRIORITY + 10, {headOnly: true})
         );
 
 

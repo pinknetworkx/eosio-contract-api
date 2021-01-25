@@ -59,3 +59,23 @@ export type BalancesTableRow = {
     owner: string,
     quantities: string[]
 };
+
+export type BonusfeesTableRow = {
+    bonusfee_id: string,
+    fee_name: string,
+    fee_recipient: string,
+    fee: number,
+    counter_ranges: Array<{counter_name: string, start_id: string, end_id: string}>
+}
+
+export type BuyoffersTableRow = {
+    buyoffer_id: string,
+    buyer: string,
+    recipient: string,
+    price: string,
+    asset_ids: string[],
+    memo: string,
+    maker_marketplace: string,
+    collection_name: string,
+    collection_fee: number
+}

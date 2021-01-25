@@ -196,12 +196,16 @@ export default class StateHistoryBlockReader {
                             deserializedTraces = await traces;
                         } catch (error) {
                             logger.error('Failed to deserialize traces at block #' + response.this_block.block_num, error);
+
+                            throw error;
                         }
 
                         try {
                             deserializedDeltas = await deltas;
                         } catch (error) {
                             logger.error('Failed to deserialize deltas at block #' + response.this_block.block_num, error);
+
+                            throw error;
                         }
 
                         try {

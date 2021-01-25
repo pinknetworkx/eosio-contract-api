@@ -70,8 +70,7 @@ export const atomicmarketComponents = {
             updated_at_block: {type: 'string'},
             updated_at_time: {type: 'string'},
             created_at_block: {type: 'string'},
-            created_at_time: {type: 'string'},
-            created_at_txid: {type: 'string'}
+            created_at_time: {type: 'string'}
         }
     },
     Auction: {
@@ -126,8 +125,7 @@ export const atomicmarketComponents = {
             updated_at_block: {type: 'string'},
             updated_at_time: {type: 'string'},
             created_at_block: {type: 'string'},
-            created_at_time: {type: 'string'},
-            created_at_txid: {type: 'string'}
+            created_at_time: {type: 'string'}
         }
     },
     Marketplace: {

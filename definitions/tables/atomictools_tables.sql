@@ -14,7 +14,6 @@ CREATE TABLE atomictools_links (
     state integer NOT NULL,
     key_type integer NOT NULL,
     key_data bytea NOT NULL,
-    txid bytea,
     memo character varying(256) NOT NULL,
     created_at_block bigint NOT NULL,
     created_at_time bigint NOT NULL,
@@ -27,6 +26,7 @@ CREATE TABLE atomictools_links_assets (
     tools_contract character varying(12) NOT NULL,
     link_id bigint NOT NULL,
     assets_contract character varying(12) NOT NULL,
+    "index" integer,
     asset_id bigint NOT NULL,
     CONSTRAINT atomictools_links_assets_pkey PRIMARY KEY (tools_contract, link_id, assets_contract, asset_id)
 );
@@ -50,5 +50,6 @@ CREATE INDEX atomictools_links_created_at_time ON atomictools_links USING btree 
 CREATE INDEX atomictools_links_updated_at_block ON atomictools_links USING btree (updated_at_block);
 CREATE INDEX atomictools_links_updated_at_time ON atomictools_links USING btree (updated_at_time);
 
-CREATE INDEX atomictools_links_assets_tools_contract ON atomictools_links_assets USING hash (tools_contract);
-CREATE INDEX atomictools_links_assets_assets_contract ON atomictools_links_assets USING hash (assets_contract);
+CREATE INDEX atomictools_links_assets_tools_contract ON atomictools_links_assets USING btree (tools_contract);
+CREATE INDEX atomictools_links_assets_assets_contract ON atomictools_links_assets USING btree (assets_contract);
+CREATE INDEX atomictools_links_assets_index ON atomictools_links_assets USING btree (index);

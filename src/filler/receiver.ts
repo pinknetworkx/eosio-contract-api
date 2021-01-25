@@ -275,7 +275,9 @@ export default class StateReceiver {
                     try {
                         trace.act.data = this.ship.deserialize(type, actionTrace[1].act.data, types, false);
                     } catch (e) {
-                        logger.warn(e);
+                        logger.error(e);
+
+                        throw e;
                     }
                 }
 
@@ -321,7 +323,9 @@ export default class StateReceiver {
                     try {
                         delta.value = this.ship.deserialize(type, contractRow[1].value, types);
                     } catch (e) {
-                        logger.warn(e);
+                        logger.error(e);
+
+                        throw e;
                     }
                 }
 

@@ -75,3 +75,40 @@ export type LogSaleStartActionData = {
 export type LogAuctionStartActionData = {
     auction_id: string
 };
+
+export type CreateBuyofferActionData = {
+    buyer: string,
+    recipient: string,
+    price: string,
+    asset_ids: string[],
+    memo: string,
+    maker_marketplace: string
+}
+
+export type LogNewBuyofferActionData = {
+    buyoffer_id: string,
+    buyer: string,
+    recipient: string,
+    price: string,
+    asset_ids: string[],
+    memo: string,
+    maker_marketplace: string,
+    collection_name: string,
+    collection_fee: number
+}
+
+export type CancelBuyofferActionData = {
+    buyoffer_id: string
+}
+
+export type DeclineBuyofferActionData = {
+    buyoffer_id: string,
+    decline_memo: string
+}
+
+export type AcceptBuyofferActionData = {
+    buyoffer_id: string,
+    expected_asset_ids: string[],
+    expected_price: string,
+    taker_marketplace: string
+}
