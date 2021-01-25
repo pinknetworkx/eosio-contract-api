@@ -1,4 +1,4 @@
-import { AtomicMarketUpdatePriority, BuyofferState } from '../index';
+import { AtomicMarketUpdatePriority } from '../index';
 import DataProcessor from '../../../processor';
 import { ContractDBTransaction } from '../../../database';
 import { EosioActionTrace, EosioTransaction } from '../../../../types/eosio';
@@ -12,8 +12,6 @@ import {
     LogAuctionStartActionData,
     LogNewAuctionActionData, LogNewBuyofferActionData, LogNewSaleActionData, LogSaleStartActionData, PurchaseSaleActionData
 } from '../types/actions';
-import { preventInt64Overflow } from '../../../../utils/binary';
-import { eosioTimestampToDate } from '../../../../utils/eosio';
 
 export function logProcessor(core: AtomicMarketHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];

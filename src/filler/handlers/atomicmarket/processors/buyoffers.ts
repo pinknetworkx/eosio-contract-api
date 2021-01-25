@@ -3,7 +3,7 @@ import { ContractDBTransaction } from '../../../database';
 import { EosioActionTrace, EosioTransaction } from '../../../../types/eosio';
 import { ShipBlock } from '../../../../types/ship';
 import { eosioTimestampToDate } from '../../../../utils/eosio';
-import AtomicMarketHandler, { AtomicMarketUpdatePriority, BuyofferState, SaleState } from '../index';
+import AtomicMarketHandler, { AtomicMarketUpdatePriority, BuyofferState } from '../index';
 import ApiNotificationSender from '../../../notifier';
 import { AcceptBuyofferActionData, CancelBuyofferActionData, DeclineBuyofferActionData, LogNewBuyofferActionData } from '../types/actions';
 import { preventInt64Overflow } from '../../../../utils/binary';
