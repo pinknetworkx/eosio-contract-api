@@ -85,10 +85,10 @@ export default class AtomicMarketHandler extends ContractHandler {
         );
 
         const materializedViews = [
+            'atomicmarket_template_prices',
             'atomicmarket_auction_mints', 'atomicmarket_auction_stats',
             'atomicmarket_buyoffer_mints', 'atomicmarket_buyoffer_stats',
-            'atomicmarket_sale_mints', 'atomicmarket_sale_stats', 'atomicmarket_sale_prices',
-            'atomicmarket_template_prices'
+            'atomicmarket_sale_mints', 'atomicmarket_sale_stats', 'atomicmarket_sale_prices'
         ];
         const views = [
             'atomicmarket_assets_master', 'atomicmarket_auctions_master',
