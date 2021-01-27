@@ -42,7 +42,7 @@ export default class DataProcessor {
     private readonly committedListeners: Array<{callback: CommittedListener, priority: number}>;
 
     private state: ProcessingState;
-    private queue: Array<{callback: (db: ContractDBTransaction) => Promise<any>, priority: number, index: number, trace: any}>;
+    private queue: Array<{listener: {callback: any}, args: any[], priority: number, index: number}>;
 
     constructor(initialState: ProcessingState) {
         this.traceListeners = [];
@@ -195,8 +195,8 @@ export default class DataProcessor {
             }
 
             this.queue.push({
-                callback: async (db: ContractDBTransaction) => await listener.callback(db, block, tx, trace),
-                priority: listener.priority, index: this.queue.length + 1, trace: {block, tx, trace}
+                listener: listener, args: [block, tx, trace],
+                priority: listener.priority, index: this.queue.length + 1
             });
         }
     }
@@ -212,17 +212,14 @@ export default class DataProcessor {
             }
 
             this.queue.push({
-                callback: async (db: ContractDBTransaction) => await listener.callback(db, block, delta),
-                priority: listener.priority, index: this.queue.length + 1, trace: {block, delta}
+                listener: listener, args: [block, delta],
+                priority: listener.priority, index: this.queue.length + 1
             });
         }
     }
 
     async execute(db: ContractDBTransaction): Promise<void> {
-        const jobs = [...this.queue];
-        this.queue = [];
-
-        jobs.sort((a, b) => {
+        this.queue.sort((a, b) => {
             if (a.priority === b.priority) {
                 return a.index - b.index;
             }
@@ -231,7 +228,7 @@ export default class DataProcessor {
         });
 
         let lastPriority = -1;
-        for (const job of jobs) {
+        for (const job of this.queue) {
             if (lastPriority >= 0 && job.priority !== lastPriority) {
                 for (const listener of this.priorityListeners) {
                     if (listener.threshold === lastPriority) {
@@ -241,9 +238,9 @@ export default class DataProcessor {
             }
 
             try {
-                await job.callback(db);
+                await job.listener.callback(...[db, ...job.args]);
             } catch (e) {
-                logger.error('Error while processing data', job.trace);
+                logger.error('Error while processing data', job.args);
 
                 throw e;
             }

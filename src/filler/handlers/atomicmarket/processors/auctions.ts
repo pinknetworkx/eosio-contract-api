@@ -54,7 +54,7 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
                 'market_contract', 'auction_id', 'assets_contract', 'asset_id'
             ]);
 
-            notifier.sendTrace('auction', block, tx, trace);
+            notifier.sendTrace('auctions', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_CREATE_AUCTION
     ));
 
@@ -84,7 +84,7 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
                 values: [contract, trace.act.data.auction_id]
             }, ['market_contract', 'auction_id']);
 
-            notifier.sendTrace('auction', block, tx, trace);
+            notifier.sendTrace('auctions', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION
     ));
 
@@ -100,7 +100,7 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
                 values: [contract, trace.act.data.auction_id]
             }, ['market_contract', 'auction_id']);
 
-            notifier.sendTrace('auction', block, tx, trace);
+            notifier.sendTrace('auctions', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION
     ));
 
@@ -135,7 +135,7 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
                 created_at_time: eosioTimestampToDate(block.timestamp).getTime()
             }, ['market_contract', 'auction_id', 'bid_number']);
 
-            notifier.sendTrace('auction', block, tx, trace);
+            notifier.sendTrace('auctions', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION
     ));
 

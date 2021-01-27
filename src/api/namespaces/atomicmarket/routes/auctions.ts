@@ -1,5 +1,4 @@
 import * as express from 'express';
-import PQueue from 'p-queue';
 
 import { AtomicMarketNamespace, AuctionApiState } from '../index';
 import { HTTPServer } from '../../../server';
@@ -11,7 +10,11 @@ import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/open
 import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
-import { buildGreylistFilter, getLogs } from '../../atomicassets/utils';
+import { buildGreylistFilter } from '../../atomicassets/utils';
+import { createSocketApiNamespace, extractNotificationIdentifiers, getContractActionLogs } from '../../../utils';
+import ApiNotificationReceiver from '../../../notification';
+import { NotificationData } from '../../../../filler/notifier';
+import { eosioTimestampToDate } from '../../../../utils/eosio';
 
 export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/auctions', '/v1/auctions/_count'], server.web.caching(), async (req, res) => {
@@ -67,7 +70,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             const sortColumnMapping = {
                 auction_id: 'listing.auction_id',
                 ending: 'listing.end_time',
-                created: 'listing.auction_id',
+                created: 'listing.created_at_block',
                 updated: 'listing.updated_at_block',
                 price: 'listing.price',
                 template_mint: 'mint.min_template_mint',
@@ -137,8 +140,10 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
         try {
             res.json({
                 success: true,
-                data: await getLogs(
-                    server, core.args.atomicmarket_account, 'auction', req.params.auction_id,
+                data: await getContractActionLogs(
+                    server, core.args.atomicmarket_account,
+                    ['lognewauct', 'logauctstart', 'cancelauct', 'auctclaimbuy', 'auctclaimsel'],
+                    {auction_id: req.params.auction_id},
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });
@@ -237,91 +242,59 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
     };
 }
 
-export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer): void {
-    const namespace = server.socket.io.of(core.path + '/v1/auctions');
+export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer, notification: ApiNotificationReceiver): void {
+    const namespace = createSocketApiNamespace(server, core.path + '/v1/auctions');
 
-    namespace.on('connection', async (socket) => {
-        logger.debug('socket auction client connected');
+    notification.onData('auctions', async (notifications: NotificationData[]) => {
+        const auctionIDs = extractNotificationIdentifiers(notifications, 'auction_id');
+        const query = await server.query(
+            'SELECT * FROM atomicmarket_auctions_master WHERE market_contract = $1 AND auction_id = ANY($2)',
+            [core.args.atomicmarket_account, auctionIDs]
+        );
+        const auctions = query.rows.map((row: any) => formatAuction(row));
 
-        let verifiedConnection = false;
-        if (!(await server.socket.reserveConnection(socket))) {
-            socket.disconnect(true);
-        } else {
-            verifiedConnection = true;
-        }
+        for (const notification of notifications) {
+            if (notification.type === 'trace' && notification.data.trace) {
+                const trace = notification.data.trace;
 
-        socket.on('disconnect', async () => {
-            if (verifiedConnection) {
-                await server.socket.releaseConnection(socket);
-            }
-        });
-    });
-
-    const queue = new PQueue({
-        autoStart: true,
-        concurrency: 1
-    });
-
-    const auctionChannelName = [
-        'eosio-contract-api', core.connection.chain.name, core.args.connected_reader,
-        'atomicmarket', core.args.atomicmarket_account, 'auctions'
-    ].join(':');
-    core.connection.redis.ioRedisSub.setMaxListeners(core.connection.redis.ioRedisSub.getMaxListeners() + 1);
-    core.connection.redis.ioRedisSub.subscribe(auctionChannelName, () => {
-        core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
-            if (channel !== auctionChannelName) {
-                return;
-            }
-
-            const msg = JSON.parse(message);
-
-            logger.debug('received auctions notification', msg);
-
-            await queue.add(async () => {
-                const query = await server.query(
-                    'SELECT * FROM atomicmarket_auctions_master WHERE market_contract = $1 AND auction_id = $2',
-                    [core.args.atomicmarket_account, msg.data.auction_id]
-                );
-
-                if (query.rowCount === 0) {
-                    logger.error('Received auction notification but did not find auction in database');
-
-                    return;
+                if (trace.act.account !== core.args.atomicmarket_account) {
+                    continue;
                 }
 
-                const auctions = await fillAuctions(
-                    server, core.args.atomicassets_account,
-                    query.rows.map((row: any) => formatAuction(row))
-                );
+                const auctionID = (<any>trace.act.data).auction_id;
+                const auction = auctions.find(row => String(row.auction_id) === String(auctionID));
 
-                const auction = auctions[0];
-
-                if (msg.action === 'create') {
+                if (trace.act.name === 'lognewauct') {
                     namespace.emit('new_auction', {
-                        transaction: msg.transaction,
-                        block: msg.block,
-                        auction_id: auction.auction_id,
+                        transaction: notification.data.tx,
+                        block: notification.data.block,
+                        trace: notification.data.trace,
+                        auction_id: auctionID,
                         auction: auction
                     });
-                } else if (msg.action === 'bid') {
+                } else if (trace.act.name === 'auctionbid') {
+                    const amount = (<any>trace.act.data).bid.split(' ')[0].replace('.', '');
+                    const bid = auction.bids.find((bid: any) => String(bid.amount) === String(amount));
+
                     namespace.emit('new_bid', {
-                        transaction: msg.transaction,
-                        block: msg.block,
-                        auction_id: auction.auction_id,
-                        bid: {
-                            number: msg.data.bid.bid_number,
-                            account: msg.data.bid.account,
-                            amount: msg.data.bid.amount,
-                            created_at_block: msg.data.bid.created_at_block,
-                            created_at_time: msg.data.bid.created_at_time,
-                            txid: msg.transaction.id
-                        },
+                        transaction: notification.data.tx,
+                        block: notification.data.block,
+                        trace: notification.data.trace,
+                        auction_id: auctionID,
+                        bid: auction ? {
+                            number: bid ? bid.number : 0,
+                            account: (<any>trace.act.data).bidder,
+                            amount: amount,
+                            created_at_block: notification.data.block.block_num,
+                            created_at_time: eosioTimestampToDate(notification.data.block.timestamp).getTime(),
+                            txid: notification.data.tx.id
+                        } : null,
                         auction: auction
                     });
                 }
-            });
-        });
+            } else if (notification.type === 'fork') {
+                namespace.emit('fork', {block_num: notification.data.block.block_num});
+            }
+        }
     });
-
-    server.socket.addForkSubscription(core.args.connected_reader, namespace);
 }

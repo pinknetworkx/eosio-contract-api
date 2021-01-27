@@ -18,7 +18,7 @@ export function balanceProcessor(core: AtomicMarketHandler, processor: DataProce
                 values: [contract, delta.value.owner]
             });
 
-            if (delta.present) {
+            if (delta.present && delta.value.quantities.length > 0) {
                 await db.insert('atomicmarket_balances', delta.value.quantities.map(quantity => {
                     const token = splitEosioToken(quantity);
 

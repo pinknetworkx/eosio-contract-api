@@ -1,6 +1,6 @@
 import { formatAsset } from '../atomicassets/format';
-import { AuctionState, SaleState } from '../../../filler/handlers/atomicmarket';
-import { AuctionApiState, SaleApiState } from './index';
+import { AuctionState, BuyofferState, SaleState } from '../../../filler/handlers/atomicmarket';
+import { AuctionApiState, BuyofferApiState, SaleApiState } from './index';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 import { HTTPServer } from '../../server';
 
@@ -28,6 +28,32 @@ export function formatAuction(row: any): any {
     delete data.raw_token_precision;
     delete data.collection_name;
     delete data.auction_state;
+
+    return data;
+}
+
+export function formatBuyoffer(row: any): any {
+    const data = {...row};
+
+    data.price.amount = row.raw_price;
+
+    if (row.buyoffer_state === BuyofferState.PENDING.valueOf() && !data.assets.find((asset: any) => asset.owner !== row.seller)) {
+        data.state = BuyofferApiState.PENDING.valueOf();
+    } else if (row.buyoffer_state === BuyofferState.DECLINED.valueOf() && row.end_time > Date.now() / 1000) {
+        data.state = BuyofferApiState.DECLINED.valueOf();
+    } else if (row.buyoffer_state === BuyofferState.CANCELED.valueOf()) {
+        data.state = BuyofferApiState.CANCELED.valueOf();
+    } else if (row.buyoffer_state === BuyofferState.ACCEPTED.valueOf() && row.end_time <= Date.now() / 1000 && row.buyer !== null) {
+        data.state = BuyofferApiState.ACCEPTED.valueOf();
+    } else {
+        data.state = BuyofferApiState.INVALID.valueOf();
+    }
+
+    delete data.raw_price;
+    delete data.raw_token_symbol;
+    delete data.raw_token_precision;
+    delete data.collection_name;
+    delete data.buyoffer_state;
 
     return data;
 }

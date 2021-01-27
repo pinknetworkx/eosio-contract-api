@@ -61,8 +61,10 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
                 inner_backed.contract = asset.contract AND inner_backed.asset_id = asset.asset_id
         ) backed_tokens,
 
-        asset.burned_at_block, asset.burned_at_time, asset.updated_at_block,
-        asset.updated_at_time, asset.minted_at_block, asset.minted_at_time
+        asset.burned_by_account, asset.burned_at_block, asset.burned_at_time,
+        asset.updated_at_block, asset.updated_at_time,
+        asset.transferred_at_block, asset.transferred_at_time,
+        asset.minted_at_block, asset.minted_at_time
     FROM
         atomicassets_assets asset
         LEFT JOIN atomicassets_templates "template" ON (

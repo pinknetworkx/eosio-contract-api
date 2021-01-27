@@ -45,7 +45,7 @@ export enum BuyofferState {
     PENDING = 0,
     DECLINED = 1,
     CANCELED = 2,
-    SOLD = 3
+    ACCEPTED = 3
 }
 
 export enum AtomicMarketUpdatePriority {
@@ -85,13 +85,15 @@ export default class AtomicMarketHandler extends ContractHandler {
         );
 
         const materializedViews = [
-            'atomicmarket_sale_prices', 'atomicmarket_auction_mints', 'atomicmarket_sale_mints',
-            'atomicmarket_template_prices', 'atomicmarket_auction_stats', 'atomicmarket_sale_stats'
+            'atomicmarket_auction_mints', 'atomicmarket_auction_stats',
+            'atomicmarket_buyoffer_mints', 'atomicmarket_buyoffer_stats',
+            'atomicmarket_sale_mints', 'atomicmarket_sale_stats', 'atomicmarket_sale_prices',
+            'atomicmarket_template_prices'
         ];
         const views = [
             'atomicmarket_assets_master', 'atomicmarket_auctions_master',
             'atomicmarket_sales_master', 'atomicmarket_sale_prices_master',
-            'atomicmarket_template_prices_master'
+            'atomicmarket_template_prices_master', 'atomicmarket_buyoffers_master'
         ];
 
         if (!existsQuery.rows[0].exists) {
@@ -204,9 +206,10 @@ export default class AtomicMarketHandler extends ContractHandler {
 
     async deleteDB(client: PoolClient): Promise<void> {
         const tables = [
-            'atomicmarket_auctions', 'atomicmarket_auctions_bids', 'atomicmarket_config',
-            'atomicmarket_delphi_pairs', 'atomicmarket_marketplaces', 'atomicmarket_sales',
-            'atomicmarket_token_symbols'
+            'atomicmarket_auctions', 'atomicmarket_auctions_assets', 'atomicmarket_auctions_bids',
+            'atomicmarket_sales', 'atomicmarket_buyoffers', 'atomicmarket_buyoffers_assets',
+            'atomicmarket_config', 'atomicmarket_delphi_pairs', 'atomicmarket_marketplaces',
+            'atomicmarket_token_symbols', 'atomicmarket_bonusfees', 'atomicmarket_balances'
         ];
 
         for (const table of tables) {
@@ -216,9 +219,14 @@ export default class AtomicMarketHandler extends ContractHandler {
             );
         }
 
-        const views = ['atomicmarket_sale_prices', 'atomicmarket_sale_mints'];
+        const materializedViews = [
+            'atomicmarket_auction_mints', 'atomicmarket_auction_stats',
+            'atomicmarket_buyoffer_mints', 'atomicmarket_buyoffer_stats',
+            'atomicmarket_sale_mints', 'atomicmarket_sale_stats', 'atomicmarket_sale_prices',
+            'atomicmarket_template_prices'
+        ];
 
-        for (const view of views) {
+        for (const view of materializedViews) {
             await client.query('REFRESH MATERIALIZED VIEW ' + client.escapeIdentifier(view) + '');
         }
     }

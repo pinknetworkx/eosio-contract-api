@@ -64,7 +64,7 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 }), ['contract', 'asset_id', 'token_symbol']);
             }
 
-            notifier.sendTrace('asset', block, tx, trace);
+            notifier.sendTrace('assets', block, tx, trace);
         }, AtomicAssetsUpdatePriority.ACTION_MINT_ASSET
     ));
 
@@ -95,7 +95,7 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 }, ['contract', 'asset_id', 'token_symbol']);
             }
 
-            notifier.sendTrace('asset', block, tx, trace);
+            notifier.sendTrace('assets', block, tx, trace);
         }, AtomicAssetsUpdatePriority.ACTION_UPDATE_ASSET
     ));
 
@@ -114,7 +114,7 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 values: [contract, trace.act.data.asset_id]
             }, ['contract', 'asset_id']);
 
-            notifier.sendTrace('asset', block, tx, trace);
+            notifier.sendTrace('assets', block, tx, trace);
         }, AtomicAssetsUpdatePriority.ACTION_UPDATE_ASSET
     ));
 
@@ -130,7 +130,7 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 values: [contract, trace.act.data.asset_id]
             }, ['contract', 'asset_id']);
 
-            notifier.sendTrace('asset', block, tx, trace);
+            notifier.sendTrace('assets', block, tx, trace);
         }, AtomicAssetsUpdatePriority.ACTION_UPDATE_ASSET
     ));
 
@@ -168,8 +168,8 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 })), ['contract', 'transfer_id', 'asset_id']);
             }
 
-            notifier.sendTrace('transfer', block, tx, trace);
-        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_OFFER
+            notifier.sendTrace('transfers', block, tx, trace);
+        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_ASSET
     ));
 
     return (): any => destructors.map(fn => fn());

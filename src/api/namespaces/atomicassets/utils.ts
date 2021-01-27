@@ -3,21 +3,6 @@ import * as express from 'express';
 import { filterQueryArgs, mergeRequestData } from '../utils';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 import { SaleState } from '../../../filler/handlers/atomicmarket';
-import { HTTPServer } from '../../server';
-
-export async function getLogs(
-    server: HTTPServer, contract: string, relationName: string, relationId: string,
-    offset: number = 0, limit: number = 100, order: 'asc' | 'desc' = 'asc'
-): Promise<Array<{log_id: number, name: string, data: any, txid: string, created_at_block: string, created_at_time: string}>> {
-    const queryStr = 'SELECT log_id, name, data, encode(txid::bytea, \'hex\') txid, created_at_block, created_at_time ' +
-        'FROM atomicassets_logs ' +
-        'WHERE contract = $1 AND relation_name = $2 AND relation_id = $3 ' +
-        'ORDER BY log_id ' + (order === 'asc' ? 'ASC' : 'DESC') + ' LIMIT $4 OFFSET $5';
-
-    const query = await server.query(queryStr, [contract, relationName, relationId, limit, offset]);
-
-    return query.rows;
-}
 
 export function buildDataConditions(
     args: any, varCounter: number = 0, column: string

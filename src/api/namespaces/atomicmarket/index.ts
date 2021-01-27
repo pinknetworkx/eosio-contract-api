@@ -18,6 +18,8 @@ import { formatOffer, formatTransfer } from '../atomicassets/format';
 import { formatListingAsset, hookAssetFiller } from './format';
 import { pricesEndpoints } from './routes/prices';
 import { statsEndpoints } from './routes/stats';
+import ApiNotificationReceiver from '../../notification';
+import { buyoffersEndpoints, buyofferSockets } from './routes/buyoffers';
 
 export type AtomicMarketNamespaceArgs = {
     atomicmarket_account: string
@@ -42,6 +44,14 @@ export enum AuctionApiState {
     CANCELED = 2, // Auction was canceled
     SOLD = 3, // Auction has been sold
     INVALID = 4 // Auction ended but no bid was made
+}
+
+export enum BuyofferApiState {
+    PENDING = 0,
+    DECLINED = 1,
+    CANCELED = 2,
+    ACCEPTED = 3,
+    INVALID = 4
 }
 
 export class AtomicMarketNamespace extends ApiNamespace {
@@ -102,6 +112,7 @@ export class AtomicMarketNamespace extends ApiNamespace {
 
         docs.push(salesEndpoints(this, server, router));
         docs.push(auctionsEndpoints(this, server, router));
+        docs.push(buyoffersEndpoints(this, server, router));
         docs.push(marketplacesEndpoints(this, server, router));
         docs.push(pricesEndpoints(this, server, router));
         docs.push(statsEndpoints(this, server, router));
@@ -150,7 +161,10 @@ export class AtomicMarketNamespace extends ApiNamespace {
     }
 
     async socket(server: HTTPServer): Promise<void> {
-        salesSockets(this, server);
-        auctionSockets(this, server);
+        const notification = new ApiNotificationReceiver(this.connection, this.args.connected_reader);
+
+        salesSockets(this, server, notification);
+        auctionSockets(this, server, notification);
+        buyofferSockets(this, server, notification);
     }
 }

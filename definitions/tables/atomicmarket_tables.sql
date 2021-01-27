@@ -100,11 +100,11 @@ CREATE TABLE atomicmarket_marketplaces
 CREATE TABLE atomicmarket_bonusfees
 (
     market_contract character varying(12) NOT NULL,
-    bonusfee_id character varying(12) NOT NULL,
-    name character varying(12) NOT NULL,
+    bonusfee_id bigint NOT NULL,
+    name character varying(256) NOT NULL,
     recipient character varying(12) NOT NULL,
-    fee character varying(12) NOT NULL,
-    start_sale_id integer NOT NULL,
+    fee double precision NOT NULL,
+    start_sale_id integer,
     end_sale_id integer,
     start_auction_id integer,
     end_auction_id integer,
@@ -145,7 +145,7 @@ CREATE TABLE atomicmarket_buyoffers
     market_contract character varying(12) NOT NULL,
     buyoffer_id bigint NOT NULL,
     buyer character varying(12) NOT NULL,
-    recipient character varying(12) NOT NULL,
+    seller character varying(12) NOT NULL,
     price bigint NOT NULL,
     token_symbol character varying(12) NOT NULL,
     assets_contract character varying(12) NOT NULL,
@@ -261,6 +261,7 @@ CREATE INDEX atomicmarket_auctions_auction_id ON atomicmarket_auctions USING btr
 CREATE INDEX atomicmarket_auctions_seller ON atomicmarket_auctions USING hash (seller);
 CREATE INDEX atomicmarket_auctions_buyer ON atomicmarket_auctions USING hash (buyer);
 CREATE INDEX atomicmarket_auctions_price ON atomicmarket_auctions USING btree (price);
+CREATE INDEX atomicmarket_auctions_collection_name ON atomicmarket_auctions USING btree (collection_name);
 CREATE INDEX atomicmarket_auctions_maker_marketplace ON atomicmarket_auctions USING hash (maker_marketplace);
 CREATE INDEX atomicmarket_auctions_taker_marketplace ON atomicmarket_auctions USING hash (taker_marketplace);
 CREATE INDEX atomicmarket_auctions_state ON atomicmarket_auctions USING btree (state);
@@ -290,6 +291,7 @@ CREATE INDEX atomicmarket_sales_seller ON atomicmarket_sales USING hash (seller)
 CREATE INDEX atomicmarket_sales_buyer ON atomicmarket_sales USING hash (buyer);
 CREATE INDEX atomicmarket_sales_listing_price ON atomicmarket_sales USING btree (listing_price);
 CREATE INDEX atomicmarket_sales_final_price ON atomicmarket_sales USING btree (final_price);
+CREATE INDEX atomicmarket_sales_collection_name ON atomicmarket_sales USING btree (collection_name);
 CREATE INDEX atomicmarket_sales_maker_marketplace ON atomicmarket_sales USING hash (maker_marketplace);
 CREATE INDEX atomicmarket_sales_taker_marketplace ON atomicmarket_sales USING hash (taker_marketplace);
 CREATE INDEX atomicmarket_sales_state ON atomicmarket_sales USING btree (state);
@@ -301,10 +303,11 @@ CREATE INDEX atomicmarket_sales_created_at_time ON atomicmarket_sales USING btre
 CREATE INDEX atomicmarket_buyoffers_market_contract ON atomicmarket_buyoffers USING btree (market_contract);
 CREATE INDEX atomicmarket_buyoffers_assets_contract ON atomicmarket_buyoffers USING btree (assets_contract);
 CREATE INDEX atomicmarket_buyoffers_buyoffer_id ON atomicmarket_buyoffers USING btree (buyoffer_id);
-CREATE INDEX atomicmarket_buyoffers_recipient ON atomicmarket_buyoffers USING hash (recipient);
+CREATE INDEX atomicmarket_buyoffers_seller ON atomicmarket_buyoffers USING hash (seller);
 CREATE INDEX atomicmarket_buyoffers_buyer ON atomicmarket_buyoffers USING hash (buyer);
 CREATE INDEX atomicmarket_buyoffers_price ON atomicmarket_buyoffers USING btree (price);
 CREATE INDEX atomicmarket_buyoffers_token_symbol ON atomicmarket_buyoffers USING btree (token_symbol);
+CREATE INDEX atomicmarket_buyoffers_collection_name ON atomicmarket_buyoffers USING btree (collection_name);
 CREATE INDEX atomicmarket_buyoffers_maker_marketplace ON atomicmarket_buyoffers USING hash (maker_marketplace);
 CREATE INDEX atomicmarket_buyoffers_taker_marketplace ON atomicmarket_buyoffers USING hash (taker_marketplace);
 CREATE INDEX atomicmarket_buyoffers_state ON atomicmarket_buyoffers USING btree (state);

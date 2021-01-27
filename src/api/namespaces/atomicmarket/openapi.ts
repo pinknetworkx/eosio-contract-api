@@ -1,4 +1,5 @@
 import { atomicassetsComponents, generateOfferSchema, generateTransferSchema } from '../atomicassets/openapi';
+import { LogSchema } from '../../docs';
 
 export const atomicmarketComponents = {
     ListingAsset: {
@@ -138,7 +139,7 @@ export const atomicmarketComponents = {
         }
     },
     Collection: atomicassetsComponents.Collection,
-    Log: atomicassetsComponents.Log
+    Log: LogSchema
 };
 
 export const listingFilterParameters = [

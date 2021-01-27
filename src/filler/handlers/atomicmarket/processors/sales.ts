@@ -40,7 +40,7 @@ export function saleProcessor(core: AtomicMarketHandler, processor: DataProcesso
                 created_at_time: eosioTimestampToDate(block.timestamp).getTime()
             }, ['market_contract', 'sale_id']);
 
-            notifier.sendTrace('sale', block, tx, trace);
+            notifier.sendTrace('sales', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_CREATE_SALE
     ));
 
@@ -57,7 +57,7 @@ export function saleProcessor(core: AtomicMarketHandler, processor: DataProcesso
                 values: [core.args.atomicmarket_account, trace.act.data.sale_id]
             }, ['market_contract', 'sale_id']);
 
-            notifier.sendTrace('sale', block, tx, trace);
+            notifier.sendTrace('sales', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_UPDATE_SALE
     ));
 
@@ -73,7 +73,7 @@ export function saleProcessor(core: AtomicMarketHandler, processor: DataProcesso
                 values: [core.args.atomicmarket_account, trace.act.data.sale_id]
             }, ['market_contract', 'sale_id']);
 
-            notifier.sendTrace('sale', block, tx, trace);
+            notifier.sendTrace('sales', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_UPDATE_SALE
     ));
 
@@ -130,7 +130,7 @@ export function saleProcessor(core: AtomicMarketHandler, processor: DataProcesso
                 values: [core.args.atomicmarket_account, trace.act.data.sale_id]
             }, ['market_contract', 'sale_id']);
 
-            notifier.sendTrace('sale', block, tx, trace);
+            notifier.sendTrace('sales', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_UPDATE_SALE
     ));
 

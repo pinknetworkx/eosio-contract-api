@@ -1,12 +1,12 @@
 import * as express from 'express';
 
-import { AtomicMarketNamespace, SaleApiState } from '../index';
+import { AtomicMarketNamespace, BuyofferApiState } from '../index';
 import { HTTPServer } from '../../../server';
-import { buildSaleFilter } from '../utils';
-import { fillSales } from '../filler';
-import { formatSale } from '../format';
-import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/openapi';
+import { formatBuyoffer } from '../format';
+import { fillBuyoffers } from '../filler';
+import { buildBuyofferFilter } from '../utils';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
+import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/openapi';
 import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
@@ -15,8 +15,8 @@ import { createSocketApiNamespace, extractNotificationIdentifiers, getContractAc
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
 
-export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
-    router.all(['/v1/sales', '/v1/sales/_count'], server.web.caching(), async (req, res) => {
+export function buyoffersEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
+    router.all(['/v1/buyoffers', '/v1/buyoffers/_count'], server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
@@ -24,7 +24,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 sort: {
                     type: 'string',
                     values: [
-                        'created', 'updated', 'sale_id', 'price',
+                        'created', 'updated', 'ending', 'buyoffer_id', 'price',
                         'template_mint', 'schema_mint', 'collection_mint'
                     ],
                     default: 'created'
@@ -32,17 +32,15 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
             });
 
-            const filter = buildSaleFilter(req, 1);
+            const buyofferFilter = buildBuyofferFilter(req, 1);
 
-            let queryString = `
-                SELECT listing.sale_id 
-                FROM atomicmarket_sales listing 
-                    JOIN atomicassets_offers offer ON (listing.assets_contract = offer.contract AND listing.offer_id = offer.offer_id)
-                    LEFT JOIN atomicmarket_sale_prices price ON (price.market_contract = listing.market_contract AND price.sale_id = listing.sale_id)
-                    LEFT JOIN atomicmarket_sale_mints mint ON (mint.market_contract = listing.market_contract AND mint.sale_id = listing.sale_id)
-                    LEFT JOIN atomicmarket_sale_stats stats ON (stats.market_contract = listing.market_contract AND stats.sale_id = listing.sale_id)
-                WHERE listing.market_contract = $1 ` + filter.str;
-            const queryValues = [core.args.atomicmarket_account, ...filter.values];
+            let queryString = 'SELECT listing.buyoffer_id ' +
+                'FROM atomicmarket_buyoffers listing ' +
+                    'JOIN atomicmarket_tokens "token" ON (listing.market_contract = "token".market_contract AND listing.token_symbol = "token".token_symbol) ' +
+                    'LEFT JOIN atomicmarket_buyoffer_mints mint ON (mint.market_contract = listing.market_contract AND mint.buyoffer_id = listing.buyoffer_id) ' +
+                    'LEFT JOIN atomicmarket_buyoffer_stats stats ON (stats.market_contract = listing.market_contract AND stats.buyoffer_id = listing.buyoffer_id) ' +
+                'WHERE listing.market_contract = $1 ' + buyofferFilter.str;
+            const queryValues = [core.args.atomicmarket_account, ...buyofferFilter.values];
             let varCounter = queryValues.length;
 
             const blacklistFilter = buildGreylistFilter(req, varCounter, 'listing.collection_name');
@@ -51,7 +49,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             queryString += blacklistFilter.str;
 
             const boundaryFilter = buildBoundaryFilter(
-                req, varCounter, 'listing.sale_id', 'int',
+                req, varCounter, 'listing.buyoffer_id', 'int',
                 args.sort === 'updated' ? 'listing.updated_at_time' : 'listing.created_at_time',
                 args.sort === 'updated' ? 'listing.updated_at_block' : 'listing.created_at_block'
             );
@@ -69,67 +67,68 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             }
 
             const sortColumnMapping = {
-                sale_id: 'listing.sale_id',
+                buyoffer_id: 'listing.buyoffer_id',
                 created: 'listing.created_at_block',
                 updated: 'listing.updated_at_block',
-                price: 'price.price',
+                price: 'listing.price',
                 template_mint: 'mint.min_template_mint',
                 schema_mint: 'mint.min_schema_mint',
                 collection_mint: 'mint.min_collection_mint'
             };
 
             // @ts-ignore
-            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' NULLS LAST, listing.sale_id ASC ';
+            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' NULLS LAST, listing.buyoffer_id ASC ';
             queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
 
-            const saleQuery = await server.query(queryString, queryValues);
+            const buyofferQuery = await server.query(queryString, queryValues);
 
-            const saleLookup: {[key: string]: any} = {};
+            const buyofferLookup: {[key: string]: any} = {};
             const query = await server.query(
-                'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY ($2)',
-                [core.args.atomicmarket_account, saleQuery.rows.map(row => row.sale_id)]
+                'SELECT * FROM atomicmarket_buyoffers_master WHERE market_contract = $1 AND buyoffer_id = ANY ($2)',
+                [core.args.atomicmarket_account, buyofferQuery.rows.map(row => row.buyoffer_id)]
             );
 
             query.rows.reduce((prev, current) => {
-                prev[String(current.sale_id)] = current;
+                prev[String(current.buyoffer_id)] = current;
 
                 return prev;
-            }, saleLookup);
+            }, buyofferLookup);
 
-            const sales = await fillSales(
-                server, core.args.atomicassets_account, saleQuery.rows.map((row) => formatSale(saleLookup[String(row.sale_id)]))
+            const buyoffers = await fillBuyoffers(
+                server, core.args.atomicassets_account,
+                buyofferQuery.rows.map((row) => formatBuyoffer(buyofferLookup[String(row.buyoffer_id)]))
             );
 
-            res.json({success: true, data: sales, query_time: Date.now()});
+            res.json({success: true, data: buyoffers, query_time: Date.now()});
         } catch (e) {
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
 
-    router.all('/v1/sales/:sale_id', server.web.caching(), async (req, res) => {
+    router.all('/v1/buyoffers/:buyoffer_id', server.web.caching(), async (req, res) => {
         try {
             const query = await server.query(
-                'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = $2',
-                [core.args.atomicmarket_account, req.params.sale_id]
+                'SELECT * FROM atomicmarket_buyoffers_master WHERE market_contract = $1 AND buyoffer_id = $2',
+                [core.args.atomicmarket_account, req.params.buyoffer_id]
             );
 
             if (query.rowCount === 0) {
-                res.status(416).json({success: false, message: 'Sale not found'});
+                res.status(416).json({success: false, message: 'Buyoffer not found'});
             } else {
-                const sales = await fillSales(
-                    server, core.args.atomicassets_account, query.rows.map((row) => formatSale(row))
+                const buyoffers = await fillBuyoffers(
+                    server, core.args.atomicassets_account, query.rows.map((row) => formatBuyoffer(row))
                 );
 
-                res.json({success: true, data: sales[0], query_time: Date.now()});
+                res.json({success: true, data: buyoffers[0], query_time: Date.now()});
             }
         } catch (e) {
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });
 
-    router.all('/v1/sales/:sale_id/logs', server.web.caching(), (async (req, res) => {
+    router.all('/v1/buyoffers/:buyoffer_id/logs', server.web.caching(), (async (req, res) => {
         const args = filterQueryArgs(req, {
             page: {type: 'int', min: 1, default: 1},
             limit: {type: 'int', min: 1, max: 100, default: 100},
@@ -141,8 +140,8 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 success: true,
                 data: await getContractActionLogs(
                     server, core.args.atomicmarket_account,
-                    ['lognewsale', 'logsalestart', 'cancelsale', 'purchasesale'],
-                    {sale_id: req.params.sale_id},
+                    ['lognewbuyo', 'cancelbuyo', 'acceptbuyo', 'declinebuyo'],
+                    {buyoffer_id: req.params.buyoffer_id},
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });
@@ -155,25 +154,25 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
     return {
         tag: {
-            name: 'sales',
-            description: 'Sales'
+            name: 'buyoffers',
+            description: 'Buyoffers'
         },
         paths: {
-            '/v1/sales': {
+            '/v1/buyoffers': {
                 get: {
-                    tags: ['sales'],
-                    summary: 'Get all sales. ',
+                    tags: ['buyoffers'],
+                    summary: 'Get all buyoffers.',
                     description: atomicDataFilter,
                     parameters: [
                         {
                             name: 'state',
                             in: 'query',
-                            description: 'Filter by sale state (' +
-                                SaleApiState.WAITING.valueOf() + ': WAITING - Sale created but offer was not send yet, ' +
-                                SaleApiState.LISTED.valueOf() + ': LISTED - Assets for sale, ' +
-                                SaleApiState.CANCELED.valueOf() + ': CANCELED - Sale was canceled, ' +
-                                SaleApiState.SOLD.valueOf() + ': SOLD - Sale was bought' +
-                                SaleApiState.INVALID.valueOf() + ': INVALID - Sale is still listed but offer is currently invalid (can become valid again if the user owns all assets again)' +
+                            description: 'Filter by buyoffer state (' +
+                                BuyofferApiState.PENDING.valueOf() + ': WAITING: Buyoffer created and pending, ' +
+                                BuyofferApiState.DECLINED.valueOf() + ': LISTED - Buyoffer was declined, ' +
+                                BuyofferApiState.CANCELED.valueOf() + ': CANCELED - Buyoffer was canceled, ' +
+                                BuyofferApiState.ACCEPTED.valueOf() + ': SOLD - Buyoffer has been sold, ' +
+                                BuyofferApiState.INVALID.valueOf() + ': INVALID - Buyoffer invalid because recipient does not own all assets anymore' +
                                 ') - separate multiple with ","',
                             required: false,
                             schema: {type: 'string'}
@@ -191,7 +190,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             schema: {
                                 type: 'string',
                                 enum: [
-                                    'created', 'updated', 'sale_id', 'price',
+                                    'created', 'updated', 'buyoffer_id', 'price',
                                     'template_mint', 'schema_mint', 'collection_mint'
                                 ],
                                 default: 'created'
@@ -200,35 +199,35 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'array',
-                        items: {'$ref': '#/components/schemas/Sale'}
+                        items: {'$ref': '#/components/schemas/Buyoffer'}
                     })
                 }
             },
-            '/v1/sales/{sale_id}': {
+            '/v1/buyoffers/{buyoffer_id}': {
                 get: {
-                    tags: ['sales'],
-                    summary: 'Get a specific sale by id',
+                    tags: ['buyoffers'],
+                    summary: 'Get a specific buyoffer by id',
                     parameters: [
                         {
                             in: 'path',
-                            name: 'sale_id',
-                            description: 'Sale Id',
+                            name: 'buyoffer_id',
+                            description: 'Buyoffer Id',
                             required: true,
                             schema: {type: 'integer'}
                         }
                     ],
-                    responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/Sale'})
+                    responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/Buyoffer'})
                 }
             },
-            '/v1/sales/{sale_id}/logs': {
+            '/v1/buyoffers/{buyoffer_id}/logs': {
                 get: {
-                    tags: ['sales'],
-                    summary: 'Fetch sale logs',
+                    tags: ['buyoffers'],
+                    summary: 'Fetch buyoffer logs',
                     parameters: [
                         {
-                            name: 'sale_id',
+                            name: 'buyoffer_id',
                             in: 'path',
-                            description: 'ID of sale',
+                            description: 'ID of buyoffer',
                             required: true,
                             schema: {type: 'integer'}
                         },
@@ -241,16 +240,16 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
     };
 }
 
-export function salesSockets(core: AtomicMarketNamespace, server: HTTPServer, notification: ApiNotificationReceiver): void {
-    const namespace = createSocketApiNamespace(server, core.path + '/v1/sales');
+export function buyofferSockets(core: AtomicMarketNamespace, server: HTTPServer, notification: ApiNotificationReceiver): void {
+    const namespace = createSocketApiNamespace(server, core.path + '/v1/buyoffers');
 
-    notification.onData('sales', async (notifications: NotificationData[]) => {
-        const saleIDs = extractNotificationIdentifiers(notifications, 'sale_id');
+    notification.onData('buyoffers', async (notifications: NotificationData[]) => {
+        const buyofferIDs = extractNotificationIdentifiers(notifications, 'buyoffer_id');
         const query = await server.query(
-            'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY($2)',
-            [core.args.atomicmarket_account, saleIDs]
+            'SELECT * FROM atomicmarket_buyoffers_master WHERE market_contract = $1 AND buyoffer_id = ANY($2)',
+            [core.args.atomicmarket_account, buyofferIDs]
         );
-        const sales = query.rows.map((row: any) => formatSale(row));
+        const buyoffers = query.rows.map((row: any) => formatBuyoffer(row));
 
         for (const notification of notifications) {
             if (notification.type === 'trace' && notification.data.trace) {
@@ -260,15 +259,16 @@ export function salesSockets(core: AtomicMarketNamespace, server: HTTPServer, no
                     continue;
                 }
 
-                const saleID = (<any>trace.act.data).sale_id;
+                const buyofferID = (<any>trace.act.data).buyoffer_id;
+                const buyoffer = buyoffers.find(row => String(row.buyoffer_id) === String(buyofferID));
 
-                if (trace.act.name === 'lognewsale') {
-                    namespace.emit('new_sale', {
+                if (trace.act.name === 'lognewbuyo') {
+                    namespace.emit('new_buyoffer', {
                         transaction: notification.data.tx,
                         block: notification.data.block,
-                        trace: trace,
-                        sale_id: saleID,
-                        sale: sales.find((row: any) => String(row.sale_id) === String(saleID))
+                        trace: notification.data.trace,
+                        buyoffer_id: buyofferID,
+                        buyoffer: buyoffer
                     });
                 }
             } else if (notification.type === 'fork') {

@@ -1,42 +1,61 @@
-import DataProcessor from './processor';
+import DataProcessor, { ProcessingState } from './processor';
 import { ShipBlock } from '../types/ship';
 import { EosioActionTrace, EosioTableRow, EosioTransaction } from '../types/eosio';
 import ConnectionManager from '../connections/manager';
 import logger from '../utils/winston';
 
+export type NotificationData = {
+    channel: string,
+    type: 'trace' | 'delta' | 'fork',
+    data: {block: ShipBlock, tx?: EosioTransaction, trace?: EosioActionTrace, delta?: EosioTableRow}
+};
+
+function prepareNotificationBlock(block: ShipBlock): any {
+    const result = {};
+    const whitelist = ['block_id', 'block_num', 'timestamp', 'producer'];
+
+    for (const key of whitelist) {
+        // @ts-ignore
+        result[key] = block[key];
+    }
+
+    return result;
+}
+
 export default class ApiNotificationSender {
     channelName: string;
-    notifications: Array<{channel: string, type: string, data: any }>;
+    notifications: Array<NotificationData>;
 
     constructor(private readonly connection: ConnectionManager, private readonly processor: DataProcessor, private readonly readerName: string) {
         this.channelName = ['eosio-contract-api', this.connection.chain.name, this.readerName, 'api'].join(':');
         this.notifications = [];
-
-        processor.onCommitted(async () => {
-            await this.publish();
-        });
     }
 
     sendTrace(channel: string, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<any>): void {
-        this.notifications.push({channel, type: 'trace', data: {block, tx, trace}});
+        this.notifications.push({channel, type: 'trace', data: {block: prepareNotificationBlock(block), tx, trace}});
     }
 
     sendDelta(channel: string, block: ShipBlock, delta: EosioTableRow): void {
-        this.notifications.push({channel, type: 'delta', data: {block, delta}});
+        this.notifications.push({channel, type: 'delta', data: {block: prepareNotificationBlock(block), delta}});
     }
 
     sendFork(block: ShipBlock): void {
-        this.notifications.push({channel: null, type: 'fork', data: {block}});
+        this.notifications.push({channel: null, type: 'fork', data: {block: prepareNotificationBlock(block)}});
     }
 
     async publish(): Promise<void> {
-        const messages = this.notifications;
-        this.notifications = [];
-
-        try {
-            await this.connection.redis.ioRedis.publish(this.channelName, JSON.stringify(messages));
-        } catch (e) {
-            logger.warn('Failed to send API notifications', e);
+        if (this.notifications.length === 0) {
+            return;
         }
+
+        if (this.processor.getState() === ProcessingState.HEAD) {
+            try {
+                await this.connection.redis.ioRedis.publish(this.channelName, JSON.stringify(this.notifications));
+            } catch (e) {
+                logger.warn('Failed to send API notifications', e);
+            }
+        }
+
+        this.notifications = [];
     }
 }

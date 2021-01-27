@@ -229,7 +229,7 @@ export default class StateReceiver {
             try {
                 await this.processor.execute(db);
 
-                if (db.inTransaction || resp.this_block.block_num % 100 === 0) {
+                if (db.inTransaction || isReversible || this.processor.getState() === ProcessingState.HEAD) {
                     await db.updateReaderPosition(resp.block, this.processor.getState() === ProcessingState.HEAD);
                 }
 
@@ -239,6 +239,7 @@ export default class StateReceiver {
                 this.lastDatabaseTransaction = null;
 
                 await this.processor.notifyCommit();
+                await this.notifier.publish();
             } catch (e) {
                 if (this.collectedBlocks === 1) {
                     logger.error('Error occurred while executing block #' + resp.this_block.block_num);
@@ -273,10 +274,6 @@ export default class StateReceiver {
             };
 
             const processingInfo = this.processor.traceNeeded(trace.act.account, trace.act.name);
-
-            if (!processingInfo.process) {
-                return;
-            }
 
             if (processingInfo.deserialize) {
                 const types = await this.fetchContractAbiTypes(actionTrace[1].act.account, block.block_num);
@@ -325,10 +322,6 @@ export default class StateReceiver {
             };
 
             const processingInfo = this.processor.deltaNeeded(delta.code, delta.table);
-
-            if (!processingInfo.process) {
-                return;
-            }
 
             if (processingInfo.deserialize) {
                 const types = await this.fetchContractAbiTypes(contractRow[1].code, block.block_num);

@@ -250,6 +250,7 @@ CREATE INDEX atomicassets_offers_created_at_time ON atomicassets_offers USING bt
 
 CREATE INDEX atomicassets_offers_assets_contract ON atomicassets_offers_assets USING btree (contract);
 CREATE INDEX atomicassets_offers_assets_offer_id ON atomicassets_offers_assets USING btree (offer_id);
+CREATE INDEX atomicassets_offers_assets_asset_id ON atomicassets_offers_assets USING btree (asset_id);
 CREATE INDEX atomicassets_offers_assets_index ON atomicassets_offers_assets USING btree ("index");
 CREATE INDEX atomicassets_offers_assets_owner ON atomicassets_offers_assets USING btree (owner);
 

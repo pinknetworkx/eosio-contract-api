@@ -9,6 +9,8 @@ import { formatLink } from '../format';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { LinkState } from '../../../../filler/handlers/atomictools';
 import { greylistFilterParameters } from '../../atomicassets/openapi';
+import { getContractActionLogs } from '../../../utils';
+import logger from '../../../../utils/winston';
 
 export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/links', '/v1/links/_count'], server.web.caching(), async (req, res) => {
@@ -136,6 +138,30 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
         }
     });
 
+    router.all('/v1/links/:link_id/logs', server.web.caching(), (async (req, res) => {
+        const args = filterQueryArgs(req, {
+            page: {type: 'int', min: 1, default: 1},
+            limit: {type: 'int', min: 1, max: 100, default: 100},
+            order: {type: 'string', values: ['asc', 'desc'], default: 'asc'}
+        });
+
+        try {
+            res.json({
+                success: true,
+                data: await getContractActionLogs(
+                    server, core.args.atomictools_account,
+                    ['lognewlink', 'loglinkstart', 'cancellink', 'claimlink'],
+                    {link_id: req.params.link_id},
+                    (args.page - 1) * args.limit, args.limit, args.order
+                ), query_time: Date.now()
+            });
+        } catch (e) {
+            logger.error(e);
+
+            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
+    }));
+
     return {
         tag: {
             name: 'links',
@@ -216,6 +242,23 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
                         }
                     ],
                     responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/Link'})
+                }
+            },
+            '/v1/links/{link_id}/logs': {
+                get: {
+                    tags: ['links'],
+                    summary: 'Fetch link logs',
+                    parameters: [
+                        {
+                            name: 'link_id',
+                            in: 'path',
+                            description: 'ID of link',
+                            required: true,
+                            schema: {type: 'integer'}
+                        },
+                        ...paginationParameters
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Log'}})
                 }
             }
         }

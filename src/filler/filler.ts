@@ -144,7 +144,7 @@ export default class Filler {
 
                 logger.info(
                     'Reader ' + this.config.name + ' - ' +
-                    'Progress: ' + currentBlock + ' / ' + blockRange + ' ' +
+                    'Progress: ' + this.reader.currentBlock + ' / ' + (this.reader.currentBlock + this.reader.blocksUntilHead) + ' ' +
                     '(' + (100 * currentBlock / blockRange).toFixed(2) + '%) ' +
                     'Speed: ' + speed.toFixed(1) + ' B/s ' +
                     '(Syncs ' + formatSecondsLeft(estimateSeconds(this.reader.blocksUntilHead, averageSpeed)) + ')'
