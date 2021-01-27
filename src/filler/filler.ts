@@ -119,7 +119,7 @@ export default class Filler {
             const speed = (this.reader.currentBlock - lastBlockNum) / logInterval;
             lastBlockSpeeds.push(speed);
 
-            if (lastBlockSpeeds.length > 12) {
+            if (lastBlockSpeeds.length > 60) {
                 lastBlockSpeeds.shift();
             }
 

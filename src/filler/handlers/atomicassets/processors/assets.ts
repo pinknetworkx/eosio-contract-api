@@ -121,6 +121,8 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
     destructors.push(processor.onTrace(
         contract, 'logsetdata',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogSetDataActionData>): Promise<void> => {
+            // decouple from live data
+
             await db.update('atomicassets_assets', {
                 mutable_data: convertAttributeMapToObject(trace.act.data.new_data),
                 updated_at_block: block.block_num,
@@ -131,7 +133,7 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
             }, ['contract', 'asset_id']);
 
             notifier.sendTrace('assets', block, tx, trace);
-        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_ASSET
+        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_ASSET, {irreversible_queue: false}
     ));
 
     destructors.push(processor.onTrace(

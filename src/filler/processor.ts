@@ -11,8 +11,15 @@ export type CommittedListener = () => Promise<any>;
 
 export type ListenerOptions = {
     deserialize?: boolean,
-    headOnly?: boolean
+    headOnly?: boolean,
+    irreversible_queue?: boolean
 }
+
+const defaultListenerOptions = {
+    deserialize: true,
+    headOnly: false,
+    irreversible_queue: false // TODO add separate queue for irreversible data
+};
 
 export enum ProcessingState {
     HEAD = 0,
@@ -67,7 +74,7 @@ export default class DataProcessor {
     onTrace(contract: string, action: string, listener: TraceListener, priority = 100, options: ListenerOptions = {}): () => void {
         const element = {
             contract, action, callback: listener, priority,
-            options: {deserialize: true, headOnly: false, ...options}
+            options: {...defaultListenerOptions, ...options}
         };
 
         logger.debug('Trace listener registered', {contract, action, priority, options: element.options});
@@ -86,7 +93,7 @@ export default class DataProcessor {
     onDelta(contract: string, table: string, listener: DeltaListener, priority = 100, options: ListenerOptions = {}): () => void {
         const element = {
             contract, table, callback: listener, priority,
-            options: {deserialize: true, headOnly: false, ...options}
+            options: {...defaultListenerOptions, ...options}
         };
 
         logger.debug('Delta listener registered', {contract, table, priority, options: element.options});
