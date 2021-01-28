@@ -24,6 +24,8 @@ export default class StateReceiver {
     currentBlock = 0;
     headBlock = 0;
     lastIrreversibleBlock = 0;
+
+    lastCommittedBlock = 0;
     blocksUntilHead = 0;
 
     collectedBlocks = 0;
@@ -171,7 +173,7 @@ export default class StateReceiver {
 
         if (this.collectedBlocks >= commitSize) {
             try {
-                await this.processor.execute(db);
+                await this.processor.dequeueLive(db);
 
                 if (db.inTransaction || isReversible || this.processor.getState() === ProcessingState.HEAD) {
                     await db.updateReaderPosition(resp.block, this.processor.getState() === ProcessingState.HEAD);
@@ -181,6 +183,7 @@ export default class StateReceiver {
 
                 this.collectedBlocks = 0;
                 this.lastDatabaseTransaction = null;
+                this.lastCommittedBlock = resp.this_block.block_num;
 
                 await this.processor.notifyCommit();
                 await this.notifier.publish();

@@ -51,7 +51,7 @@ export function offerProcessor(core: AtomicAssetsHandler, processor: DataProcess
             ], ['contract', 'offer_id', 'asset_id']);
 
             notifier.sendTrace('offers', block, tx, trace);
-        }, AtomicAssetsUpdatePriority.ACTION_CREATE_OFFER
+        }, AtomicAssetsUpdatePriority.ACTION_CREATE_OFFER.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -65,7 +65,7 @@ export function offerProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 str: 'contract = $1 AND offer_id = $2',
                 values: [contract, trace.act.data.offer_id]
             }, ['contract', 'offer_id']);
-        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_OFFER
+        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_OFFER.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -79,7 +79,7 @@ export function offerProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 str: 'contract = $1 AND offer_id = $2',
                 values: [contract, trace.act.data.offer_id]
             }, ['contract', 'offer_id']);
-        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_OFFER
+        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_OFFER.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -93,7 +93,7 @@ export function offerProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 str: 'contract = $1 AND offer_id = $2',
                 values: [contract, trace.act.data.offer_id]
             }, ['contract', 'offer_id']);
-        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_OFFER
+        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_OFFER.valueOf()
     ));
 
     let transferredAssets: string[] = [];
@@ -101,14 +101,14 @@ export function offerProcessor(core: AtomicAssetsHandler, processor: DataProcess
         contract, 'logtransfer',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogTransferActionData>): Promise<void> => {
             transferredAssets.push(...trace.act.data.asset_ids);
-        }, AtomicAssetsUpdatePriority.INDEPENDENT
+        }, AtomicAssetsUpdatePriority.INDEPENDENT.valueOf()
     ));
 
     destructors.push(processor.onTrace(
         contract, 'logburnasset',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogBurnAssetActionData>): Promise<void> => {
             transferredAssets.push(trace.act.data.asset_id);
-        }, AtomicAssetsUpdatePriority.INDEPENDENT
+        }, AtomicAssetsUpdatePriority.INDEPENDENT.valueOf()
     ));
 
     destructors.push(processor.onCommit(

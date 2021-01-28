@@ -25,7 +25,7 @@ export function configProcessor(core: AtomicToolsHandler, processor: DataProcess
             }
 
             core.config = delta.value;
-        }, AtomicToolsUpdatePriority.TABLE_CONFIG
+        }, AtomicToolsUpdatePriority.TABLE_CONFIG.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());

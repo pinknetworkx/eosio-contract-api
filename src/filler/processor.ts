@@ -49,7 +49,9 @@ export default class DataProcessor {
     private readonly committedListeners: Array<{callback: CommittedListener, priority: number}>;
 
     private state: ProcessingState;
-    private queue: Array<{listener: {callback: any}, args: any[], priority: number, index: number}>;
+
+    private liveQueue: Array<{listener: {callback: any}, args: any[], priority: number, index: number}>;
+    private irreversibleQueue: Array<{listener: {callback: any}, args: any[], priority: number, index: number}>;
 
     constructor(initialState: ProcessingState) {
         this.traceListeners = [];
@@ -60,7 +62,7 @@ export default class DataProcessor {
         this.committedListeners = [];
 
         this.state = initialState;
-        this.queue = [];
+        this.liveQueue = [];
     }
 
     setState(state: ProcessingState): void {
@@ -117,7 +119,7 @@ export default class DataProcessor {
         this.priorityListeners.push(element);
 
         this.priorityListeners.sort((a, b) => {
-            return b.priority - a.priority;
+            return a.priority - b.priority;
         });
 
         return (): void => {
@@ -137,7 +139,7 @@ export default class DataProcessor {
         this.commitListeners.push(element);
 
         this.commitListeners.sort((a, b) => {
-            return b.priority - a.priority;
+            return a.priority - b.priority;
         });
 
         return (): void => {
@@ -157,7 +159,7 @@ export default class DataProcessor {
         this.committedListeners.push(element);
 
         this.committedListeners.sort((a, b) => {
-            return b.priority - a.priority;
+            return a.priority - b.priority;
         });
 
         return (): void => {
@@ -201,10 +203,16 @@ export default class DataProcessor {
                 continue;
             }
 
-            this.queue.push({
+            const element = {
                 listener: listener, args: [block, tx, trace],
-                priority: listener.priority, index: this.queue.length + 1
-            });
+                priority: listener.priority, index: this.liveQueue.length + 1
+            };
+
+            if (this.state === ProcessingState.HEAD && listener.options.irreversible_queue) {
+                this.irreversibleQueue.push(element);
+            } else {
+                this.liveQueue.push(element);
+            }
         }
     }
 
@@ -218,15 +226,24 @@ export default class DataProcessor {
                 continue;
             }
 
-            this.queue.push({
+            const element = {
                 listener: listener, args: [block, delta],
-                priority: listener.priority, index: this.queue.length + 1
-            });
+                priority: listener.priority, index: this.liveQueue.length + 1
+            };
+
+            if (this.state === ProcessingState.HEAD && listener.options.irreversible_queue) {
+                this.irreversibleQueue.push(element);
+            } else {
+                this.liveQueue.push(element);
+            }
         }
     }
 
-    async execute(db: ContractDBTransaction): Promise<void> {
-        this.queue.sort((a, b) => {
+    async dequeueLive(db: ContractDBTransaction): Promise<void> {
+        const queue = this.liveQueue;
+        this.liveQueue = [];
+
+        queue.sort((a, b) => {
             if (a.priority === b.priority) {
                 return a.index - b.index;
             }
@@ -235,7 +252,7 @@ export default class DataProcessor {
         });
 
         let lastPriority = -1;
-        for (const job of this.queue) {
+        for (const job of queue) {
             if (lastPriority >= 0 && job.priority !== lastPriority) {
                 for (const listener of this.priorityListeners) {
                     if (listener.threshold === lastPriority) {
@@ -255,11 +272,40 @@ export default class DataProcessor {
             lastPriority = job.priority;
         }
 
+        if (lastPriority >= 0) {
+            for (const listener of this.priorityListeners) {
+                if (listener.threshold === lastPriority) {
+                    await listener.callback(db);
+                }
+            }
+        }
+
         for (const listener of this.commitListeners) {
             await listener.callback(db);
         }
+    }
 
-        this.queue = [];
+    async dequeueIrreversible(db: ContractDBTransaction): Promise<void> {
+        const queue = this.irreversibleQueue;
+        this.irreversibleQueue = [];
+
+        queue.sort((a, b) => {
+            if (a.priority === b.priority) {
+                return a.index - b.index;
+            }
+
+            return a.priority - b.priority;
+        });
+
+        for (const job of queue) {
+            try {
+                await job.listener.callback(...[db, ...job.args]);
+            } catch (e) {
+                logger.error('Error while processing data', job.args);
+
+                throw e;
+            }
+        }
     }
 
     async notifyCommit(): Promise<void> {

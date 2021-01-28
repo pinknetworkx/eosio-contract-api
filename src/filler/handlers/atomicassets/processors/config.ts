@@ -43,7 +43,7 @@ export function configProcessor(core: AtomicAssetsHandler, processor: DataProces
             }
 
             core.config = delta.value;
-        }, AtomicAssetsUpdatePriority.TABLE_CONFIG
+        }, AtomicAssetsUpdatePriority.TABLE_CONFIG.valueOf()
     ));
 
     destructors.push(processor.onDelta(
@@ -63,7 +63,7 @@ export function configProcessor(core: AtomicAssetsHandler, processor: DataProces
             }
 
             core.tokenconfigs = delta.value;
-        }, AtomicAssetsUpdatePriority.TABLE_CONFIG
+        }, AtomicAssetsUpdatePriority.TABLE_CONFIG.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());

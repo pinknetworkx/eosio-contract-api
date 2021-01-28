@@ -90,7 +90,7 @@ export function configProcessor(core: AtomicMarketHandler, processor: DataProces
             }
 
             core.config = delta.value;
-        }, AtomicMarketUpdatePriority.TABLE_CONFIG
+        }, AtomicMarketUpdatePriority.TABLE_CONFIG.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());

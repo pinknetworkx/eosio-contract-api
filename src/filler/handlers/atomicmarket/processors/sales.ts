@@ -41,7 +41,7 @@ export function saleProcessor(core: AtomicMarketHandler, processor: DataProcesso
             }, ['market_contract', 'sale_id']);
 
             notifier.sendTrace('sales', block, tx, trace);
-        }, AtomicMarketUpdatePriority.ACTION_CREATE_SALE
+        }, AtomicMarketUpdatePriority.ACTION_CREATE_SALE.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -58,7 +58,7 @@ export function saleProcessor(core: AtomicMarketHandler, processor: DataProcesso
             }, ['market_contract', 'sale_id']);
 
             notifier.sendTrace('sales', block, tx, trace);
-        }, AtomicMarketUpdatePriority.ACTION_UPDATE_SALE
+        }, AtomicMarketUpdatePriority.ACTION_UPDATE_SALE.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -74,7 +74,7 @@ export function saleProcessor(core: AtomicMarketHandler, processor: DataProcesso
             }, ['market_contract', 'sale_id']);
 
             notifier.sendTrace('sales', block, tx, trace);
-        }, AtomicMarketUpdatePriority.ACTION_UPDATE_SALE
+        }, AtomicMarketUpdatePriority.ACTION_UPDATE_SALE.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -131,7 +131,7 @@ export function saleProcessor(core: AtomicMarketHandler, processor: DataProcesso
             }, ['market_contract', 'sale_id']);
 
             notifier.sendTrace('sales', block, tx, trace);
-        }, AtomicMarketUpdatePriority.ACTION_UPDATE_SALE
+        }, AtomicMarketUpdatePriority.ACTION_UPDATE_SALE.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());

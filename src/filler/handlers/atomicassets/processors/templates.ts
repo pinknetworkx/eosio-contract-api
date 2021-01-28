@@ -66,7 +66,7 @@ export function templateProcessor(core: AtomicAssetsHandler, processor: DataProc
                     created_at_time: eosioTimestampToDate(block.timestamp).getTime()
                 }, ['contract', 'template_id']);
             }
-        }, AtomicAssetsUpdatePriority.TABLE_TEMPLATES
+        }, AtomicAssetsUpdatePriority.TABLE_TEMPLATES.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());

@@ -14,7 +14,7 @@ export function logProcessor(core: AtomicToolsHandler, processor: DataProcessor)
             await db.logTrace(block, tx, trace, {
                 link_id: trace.act.data.link_id
             });
-        }, AtomicToolsUpdatePriority.LOGS
+        }, AtomicToolsUpdatePriority.LOGS.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -23,7 +23,7 @@ export function logProcessor(core: AtomicToolsHandler, processor: DataProcessor)
             await db.logTrace(block, tx, trace, {
                 link_id: trace.act.data.link_id
             });
-        }, AtomicToolsUpdatePriority.LOGS
+        }, AtomicToolsUpdatePriority.LOGS.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -32,7 +32,7 @@ export function logProcessor(core: AtomicToolsHandler, processor: DataProcessor)
             await db.logTrace(block, tx, trace, {
                 link_id: trace.act.data.link_id
             });
-        }, AtomicToolsUpdatePriority.LOGS
+        }, AtomicToolsUpdatePriority.LOGS.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -42,7 +42,7 @@ export function logProcessor(core: AtomicToolsHandler, processor: DataProcessor)
                 link_id: trace.act.data.link_id,
                 claimer_signature: trace.act.data.link_id
             });
-        }, AtomicToolsUpdatePriority.LOGS
+        }, AtomicToolsUpdatePriority.LOGS.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());

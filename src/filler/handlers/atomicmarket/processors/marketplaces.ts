@@ -24,7 +24,7 @@ export function marketplaceProcessor(core: AtomicMarketHandler, processor: DataP
                 created_at_block: block.block_num,
                 created_at_time: eosioTimestampToDate(block.timestamp).getTime()
             }, ['market_contract', 'marketplace_name'], ['created_at_block', 'created_at_time']);
-        }, AtomicMarketUpdatePriority.TABLE_MARKETPLACES
+        }, AtomicMarketUpdatePriority.TABLE_MARKETPLACES.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());

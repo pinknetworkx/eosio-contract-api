@@ -139,6 +139,10 @@ export default class Filler {
             } else if (this.reader.blocksUntilHead > 120) {
                 lastBlockTime = Date.now();
 
+                if (blockRange === 0) {
+                    blockRange = this.reader.blocksUntilHead;
+                }
+
                 const averageSpeed = lastBlockSpeeds.reduce((prev, curr) => prev + curr, 0) / lastBlockSpeeds.length;
                 const currentBlock = Math.max(blockRange - this.reader.blocksUntilHead, 0);
 
@@ -151,6 +155,7 @@ export default class Filler {
                 );
             } else {
                 lastBlockTime = Date.now();
+                blockRange = 0;
 
                 logger.info(
                     'Reader ' + this.config.name + ' - ' +

@@ -24,7 +24,7 @@ if (args.options.ds_experimental) {
 
 const eosjsTypes: any = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), JSON.parse(args.abi));
 
-function deserialize(type: string, data: Uint8Array | string): any {
+function deserialize(type: string, data: Uint8Array | string, abi?: any): any {
     if (args.options.ds_experimental && abieosSupported) {
         if (typeof data === 'string') {
             return nodeAbieos.hex_to_json('0', type, data);
@@ -40,17 +40,30 @@ function deserialize(type: string, data: Uint8Array | string): any {
         dataArray = data;
     }
 
-    const buffer = new Serialize.SerialBuffer({ textEncoder: new TextEncoder, textDecoder: new TextDecoder, array: dataArray });
-    const result = Serialize.getType(eosjsTypes, type).deserialize(buffer, new Serialize.SerializerState({ bytesAsUint8Array: true }));
+    const buffer = new Serialize.SerialBuffer({ textEncoder: new TextEncoder(), textDecoder: new TextDecoder(), array: dataArray });
 
-    if (buffer.readPos !== data.length) {
-        throw new Error('Deserialization error: ' + type);
+    if (abi) {
+        const abiTypes = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), abi);
+        const result = Serialize.getType(abiTypes, type).deserialize(buffer, new Serialize.SerializerState({ bytesAsUint8Array: true }));
+
+        if (buffer.readPos !== data.length) {
+            throw new Error('Deserialization error: ' + type);
+        }
+
+        return result;
+    } else {
+
+        const result = Serialize.getType(eosjsTypes, type).deserialize(buffer, new Serialize.SerializerState({ bytesAsUint8Array: true }));
+
+        if (buffer.readPos !== data.length) {
+            throw new Error('Deserialization error: ' + type);
+        }
+
+        return result;
     }
-
-    return result;
 }
 
-parentPort.on('message', (param: Array<{type: string, data: Uint8Array | string}>) => {
+parentPort.on('message', (param: Array<{type: string, data: Uint8Array | string, abi?: any}>) => {
     try {
         const result = [];
 
@@ -59,7 +72,11 @@ parentPort.on('message', (param: Array<{type: string, data: Uint8Array | string}
                 return parentPort.postMessage({success: false, message: 'Empty data received on deserialize worker'});
             }
 
-            result.push(deserialize(row.type, row.data));
+            if (row.abi) {
+                result.push(deserialize(row.type, row.data, row.abi));
+            } else {
+                result.push(deserialize(row.type, row.data));
+            }
         }
 
         return parentPort.postMessage({success: true, data: result});

@@ -39,7 +39,7 @@ export function collectionProcessor(core: AtomicAssetsHandler, processor: DataPr
                 created_at_block: block.block_num,
                 created_at_time: eosioTimestampToDate(block.timestamp).getTime()
             }, ['contract', 'collection_name'], ['created_at_block', 'created_at_time']);
-        }, AtomicAssetsUpdatePriority.TABLE_COLLECTIONS
+        }, AtomicAssetsUpdatePriority.TABLE_COLLECTIONS.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());

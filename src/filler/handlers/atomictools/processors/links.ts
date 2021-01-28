@@ -40,7 +40,7 @@ export function linkProcessor(core: AtomicToolsHandler, processor: DataProcessor
             }));
 
             await db.insert('atomictools_links_assets', rows, ['tools_contract', 'link_id', 'assets_contract', 'asset_id']);
-        }, AtomicToolsUpdatePriority.ACTION_CREATE_LINK
+        }, AtomicToolsUpdatePriority.ACTION_CREATE_LINK.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -54,7 +54,7 @@ export function linkProcessor(core: AtomicToolsHandler, processor: DataProcessor
                 str: 'tools_contract = $1 AND link_id = $2',
                 values: [core.args.atomictools_account, trace.act.data.link_id]
             }, ['tools_contract', 'link_id']);
-        }, AtomicToolsUpdatePriority.ACTION_UPDATE_LINK
+        }, AtomicToolsUpdatePriority.ACTION_UPDATE_LINK.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -68,7 +68,7 @@ export function linkProcessor(core: AtomicToolsHandler, processor: DataProcessor
                 str: 'tools_contract = $1 AND link_id = $2',
                 values: [core.args.atomictools_account, trace.act.data.link_id]
             }, ['tools_contract', 'link_id']);
-        }, AtomicToolsUpdatePriority.ACTION_UPDATE_LINK
+        }, AtomicToolsUpdatePriority.ACTION_UPDATE_LINK.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -83,7 +83,7 @@ export function linkProcessor(core: AtomicToolsHandler, processor: DataProcessor
                 str: 'tools_contract = $1 AND link_id = $2',
                 values: [core.args.atomictools_account, trace.act.data.link_id]
             }, ['tools_contract', 'link_id']);
-        }, AtomicToolsUpdatePriority.ACTION_UPDATE_LINK
+        }, AtomicToolsUpdatePriority.ACTION_UPDATE_LINK.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());

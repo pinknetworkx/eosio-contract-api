@@ -18,10 +18,16 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicassets_account;
 
+    let tableInserts = {
+        'assets': <any[]>[],
+        'mints': <any[]>[],
+        'backed_tokens': <any[]>[]
+    };
+
     destructors.push(processor.onTrace(
         contract, 'logmint',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogMintAssetActionData>): Promise<void> => {
-            await db.insert('atomicassets_assets', {
+            tableInserts.assets.push({
                 contract: contract,
                 asset_id: trace.act.data.asset_id,
                 collection_name: trace.act.data.collection_name,
@@ -39,9 +45,9 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
                 minted_at_block: block.block_num,
                 minted_at_time: eosioTimestampToDate(block.timestamp).getTime()
-            }, ['contract', 'asset_id']);
+            });
 
-            await db.insert('atomicassets_mints', {
+            tableInserts.mints.push({
                 contract: contract,
                 asset_id: trace.act.data.asset_id,
                 receiver: trace.act.data.new_asset_owner,
@@ -49,10 +55,10 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 txid: Buffer.from(tx.id, 'hex'),
                 created_at_block: block.block_num,
                 created_at_time: eosioTimestampToDate(block.timestamp).getTime()
-            }, ['contract', 'asset_id']);
+            });
 
             if (trace.act.data.backed_tokens.length > 0) {
-                await db.insert('atomicassets_assets_backed_tokens', trace.act.data.backed_tokens.map(eosioAsset => {
+                tableInserts.backed_tokens.push(...trace.act.data.backed_tokens.map(eosioAsset => {
                     const token = splitEosioToken(eosioAsset);
 
                     return {
@@ -61,11 +67,33 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                         updated_at_block: block.block_num,
                         updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
                     };
-                }), ['contract', 'asset_id', 'token_symbol']);
+                }));
             }
 
             notifier.sendTrace('assets', block, tx, trace);
-        }, AtomicAssetsUpdatePriority.ACTION_MINT_ASSET
+        }, AtomicAssetsUpdatePriority.ACTION_MINT_ASSET.valueOf()
+    ));
+
+    destructors.push(processor.onPriorityComplete(AtomicAssetsUpdatePriority.ACTION_MINT_ASSET.valueOf(),
+        async (db: ContractDBTransaction) => {
+            if (tableInserts.assets.length > 0) {
+                await db.insert('atomicassets_assets', tableInserts.assets, ['contract', 'asset_id']);
+            }
+
+            if (tableInserts.mints.length > 0) {
+                await db.insert('atomicassets_mints', tableInserts.mints, ['contract', 'asset_id']);
+            }
+
+            if (tableInserts.backed_tokens.length > 0) {
+                await db.insert('atomicassets_assets_backed_tokens', tableInserts.backed_tokens, ['contract', 'asset_id', 'token_symbol']);
+            }
+
+            tableInserts = {
+                'assets': [],
+                'mints': [],
+                'backed_tokens': []
+            };
+        }, AtomicAssetsUpdatePriority.ACTION_MINT_ASSET.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -96,7 +124,7 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
             }
 
             notifier.sendTrace('assets', block, tx, trace);
-        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_ASSET
+        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_ASSET.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -115,14 +143,12 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
             }, ['contract', 'asset_id']);
 
             notifier.sendTrace('assets', block, tx, trace);
-        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_ASSET
+        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_ASSET.valueOf()
     ));
 
     destructors.push(processor.onTrace(
         contract, 'logsetdata',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogSetDataActionData>): Promise<void> => {
-            // decouple from live data
-
             await db.update('atomicassets_assets', {
                 mutable_data: convertAttributeMapToObject(trace.act.data.new_data),
                 updated_at_block: block.block_num,
@@ -133,7 +159,7 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
             }, ['contract', 'asset_id']);
 
             notifier.sendTrace('assets', block, tx, trace);
-        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_ASSET, {irreversible_queue: false}
+        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_ASSET.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -171,7 +197,7 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
             }
 
             notifier.sendTrace('transfers', block, tx, trace);
-        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_ASSET
+        }, AtomicAssetsUpdatePriority.ACTION_UPDATE_ASSET.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());

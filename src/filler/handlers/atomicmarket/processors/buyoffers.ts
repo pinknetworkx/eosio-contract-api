@@ -45,7 +45,7 @@ export function buyofferProcessor(core: AtomicMarketHandler, processor: DataProc
             })), ['market_contract', 'buyoffer_id', 'assets_contract', 'asset_id']);
 
             notifier.sendTrace('buyoffer', block, tx, trace);
-        }, AtomicMarketUpdatePriority.ACTION_CREATE_BUYOFFER
+        }, AtomicMarketUpdatePriority.ACTION_CREATE_BUYOFFER.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -61,7 +61,7 @@ export function buyofferProcessor(core: AtomicMarketHandler, processor: DataProc
             }, ['market_contract', 'buyoffer_id']);
 
             notifier.sendTrace('buyoffer', block, tx, trace);
-        }, AtomicMarketUpdatePriority.ACTION_UPDATE_BUYOFFER
+        }, AtomicMarketUpdatePriority.ACTION_UPDATE_BUYOFFER.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -78,7 +78,7 @@ export function buyofferProcessor(core: AtomicMarketHandler, processor: DataProc
             }, ['market_contract', 'buyoffer_id']);
 
             notifier.sendTrace('buyoffer', block, tx, trace);
-        }, AtomicMarketUpdatePriority.ACTION_UPDATE_BUYOFFER
+        }, AtomicMarketUpdatePriority.ACTION_UPDATE_BUYOFFER.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -95,7 +95,7 @@ export function buyofferProcessor(core: AtomicMarketHandler, processor: DataProc
             }, ['market_contract', 'buyoffer_id']);
 
             notifier.sendTrace('buyoffer', block, tx, trace);
-        }, AtomicMarketUpdatePriority.ACTION_UPDATE_BUYOFFER
+        }, AtomicMarketUpdatePriority.ACTION_UPDATE_BUYOFFER.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());

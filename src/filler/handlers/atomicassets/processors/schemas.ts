@@ -25,7 +25,7 @@ export function schemaProcessor(core: AtomicAssetsHandler, processor: DataProces
                 created_at_block: block.block_num,
                 created_at_time: eosioTimestampToDate(block.timestamp).getTime()
             }, ['contract', 'collection_name', 'schema_name'], ['created_at_block', 'created_at_time']);
-        }, AtomicAssetsUpdatePriority.TABLE_SCHEMAS
+        }, AtomicAssetsUpdatePriority.TABLE_SCHEMAS.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());

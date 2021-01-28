@@ -55,7 +55,7 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
             ]);
 
             notifier.sendTrace('auctions', block, tx, trace);
-        }, AtomicMarketUpdatePriority.ACTION_CREATE_AUCTION
+        }, AtomicMarketUpdatePriority.ACTION_CREATE_AUCTION.valueOf()
     ));
 
     destructors.push(processor.onDelta(
@@ -69,7 +69,7 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
                 str: 'market_contract = $1 AND auction_id = $2',
                 values: [contract, delta.value.auction_id]
             }, ['market_contract', 'auction_id']);
-        }, AtomicMarketUpdatePriority.TABLE_AUCTIONS
+        }, AtomicMarketUpdatePriority.TABLE_AUCTIONS.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -85,7 +85,7 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
             }, ['market_contract', 'auction_id']);
 
             notifier.sendTrace('auctions', block, tx, trace);
-        }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION
+        }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -101,7 +101,7 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
             }, ['market_contract', 'auction_id']);
 
             notifier.sendTrace('auctions', block, tx, trace);
-        }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION
+        }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -136,7 +136,7 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
             }, ['market_contract', 'auction_id', 'bid_number']);
 
             notifier.sendTrace('auctions', block, tx, trace);
-        }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION
+        }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -150,7 +150,7 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
                 str: 'market_contract = $1 AND auction_id = $2',
                 values: [contract, trace.act.data.auction_id]
             }, ['market_contract', 'auction_id']);
-        }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION
+        }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION.valueOf()
     ));
 
     destructors.push(processor.onTrace(
@@ -164,7 +164,7 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
                 str: 'market_contract = $1 AND auction_id = $2',
                 values: [contract, trace.act.data.auction_id]
             }, ['market_contract', 'auction_id']);
-        }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION
+        }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION.valueOf()
     ));
 
 

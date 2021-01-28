@@ -32,7 +32,7 @@ export function balanceProcessor(core: AtomicMarketHandler, processor: DataProce
                     };
                 }), ['market_contract', 'owner']);
             }
-        }, AtomicMarketUpdatePriority.TABLE_BALANCES
+        }, AtomicMarketUpdatePriority.TABLE_BALANCES.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());

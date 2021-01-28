@@ -194,12 +194,16 @@ export class ContractDBTransaction {
     inTransaction: boolean;
     committed: boolean;
 
+    actionLogs: any[];
+
     constructor(
         readonly client: PoolClient, readonly name: string, readonly currentBlock?: number
     ) {
         this.lock = new AwaitLock();
         this.committed = false;
         this.inTransaction = false;
+
+        this.actionLogs = [];
     }
 
     async begin(): Promise<void> {
@@ -578,7 +582,7 @@ export class ContractDBTransaction {
     }
 
     async logTrace(block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace, metadata: any): Promise<void> {
-        await this.insert('contract_action_logs', {
+        this.actionLogs.push({
             global_sequence: trace.global_sequence,
             account: trace.act.account,
             name: trace.act.name,
@@ -586,10 +590,14 @@ export class ContractDBTransaction {
             txid: Buffer.from(tx.id, 'hex'),
             created_at_block: block.block_num,
             created_at_time: eosioTimestampToDate(block.timestamp).getTime()
-        }, ['global_sequence']);
+        });
     }
 
     async commit(): Promise<void> {
+        if (this.actionLogs.length > 0) {
+            await this.insert('contract_action_logs',  this.actionLogs, ['global_sequence']);
+        }
+
         await this.acquireLock();
 
         try {

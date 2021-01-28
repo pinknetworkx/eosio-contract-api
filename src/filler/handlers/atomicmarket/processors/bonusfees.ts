@@ -41,7 +41,7 @@ export function bonusfeeProcessor(core: AtomicMarketHandler, processor: DataProc
                 created_at_block: block.block_num,
                 created_at_time: eosioTimestampToDate(block.timestamp).getTime()
             }, ['market_contract', 'bonusfee_id'], ['created_at_block', 'created_at_time']);
-        }, AtomicMarketUpdatePriority.TABLE_BONUSFEES
+        }, AtomicMarketUpdatePriority.TABLE_BONUSFEES.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());
