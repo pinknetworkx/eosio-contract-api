@@ -180,6 +180,8 @@
               "burned_at_time",
               "updated_at_block",
               "updated_at_time",
+              "transferred_at_block",
+              "transferred_at_time",
               "minted_at_block",
               "minted_at_time"
             ],
@@ -323,19 +325,17 @@
     {
       "table": {
         "schema": "public",
-        "name": "atomicassets_logs"
+        "name": "contract_action_logs"
       },
       "select_permissions": [
         {
           "role": "anonymous",
           "permission": {
             "columns": [
-              "log_id",
-              "contract",
+              "global_sequence",
+              "account",
               "name",
-              "relation_name",
-              "relation_id",
-              "data",
+              "metadata",
               "txid",
               "created_at_block",
               "created_at_time"
@@ -358,6 +358,7 @@
             "columns": [
               "contract",
               "asset_id",
+              "minter",
               "receiver",
               "txid",
               "created_at_block",
