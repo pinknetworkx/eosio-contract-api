@@ -1,22 +1,18 @@
 import 'mocha';
 
-import ConnectionManager from '../src/connections/manager';
 import { ShipBlockResponse } from '../src/types/ship';
 import logger from '../src/utils/winston';
-
-const config = require('../config/connections.config.json');
+import StateHistoryBlockReader from '../src/connections/ship';
 
 describe('Ship Test', () => {
-    const connection = new ConnectionManager(config);
+    const ship = new StateHistoryBlockReader('ws://127.0.0.1:8080', {
+        min_block_confirmation: 1,
+        ds_threads: 1,
+        ds_experimental: false
+    });
 
     it('connect and receive first block', async () => {
         return new Promise((async (resolve) => {
-            const ship = connection.createShipBlockReader({
-                min_block_confirmation: 1,
-                ds_threads: 1,
-                ds_experimental: false
-            });
-
             ship.consume( (block: ShipBlockResponse) => {
                 logger.info('block received', block);
 
@@ -25,7 +21,7 @@ describe('Ship Test', () => {
             });
 
             ship.startProcessing({
-                start_block_num: 142642897,
+                start_block_num: 78636526,
                 max_messages_in_flight: 1,
                 fetch_block: true,
                 fetch_traces: true,

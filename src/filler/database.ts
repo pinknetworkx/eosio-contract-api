@@ -316,10 +316,17 @@ export class ContractDBTransaction {
             await this.begin();
 
             let selectQuery = null;
-
             if (this.currentBlock && reversible) {
+                const selectKeys = Object.keys(values);
+
+                for (const key of primaryKey) {
+                    if (selectKeys.indexOf(key) === -1) {
+                        selectKeys.push(key);
+                    }
+                }
+
                 selectQuery = await this.clientQuery(
-                    'SELECT * FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition.str + ';', condition.values
+                    'SELECT ' + selectKeys.map(key => '"' + key + '"').join(', ') + ' FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition.str + ';', condition.values
                 );
             }
 
@@ -381,8 +388,7 @@ export class ContractDBTransaction {
         try {
             await this.begin();
 
-            let selectQuery = null;
-
+            let selectQuery;
             if (this.currentBlock && reversible) {
                 selectQuery = await this.clientQuery(
                     'SELECT * FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition.str + ';', condition.values
@@ -392,8 +398,8 @@ export class ContractDBTransaction {
             const queryStr = 'DELETE FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition.str + ';';
             const query = await this.clientQuery(queryStr, condition.values);
 
-            if (selectQuery !== null && selectQuery.rows.length > 0) {
-                await this.addRollbackQuery('insert', table, selectQuery.rows, null);
+            if (selectQuery && selectQuery.rows.length > 0) {
+                await this.addRollbackQuery('insert', table, selectQuery.rows);
             }
 
             return query;
@@ -444,7 +450,7 @@ export class ContractDBTransaction {
         }
     }
 
-    async addRollbackQuery(operation: string, table: string, values: any, condition: Condition | null): Promise<void> {
+    async addRollbackQuery(operation: string, table: string, values: any, condition?: Condition): Promise<void> {
         let serializedCondition = null;
         if (condition) {
             serializedCondition = {
