@@ -19,7 +19,7 @@ export function buildDataConditions(
         } else if (key.startsWith('data:number.')) {
             query[key.substr('data:number.'.length)] = parseFloat(args[key]);
         } else if (key.startsWith('data:bool.')) {
-            query[key.substr('data:bool.'.length)] = args[key] === 'true' || args[key] === '1' || args[key] === '2';
+            query[key.substr('data:bool.'.length)] = (args[key] === 'true' || args[key] === '1') ? 1 : 0;
         } else if (key.startsWith('data.')) {
             query[key.substr('data.'.length)] = args[key];
         }
