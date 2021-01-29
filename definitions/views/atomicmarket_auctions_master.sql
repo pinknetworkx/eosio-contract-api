@@ -68,8 +68,7 @@ CREATE OR REPLACE VIEW atomicmarket_auctions_master AS
         auction.updated_at_block,
         auction.updated_at_time,
         auction.created_at_block,
-        auction.created_at_time,
-        encode(auction.created_at_txid::bytea, 'hex') created_at_txid
+        auction.created_at_time
     FROM atomicmarket_auctions auction, atomicassets_collections collection, atomicmarket_tokens token
     WHERE auction.market_contract = token.market_contract AND auction.token_symbol = token.token_symbol AND
         auction.assets_contract = collection.contract AND auction.collection_name = collection.collection_name

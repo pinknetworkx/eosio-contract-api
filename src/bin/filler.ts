@@ -1,7 +1,7 @@
 import * as cluster from 'cluster';
 import * as fs from 'fs';
 
-import Reader from '../filler/reader';
+import Filler from '../filler/filler';
 import ConnectionManager from '../connections/manager';
 import logger from '../utils/winston';
 import { IConnectionsConfig, IReaderConfig } from '../types/config';
@@ -52,7 +52,7 @@ if (cluster.isMaster) {
     // delay startup for each reader to avoid startup transaction conflicts
     setTimeout(async () => {
         const connection = new ConnectionManager(connectionConfig);
-        const reader = new Reader(readerConfigs[index], connection);
+        const reader = new Filler(readerConfigs[index], connection);
 
         await reader.startFiller(5);
     }, index * 1000);

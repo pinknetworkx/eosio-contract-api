@@ -2,15 +2,23 @@ import * as fs from 'fs';
 import { PoolClient } from 'pg';
 
 import { ContractHandler } from '../interfaces';
-import { ShipBlock } from '../../../types/ship';
-import { EosioActionTrace, EosioTableRow, EosioTransaction } from '../../../types/eosio';
-import { ContractDBTransaction } from '../../database';
 import logger from '../../../utils/winston';
-import { getStackTrace } from '../../../utils';
 import { ConfigTableRow } from './types/tables';
-import AtomicMarketTableHandler from './tables';
-import AtomicMarketActionHandler from './actions';
-import StateReceiver from '../../receiver';
+import Filler from '../../filler';
+import { DELPHIORACLE_BASE_PRIORITY } from '../delphioracle';
+import { ATOMICASSETS_BASE_PRIORITY } from '../atomicassets';
+import DataProcessor from '../../processor';
+import ApiNotificationSender from '../../notifier';
+import { auctionProcessor } from './processors/auctions';
+import { balanceProcessor } from './processors/balances';
+import { configProcessor } from './processors/config';
+import { logProcessor } from './processors/logs';
+import { marketplaceProcessor } from './processors/marketplaces';
+import { saleProcessor } from './processors/sales';
+import { buyofferProcessor } from './processors/buyoffers';
+import { bonusfeeProcessor } from './processors/bonusfees';
+
+export const ATOMICMARKET_BASE_PRIORITY = Math.max(ATOMICASSETS_BASE_PRIORITY, DELPHIORACLE_BASE_PRIORITY) + 1000;
 
 export type AtomicMarketArgs = {
     atomicmarket_account: string,
@@ -33,16 +41,26 @@ export enum AuctionState {
     CANCELED = 2
 }
 
+export enum BuyofferState {
+    PENDING = 0,
+    DECLINED = 1,
+    CANCELED = 2,
+    ACCEPTED = 3
+}
+
 export enum AtomicMarketUpdatePriority {
-    TABLE_BALANCES = 90,
-    TABLE_MARKETPLACES = 90,
-    TABLE_CONFIG = 90,
-    ACTION_CREATE_SALE = 80,
-    ACTION_CREATE_AUCTION = 80,
-    TABLE_AUCTIONS = 70,
-    TABLE_SALES = 70,
-    ACTION_UPDATE_SALE = 50,
-    ACTION_UPDATE_AUCTION = 50
+    TABLE_BALANCES = ATOMICMARKET_BASE_PRIORITY + 10,
+    TABLE_MARKETPLACES = ATOMICMARKET_BASE_PRIORITY + 10,
+    TABLE_CONFIG = ATOMICMARKET_BASE_PRIORITY + 10,
+    TABLE_BONUSFEES = ATOMICMARKET_BASE_PRIORITY + 10,
+    ACTION_CREATE_SALE = ATOMICMARKET_BASE_PRIORITY + 20,
+    ACTION_CREATE_AUCTION = ATOMICMARKET_BASE_PRIORITY + 20,
+    ACTION_CREATE_BUYOFFER = ATOMICMARKET_BASE_PRIORITY + 20,
+    TABLE_AUCTIONS = ATOMICMARKET_BASE_PRIORITY + 30,
+    ACTION_UPDATE_SALE = ATOMICMARKET_BASE_PRIORITY + 40,
+    ACTION_UPDATE_AUCTION = ATOMICMARKET_BASE_PRIORITY + 40,
+    ACTION_UPDATE_BUYOFFER = ATOMICMARKET_BASE_PRIORITY + 40,
+    LOGS = ATOMICMARKET_BASE_PRIORITY
 }
 
 export default class AtomicMarketHandler extends ContractHandler {
@@ -52,47 +70,12 @@ export default class AtomicMarketHandler extends ContractHandler {
 
     config: ConfigTableRow;
 
-    notifications: Array<{
-        index: number,
-        trace: any,
-        fn: () => any
-    }> = [];
-    jobs: Array<{
-        priority: number,
-        index: number,
-        trace: any,
-        fn: () => any
-    }> = [];
-
-    tableHandler: AtomicMarketTableHandler;
-    actionHandler: AtomicMarketActionHandler;
-
-    materializedViewRefresh = true;
-
-    constructor(reader: StateReceiver, args: {[key: string]: any}, minBlock: number = 0) {
-        super(reader, args, minBlock);
+    constructor(filler: Filler, args: {[key: string]: any}) {
+        super(filler, args);
 
         if (typeof args.atomicmarket_account !== 'string') {
             throw new Error('AtomicMarket: Argument missing in atomicmarket handler: atomicmarket_account');
         }
-
-        this.scope = {
-            actions: [
-                {
-                    filter: this.args.atomicmarket_account + ':*',
-                    deserialize: true
-                }
-            ],
-            tables: [
-                {
-                    filter: this.args.atomicmarket_account + ':*',
-                    deserialize: true
-                }
-            ]
-        };
-
-        this.tableHandler = new AtomicMarketTableHandler(this);
-        this.actionHandler = new AtomicMarketActionHandler(this);
     }
 
     async init(client: PoolClient): Promise<void> {
@@ -102,13 +85,15 @@ export default class AtomicMarketHandler extends ContractHandler {
         );
 
         const materializedViews = [
-            'atomicmarket_sale_prices', 'atomicmarket_auction_mints', 'atomicmarket_sale_mints',
-            'atomicmarket_template_prices', 'atomicmarket_auction_stats', 'atomicmarket_sale_stats'
+            'atomicmarket_template_prices',
+            'atomicmarket_auction_mints', 'atomicmarket_auction_stats',
+            'atomicmarket_buyoffer_mints', 'atomicmarket_buyoffer_stats',
+            'atomicmarket_sale_mints', 'atomicmarket_sale_stats', 'atomicmarket_sale_prices'
         ];
         const views = [
             'atomicmarket_assets_master', 'atomicmarket_auctions_master',
             'atomicmarket_sales_master', 'atomicmarket_sale_prices_master',
-            'atomicmarket_template_prices_master'
+            'atomicmarket_template_prices_master', 'atomicmarket_buyoffers_master'
         ];
 
         if (!existsQuery.rows[0].exists) {
@@ -214,35 +199,17 @@ export default class AtomicMarketHandler extends ContractHandler {
             };
         }
 
-        setTimeout(async () => {
-            while (this.materializedViewRefresh) {
-                try {
-                    for (const view of materializedViews) {
-                        const key = 'eosio-contract-api:' + this.connection.chain.name + ':' + this.connection.database.name + ':' + view;
-
-                        const updated = JSON.parse(await this.connection.redis.ioRedis.get(key)) || 0;
-
-                        // only update every 50 seconds if multiple processes are running
-                        if (updated < Date.now() - 50000) {
-                            await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view);
-
-                            await this.connection.redis.ioRedis.set(key, JSON.stringify(Date.now()));
-                        }
-                    }
-                } catch (e) {
-                    logger.error(e);
-                }
-
-                await new Promise((resolve => setTimeout(resolve, 60000)));
-            }
-        }, 5000);
+        for (const view of materializedViews) {
+            this.filler.registerMaterializedViewRefresh(view, 60000);
+        }
     }
 
     async deleteDB(client: PoolClient): Promise<void> {
         const tables = [
-            'atomicmarket_auctions', 'atomicmarket_auctions_bids', 'atomicmarket_config',
-            'atomicmarket_delphi_pairs', 'atomicmarket_marketplaces', 'atomicmarket_sales',
-            'atomicmarket_token_symbols'
+            'atomicmarket_auctions', 'atomicmarket_auctions_assets', 'atomicmarket_auctions_bids',
+            'atomicmarket_sales', 'atomicmarket_buyoffers', 'atomicmarket_buyoffers_assets',
+            'atomicmarket_config', 'atomicmarket_delphi_pairs', 'atomicmarket_marketplaces',
+            'atomicmarket_token_symbols', 'atomicmarket_bonusfees', 'atomicmarket_balances'
         ];
 
         for (const table of tables) {
@@ -252,89 +219,33 @@ export default class AtomicMarketHandler extends ContractHandler {
             );
         }
 
-        const views = ['atomicmarket_sale_prices', 'atomicmarket_sale_mints'];
+        const materializedViews = [
+            'atomicmarket_auction_mints', 'atomicmarket_auction_stats',
+            'atomicmarket_buyoffer_mints', 'atomicmarket_buyoffer_stats',
+            'atomicmarket_sale_mints', 'atomicmarket_sale_stats', 'atomicmarket_sale_prices',
+            'atomicmarket_template_prices'
+        ];
 
-        for (const view of views) {
+        for (const view of materializedViews) {
             await client.query('REFRESH MATERIALIZED VIEW ' + client.escapeIdentifier(view) + '');
         }
     }
 
-    async onAction(db: ContractDBTransaction, block: ShipBlock, trace: EosioActionTrace, tx: EosioTransaction): Promise<void> {
-        await this.actionHandler.handleTrace(db, block, trace, tx);
-    }
+    async register(processor: DataProcessor, notifier: ApiNotificationSender): Promise<() => any> {
+        const destructors: Array<() => any> = [];
 
-    async onTableChange(db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow): Promise<void> {
-        await this.tableHandler.handleUpdate(db, block, delta);
-    }
+        destructors.push(auctionProcessor(this, processor, notifier));
+        destructors.push(balanceProcessor(this, processor));
+        destructors.push(bonusfeeProcessor(this, processor));
+        destructors.push(buyofferProcessor(this, processor, notifier));
+        destructors.push(configProcessor(this, processor));
+        destructors.push(marketplaceProcessor(this, processor));
+        destructors.push(saleProcessor(this, processor, notifier));
 
-    async onBlockStart(): Promise<void> {
-        this.jobs = [];
-        this.notifications = [];
-    }
-
-    async onBlockComplete(): Promise<void> {
-        this.jobs.sort((a, b) => {
-            if (a.priority === b.priority) {
-                return a.index - b.index;
-            }
-
-            return b.priority - a.priority;
-        });
-
-        for (const job of this.jobs) {
-            try {
-                await job.fn();
-            } catch (e) {
-                logger.error('Error while processing update job', job.trace);
-
-                throw e;
-            }
+        if (this.args.store_logs) {
+            destructors.push(logProcessor(this, processor));
         }
 
-        this.jobs = [];
-    }
-
-    async onCommit(): Promise<void> {
-        for (const notification of this.notifications) {
-            try {
-                await notification.fn();
-            } catch (e) {
-                logger.warn('Error while pushing notification', e);
-            }
-        }
-
-        this.notifications = [];
-    }
-
-    addUpdateJob(fn: () => any, priority: AtomicMarketUpdatePriority): void {
-        this.jobs.push({
-            priority: priority.valueOf(),
-            index: this.jobs.length,
-            trace: getStackTrace(),
-            fn: fn
-        });
-    }
-
-    pushNotificiation(block: ShipBlock, tx: EosioTransaction | null, prefix: string, name: string, data: any): void {
-        if (block.block_num < block.last_irreversible.block_num) {
-            return;
-        }
-
-        this.notifications.push({
-            index: this.notifications.length,
-            trace: getStackTrace(),
-            fn: async () => {
-                const channelName = [
-                    'eosio-contract-api', this.connection.chain.name, this.reader.name,
-                    'atomicmarket', this.args.atomicmarket_account, prefix
-                ].join(':');
-
-                await this.connection.redis.ioRedis.publish(channelName, JSON.stringify({
-                    transaction: tx,
-                    block: {block_num: block.block_num, block_id: block.block_id},
-                    action: name, data
-                }));
-            }
-        });
+        return (): any => destructors.map(fn => fn());
     }
 }

@@ -16,6 +16,6 @@ export type LogNewLinkActionData = {
     memo: string
 };
 
-export type LogLinkStart = {
+export type LogLinkStartActionData = {
     link_id: string
 };

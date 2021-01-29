@@ -7,7 +7,10 @@ import { EosioTableRow } from '../../../types/eosio';
 import { ContractDBTransaction } from '../../database';
 import logger from '../../../utils/winston';
 import { eosioTimestampToDate } from '../../../utils/eosio';
-import StateReceiver from '../../receiver';
+import Filler from '../../filler';
+import DataProcessor from '../../processor';
+
+export const DELPHIORACLE_BASE_PRIORITY = 0;
 
 export type DelphiOracleArgs = {
     delphioracle_account: string
@@ -31,6 +34,14 @@ type PairsTableRow = {
     quoted_precision: number
 };
 
+type DatapointsTableRow = {
+    id: string,
+    owner: string,
+    value: string,
+    median: string,
+    timestamp: string
+};
+
 export default class DelphiOracleHandler extends ContractHandler {
     static handlerName = 'delphioracle';
 
@@ -42,22 +53,12 @@ export default class DelphiOracleHandler extends ContractHandler {
 
     pairs: string[] = [];
 
-    constructor(reader: StateReceiver, args: {[key: string]: any}, minBlock: number = 0) {
-        super(reader, args, minBlock);
+    constructor(filler: Filler, args: {[key: string]: any}) {
+        super(filler, args);
 
         if (typeof args.delphioracle_account !== 'string') {
             throw new Error('DelphiOracle: Argument missing in handler: delphioracle_account');
         }
-
-        this.scope = {
-            actions: [],
-            tables: [
-                {
-                    filter: this.args.delphioracle_account + ':pairs',
-                    deserialize: true
-                }
-            ]
-        };
     }
 
     async init(client: PoolClient): Promise<void> {
@@ -113,49 +114,51 @@ export default class DelphiOracleHandler extends ContractHandler {
         }
     }
 
-    async onTableChange(db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow): Promise<void> {
-        if (typeof delta.value === 'string') {
-            throw new Error('DelphiOracle: Could not deserialize table delta');
-        }
+    async register(processor: DataProcessor): Promise<() => any> {
+        const destructors: Array<() => any> = [];
 
-        if (delta.table === 'pairs') {
-            // @ts-ignore
-            await this.savePair(db, block, delta.value);
-        } else if (delta.table === 'datapoints' && delta.present) {
-            const existsQuery = await this.connection.database.query(
-                'SELECT delphi_pair_name FROM delphioracle_pairs WHERE contract = $1 AND delphi_pair_name = $2',
-                [this.args.delphioracle_account, delta.scope]
-            );
+        const lastUpdated: {[key: string]: number} = {};
 
-            if (existsQuery.rowCount === 0) {
-                await this.fillPair(db, block, delta.scope);
-            }
+        destructors.push(
+            processor.onDelta(this.args.delphioracle_account, 'datapoints', async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<DatapointsTableRow>) => {
+                if (!lastUpdated[delta.scope]) {
+                    const existsQuery = await this.connection.database.query(
+                        'SELECT delphi_pair_name FROM delphioracle_pairs WHERE contract = $1 AND delphi_pair_name = $2',
+                        [this.args.delphioracle_account, delta.scope]
+                    );
 
-            // TODO remove median limit when data field ist bigint
-            await db.update('delphioracle_pairs', {
-                median: Math.min(delta.value.median, Math.pow(2, 31) - 1),
-                updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
-                updated_at_block: block.block_num
-            }, {
-                str: 'contract = $1 AND delphi_pair_name = $2',
-                values: [this.args.delphioracle_account, delta.scope]
-            }, ['contract', 'delphi_pair_name']);
-        }
+                    if (existsQuery.rowCount === 0) {
+                        await this.fillPair(db, block, delta.scope);
+                    }
+
+                    lastUpdated[delta.scope] = 0;
+                }
+
+                if (lastUpdated[delta.scope] + 30 < block.block_num) {
+                    await db.update('delphioracle_pairs', {
+                        median: delta.value.median,
+                        updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
+                        updated_at_block: block.block_num
+                    }, {
+                        str: 'contract = $1 AND delphi_pair_name = $2',
+                        values: [this.args.delphioracle_account, delta.scope]
+                    }, ['contract', 'delphi_pair_name']);
+
+                    lastUpdated[delta.scope] = block.block_num;
+                }
+
+            }, DELPHIORACLE_BASE_PRIORITY + 20, {headOnly: true})
+        );
+
+        destructors.push(
+            processor.onDelta(this.args.delphioracle_account, 'pairs', async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<PairsTableRow>) => {
+                await this.savePair(db, block, delta.value);
+            }, DELPHIORACLE_BASE_PRIORITY + 10, {headOnly: true})
+        );
+
+
+        return (): any => destructors.map(fn => fn());
     }
-
-    async onAction(): Promise<void> { }
-
-    async onBlockStart(): Promise<void> { }
-    async onBlockComplete(db: ContractDBTransaction, _: ShipBlock): Promise<void> {
-        if (db.currentBlock > db.lastIrreversibleBlock && this.scope.tables.length === 1) {
-            this.scope.tables.push({
-                filter: this.args.delphioracle_account + ':datapoints',
-                deserialize: true
-            });
-        }
-    }
-
-    async onCommit(): Promise<void> { }
 
     private async fillPair(db: ContractDBTransaction, block: ShipBlock, pair: string): Promise<void> {
         const resp = await this.connection.chain.rpc.get_table_rows({

@@ -161,3 +161,15 @@ export const dateBoundaryParameters = [
         }
     }
 ];
+
+export const LogSchema = {
+    type: 'object',
+        properties: {
+        log_id: {type: 'string'},
+        name: {type: 'string'},
+        data: {type: 'object'},
+        txid: {type: 'string'},
+        created_at_block: {type: 'string'},
+        created_at_time: {type: 'string'}
+    }
+};

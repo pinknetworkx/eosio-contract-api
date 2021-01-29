@@ -2,9 +2,9 @@ import { IContractConfig } from '../../types/config';
 import { ContractHandler } from './interfaces';
 
 import { handlers } from './loader';
-import StateReceiver from '../receiver';
+import Filler from '../filler';
 
-export function getHandlers(reader: StateReceiver, configs: IContractConfig[]): ContractHandler[] {
+export function getHandlers(configs: IContractConfig[], filler: Filler): ContractHandler[] {
     const configHandlers = [];
 
     for (const config of configs) {
@@ -15,13 +15,8 @@ export function getHandlers(reader: StateReceiver, configs: IContractConfig[]): 
                 continue;
             }
 
-            if (config.start_on) {
-                // @ts-ignore
-                configHandlers.push(new handler(reader, config.args, config.start_on));
-            } else {
-                // @ts-ignore
-                configHandlers.push(new handler(reader, config.args));
-            }
+            // @ts-ignore
+            configHandlers.push(new handler(filler, config.args));
 
             handlerFound = true;
 

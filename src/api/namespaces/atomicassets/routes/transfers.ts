@@ -1,13 +1,14 @@
 import * as express from 'express';
-import PQueue from 'p-queue';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
-import logger from '../../../../utils/winston';
 import { FillerHook, fillTransfers } from '../filler';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import { greylistFilterParameters } from '../openapi';
+import ApiNotificationReceiver from '../../../notification';
+import { createSocketApiNamespace } from '../../../utils';
+import { NotificationData } from '../../../../filler/notifier';
 
 export class TransferApi {
     constructor(
@@ -241,76 +242,38 @@ export class TransferApi {
         };
     }
 
-    sockets(): void {
-        const namespace = this.server.socket.io.of(this.core.path + '/v1/transfers');
+    sockets(notification: ApiNotificationReceiver): void {
+        const namespace = createSocketApiNamespace(this.server, this.core.path + '/v1/offers');
 
-        namespace.on('connection', async (socket) => {
-            logger.debug('socket transfer client connected');
+        notification.onData('transfers', async (notifications: NotificationData[]) => {
+            const transferIDs = notifications.filter(row => row.type === 'trace').map(row => row.data.trace.global_sequence);
+            const query = await this.server.query(
+                'SELECT * FROM ' + this.transferView + ' WHERE contract = $1 AND transfer_id = ANY($2)',
+                [this.core.args.atomicassets_account, transferIDs]
+            );
+            const transfers = query.rows.map(row => this.transferFormatter(row));
 
-            let verifiedConnection = false;
-            if (!(await this.server.socket.reserveConnection(socket))) {
-                socket.disconnect(true);
-            } else {
-                verifiedConnection = true;
-            }
+            for (const notification of notifications) {
+                if (notification.type === 'trace' && notification.data.trace) {
+                    const trace = notification.data.trace;
 
-            socket.on('disconnect', async () => {
-                if (verifiedConnection) {
-                    await this.server.socket.releaseConnection(socket);
-                }
-            });
-        });
-
-        const queue = new PQueue({
-            autoStart: true,
-            concurrency: 1
-        });
-
-        const transferChannelName = [
-            'eosio-contract-api', this.core.connection.chain.name, this.core.args.connected_reader,
-            'atomicassets', this.core.args.atomicassets_account, 'transfers'
-        ].join(':');
-        this.core.connection.redis.ioRedisSub.setMaxListeners(this.core.connection.redis.ioRedisSub.getMaxListeners() + 1);
-        this.core.connection.redis.ioRedisSub.subscribe(transferChannelName, () => {
-            this.core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
-                if (channel !== transferChannelName) {
-                    return;
-                }
-
-                const msg = JSON.parse(message);
-
-                logger.debug('received transfer notification', msg);
-
-                await queue.add(async () => {
-                    const query = await this.server.query(
-                        'SELECT * FROM ' + this.transferView + ' WHERE contract = $1 AND transfer_id = $2',
-                        [this.core.args.atomicassets_account, msg.data.transfer_id]
-                    );
-
-                    if (query.rowCount === 0) {
-                        logger.error('Received transfer notification but did not find transfer in database');
-
-                        return;
+                    if (trace.act.account !== this.core.args.atomicassets_account) {
+                        continue;
                     }
 
-                    const transfers = await fillTransfers(
-                        this.server, this.core.args.atomicassets_account,
-                        query.rows.map((row) => this.transferFormatter(row)),
-                        this.assetFormatter, this.assetView
-                    );
-                    const transfer = transfers[0];
-
-                    if (msg.action === 'create') {
+                    if (trace.act.name === 'logtransfer') {
                         namespace.emit('new_transfer', {
-                            transaction: msg.transaction,
-                            block: msg.block,
-                            transfer: transfer
+                            transaction: notification.data.tx,
+                            block: notification.data.block,
+                            trace: trace,
+                            transfer_id: trace.global_sequence,
+                            transfer: transfers.find(row => String(row.transfer_id) === String(trace.global_sequence))
                         });
                     }
-                });
-            });
+                } else if (notification.type === 'fork') {
+                    namespace.emit('fork', {block_num: notification.data.block.block_num});
+                }
+            }
         });
-
-        this.server.socket.addForkSubscription(this.core.args.connected_reader, namespace);
     }
 }

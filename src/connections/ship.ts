@@ -8,10 +8,69 @@ import { StaticPool } from 'node-worker-threads-pool';
 import logger from '../utils/winston';
 import {
     BlockRequestType,
-    IBlockReaderOptions, ShipBlockResponse
+    IBlockReaderOptions, ShipActionTrace, ShipBlockResponse, ShipContractRow, ShipTableDelta, ShipTransactionTrace
 } from '../types/ship';
+import { EosioTransaction } from '../types/eosio';
 
 export type BlockConsumer = (block: ShipBlockResponse) => any;
+
+export function extractShipTraces(transactions: ShipTransactionTrace[]): Array<{trace: ShipActionTrace, tx: EosioTransaction}> {
+    const result: Array<{trace: ShipActionTrace, tx: EosioTransaction}> = [];
+
+    for (const transaction of transactions) {
+        if (transaction[0] === 'transaction_trace_v0') {
+            // transaction failed
+            if (transaction[1].status !== 0) {
+                continue;
+            }
+
+            const tx: EosioTransaction = {
+                id: transaction[1].id,
+                cpu_usage_us: transaction[1].cpu_usage_us,
+                net_usage_words: transaction[1].net_usage_words
+            };
+
+            result.push(...transaction[1].action_traces.map((trace) => {
+                return {trace, tx};
+            }));
+        } else {
+            throw new Error('unsupported transaction response received: ' + transaction[0]);
+        }
+    }
+
+    // sort by global_sequence because inline actions do not have the correct order
+    result.sort((a, b) => {
+        if (a.trace[0] === 'action_trace_v0' && b.trace[0] === 'action_trace_v0') {
+            if (a.trace[1].receipt[0] === 'action_receipt_v0' && b.trace[1].receipt[0] === 'action_receipt_v0') {
+                return parseInt(a.trace[1].receipt[1].global_sequence, 10) - parseInt(b.trace[1].receipt[1].global_sequence, 10);
+            }
+
+            throw new Error('unsupported trace receipt response received: ' + a.trace[0] + ' ' + b.trace[0]);
+        }
+
+        throw new Error('unsupported trace response received: ' + a.trace[0] + ' ' + b.trace[0]);
+    });
+
+    return result;
+}
+
+export function extractShipContractRows(deltas: ShipTableDelta[]): Array<{present: boolean, data: ShipContractRow}> {
+    const result: Array<{present: boolean, data: ShipContractRow}> = [];
+
+    for (const delta of deltas) {
+        if (delta[0] !== 'table_delta_v0') {
+            throw new Error('Unsupported table delta response received: ' + delta[0]);
+        }
+
+        if (delta[1].name === 'contract_row') {
+            for (const row of delta[1].rows) {
+                result.push({present: row.present, data: <ShipContractRow>row.data});
+            }
+        }
+    }
+
+    return result;
+}
 
 export default class StateHistoryBlockReader {
     currentArgs: BlockRequestType;
@@ -28,7 +87,7 @@ export default class StateHistoryBlockReader {
     private stopped: boolean;
 
     private blocksQueue: PQueue;
-    private deserializeWorkers: StaticPool<Array<{type: string, data: Uint8Array}>, any>;
+    private deserializeWorkers: StaticPool<Array<{type: string, data: Uint8Array, abi?: any}>, any>;
 
     private unconfirmed: number;
     private consumer: BlockConsumer;
@@ -196,12 +255,16 @@ export default class StateHistoryBlockReader {
                             deserializedTraces = await traces;
                         } catch (error) {
                             logger.error('Failed to deserialize traces at block #' + response.this_block.block_num, error);
+
+                            throw error;
                         }
 
                         try {
                             deserializedDeltas = await deltas;
                         } catch (error) {
                             logger.error('Failed to deserialize deltas at block #' + response.this_block.block_num, error);
+
+                            throw error;
                         }
 
                         try {

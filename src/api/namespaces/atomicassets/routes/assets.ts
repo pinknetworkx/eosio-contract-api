@@ -1,14 +1,16 @@
 import * as express from 'express';
-import PQueue from 'p-queue';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { buildAssetFilter, buildGreylistFilter, getLogs, hideOfferAssets } from '../utils';
+import { buildAssetFilter, buildGreylistFilter, hideOfferAssets } from '../utils';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import { primaryBoundaryParameters, getOpenAPI3Responses, paginationParameters, dateBoundaryParameters } from '../../../docs';
 import { assetFilterParameters, atomicDataFilter, greylistFilterParameters, hideOffersParameters } from '../openapi';
 import { fillAssets, FillerHook } from '../filler';
+import { createSocketApiNamespace, extractNotificationIdentifiers, getContractActionLogs } from '../../../utils';
+import ApiNotificationReceiver from '../../../notification';
+import { NotificationData } from '../../../../filler/notifier';
 
 export function buildAssetQueryCondition(
     req: express.Request, varOffset: number,
@@ -196,7 +198,8 @@ export class AssetApi {
                         const sortColumnMapping: {[key: string]: string} = {
                             asset_id: 'asset.asset_id',
                             updated: 'asset.updated_at_block',
-                            minted: 'asset.asset_id',
+                            transferred: 'asset.transferred_at_block',
+                            minted: 'asset.minted_at_block',
                             collection_mint: 'mint.collection_mint',
                             schema_mint: 'mint.schema_mint',
                             template_mint: 'mint.template_mint'
@@ -282,8 +285,10 @@ export class AssetApi {
             try {
                 res.json({
                     success: true,
-                    data: await getLogs(
-                        this.server, this.core.args.atomicassets_account, 'asset', req.params.asset_id,
+                    data: await getContractActionLogs(
+                        this.server, this.core.args.atomicassets_account,
+                        ['logmint', 'logburnasset', 'logbackasset', 'logsetdata'],
+                        {asset_id: req.params.asset_id},
                         (args.page - 1) * args.limit, args.limit, args.order
                     ), query_time: Date.now()
                 });
@@ -337,7 +342,7 @@ export class AssetApi {
                                 required: false,
                                 schema: {
                                     type: 'string',
-                                    enum: ['asset_id', 'minted', 'updated', 'template_mint'],
+                                    enum: ['asset_id', 'minted', 'updated', 'transferred', 'template_mint'],
                                     default: 'asset_id'
                                 }
                             }
@@ -403,96 +408,64 @@ export class AssetApi {
         };
     }
 
-    sockets(): void {
-        const namespace = this.server.socket.io.of(this.core.path + '/v1/assets');
+    sockets(notification: ApiNotificationReceiver): void {
+        const namespace = createSocketApiNamespace(this.server, this.core.path + '/v1/assets');
 
-        namespace.on('connection', async (socket) => {
-            logger.debug('socket asset client connected');
+        notification.onData('assets', async (notifications: NotificationData[]) => {
+            const assetIDs = extractNotificationIdentifiers(notifications, 'asset_id');
+            const query = await this.server.query(
+                'SELECT * FROM ' + this.assetView + ' WHERE contract = $1 AND asset_id = ANY($2)',
+                [this.core.args.atomicassets_account, assetIDs]
+            );
+            const assets = query.rows.map(row => this.assetFormatter(row));
 
-            let verifiedConnection = false;
-            if (!(await this.server.socket.reserveConnection(socket))) {
-                socket.disconnect(true);
-            } else {
-                verifiedConnection = true;
-            }
+            for (const notification of notifications) {
+                if (notification.type === 'trace' && notification.data.trace) {
+                    const trace = notification.data.trace;
 
-            socket.on('disconnect', async () => {
-                if (verifiedConnection) {
-                    await this.server.socket.releaseConnection(socket);
-                }
-            });
-        });
-
-        const queue = new PQueue({
-            autoStart: true,
-            concurrency: 1
-        });
-
-        const assetChannelName = [
-            'eosio-contract-api', this.core.connection.chain.name, this.core.args.connected_reader,
-            'atomicassets', this.core.args.atomicassets_account, 'assets'
-        ].join(':');
-        this.core.connection.redis.ioRedisSub.setMaxListeners(this.core.connection.redis.ioRedisSub.getMaxListeners() + 1);
-        this.core.connection.redis.ioRedisSub.subscribe(assetChannelName, () => {
-            this.core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
-                if (channel !== assetChannelName) {
-                    return;
-                }
-
-                const msg = JSON.parse(message);
-
-                // TODO: remove ALIEN WORLD FIX 3
-                if (msg.action === 'update') {
-                    return;
-                }
-
-                logger.debug('received asset notification', msg);
-
-                await queue.add(async () => {
-                    const query = await this.server.query(
-                        'SELECT * FROM atomicassets_assets_master WHERE contract = $1 AND asset_id = $2',
-                        [this.core.args.atomicassets_account, msg.data.asset_id]
-                    );
-
-                    if (query.rowCount === 0) {
-                        logger.error('Received asset notification but did not find it in database');
-
-                        return;
+                    if (trace.act.account !== this.core.args.atomicassets_account) {
+                        continue;
                     }
 
-                    const asset = query.rows[0];
+                    const assetID = (<any>trace.act.data).asset_id;
 
-                    if (msg.action === 'mint') {
+                    if (trace.act.name === 'logmint') {
                         namespace.emit('new_asset', {
-                            transaction: msg.transaction,
-                            block: msg.block,
-                            asset: this.assetFormatter(asset)
+                            transaction: notification.data.tx,
+                            block: notification.data.block,
+                            trace: trace,
+                            asset_id: assetID,
+                            asset: assets.find(row => String(row.asset_id) === String(assetID))
                         });
-                    } else if (msg.action === 'burn') {
+                    } else if (trace.act.name === 'logburnasset') {
                         namespace.emit('burn', {
-                            transaction: msg.transaction,
-                            block: msg.block,
-                            asset: this.assetFormatter(asset)
+                            transaction:notification.data.tx,
+                            block: notification.data.block,
+                            trace: trace,
+                            asset_id: assetID,
+                            asset: assets.find(row => String(row.asset_id) === String(assetID))
                         });
-                    } else if (msg.action === 'back') {
+                    } else if (trace.act.name === 'logbackasset') {
                         namespace.emit('back', {
-                            transaction: msg.transaction,
-                            block: msg.block,
-                            asset: this.assetFormatter(asset),
-                            trace: msg.data.trace
+                            transaction: notification.data.tx,
+                            block: notification.data.block,
+                            trace: trace,
+                            asset_id: assetID,
+                            asset: assets.find(row => String(row.asset_id) === String(assetID))
                         });
-                    } else if (msg.action === 'update') {
+                    } else if (trace.act.name === 'logsetdata') {
                         namespace.emit('update', {
-                            transaction: msg.transaction,
-                            block: msg.block,
-                            asset: this.assetFormatter(asset),
-                            delta: msg.data.delta
+                            transaction: notification.data.tx,
+                            block: notification.data.block,
+                            trace: trace,
+                            asset_id: assetID,
+                            asset: assets.find(row => String(row.asset_id) === String(assetID))
                         });
                     }
-                });
-            });
+                } else if (notification.type === 'fork') {
+                    namespace.emit('fork', {block_num: notification.data.block.block_num});
+                }
+            }
         });
-
-        this.server.socket.addForkSubscription(this.core.args.connected_reader, namespace);
     }
 }

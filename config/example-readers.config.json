@@ -1,6 +1,6 @@
 [
   {
-    "name": "atomic",
+    "name": "atomic-1",
 
     "start_block": 0,
     "stop_block": 0,
@@ -8,6 +8,8 @@
 
     "ship_prefetch_blocks": 50,
     "ship_min_block_confirmation": 30,
+    "db_group_blocks": 10,
+
     "ds_threads": 4,
     "ds_experimental": false,
 
@@ -19,8 +21,7 @@
         "args": {
           "atomicassets_account": "atomicassets",
           "store_transfers": true,
-          "store_logs": true,
-          "collection_blacklist": []
+          "store_logs": true
         }
       },
       {
@@ -39,7 +40,8 @@
       {
         "handler": "atomictools",
         "args": {
-          "atomictools_account": "atomictoolsx"
+          "atomictools_account": "atomictoolsx",
+          "store_logs": true
         }
       }
     ]

@@ -8,6 +8,7 @@ import { ShipBlock } from '../types/ship';
 import { eosioTimestampToDate } from '../utils/eosio';
 import { arraysEqual } from '../utils';
 import logger from '../utils/winston';
+import { EosioActionTrace, EosioTransaction } from '../types/eosio';
 
 export type Condition = {
     str: string,
@@ -19,21 +20,114 @@ type SerializedValue = {
     data: any
 };
 
+function changeQueryVarOffset(str: string, length: number, offset: number): string {
+    let queryStr = str;
+
+    for (let i = length; i > 0; i--) {
+        queryStr = queryStr.replace('$' + i, '$' + (offset + i));
+    }
+
+    return queryStr;
+}
+
+function removeIdenticalValues(
+    currentValues: {[key: string]: any}, previousValues: {[key: string]: any}, primaryKey: string[] = []
+): {[key: string]: any} {
+    const keys = Object.keys(currentValues);
+    const result: {[key: string]: any} = {};
+
+    for (const key of keys) {
+        if (primaryKey.indexOf(key) >= 0) {
+            continue;
+        }
+
+        if (compareValues(currentValues[key], previousValues[key])) {
+            continue;
+        }
+
+        result[key] = currentValues[key];
+    }
+
+    return result;
+}
+
+function serializeValue(value: any): SerializedValue {
+    if (value instanceof Buffer) {
+        return {
+            type: 'bytes',
+            data: [...value]
+        };
+    }
+
+    if (ArrayBuffer.isView(value)) {
+        return {
+            type: 'bytes',
+            data: [...Buffer.from(value.buffer, value.byteOffset, value.byteLength)]
+        };
+    }
+
+    if (value instanceof Date) {
+        return {
+            type: 'date',
+            data: value.getTime()
+        };
+    }
+
+    return {
+        type: 'raw',
+        data: value
+    };
+}
+
+function deserializeValue(value: SerializedValue): any {
+    if (value.type === 'bytes') {
+        return new Uint8Array(value.data);
+    }
+
+    if (value.type === 'date') {
+        return new Date(value.data);
+    }
+
+    return value.data;
+}
+
+function compareValues(value1: any, value2: any): boolean {
+    const serializedValue1 = serializeValue(value1);
+    const serializedValue2 = serializeValue(value2);
+
+    if (serializedValue1.type !== serializedValue2.type) {
+        return false;
+    }
+
+    if (serializedValue1.type === 'bytes' && arraysEqual(serializedValue1.data, serializedValue2.data)) {
+        return true;
+    }
+
+    if (serializedValue1.type === 'raw' && JSON.stringify(serializedValue1.data) === JSON.stringify(serializedValue2.data)) {
+        return true;
+    }
+
+    return serializedValue1.data === serializedValue2.data;
+}
+
+function buildPrimaryCondition(values: {[key: string]: any}, primaryKey: string[], offset: number = 0): Condition {
+    const conditionStr = primaryKey.map((key, index) => {
+        return '"' + key + '" = $' + (offset + index + 1);
+    }).join(' AND ');
+    const conditionValues = primaryKey.map((key) => values[key]);
+
+    return { str: conditionStr, values: conditionValues };
+}
+
 export class ContractDB {
     static transactions: ContractDBTransaction[] = [];
 
     constructor(readonly name: string, readonly connection: ConnectionManager) { }
 
-    async startTransaction(currentBlock: number, lastIrreversibleBlock: number, lastTransaction?: ContractDBTransaction): Promise<ContractDBTransaction> {
-        let client;
+    async startTransaction(currentBlock?: number): Promise<ContractDBTransaction> {
+        const client = await this.connection.database.pool.connect();
 
-        if (lastTransaction && !lastTransaction.committed) {
-            client = lastTransaction.client;
-        } else {
-            client = await this.connection.database.pool.connect();
-        }
-
-        return new ContractDBTransaction(client, this.name, currentBlock, lastIrreversibleBlock, lastTransaction);
+        return new ContractDBTransaction(client, this.name, currentBlock);
     }
 
     async fetchAbi(contract: string, blockNum: number): Promise<{data: Uint8Array, block_num: number} | null> {
@@ -68,14 +162,20 @@ export class ContractDB {
         };
     }
 
-    async getReaderPosition(): Promise<number> {
-        const query = await this.connection.database.query('SELECT block_num FROM contract_readers WHERE name = $1', [this.name]);
+    async getReaderPosition(): Promise<{ live: boolean, block_num: number }> {
+        const query = await this.connection.database.query('SELECT live, block_num FROM contract_readers WHERE name = $1', [this.name]);
 
         if (query.rows.length === 0) {
-            return 0;
+            return {
+                live: false,
+                block_num: 0
+            };
         }
 
-        return parseInt(query.rows[0].block_num, 10);
+        return {
+            live: query.rows[0].live,
+            block_num: parseInt(query.rows[0].block_num, 10)
+        };
     }
 
     async getLastReaderBlocks(): Promise<Array<{block_num: number, block_id: string}>> {
@@ -94,13 +194,16 @@ export class ContractDBTransaction {
     inTransaction: boolean;
     committed: boolean;
 
+    actionLogs: any[];
+
     constructor(
-        readonly client: PoolClient, readonly name: string, readonly currentBlock: number,
-        readonly lastIrreversibleBlock: number, private lastTransaction?: ContractDBTransaction
+        readonly client: PoolClient, readonly name: string, readonly currentBlock?: number
     ) {
         this.lock = new AwaitLock();
         this.committed = false;
-        this.inTransaction = lastTransaction && lastTransaction.countUncommittedBlocks() > 0;
+        this.inTransaction = false;
+
+        this.actionLogs = [];
     }
 
     async begin(): Promise<void> {
@@ -174,21 +277,21 @@ export class ContractDBTransaction {
             queryStr += 'VALUES ' + queryRows.join(', ') + ' ';
 
             if (primaryKey.length > 0) {
-                queryStr += 'RETURNING ' + primaryKey.map(this.client.escapeIdentifier).join(', ') + ' ';
+                queryStr += 'RETURNING ' + primaryKey.map(key => this.client.escapeIdentifier(key)).join(', ') + ' ';
             }
 
             queryStr += ';';
 
             const query = await this.clientQuery(queryStr, queryValues);
 
-            if (this.currentBlock > this.lastIrreversibleBlock && reversible) {
+            if (this.currentBlock && reversible) {
                 const condition: Condition = {
                     str: '',
                     values: []
                 };
 
                 condition.str = query.rows.map((row) => {
-                    const primaryCondition = this.buildPrimaryCondition(row, primaryKey, condition.values.length);
+                    const primaryCondition = buildPrimaryCondition(row, primaryKey, condition.values.length);
                     condition.values = condition.values.concat(primaryCondition.values);
 
                     return '(' + primaryCondition.str + ')';
@@ -213,10 +316,17 @@ export class ContractDBTransaction {
             await this.begin();
 
             let selectQuery = null;
+            if (this.currentBlock && reversible) {
+                const selectKeys = Object.keys(values);
 
-            if (this.currentBlock > this.lastIrreversibleBlock && reversible) {
+                for (const key of primaryKey) {
+                    if (selectKeys.indexOf(key) === -1) {
+                        selectKeys.push(key);
+                    }
+                }
+
                 selectQuery = await this.clientQuery(
-                    'SELECT * FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition.str + ';', condition.values
+                    'SELECT ' + selectKeys.map(key => '"' + key + '"').join(', ') + ' FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition.str + ';', condition.values
                 );
             }
 
@@ -238,21 +348,29 @@ export class ContractDBTransaction {
 
             let queryStr = 'UPDATE ' + this.client.escapeIdentifier(table) + ' SET ';
             queryStr += queryUpdates.join(', ') + ' ';
-            queryStr += 'WHERE ' + this.changeQueryVarOffset(condition.str, condition.values.length, varCounter) + ';';
+            queryStr += 'WHERE ' + changeQueryVarOffset(condition.str, condition.values.length, varCounter) + ' ';
+
+            if (primaryKey.length > 0) {
+                queryStr += 'RETURNING ' + primaryKey.map(key => this.client.escapeIdentifier(key)).join(', ') + ' ';
+            }
 
             queryValues = queryValues.concat(condition.values);
 
             const query = await this.clientQuery(queryStr, queryValues);
 
+            if (query.rowCount === 0) {
+                throw new Error('Table ' + table + ' updated but no rows affacted ' + JSON.stringify(values) + ' ' + JSON.stringify(condition));
+            }
+
             if (selectQuery && selectQuery.rows.length > 0) {
                 for (const row of selectQuery.rows) {
-                    const filteredValues = this.removeIdenticalValues(row, values, primaryKey);
+                    const filteredValues = removeIdenticalValues(row, values, primaryKey);
 
                     if (Object.keys(filteredValues).length === 0) {
                         continue;
                     }
 
-                    await this.addRollbackQuery('update', table, filteredValues, this.buildPrimaryCondition(row, primaryKey));
+                    await this.addRollbackQuery('update', table, filteredValues, buildPrimaryCondition(row, primaryKey));
                 }
             }
 
@@ -270,9 +388,8 @@ export class ContractDBTransaction {
         try {
             await this.begin();
 
-            let selectQuery = null;
-
-            if (this.currentBlock > this.lastIrreversibleBlock && reversible) {
+            let selectQuery;
+            if (this.currentBlock && reversible) {
                 selectQuery = await this.clientQuery(
                     'SELECT * FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition.str + ';', condition.values
                 );
@@ -281,8 +398,8 @@ export class ContractDBTransaction {
             const queryStr = 'DELETE FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition.str + ';';
             const query = await this.clientQuery(queryStr, condition.values);
 
-            if (selectQuery !== null && selectQuery.rows.length > 0) {
-                await this.addRollbackQuery('insert', table, selectQuery.rows, null);
+            if (selectQuery && selectQuery.rows.length > 0) {
+                await this.addRollbackQuery('insert', table, selectQuery.rows);
             }
 
             return query;
@@ -300,7 +417,7 @@ export class ContractDBTransaction {
         try {
             await this.begin();
 
-            const condition = this.buildPrimaryCondition(values, primaryKey);
+            const condition = buildPrimaryCondition(values, primaryKey);
             const selectQuery = await this.clientQuery(
                 'SELECT * FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition.str + ' LIMIT 1;', condition.values
             );
@@ -318,8 +435,8 @@ export class ContractDBTransaction {
 
                 await this.update(table, updateValues, condition, primaryKey, false, false);
 
-                if (this.currentBlock > this.lastIrreversibleBlock && reversible) {
-                    const filteredValues = this.removeIdenticalValues(selectQuery.rows[0], updateValues, primaryKey);
+                if (this.currentBlock && reversible) {
+                    const filteredValues = removeIdenticalValues(selectQuery.rows[0], updateValues, primaryKey);
 
                     if (Object.keys(filteredValues).length > 0) {
                         await this.addRollbackQuery('update', table, filteredValues, condition);
@@ -333,12 +450,12 @@ export class ContractDBTransaction {
         }
     }
 
-    async addRollbackQuery(operation: string, table: string, values: any, condition: Condition | null): Promise<void> {
+    async addRollbackQuery(operation: string, table: string, values: any, condition?: Condition): Promise<void> {
         let serializedCondition = null;
         if (condition) {
             serializedCondition = {
                 str: condition.str,
-                values: condition.values.map((value) => this.serializeValue(value))
+                values: condition.values.map((value) => serializeValue(value))
             };
         }
 
@@ -350,7 +467,7 @@ export class ContractDBTransaction {
                 const row = {...value};
 
                 for (const key of Object.keys(value)) {
-                    row[key] = this.serializeValue(value[key]);
+                    row[key] = serializeValue(value[key]);
                 }
 
                 serializedValues.push(row);
@@ -359,7 +476,7 @@ export class ContractDBTransaction {
             serializedValues = {...values};
 
             for (const key of Object.keys(serializedValues)) {
-                serializedValues[key] = this.serializeValue(values[key]);
+                serializedValues[key] = serializeValue(values[key]);
             }
         }
 
@@ -388,19 +505,19 @@ export class ContractDBTransaction {
                 const condition: Condition | null = row.condition;
 
                 if (condition) {
-                    condition.values = condition.values.map((value) => this.deserializeValue(value));
+                    condition.values = condition.values.map((value) => deserializeValue(value));
                 }
 
                 if (values !== null) {
                     if (Array.isArray(values)) {
                         for (const value of values) {
                             for (const key of Object.keys(value)) {
-                                value[key] = this.deserializeValue(value[key]);
+                                value[key] = deserializeValue(value[key]);
                             }
                         }
                     } else {
                         for (const key of Object.keys(values)) {
-                            values[key] = this.deserializeValue(values[key]);
+                            values[key] = deserializeValue(values[key]);
                         }
                     }
                 }
@@ -435,7 +552,7 @@ export class ContractDBTransaction {
         }
     }
 
-    async clearForkDatabase(lock: boolean = true): Promise<void> {
+    async clearForkDatabase(lastIrreversibleBlock: number, lock: boolean = true): Promise<void> {
         await this.acquireLock(lock);
 
         try {
@@ -443,68 +560,59 @@ export class ContractDBTransaction {
 
             await this.clientQuery(
                 'DELETE FROM reversible_queries WHERE block_num <= $1 AND reader = $2',
-                [this.lastIrreversibleBlock, this.name]
+                [lastIrreversibleBlock, this.name]
             );
 
             await this.clientQuery(
                 'DELETE FROM reversible_blocks WHERE block_num <= $1 AND reader = $2',
-                [this.lastIrreversibleBlock, this.name]
+                [lastIrreversibleBlock, this.name]
             );
         } finally {
             this.releaseLock(lock);
         }
     }
 
-    async updateReaderPosition(block: ShipBlock, lock: boolean = true): Promise<void> {
+    async updateReaderPosition(block: ShipBlock, live: boolean, lock: boolean = true): Promise<void> {
         await this.acquireLock(lock);
 
         try {
             await this.begin();
 
             await this.clientQuery(
-                'UPDATE contract_readers SET block_num = $1, block_time = $2, updated = $3 WHERE name = $4',
-                [block.block_num, eosioTimestampToDate(block.timestamp).getTime(), Date.now(), this.name]
+                'UPDATE contract_readers SET block_num = $1, block_time = $2, updated = $3, live = $4 WHERE name = $5',
+                [block.block_num, eosioTimestampToDate(block.timestamp).getTime(), Date.now(), live, this.name]
             );
         } finally {
             this.releaseLock(lock);
         }
     }
 
-    countUncommittedBlocks(): number {
-        if (this.committed) {
-            return 0;
-        }
-
-        const ownCounter = this.inTransaction ? 1 : 0;
-
-        if (this.lastTransaction) {
-            return this.lastTransaction.countUncommittedBlocks() + ownCounter;
-        }
-
-        return ownCounter;
+    async logTrace(block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace, metadata: any): Promise<void> {
+        this.actionLogs.push({
+            global_sequence: trace.global_sequence,
+            account: trace.act.account,
+            name: trace.act.name,
+            metadata: JSON.stringify(metadata),
+            txid: Buffer.from(tx.id, 'hex'),
+            created_at_block: block.block_num,
+            created_at_time: eosioTimestampToDate(block.timestamp).getTime()
+        });
     }
 
     async commit(): Promise<void> {
+        if (this.actionLogs.length > 0) {
+            await this.insert('contract_action_logs',  this.actionLogs, ['global_sequence']);
+        }
+
         await this.acquireLock();
 
         try {
-            let commitThreshold = 1;
-
-            if (this.currentBlock <= this.lastIrreversibleBlock - 60) {
-                commitThreshold = 12;
-            }
-
-            if (this.countUncommittedBlocks() >= commitThreshold) {
-                try {
-                    await this.clientQuery('COMMIT');
-
-                    this.committed = true;
-                    this.lastTransaction = null;
-                } finally {
-                    this.client.release();
-                }
+            if (this.inTransaction) {
+                await this.clientQuery('COMMIT');
             }
         } finally {
+            this.client.release();
+
             this.releaseLock();
 
             const index = ContractDB.transactions.indexOf(this);
@@ -533,107 +641,10 @@ export class ContractDBTransaction {
         }
     }
 
-    serializeValue(value: any): SerializedValue {
-        if (value instanceof Buffer) {
-            return {
-                type: 'bytes',
-                data: [...value]
-            };
-        }
-
-        if (ArrayBuffer.isView(value)) {
-            return {
-                type: 'bytes',
-                data: [...Buffer.from(value.buffer, value.byteOffset, value.byteLength)]
-            };
-        }
-
-        if (value instanceof Date) {
-            return {
-                type: 'date',
-                data: value.getTime()
-            };
-        }
-
-        return {
-            type: 'raw',
-            data: value
-        };
-    }
-
-    deserializeValue(value: SerializedValue): any {
-        if (value.type === 'bytes') {
-            return new Uint8Array(value.data);
-        }
-
-        if (value.type === 'date') {
-            return new Date(value.data);
-        }
-
-        return value.data;
-    }
-
-    compareValues(value1: any, value2: any): boolean {
-        const serializedValue1 = this.serializeValue(value1);
-        const serializedValue2 = this.serializeValue(value2);
-
-        if (serializedValue1.type !== serializedValue2.type) {
-            return false;
-        }
-
-        if (serializedValue1.type === 'bytes' && arraysEqual(serializedValue1.data, serializedValue2.data)) {
-            return true;
-        }
-
-        if (serializedValue1.type === 'raw' && JSON.stringify(serializedValue1.data) === JSON.stringify(serializedValue2.data)) {
-            return true;
-        }
-
-        return JSON.stringify(serializedValue1.data) === JSON.stringify(serializedValue2.data);
-    }
-
-    private buildPrimaryCondition(values: {[key: string]: any}, primaryKey: string[], offset: number = 0): Condition {
-        const conditionStr = primaryKey.map((key, index) => {
-            return this.client.escapeIdentifier(key) + ' = $' + (offset + index + 1);
-        }).join(' AND ');
-        const conditionValues = primaryKey.map((key) => values[key]);
-
-        return { str: conditionStr, values: conditionValues };
-    }
-
-    private removeIdenticalValues(
-        currentValues: {[key: string]: any}, previousValues: {[key: string]: any}, primaryKey: string[] = []
-    ): {[key: string]: any} {
-        const keys = Object.keys(currentValues);
-        const result: {[key: string]: any} = {};
-
-        for (const key of keys) {
-            if (primaryKey.indexOf(key) >= 0) {
-                continue;
-            }
-
-            if (this.compareValues(currentValues[key], previousValues[key])) {
-                continue;
-            }
-
-            result[key] = currentValues[key];
-        }
-
-        return result;
-    }
-
-    private changeQueryVarOffset(str: string, length: number, offset: number): string {
-        let queryStr = str;
-
-        for (let i = length; i > 0; i--) {
-            queryStr = queryStr.replace('$' + i, '$' + (offset + i));
-        }
-
-        return queryStr;
-    }
-
     private async clientQuery(queryText: string, values: any[] = []): Promise<QueryResult> {
         try {
+            logger.debug('contract db query: ' + queryText, values);
+
             return await this.client.query(queryText, values);
         } catch (error) {
             logger.error('Failed to execute SQL query ', {queryText, values, error});

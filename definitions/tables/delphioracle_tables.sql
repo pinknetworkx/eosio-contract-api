@@ -5,7 +5,7 @@ CREATE TABLE delphioracle_pairs (
     base_precision integer NOT NULL,
     quote_symbol character varying(12) NOT NULL,
     quote_precision integer NOT NULL,
-    median integer,
+    median bigint,
     median_precision integer NOT NULL,
     updated_at_time bigint NOT NULL,
     updated_at_block bigint NOT NULL,

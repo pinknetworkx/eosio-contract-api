@@ -16,6 +16,7 @@ import { formatAsset, formatOffer, formatTransfer } from './format';
 import { TransferApi } from './routes/transfers';
 import { OfferApi } from './routes/offers';
 import { accountsEndpoints } from './routes/accounts';
+import ApiNotificationReceiver from '../../notification';
 
 export type AtomicAssetsNamespaceArgs = {
     atomicassets_account: string,
@@ -104,6 +105,8 @@ export class AtomicAssetsNamespace extends ApiNamespace {
     }
 
     async socket(server: HTTPServer): Promise<void> {
+        const notification = new ApiNotificationReceiver(this.connection, this.args.connected_reader);
+
         const assetApi = new AssetApi(
             this, server, 'Asset',
             'atomicassets_assets_master', formatAsset
@@ -119,8 +122,8 @@ export class AtomicAssetsNamespace extends ApiNamespace {
             'atomicassets_assets_master', formatAsset
         );
 
-        assetApi.sockets();
-        transferApi.sockets();
-        offerApi.sockets();
+        assetApi.sockets(notification);
+        transferApi.sockets(notification);
+        offerApi.sockets(notification);
     }
 }

@@ -1,5 +1,4 @@
 import * as express from 'express';
-import PQueue from 'p-queue';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
@@ -8,8 +7,10 @@ import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { FillerHook, fillOffers } from '../filler';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
-import { getLogs } from '../utils';
 import { greylistFilterParameters } from '../openapi';
+import { createSocketApiNamespace, extractNotificationIdentifiers, getContractActionLogs } from '../../../utils';
+import ApiNotificationReceiver from '../../../notification';
+import { NotificationData } from '../../../../filler/notifier';
 
 export class OfferApi {
     constructor(
@@ -136,7 +137,7 @@ export class OfferApi {
                 queryString += boundaryFilter.str;
 
                 const sortColumnMapping = {
-                    created: 'offer_id',
+                    created: 'created_at_block',
                     updated: 'updated_at_block'
                 };
 
@@ -214,8 +215,10 @@ export class OfferApi {
             try {
                 res.json({
                     success: true,
-                    data: await getLogs(
-                        this.server, this.core.args.atomicassets_account, 'offer', req.params.offer_id,
+                    data: await getContractActionLogs(
+                        this.server, this.core.args.atomicassets_account,
+                        ['lognewoffer', 'acceptoffer', 'declineoffer', 'canceloffer'],
+                        {offer_id: req.params.offer_id},
                         (args.page - 1) * args.limit, args.limit, args.order
                     ), query_time: Date.now()
                 });
@@ -361,77 +364,40 @@ export class OfferApi {
         };
     }
 
-    sockets(): void {
-        const namespace = this.server.socket.io.of(this.core.path + '/v1/offers');
+    sockets(notification: ApiNotificationReceiver): void {
+        const namespace = createSocketApiNamespace(this.server, this.core.path + '/v1/offers');
 
-        namespace.on('connection', async (socket) => {
-            logger.debug('socket offer client connected');
+        notification.onData('offers', async (notifications: NotificationData[]) => {
+            const offerIDs = extractNotificationIdentifiers(notifications, 'offer_id');
+            const query = await this.server.query(
+                'SELECT * FROM ' + this.offerView + ' WHERE contract = $1 AND offer_id = ANY($2)',
+                [this.core.args.atomicassets_account, offerIDs]
+            );
+            const offers = query.rows.map(row => this.offerFormatter(row));
 
-            let verifiedConnection = false;
-            if (!(await this.server.socket.reserveConnection(socket))) {
-                socket.disconnect(true);
-            } else {
-                verifiedConnection = true;
-            }
+            for (const notification of notifications) {
+                if (notification.type === 'trace' && notification.data.trace) {
+                    const trace = notification.data.trace;
 
-            socket.on('disconnect', async () => {
-                if (verifiedConnection) {
-                    await this.server.socket.releaseConnection(socket);
-                }
-            });
-        });
-
-        const queue = new PQueue({
-            autoStart: true,
-            concurrency: 1
-        });
-
-        const offerChannelName = [
-            'eosio-contract-api', this.core.connection.chain.name, this.core.args.connected_reader,
-            'atomicassets', this.core.args.atomicassets_account, 'offers'
-        ].join(':');
-        this.core.connection.redis.ioRedisSub.setMaxListeners(this.core.connection.redis.ioRedisSub.getMaxListeners() + 1);
-        this.core.connection.redis.ioRedisSub.subscribe(offerChannelName, () => {
-            this.core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
-                if (channel !== offerChannelName) {
-                    return;
-                }
-
-                const msg = JSON.parse(message);
-
-                logger.debug('received offer notification', msg);
-
-                await queue.add(async () => {
-                    const query = await this.server.query(
-                        'SELECT * FROM ' + this.offerView + ' WHERE contract = $1 AND offer_id = $2',
-                        [this.core.args.atomicassets_account, msg.data.offer_id]
-                    );
-
-                    if (query.rowCount === 0) {
-                        logger.error('Received offer notification but did not find offer in database');
-
-                        return;
+                    if (trace.act.account !== this.core.args.atomicassets_account) {
+                        continue;
                     }
 
-                    const offers = await fillOffers(
-                        this.server, this.core.args.atomicassets_account,
-                        query.rows.map((row) => this.offerFormatter(row)),
-                        this.assetFormatter, this.assetView
-                    );
+                    const offerID = (<any>trace.act.data).offer_id;
 
-                    const offer = offers[0];
-
-                    if (msg.action === 'create') {
-                        namespace.emit('new_offer', {
-                            transaction: msg.transaction,
-                            block: msg.block,
-                            offer: offer
+                    if (trace.act.name === 'lognewoffer') {
+                        namespace.emit('create', {
+                            transaction: notification.data.tx,
+                            block: notification.data.block,
+                            trace: trace,
+                            offer_id: offerID,
+                            offer: offers.find(row => String(row.offer_id) === String(offerID)),
                         });
                     }
-                });
-            });
+                } else if (notification.type === 'fork') {
+                    namespace.emit('fork', {block_num: notification.data.block.block_num});
+                }
+            }
         });
-
-        this.server.socket.addForkSubscription(this.core.args.connected_reader, namespace);
     }
 }

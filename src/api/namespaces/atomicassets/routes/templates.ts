@@ -2,11 +2,12 @@ import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { buildGreylistFilter, buildDataConditions, getLogs } from '../utils';
+import { buildGreylistFilter, buildDataConditions } from '../utils';
 import { buildBoundaryFilter, filterQueryArgs, mergeRequestData } from '../../utils';
 import { formatTemplate } from '../format';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { atomicDataFilter, greylistFilterParameters } from '../openapi';
+import { getContractActionLogs } from '../../../utils';
 
 export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/templates', '/v1/templates/_count'], server.web.caching(), (async (req, res) => {
@@ -187,9 +188,10 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
         try {
             res.json({
                 success: true,
-                data: await getLogs(
-                    server, core.args.atomicassets_account, 'template',
-                    req.params.collection_name + ':' + req.params.template_id,
+                data: await getContractActionLogs(
+                    server, core.args.atomicassets_account,
+                    ['lognewtempl', 'locktemplate'],
+                    {collection_name: req.params.collection_name, template_id: req.params.template_id},
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });

@@ -175,7 +175,7 @@
               "owner",
               "mutable_data",
               "immutable_data",
-              "ram_payer",
+              "burned_by_account",
               "burned_at_block",
               "burned_at_time",
               "updated_at_block",
@@ -837,8 +837,7 @@
               "updated_at_block",
               "updated_at_time",
               "created_at_block",
-              "created_at_time",
-              "created_at_txid"
+              "created_at_time"
             ],
             "filter": {},
             "limit": 1000,
@@ -1165,8 +1164,7 @@
               "updated_at_block",
               "updated_at_time",
               "created_at_block",
-              "created_at_time",
-              "created_at_txid"
+              "created_at_time"
             ],
             "filter": {},
             "limit": 1000,

@@ -1,5 +1,4 @@
 import * as express from 'express';
-import PQueue from 'p-queue';
 
 import { AtomicMarketNamespace, SaleApiState } from '../index';
 import { HTTPServer } from '../../../server';
@@ -11,7 +10,10 @@ import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, pri
 import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
-import { buildGreylistFilter, getLogs } from '../../atomicassets/utils';
+import { buildGreylistFilter } from '../../atomicassets/utils';
+import { createSocketApiNamespace, extractNotificationIdentifiers, getContractActionLogs } from '../../../utils';
+import ApiNotificationReceiver from '../../../notification';
+import { NotificationData } from '../../../../filler/notifier';
 
 export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/sales', '/v1/sales/_count'], server.web.caching(), async (req, res) => {
@@ -68,7 +70,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             const sortColumnMapping = {
                 sale_id: 'listing.sale_id',
-                created: 'listing.sale_id',
+                created: 'listing.created_at_block',
                 updated: 'listing.updated_at_block',
                 price: 'price.price',
                 template_mint: 'mint.min_template_mint',
@@ -137,8 +139,10 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         try {
             res.json({
                 success: true,
-                data: await getLogs(
-                    server, core.args.atomicmarket_account, 'sale', req.params.sale_id,
+                data: await getContractActionLogs(
+                    server, core.args.atomicmarket_account,
+                    ['lognewsale', 'logsalestart', 'cancelsale', 'purchasesale'],
+                    {sale_id: req.params.sale_id},
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });
@@ -237,74 +241,39 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
     };
 }
 
-export function salesSockets(core: AtomicMarketNamespace, server: HTTPServer): void {
-    const namespace = server.socket.io.of(core.path + '/v1/sales');
+export function salesSockets(core: AtomicMarketNamespace, server: HTTPServer, notification: ApiNotificationReceiver): void {
+    const namespace = createSocketApiNamespace(server, core.path + '/v1/sales');
 
-    namespace.on('connection', async (socket) => {
-        logger.debug('socket sale client connected');
+    notification.onData('sales', async (notifications: NotificationData[]) => {
+        const saleIDs = extractNotificationIdentifiers(notifications, 'sale_id');
+        const query = await server.query(
+            'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY($2)',
+            [core.args.atomicmarket_account, saleIDs]
+        );
+        const sales = query.rows.map((row: any) => formatSale(row));
 
-        let verifiedConnection = false;
-        if (!(await server.socket.reserveConnection(socket))) {
-            socket.disconnect(true);
-        } else {
-            verifiedConnection = true;
-        }
+        for (const notification of notifications) {
+            if (notification.type === 'trace' && notification.data.trace) {
+                const trace = notification.data.trace;
 
-        socket.on('disconnect', async () => {
-            if (verifiedConnection) {
-                await server.socket.releaseConnection(socket);
-            }
-        });
-    });
-
-    const queue = new PQueue({
-        autoStart: true,
-        concurrency: 1
-    });
-
-    const saleChannelName = [
-        'eosio-contract-api', core.connection.chain.name, core.args.connected_reader,
-        'atomicmarket', core.args.atomicmarket_account, 'sales'
-    ].join(':');
-    core.connection.redis.ioRedisSub.setMaxListeners(core.connection.redis.ioRedisSub.getMaxListeners() + 1);
-    core.connection.redis.ioRedisSub.subscribe(saleChannelName, () => {
-        core.connection.redis.ioRedisSub.on('message', async (channel, message) => {
-            if (channel !== saleChannelName) {
-                return;
-            }
-
-            const msg = JSON.parse(message);
-
-            await queue.add(async () => {
-                const query = await server.query(
-                    'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = $2',
-                    [core.args.atomicmarket_account, msg.data.sale_id]
-                );
-
-                if (query.rowCount === 0) {
-                    logger.error('Received sale notification but did not find sale in database');
-
-                    return;
+                if (trace.act.account !== core.args.atomicmarket_account) {
+                    continue;
                 }
 
-                const sales = await fillSales(
-                    server, core.args.atomicassets_account,
-                    query.rows.map((row: any) => formatSale(row))
-                );
+                const saleID = (<any>trace.act.data).sale_id;
 
-                const sale = sales[0];
-
-                if (msg.action === 'create') {
+                if (trace.act.name === 'lognewsale') {
                     namespace.emit('new_sale', {
-                        transaction: msg.transaction,
-                        block: msg.block,
-                        sale_id: sale.sale_id,
-                        sale: sale
+                        transaction: notification.data.tx,
+                        block: notification.data.block,
+                        trace: trace,
+                        sale_id: saleID,
+                        sale: sales.find((row: any) => String(row.sale_id) === String(saleID))
                     });
                 }
-            });
-        });
+            } else if (notification.type === 'fork') {
+                namespace.emit('fork', {block_num: notification.data.block.block_num});
+            }
+        }
     });
-
-    server.socket.addForkSubscription(core.args.connected_reader, namespace);
 }

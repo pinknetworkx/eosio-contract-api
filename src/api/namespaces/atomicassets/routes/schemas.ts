@@ -3,10 +3,11 @@ import * as express from 'express';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
-import { buildGreylistFilter, getLogs } from '../utils';
+import { buildGreylistFilter } from '../utils';
 import { formatSchema } from '../format';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { greylistFilterParameters } from '../openapi';
+import { getContractActionLogs } from '../../../utils';
 
 export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/schemas', '/v1/schemas/_count'], server.web.caching(), (async (req, res) => {
@@ -137,9 +138,10 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
         try {
             res.json({
                 success: true,
-                data: await getLogs(
-                    server, core.args.atomicassets_account, 'schema',
-                    req.params.collection_name + ':' + req.params.schema_name,
+                data: await getContractActionLogs(
+                    server, core.args.atomicassets_account,
+                    ['createschema', 'extendschema'],
+                    {collection_name: req.params.collection_name, schema_name: req.params.schema_name},
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });
