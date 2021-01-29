@@ -8,7 +8,7 @@ export async function getContractActionLogs(
     offset: number = 0, limit: number = 100, order: 'asc' | 'desc' = 'asc'
 ): Promise<Array<{log_id: number, name: string, data: any, txid: string, created_at_block: string, created_at_time: string}>> {
     const queryStr = 'SELECT global_sequence log_id, name, metadata "data", encode(txid::bytea, \'hex\') txid, created_at_block, created_at_time ' +
-        'FROM contract_action_logs ' +
+        'FROM contract_traces ' +
         'WHERE account = $1 AND name = ANY($2) AND metadata @> $3::jsonb ' +
         'ORDER BY global_sequence ' + (order === 'asc' ? 'ASC' : 'DESC') + ' LIMIT $4 OFFSET $5 ';
 

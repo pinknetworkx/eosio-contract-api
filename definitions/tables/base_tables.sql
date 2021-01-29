@@ -22,7 +22,7 @@ CREATE TABLE contract_readers (
     CONSTRAINT contract_readers_pkey PRIMARY KEY (name)
 );
 
-CREATE TABLE contract_action_logs (
+CREATE TABLE contract_traces (
     global_sequence bigint NOT NULL,
     account character varying(12) NOT NULL,
     name character varying(64) NOT NULL,
@@ -70,11 +70,11 @@ CREATE INDEX contract_codes_account ON contract_codes USING hash (account);
 CREATE INDEX contract_codes_block_num ON contract_codes USING btree (block_num);
 CREATE INDEX contract_codes_block_time ON contract_codes USING btree (block_time);
 
-CREATE INDEX contract_action_logs_account ON contract_action_logs USING btree (account);
-CREATE INDEX contract_action_logs_name ON contract_action_logs USING btree (name);
-CREATE INDEX contract_action_logs_metadata ON contract_action_logs USING gin (metadata);
-CREATE INDEX contract_action_logs_created_at_block ON contract_action_logs USING btree (created_at_block);
-CREATE INDEX contract_action_logs_created_at_time ON contract_action_logs USING btree (created_at_time);
+CREATE INDEX contract_traces_account ON contract_traces USING btree (account);
+CREATE INDEX contract_traces_name ON contract_traces USING btree (name);
+CREATE INDEX contract_traces_metadata ON contract_traces USING gin (metadata);
+CREATE INDEX contract_traces_created_at_block ON contract_traces USING btree (created_at_block);
+CREATE INDEX contract_traces_created_at_time ON contract_traces USING btree (created_at_time);
 
 CREATE INDEX reversible_queries_block_num ON reversible_queries USING btree (block_num);
 CREATE INDEX reversible_queries_reader ON reversible_queries USING hash (reader);

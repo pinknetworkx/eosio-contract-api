@@ -601,7 +601,7 @@ export class ContractDBTransaction {
 
     async commit(): Promise<void> {
         if (this.actionLogs.length > 0) {
-            await this.insert('contract_action_logs',  this.actionLogs, ['global_sequence']);
+            await this.insert('contract_traces',  this.actionLogs, ['global_sequence']);
         }
 
         await this.acquireLock();
