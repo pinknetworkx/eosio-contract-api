@@ -20,8 +20,7 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
 
     let tableInserts = {
         'assets': <any[]>[],
-        'mints': <any[]>[],
-        'backed_tokens': <any[]>[]
+        'mints': <any[]>[]
     };
 
     destructors.push(processor.onTrace(
@@ -71,14 +70,9 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 await db.insert('atomicassets_mints', tableInserts.mints, ['contract', 'asset_id']);
             }
 
-            if (tableInserts.backed_tokens.length > 0) {
-                await db.insert('atomicassets_assets_backed_tokens', tableInserts.backed_tokens, ['contract', 'asset_id', 'token_symbol']);
-            }
-
             tableInserts = {
                 'assets': [],
-                'mints': [],
-                'backed_tokens': []
+                'mints': []
             };
         }, AtomicAssetsUpdatePriority.ACTION_MINT_ASSET.valueOf()
     ));
