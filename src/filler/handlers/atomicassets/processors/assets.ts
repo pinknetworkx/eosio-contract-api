@@ -57,19 +57,6 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 created_at_time: eosioTimestampToDate(block.timestamp).getTime()
             });
 
-            if (trace.act.data.backed_tokens.length > 0) {
-                tableInserts.backed_tokens.push(...trace.act.data.backed_tokens.map(eosioAsset => {
-                    const token = splitEosioToken(eosioAsset);
-
-                    return {
-                        contract: contract, asset_id: trace.act.data.asset_id,
-                        token_symbol: token.token_symbol, amount: token.amount,
-                        updated_at_block: block.block_num,
-                        updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
-                    };
-                }));
-            }
-
             notifier.sendTrace('assets', block, tx, trace);
         }, AtomicAssetsUpdatePriority.ACTION_MINT_ASSET.valueOf()
     ));
@@ -116,8 +103,10 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 }, ['contract', 'asset_id', 'token_symbol']);
             } else {
                 await db.insert('atomicassets_assets_backed_tokens', {
-                    contract: contract, asset_id: trace.act.data.asset_id,
-                    token_symbol: token.token_symbol, amount: token.amount,
+                    contract: contract,
+                    asset_id: trace.act.data.asset_id,
+                    token_symbol: token.token_symbol,
+                    amount: token.amount,
                     updated_at_block: block.block_num,
                     updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
                 }, ['contract', 'asset_id', 'token_symbol']);
