@@ -123,7 +123,7 @@ export function offerProcessor(core: AtomicAssetsHandler, processor: DataProcess
                     'FROM atomicassets_offers offer, atomicassets_offers_assets asset ' +
                     'WHERE offer.contract = asset.contract AND offer.offer_id = asset.offer_id AND ' +
                     'offer.state IN (' + [OfferState.PENDING.valueOf(), OfferState.INVALID.valueOf()].join(',') + ') AND ' +
-                    'asset.asset_id = ANY ($2) AND offer.contract = $1',
+                    'offer.contract = $1 AND asset.asset_id = ANY ($2)',
                     [core.args.atomicassets_account, transferredAssets]
                 );
 
@@ -132,11 +132,11 @@ export function offerProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 }
 
                 const invalidOffersQuery = await db.query(
-                    'SELECT DISTINCT ON (o_asset.offer_id) o_asset.offer_id ' +
-                    'FROM atomicassets_offers_assets o_asset, atomicassets_assets a_asset ' +
-                    'WHERE o_asset.contract = a_asset.contract AND o_asset.asset_id = a_asset.asset_id AND ' +
-                    'o_asset.offer_id = ANY ($2) AND ' +
-                    '(o_asset.owner != a_asset.owner OR a_asset.owner IS NULL) AND o_asset.contract = $1',
+                    'SELECT DISTINCT ON (offer_asset.offer_id) offer_asset.offer_id ' +
+                    'FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
+                    'WHERE offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND ' +
+                    'offer_asset.offer_id = ANY ($2) AND ' +
+                    '(offer_asset.owner != asset.owner OR asset.owner IS NULL) AND offer_asset.contract = $1',
                     [core.args.atomicassets_account, relatedOffersQuery.rows.map(row => row.offer_id)]
                 );
 
@@ -166,7 +166,7 @@ export function offerProcessor(core: AtomicAssetsHandler, processor: DataProcess
 
                 if (validOffers.length > 0) {
                     await db.update('atomicassets_offers', {
-                        state: OfferState.INVALID.valueOf()
+                        state: OfferState.PENDING.valueOf()
                     }, {
                         str: 'contract = $1 AND offer_id = ANY ($2) AND state = $3',
                         values: [core.args.atomicassets_account, validOffers, OfferState.INVALID.valueOf()]
