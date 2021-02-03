@@ -8,10 +8,12 @@
 
     "ship_prefetch_blocks": 50,
     "ship_min_block_confirmation": 30,
+    "ship_ds_queue_size": 50,
+
     "db_group_blocks": 10,
 
-    "ds_threads": 4,
-    "ds_experimental": false,
+    "ds_ship_threads": 4,
+    "ds_contract_threads": 2,
 
     "delete_data": false,
 

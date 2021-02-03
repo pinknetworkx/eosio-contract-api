@@ -9,7 +9,7 @@ export function configProcessor(core: AtomicAssetsHandler, processor: DataProces
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicassets_account;
 
-    destructors.push(processor.onDelta(
+    destructors.push(processor.onTableUpdate(
         contract, 'config',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<ConfigTableRow>): Promise<void> => {
             if (!delta.present) {
@@ -46,7 +46,7 @@ export function configProcessor(core: AtomicAssetsHandler, processor: DataProces
         }, AtomicAssetsUpdatePriority.TABLE_CONFIG.valueOf()
     ));
 
-    destructors.push(processor.onDelta(
+    destructors.push(processor.onTableUpdate(
         contract, 'tokenconfigs',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<TokenConfigsTableRow>): Promise<void> => {
             if (!delta.present) {

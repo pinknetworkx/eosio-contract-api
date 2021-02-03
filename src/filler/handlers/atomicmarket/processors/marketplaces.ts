@@ -10,7 +10,7 @@ export function marketplaceProcessor(core: AtomicMarketHandler, processor: DataP
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicmarket_account;
 
-    destructors.push(processor.onDelta(
+    destructors.push(processor.onTableUpdate(
         contract, 'marketplaces',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<MarketplacesTableRow>): Promise<void> => {
             if (!delta.present) {

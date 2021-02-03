@@ -10,7 +10,7 @@ export function schemaProcessor(core: AtomicAssetsHandler, processor: DataProces
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicassets_account;
 
-    destructors.push(processor.onDelta(
+    destructors.push(processor.onTableUpdate(
         contract, 'schemas',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<SchemasTableRow>): Promise<void> => {
             if (!delta.present) {

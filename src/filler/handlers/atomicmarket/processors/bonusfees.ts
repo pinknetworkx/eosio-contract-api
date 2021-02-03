@@ -10,7 +10,7 @@ export function bonusfeeProcessor(core: AtomicMarketHandler, processor: DataProc
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicmarket_account;
 
-    destructors.push(processor.onDelta(
+    destructors.push(processor.onTableUpdate(
         contract, 'bonusfees',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<BonusfeesTableRow>): Promise<void> => {
             if (!delta.present) {

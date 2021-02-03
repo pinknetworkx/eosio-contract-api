@@ -14,7 +14,6 @@ export interface BlockRequestType {
 export interface IBlockReaderOptions {
     min_block_confirmation: number;
     ds_threads: number;
-    ds_experimental: boolean;
 }
 
 export type ShipBlockResponse = {
@@ -65,7 +64,7 @@ export type ShipTransactionTrace = [
     }
 ];
 
-export type ShipActionTrace = [
+export type ShipActionTrace<T = string | Uint8Array> = [
     'action_trace_v0',
     {
         action_ordinal: number,
@@ -76,7 +75,7 @@ export type ShipActionTrace = [
             account: string,
             name: string,
             authorization: Array<{actor: string, permission: string}>,
-            data: string | Uint8Array
+            data: T
         },
         context_free: boolean,
         elapsed: string,
@@ -123,7 +122,7 @@ export type ShipTableDelta = [
     }
 ];
 
-export type ShipContractRow = [
+export type ShipContractRow<T = Uint8Array | string> = [
     'contract_row_v0',
     {
         code: string,
@@ -131,6 +130,6 @@ export type ShipContractRow = [
         table: string,
         primary_key: string,
         payer: string,
-        value: Uint8Array | string
+        value: T
     }
 ];

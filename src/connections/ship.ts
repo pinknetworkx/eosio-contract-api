@@ -2,75 +2,16 @@ import PQueue from 'p-queue';
 import { Serialize } from 'eosjs';
 import { Abi } from 'eosjs/dist/eosjs-rpc-interfaces';
 import * as WebSocket from 'ws';
-import { TextDecoder, TextEncoder } from 'text-encoding';
 import { StaticPool } from 'node-worker-threads-pool';
 
 import logger from '../utils/winston';
 import {
     BlockRequestType,
-    IBlockReaderOptions, ShipActionTrace, ShipBlockResponse, ShipContractRow, ShipTableDelta, ShipTransactionTrace
+    IBlockReaderOptions, ShipBlockResponse
 } from '../types/ship';
-import { EosioTransaction } from '../types/eosio';
+import { eosioDeserialize, eosioSerialize } from '../utils/eosio';
 
 export type BlockConsumer = (block: ShipBlockResponse) => any;
-
-export function extractShipTraces(transactions: ShipTransactionTrace[]): Array<{trace: ShipActionTrace, tx: EosioTransaction}> {
-    const result: Array<{trace: ShipActionTrace, tx: EosioTransaction}> = [];
-
-    for (const transaction of transactions) {
-        if (transaction[0] === 'transaction_trace_v0') {
-            // transaction failed
-            if (transaction[1].status !== 0) {
-                continue;
-            }
-
-            const tx: EosioTransaction = {
-                id: transaction[1].id,
-                cpu_usage_us: transaction[1].cpu_usage_us,
-                net_usage_words: transaction[1].net_usage_words
-            };
-
-            result.push(...transaction[1].action_traces.map((trace) => {
-                return {trace, tx};
-            }));
-        } else {
-            throw new Error('unsupported transaction response received: ' + transaction[0]);
-        }
-    }
-
-    // sort by global_sequence because inline actions do not have the correct order
-    result.sort((a, b) => {
-        if (a.trace[0] === 'action_trace_v0' && b.trace[0] === 'action_trace_v0') {
-            if (a.trace[1].receipt[0] === 'action_receipt_v0' && b.trace[1].receipt[0] === 'action_receipt_v0') {
-                return parseInt(a.trace[1].receipt[1].global_sequence, 10) - parseInt(b.trace[1].receipt[1].global_sequence, 10);
-            }
-
-            throw new Error('unsupported trace receipt response received: ' + a.trace[0] + ' ' + b.trace[0]);
-        }
-
-        throw new Error('unsupported trace response received: ' + a.trace[0] + ' ' + b.trace[0]);
-    });
-
-    return result;
-}
-
-export function extractShipContractRows(deltas: ShipTableDelta[]): Array<{present: boolean, data: ShipContractRow}> {
-    const result: Array<{present: boolean, data: ShipContractRow}> = [];
-
-    for (const delta of deltas) {
-        if (delta[0] !== 'table_delta_v0') {
-            throw new Error('Unsupported table delta response received: ' + delta[0]);
-        }
-
-        if (delta[1].name === 'contract_row') {
-            for (const row of delta[1].rows) {
-                result.push({present: row.present, data: <ShipContractRow>row.data});
-            }
-        }
-    }
-
-    return result;
-}
 
 export default class StateHistoryBlockReader {
     currentArgs: BlockRequestType;
@@ -94,7 +35,7 @@ export default class StateHistoryBlockReader {
 
     constructor(
         private readonly endpoint: string,
-        private options: IBlockReaderOptions = {min_block_confirmation: 1, ds_threads: 4, ds_experimental: false}
+        private options: IBlockReaderOptions = {min_block_confirmation: 1, ds_threads: 4}
     ) {
         this.connected = false;
         this.connecting = false;
@@ -145,49 +86,8 @@ export default class StateHistoryBlockReader {
         }, 5000);
     }
 
-    serialize(type: string, value: any, types?: Map<string, Serialize.Type>): Uint8Array {
-        let serializeTypes: Map<string, Serialize.Type>;
-
-        if (types) {
-            serializeTypes = types;
-        } else {
-            serializeTypes = this.types;
-        }
-
-        const buffer = new Serialize.SerialBuffer({ textEncoder: new TextEncoder, textDecoder: new TextDecoder });
-        Serialize.getType(serializeTypes, type).serialize(buffer, value);
-
-        return buffer.asUint8Array();
-    }
-
-    deserialize(type: string, data: Uint8Array | string, types?: Map<string, Serialize.Type>, checkLength: boolean = true): any {
-        let dataArray;
-        if (typeof data === 'string') {
-            dataArray = Uint8Array.from(Buffer.from(data, 'hex'));
-        } else {
-            dataArray = data;
-        }
-
-        let serializeTypes: Map<string, Serialize.Type>;
-        if (types) {
-            serializeTypes = types;
-        } else {
-            serializeTypes = this.types;
-        }
-
-        const buffer = new Serialize.SerialBuffer({ textEncoder: new TextEncoder, textDecoder: new TextDecoder, array: dataArray });
-        const result = Serialize.getType(serializeTypes, type)
-            .deserialize(buffer, new Serialize.SerializerState({ bytesAsUint8Array: true }));
-
-        if (buffer.readPos !== data.length && checkLength) {
-            throw new Error('Deserialization error: ' + type);
-        }
-
-        return result;
-    }
-
     send(request: [string, any]): void {
-        this.ws.send(this.serialize('request', request, this.types));
+        this.ws.send(eosioSerialize('request', request, this.types));
     }
 
     onConnect(): void {
@@ -206,10 +106,7 @@ export default class StateHistoryBlockReader {
                 this.deserializeWorkers = new StaticPool({
                     size: this.options.ds_threads,
                     task: './build/workers/deserializer.js',
-                    workerData: {
-                        abi: data,
-                        options: this.options
-                    }
+                    workerData: {abi: data}
                 });
 
                 for (const table of this.abi.tables) {
@@ -220,7 +117,7 @@ export default class StateHistoryBlockReader {
                     this.requestBlocks();
                 }
             } else {
-                const [type, response] = this.deserialize('result', data, this.types);
+                const [type, response] = eosioDeserialize('result', data, this.types);
 
                 if (type === 'get_blocks_result_v0') {
                     let block: any = null;

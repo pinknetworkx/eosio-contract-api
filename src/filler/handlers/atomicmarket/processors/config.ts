@@ -9,7 +9,7 @@ export function configProcessor(core: AtomicMarketHandler, processor: DataProces
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicmarket_account;
 
-    destructors.push(processor.onDelta(
+    destructors.push(processor.onTableUpdate(
         contract, 'config',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<ConfigTableRow>): Promise<void> => {
             if (!delta.present) {

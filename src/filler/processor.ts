@@ -41,9 +41,12 @@ function matchFilter(val1: string, val2: string, filter1: string, filter2: strin
     return match1 && match2;
 }
 
+export type TraceListenerElement = {contract: string, action: string, callback: TraceListener, priority: number, options: ListenerOptions};
+export type DeltaListenerElement = {contract: string, table: string, callback: DeltaListener, priority: number, options: ListenerOptions};
+
 export default class DataProcessor {
-    private readonly traceListeners: Array<{contract: string, action: string, callback: TraceListener, priority: number, options: ListenerOptions}>;
-    private readonly deltaListeners: Array<{contract: string, table: string, callback: DeltaListener, priority: number, options: ListenerOptions}>;
+    private readonly traceListeners: Array<TraceListenerElement>;
+    private readonly tableListeners: Array<DeltaListenerElement>;
     private readonly priorityListeners: Array<{callback: PriorityListener, threshold: number, priority: number}>;
     private readonly commitListeners: Array<{callback: CommitListener, priority: number}>;
     private readonly committedListeners: Array<{callback: CommittedListener, priority: number}>;
@@ -55,7 +58,7 @@ export default class DataProcessor {
 
     constructor(initialState: ProcessingState) {
         this.traceListeners = [];
-        this.deltaListeners = [];
+        this.tableListeners = [];
         this.commitListeners = [];
 
         this.priorityListeners = [];
@@ -71,6 +74,62 @@ export default class DataProcessor {
 
     getState(): ProcessingState {
         return this.state;
+    }
+
+    getRules(deserialize = false): {[key: string]: {actions: string[], tables: string[]}} {
+        const listeners = this.getActiveListeners(deserialize);
+
+        const contracts = this.getContracts(deserialize);
+        const result: any = contracts.reduce((prev, curr) => ({...prev, [curr]: {actions: [], tables: []}}), {});
+
+        for (const listener of listeners.trace_listeners) {
+            if (listener.action === '*') {
+                result[listener.contract].actions = ['*'];
+
+                break;
+            }
+
+            result[listener.contract].actions.push(listener.action);
+        }
+
+        for (const listener of listeners.table_listeners) {
+            if (listener.table === '*') {
+                result[listener.contract].tables = ['*'];
+
+                break;
+            }
+
+            result[listener.contract].tables.push(listener.table);
+        }
+
+        return result;
+    }
+
+    getContracts(deserialize = false): string[] {
+        const listeners = this.getActiveListeners(deserialize);
+
+        const result = [
+            ...listeners.trace_listeners.map(row => row.contract),
+            ...listeners.table_listeners.map(row => row.contract)
+        ];
+
+        return result.filter((item, pos) => {
+            return result.indexOf(item) === pos;
+        });
+    }
+
+    getActiveListeners(deserialize = false): {trace_listeners: TraceListenerElement[], table_listeners: DeltaListenerElement[]} {
+        const optionsFilter = (options: ListenerOptions): boolean => {
+            return (
+                (this.state === ProcessingState.HEAD || !options.headOnly) &&
+                (deserialize ? options.deserialize : true)
+            );
+        };
+
+        return {
+            trace_listeners: this.traceListeners.filter(row => optionsFilter(row.options)),
+            table_listeners: this.tableListeners.filter(row => optionsFilter(row.options))
+        };
     }
 
     onTrace(contract: string, action: string, listener: TraceListener, priority = 100, options: ListenerOptions = {}): () => void {
@@ -92,7 +151,7 @@ export default class DataProcessor {
         };
     }
 
-    onDelta(contract: string, table: string, listener: DeltaListener, priority = 100, options: ListenerOptions = {}): () => void {
+    onTableUpdate(contract: string, table: string, listener: DeltaListener, priority = 100, options: ListenerOptions = {}): () => void {
         const element = {
             contract, table, callback: listener, priority,
             options: {...defaultListenerOptions, ...options}
@@ -100,13 +159,13 @@ export default class DataProcessor {
 
         logger.debug('Delta listener registered', {contract, table, priority, options: element.options});
 
-        this.deltaListeners.push(element);
+        this.tableListeners.push(element);
 
         return (): void => {
-            const index = this.deltaListeners.indexOf(element);
+            const index = this.tableListeners.indexOf(element);
 
             if (index >= 0) {
-                this.deltaListeners.splice(index, 1);
+                this.tableListeners.splice(index, 1);
             }
         };
     }
@@ -182,8 +241,8 @@ export default class DataProcessor {
         };
     }
 
-    deltaNeeded(contract: string, table: string): { process: boolean, deserialize: boolean } {
-        const listeners = this.deltaListeners
+    tableNeeded(contract: string, table: string): { process: boolean, deserialize: boolean } {
+        const listeners = this.tableListeners
             .filter(element => this.state === ProcessingState.HEAD || !element.options.headOnly)
             .filter(element => matchFilter(contract, table, element.contract, element.table));
 
@@ -216,8 +275,8 @@ export default class DataProcessor {
         }
     }
 
-    processDelta(block: ShipBlock, delta: EosioTableRow): void {
-        for (const listener of this.deltaListeners) {
+    processTable(block: ShipBlock, delta: EosioTableRow): void {
+        for (const listener of this.tableListeners) {
             if (!matchFilter(delta.code, delta.table, listener.contract, listener.table)) {
                 continue;
             }
@@ -239,7 +298,7 @@ export default class DataProcessor {
         }
     }
 
-    async dequeueLive(db: ContractDBTransaction): Promise<void> {
+    async executeHeadQueue(db: ContractDBTransaction): Promise<void> {
         const queue = this.liveQueue;
         this.liveQueue = [];
 
@@ -285,7 +344,7 @@ export default class DataProcessor {
         }
     }
 
-    async dequeueIrreversible(db: ContractDBTransaction): Promise<void> {
+    async executeIrreversibleQueue(db: ContractDBTransaction): Promise<void> {
         const queue = this.irreversibleQueue;
         this.irreversibleQueue = [];
 

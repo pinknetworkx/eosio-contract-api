@@ -58,7 +58,7 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
         }, AtomicMarketUpdatePriority.ACTION_CREATE_AUCTION.valueOf()
     ));
 
-    destructors.push(processor.onDelta(
+    destructors.push(processor.onTableUpdate(
         contract, 'auctions',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<AuctionsTableRow>): Promise<void> => {
             await db.update('atomicmarket_auctions', {

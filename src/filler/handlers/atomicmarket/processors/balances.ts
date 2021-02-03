@@ -10,7 +10,7 @@ export function balanceProcessor(core: AtomicMarketHandler, processor: DataProce
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicmarket_account;
 
-    destructors.push(processor.onDelta(
+    destructors.push(processor.onTableUpdate(
         contract, 'balances',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<BalancesTableRow>): Promise<void> => {
             await db.delete('atomicmarket_balances', {

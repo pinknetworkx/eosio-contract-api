@@ -11,7 +11,7 @@ export function collectionProcessor(core: AtomicAssetsHandler, processor: DataPr
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicassets_account;
 
-    destructors.push(processor.onDelta(
+    destructors.push(processor.onTableUpdate(
         contract, 'collections',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<CollectionsTableRow>): Promise<void> => {
             if (!delta.present) {

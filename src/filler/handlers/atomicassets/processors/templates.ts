@@ -11,7 +11,7 @@ export function templateProcessor(core: AtomicAssetsHandler, processor: DataProc
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicassets_account;
 
-    destructors.push(processor.onDelta(
+    destructors.push(processor.onTableUpdate(
         contract, 'templates',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<TemplatesTableRow>): Promise<void> => {
             if (!delta.present) {

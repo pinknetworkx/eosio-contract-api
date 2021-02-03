@@ -8,7 +8,7 @@ import { ConfigTableRow } from '../types/tables';
 export function configProcessor(core: AtomicToolsHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
 
-    destructors.push(processor.onDelta(
+    destructors.push(processor.onTableUpdate(
         core.args.atomictools_account, 'config',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<ConfigTableRow>): Promise<void> => {
             if (!delta.present) {
