@@ -44,7 +44,8 @@
       "path": "/atomictools",
       "args": {
         "atomictools_account": "atomictoolsx",
-        "atomicassets_account": "atomicassets"
+        "atomicassets_account": "atomicassets",
+        "connected_reader": "atomic-1"
       }
     }
   ]

@@ -32,11 +32,6 @@
     enabled "2.0.x"
     kuler "^2.0.0"
 
-"@eosrio/node-abieos@^2.1.0-beta.0":
-  version "2.1.0-beta.0"
-  resolved "https://registry.yarnpkg.com/@eosrio/node-abieos/-/node-abieos-2.1.0-beta.0.tgz#879db822133b2f5dd4017d38fb0222b7dac68cd1"
-  integrity sha512-m6BQHX833JQ/Ji3mFztYtHm2k428IRkbb6QITRs4UbgvIW0BKQ+eTGhBOCBTPEDjm81HPBlbWblnpZy5/l7gHg==
-
 "@eslint/eslintrc@^0.3.0":
   version "0.3.0"
   resolved "https://registry.yarnpkg.com/@eslint/eslintrc/-/eslintrc-0.3.0.tgz#d736d6963d7003b6514e6324bec9c602ac340318"
