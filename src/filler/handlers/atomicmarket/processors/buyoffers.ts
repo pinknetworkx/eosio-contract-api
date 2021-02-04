@@ -12,7 +12,7 @@ export function buyofferProcessor(core: AtomicMarketHandler, processor: DataProc
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicmarket_account;
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'lognewbuyo',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogNewBuyofferActionData>): Promise<void> => {
             await db.insert('atomicmarket_buyoffers', {
@@ -44,11 +44,11 @@ export function buyofferProcessor(core: AtomicMarketHandler, processor: DataProc
                 asset_id: assetID
             })), ['market_contract', 'buyoffer_id', 'assets_contract', 'asset_id']);
 
-            notifier.sendTrace('buyoffer', block, tx, trace);
+            notifier.sendActionTrace('buyoffer', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_CREATE_BUYOFFER.valueOf()
     ));
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'cancelbuyo',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<CancelBuyofferActionData>): Promise<void> => {
             await db.update('atomicmarket_buyoffers', {
@@ -60,11 +60,11 @@ export function buyofferProcessor(core: AtomicMarketHandler, processor: DataProc
                 values: [core.args.atomicmarket_account, trace.act.data.buyoffer_id]
             }, ['market_contract', 'buyoffer_id']);
 
-            notifier.sendTrace('buyoffer', block, tx, trace);
+            notifier.sendActionTrace('buyoffer', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_UPDATE_BUYOFFER.valueOf()
     ));
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'acceptbuyo',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<AcceptBuyofferActionData>): Promise<void> => {
             await db.update('atomicmarket_buyoffers', {
@@ -77,11 +77,11 @@ export function buyofferProcessor(core: AtomicMarketHandler, processor: DataProc
                 values: [core.args.atomicmarket_account, trace.act.data.buyoffer_id]
             }, ['market_contract', 'buyoffer_id']);
 
-            notifier.sendTrace('buyoffer', block, tx, trace);
+            notifier.sendActionTrace('buyoffer', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_UPDATE_BUYOFFER.valueOf()
     ));
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'declinebuyo',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<DeclineBuyofferActionData>): Promise<void> => {
             await db.update('atomicmarket_buyoffers', {
@@ -94,7 +94,7 @@ export function buyofferProcessor(core: AtomicMarketHandler, processor: DataProc
                 values: [core.args.atomicmarket_account, trace.act.data.buyoffer_id]
             }, ['market_contract', 'buyoffer_id']);
 
-            notifier.sendTrace('buyoffer', block, tx, trace);
+            notifier.sendActionTrace('buyoffer', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_UPDATE_BUYOFFER.valueOf()
     ));
 

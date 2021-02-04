@@ -1,6 +1,6 @@
 import DataProcessor from '../../../processor';
 import { ContractDBTransaction } from '../../../database';
-import { EosioTableRow } from '../../../../types/eosio';
+import { EosioContractRow } from '../../../../types/eosio';
 import { ShipBlock } from '../../../../types/ship';
 import { eosioTimestampToDate } from '../../../../utils/eosio';
 import { MarketplacesTableRow } from '../types/tables';
@@ -10,9 +10,9 @@ export function marketplaceProcessor(core: AtomicMarketHandler, processor: DataP
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicmarket_account;
 
-    destructors.push(processor.onTableUpdate(
+    destructors.push(processor.onContractRow(
         contract, 'marketplaces',
-        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<MarketplacesTableRow>): Promise<void> => {
+        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<MarketplacesTableRow>): Promise<void> => {
             if (!delta.present) {
                 throw new Error('AtomicMarket: Marketplace deleted. Should not be possible');
             }

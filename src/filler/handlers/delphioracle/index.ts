@@ -3,7 +3,7 @@ import { PoolClient } from 'pg';
 
 import { ContractHandler } from '../interfaces';
 import { ShipBlock } from '../../../types/ship';
-import { EosioTableRow } from '../../../types/eosio';
+import { EosioContractRow } from '../../../types/eosio';
 import { ContractDBTransaction } from '../../database';
 import logger from '../../../utils/winston';
 import { eosioTimestampToDate } from '../../../utils/eosio';
@@ -120,7 +120,7 @@ export default class DelphiOracleHandler extends ContractHandler {
         const lastUpdated: {[key: string]: number} = {};
 
         destructors.push(
-            processor.onTableUpdate(this.args.delphioracle_account, 'datapoints', async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<DatapointsTableRow>) => {
+            processor.onContractRow(this.args.delphioracle_account, 'datapoints', async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<DatapointsTableRow>) => {
                 if (!lastUpdated[delta.scope]) {
                     const existsQuery = await this.connection.database.query(
                         'SELECT delphi_pair_name FROM delphioracle_pairs WHERE contract = $1 AND delphi_pair_name = $2',
@@ -151,7 +151,7 @@ export default class DelphiOracleHandler extends ContractHandler {
         );
 
         destructors.push(
-            processor.onTableUpdate(this.args.delphioracle_account, 'pairs', async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<PairsTableRow>) => {
+            processor.onContractRow(this.args.delphioracle_account, 'pairs', async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<PairsTableRow>) => {
                 await this.savePair(db, block, delta.value);
             }, DELPHIORACLE_BASE_PRIORITY + 10, {headOnly: true})
         );

@@ -1,7 +1,7 @@
 import AtomicAssetsHandler, { AtomicAssetsUpdatePriority } from '../index';
 import DataProcessor from '../../../processor';
 import { ContractDBTransaction } from '../../../database';
-import { EosioTableRow } from '../../../../types/eosio';
+import { EosioContractRow } from '../../../../types/eosio';
 import { ShipBlock } from '../../../../types/ship';
 import { eosioTimestampToDate } from '../../../../utils/eosio';
 import { CollectionsTableRow } from '../types/tables';
@@ -11,9 +11,9 @@ export function collectionProcessor(core: AtomicAssetsHandler, processor: DataPr
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicassets_account;
 
-    destructors.push(processor.onTableUpdate(
+    destructors.push(processor.onContractRow(
         contract, 'collections',
-        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<CollectionsTableRow>): Promise<void> => {
+        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<CollectionsTableRow>): Promise<void> => {
             if (!delta.present) {
                 throw new Error('AtomicAssets: A collection was deleted. Should not be possible by contract');
             }

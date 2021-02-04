@@ -15,7 +15,7 @@ export function saleProcessor(core: AtomicMarketHandler, processor: DataProcesso
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicmarket_account;
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'lognewsale',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogNewSaleActionData>): Promise<void> => {
             await db.insert('atomicmarket_sales', {
@@ -40,11 +40,11 @@ export function saleProcessor(core: AtomicMarketHandler, processor: DataProcesso
                 created_at_time: eosioTimestampToDate(block.timestamp).getTime()
             }, ['market_contract', 'sale_id']);
 
-            notifier.sendTrace('sales', block, tx, trace);
+            notifier.sendActionTrace('sales', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_CREATE_SALE.valueOf()
     ));
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'logsalestart',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogSaleStartActionData>): Promise<void> => {
             await db.update('atomicmarket_sales', {
@@ -57,11 +57,11 @@ export function saleProcessor(core: AtomicMarketHandler, processor: DataProcesso
                 values: [core.args.atomicmarket_account, trace.act.data.sale_id]
             }, ['market_contract', 'sale_id']);
 
-            notifier.sendTrace('sales', block, tx, trace);
+            notifier.sendActionTrace('sales', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_UPDATE_SALE.valueOf()
     ));
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'cancelsale',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<CancelSaleActionData>): Promise<void> => {
             await db.update('atomicmarket_sales', {
@@ -73,11 +73,11 @@ export function saleProcessor(core: AtomicMarketHandler, processor: DataProcesso
                 values: [core.args.atomicmarket_account, trace.act.data.sale_id]
             }, ['market_contract', 'sale_id']);
 
-            notifier.sendTrace('sales', block, tx, trace);
+            notifier.sendActionTrace('sales', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_UPDATE_SALE.valueOf()
     ));
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'purchasesale',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<PurchaseSaleActionData>): Promise<void> => {
             let finalPrice = null;
@@ -130,7 +130,7 @@ export function saleProcessor(core: AtomicMarketHandler, processor: DataProcesso
                 values: [core.args.atomicmarket_account, trace.act.data.sale_id]
             }, ['market_contract', 'sale_id']);
 
-            notifier.sendTrace('sales', block, tx, trace);
+            notifier.sendActionTrace('sales', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_UPDATE_SALE.valueOf()
     ));
 

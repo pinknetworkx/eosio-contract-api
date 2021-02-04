@@ -17,7 +17,7 @@ export function offerProcessor(core: AtomicAssetsHandler, processor: DataProcess
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicassets_account;
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'lognewoffer',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogNewOfferActionData>): Promise<void> => {
             await db.insert('atomicassets_offers', {
@@ -50,11 +50,11 @@ export function offerProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 }))
             ], ['contract', 'offer_id', 'asset_id']);
 
-            notifier.sendTrace('offers', block, tx, trace);
+            notifier.sendActionTrace('offers', block, tx, trace);
         }, AtomicAssetsUpdatePriority.ACTION_CREATE_OFFER.valueOf()
     ));
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'acceptoffer',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<AcceptOfferActionData>): Promise<void> => {
             await db.update('atomicassets_offers', {
@@ -68,7 +68,7 @@ export function offerProcessor(core: AtomicAssetsHandler, processor: DataProcess
         }, AtomicAssetsUpdatePriority.ACTION_UPDATE_OFFER.valueOf()
     ));
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'declineoffer',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<DeclineOfferActionData>): Promise<void> => {
             await db.update('atomicassets_offers', {
@@ -82,7 +82,7 @@ export function offerProcessor(core: AtomicAssetsHandler, processor: DataProcess
         }, AtomicAssetsUpdatePriority.ACTION_UPDATE_OFFER.valueOf()
     ));
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'canceloffer',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<CancelOfferActionData>): Promise<void> => {
             await db.update('atomicassets_offers', {
@@ -97,14 +97,14 @@ export function offerProcessor(core: AtomicAssetsHandler, processor: DataProcess
     ));
 
     let transferredAssets: string[] = [];
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'logtransfer',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogTransferActionData>): Promise<void> => {
             transferredAssets.push(...trace.act.data.asset_ids);
         }, AtomicAssetsUpdatePriority.INDEPENDENT.valueOf()
     ));
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'logburnasset',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogBurnAssetActionData>): Promise<void> => {
             transferredAssets.push(trace.act.data.asset_id);

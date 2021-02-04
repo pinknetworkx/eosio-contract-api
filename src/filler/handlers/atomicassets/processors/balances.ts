@@ -1,7 +1,7 @@
 import AtomicAssetsHandler, { AtomicAssetsUpdatePriority } from '../index';
 import DataProcessor from '../../../processor';
 import { ContractDBTransaction } from '../../../database';
-import { EosioTableRow } from '../../../../types/eosio';
+import { EosioContractRow } from '../../../../types/eosio';
 import { ShipBlock } from '../../../../types/ship';
 import { eosioTimestampToDate, splitEosioToken } from '../../../../utils/eosio';
 import { BalancesTableRow } from '../types/tables';
@@ -10,9 +10,9 @@ export function balanceProcessor(core: AtomicAssetsHandler, processor: DataProce
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicassets_account;
 
-    destructors.push(processor.onTableUpdate(
+    destructors.push(processor.onContractRow(
         contract, 'balances',
-        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<BalancesTableRow>): Promise<void> => {
+        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<BalancesTableRow>): Promise<void> => {
             await db.delete('atomicassets_balances', {
                 str: 'contract = $1 AND owner = $2',
                 values: [contract, delta.value.owner]

@@ -10,7 +10,7 @@ import { CancelLinkActionData, ClaimLinkActionData, LogLinkStartActionData, LogN
 export function linkProcessor(core: AtomicToolsHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         core.args.atomictools_account, 'lognewlink',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogNewLinkActionData>): Promise<void> => {
             const key = Numeric.stringToPublicKey(trace.act.data.key);
@@ -43,7 +43,7 @@ export function linkProcessor(core: AtomicToolsHandler, processor: DataProcessor
         }, AtomicToolsUpdatePriority.ACTION_CREATE_LINK.valueOf()
     ));
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         core.args.atomictools_account, 'loglinkstart',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogLinkStartActionData>): Promise<void> => {
             await db.update('atomictools_links', {
@@ -57,7 +57,7 @@ export function linkProcessor(core: AtomicToolsHandler, processor: DataProcessor
         }, AtomicToolsUpdatePriority.ACTION_UPDATE_LINK.valueOf()
     ));
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         core.args.atomictools_account, 'cancellink',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<CancelLinkActionData>): Promise<void> => {
             await db.update('atomictools_links', {
@@ -71,7 +71,7 @@ export function linkProcessor(core: AtomicToolsHandler, processor: DataProcessor
         }, AtomicToolsUpdatePriority.ACTION_UPDATE_LINK.valueOf()
     ));
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         core.args.atomictools_account, 'claimlink',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<ClaimLinkActionData>): Promise<void> => {
             await db.update('atomictools_links', {

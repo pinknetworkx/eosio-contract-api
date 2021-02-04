@@ -1,6 +1,6 @@
 import DataProcessor from '../../../processor';
 import { ContractDBTransaction } from '../../../database';
-import { EosioTableRow } from '../../../../types/eosio';
+import { EosioContractRow } from '../../../../types/eosio';
 import { ShipBlock } from '../../../../types/ship';
 import { eosioTimestampToDate } from '../../../../utils/eosio';
 import { BonusfeesTableRow } from '../types/tables';
@@ -10,9 +10,9 @@ export function bonusfeeProcessor(core: AtomicMarketHandler, processor: DataProc
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicmarket_account;
 
-    destructors.push(processor.onTableUpdate(
+    destructors.push(processor.onContractRow(
         contract, 'bonusfees',
-        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<BonusfeesTableRow>): Promise<void> => {
+        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<BonusfeesTableRow>): Promise<void> => {
             if (!delta.present) {
                 await db.delete('atomicmarket_bonusfees', {
                     str: 'market_contract = $1 AND bonusfee_id = $2',

@@ -1,7 +1,7 @@
 import AtomicAssetsHandler, { AtomicAssetsUpdatePriority } from '../index';
 import DataProcessor from '../../../processor';
 import { ContractDBTransaction } from '../../../database';
-import { EosioTableRow } from '../../../../types/eosio';
+import { EosioContractRow } from '../../../../types/eosio';
 import { ShipBlock } from '../../../../types/ship';
 import { ConfigTableRow, TokenConfigsTableRow } from '../types/tables';
 
@@ -9,9 +9,9 @@ export function configProcessor(core: AtomicAssetsHandler, processor: DataProces
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicassets_account;
 
-    destructors.push(processor.onTableUpdate(
+    destructors.push(processor.onContractRow(
         contract, 'config',
-        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<ConfigTableRow>): Promise<void> => {
+        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<ConfigTableRow>): Promise<void> => {
             if (!delta.present) {
                 throw new Error('AtomicAssets: config row was deleted. Should not be possible by contract');
             }
@@ -46,9 +46,9 @@ export function configProcessor(core: AtomicAssetsHandler, processor: DataProces
         }, AtomicAssetsUpdatePriority.TABLE_CONFIG.valueOf()
     ));
 
-    destructors.push(processor.onTableUpdate(
+    destructors.push(processor.onContractRow(
         contract, 'tokenconfigs',
-        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<TokenConfigsTableRow>): Promise<void> => {
+        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<TokenConfigsTableRow>): Promise<void> => {
             if (!delta.present) {
                 throw new Error('AtomicAssets: tokenconfigs row was deleted. Should not be possible by contract');
             }

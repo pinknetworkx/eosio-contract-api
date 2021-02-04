@@ -1,6 +1,6 @@
 import DataProcessor from '../../../processor';
 import { ContractDBTransaction } from '../../../database';
-import { EosioTableRow } from '../../../../types/eosio';
+import { EosioContractRow } from '../../../../types/eosio';
 import { ShipBlock } from '../../../../types/ship';
 import { ConfigTableRow } from '../types/tables';
 import AtomicMarketHandler, { AtomicMarketUpdatePriority } from '../index';
@@ -9,9 +9,9 @@ export function configProcessor(core: AtomicMarketHandler, processor: DataProces
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicmarket_account;
 
-    destructors.push(processor.onTableUpdate(
+    destructors.push(processor.onContractRow(
         contract, 'config',
-        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<ConfigTableRow>): Promise<void> => {
+        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<ConfigTableRow>): Promise<void> => {
             if (!delta.present) {
                 throw Error('AtomicMarket: Config should not be deleted');
             }

@@ -1,12 +1,14 @@
 import { Serialize } from 'eosjs';
 import { Abi } from 'eosjs/dist/eosjs-rpc-interfaces';
+import PQueue from 'p-queue';
+import { StaticPool } from 'node-worker-threads-pool';
 
 import logger from '../utils/winston';
 import ConnectionManager from '../connections/manager';
 import StateHistoryBlockReader from '../connections/ship';
 import { IReaderConfig } from '../types/config';
 import { ShipActionTrace, ShipBlock, ShipBlockResponse, ShipContractRow } from '../types/ship';
-import { EosioAction, EosioActionTrace, EosioTableRow, EosioTransaction } from '../types/eosio';
+import { EosioAction, EosioActionTrace, EosioContractRow, EosioTransaction } from '../types/eosio';
 import { ContractDB, ContractDBTransaction } from './database';
 import { binToHex } from '../utils/binary';
 import { eosioDeserialize, eosioTimestampToDate, getActionAbiType, getTableAbiType } from '../utils/eosio';
@@ -14,8 +16,6 @@ import DataProcessor, { ProcessingState } from './processor';
 import { ContractHandler } from './handlers/interfaces';
 import ApiNotificationSender from './notifier';
 import Semaphore from '../utils/semaphore';
-import PQueue from 'p-queue';
-import { StaticPool } from 'node-worker-threads-pool';
 
 type AbiCache = {
     types: Map<string, Serialize.Type>,
@@ -23,7 +23,7 @@ type AbiCache = {
     json: Abi
 };
 
-type ExtracterData = {
+type ContractThreadData = {
     binary: Uint8Array,
     json: any,
     block_num: number
@@ -65,8 +65,8 @@ export default class StateReceiver {
         this.abis = {};
 
         this.processor = new DataProcessor(ProcessingState.CATCHUP);
-        this.processor.onTrace('eosio', 'setcode', () => null);
-        this.processor.onTrace('eosio', 'setabi', () => null);
+        this.processor.onActionTrace('eosio', 'setcode', () => null);
+        this.processor.onActionTrace('eosio', 'setabi', () => null);
 
         this.notifier = new ApiNotificationSender(this.connection, this.processor, this.name);
 
@@ -157,32 +157,32 @@ export default class StateReceiver {
         this.dsWorkers = new StaticPool({
             size: this.config.ds_contract_threads,
             task: './build/workers/contract.js',
-            workerData: {rules: rules, abis: abis}
+            workerData: {rules, abis}
         });
     }
 
     private async consumer(resp: ShipBlockResponse): Promise<void> {
         await this.dsLock.acquire();
 
-        const traces = this.dsWorkers.exec({type: 'traces', data: resp.traces});
-        const deltas = this.dsWorkers.exec({type: 'deltas', data: resp.deltas});
+        const actionTraces = this.dsWorkers.exec({type: 'traces', data: resp.traces});
+        const contractRows = this.dsWorkers.exec({type: 'deltas', data: resp.deltas});
 
         this.dsQueue.add(async () => {
             try {
-                const tracesResp = await traces;
-                const deltasResp = await deltas;
+                const actionTracesResp = await actionTraces;
+                const contractRowsResp = await contractRows;
 
-                if (!tracesResp.success) {
+                if (!actionTracesResp.success) {
                     // noinspection ExceptionCaughtLocallyJS
-                    throw new Error(tracesResp.message);
+                    throw new Error(actionTracesResp.message);
                 }
 
-                if (!deltasResp.success) {
+                if (!contractRowsResp.success) {
                     // noinspection ExceptionCaughtLocallyJS
-                    throw new Error(deltasResp.message);
+                    throw new Error(contractRowsResp.message);
                 }
 
-                await this.process(resp, tracesResp.data, deltasResp.data);
+                await this.process(resp, actionTracesResp.data, contractRowsResp.data);
             } catch (error) {
                 this.dsQueue.clear();
                 this.dsQueue.pause();
@@ -198,8 +198,8 @@ export default class StateReceiver {
 
     private async process(
         resp: ShipBlockResponse,
-        traces: Array<{trace: ShipActionTrace<any>, tx: EosioTransaction}>,
-        deltas: Array<{present: boolean, data: ShipContractRow<any>}>
+        actionTraces: Array<{trace: ShipActionTrace<any>, tx: EosioTransaction}>,
+        contractRows: Array<{present: boolean, data: ShipContractRow<any>}>
     ): Promise<void> {
         const dbGroupBlocks = this.config.db_group_blocks || 12;
 
@@ -227,12 +227,12 @@ export default class StateReceiver {
                 this.notifier.sendFork(resp.block);
             }
 
-            for (const row of traces) {
-                await this.handleTrace(resp.block, row.trace, row.tx);
+            for (const row of actionTraces) {
+                await this.handleActionTrace(resp.block, row.trace, row.tx);
             }
 
-            for (const row of deltas) {
-                await this.handleDelta(resp.block, row.data, row.present);
+            for (const row of contractRows) {
+                await this.handleContractRow(resp.block, row.data, row.present);
             }
 
             if (isReversible) {
@@ -298,7 +298,7 @@ export default class StateReceiver {
         }
     }
 
-    private async handleTrace(block: ShipBlock, actionTrace: ShipActionTrace<ExtracterData>, tx: EosioTransaction): Promise<void> {
+    private async handleActionTrace(block: ShipBlock, actionTrace: ShipActionTrace<ContractThreadData>, tx: EosioTransaction): Promise<void> {
         if (actionTrace[0] === 'action_trace_v0') {
             if (actionTrace[1].receiver !== actionTrace[1].act.account) {
                 return;
@@ -317,7 +317,7 @@ export default class StateReceiver {
                 }
             };
 
-            const processingInfo = this.processor.traceNeeded(trace.act.account, trace.act.name);
+            const processingInfo = this.processor.actionTraceNeeded(trace.act.account, trace.act.name);
 
             if (processingInfo.deserialize) {
                 const abi = await this.fetchContractAbi(actionTrace[1].act.account, block.block_num);
@@ -352,7 +352,7 @@ export default class StateReceiver {
                         contract: trace.act.account, action: trace.act.name, data: trace.act.data
                     });
 
-                    this.processor.processTrace(block, tx, trace);
+                    this.processor.processActionTrace(block, tx, trace);
                 }
             } else if (processingInfo.process) {
                 logger.debug('Trace for reader ' + this.config.name + ' received', {
@@ -361,7 +361,7 @@ export default class StateReceiver {
 
                 trace.act.data = typeof actionTrace[1].act.data === 'string' ? actionTrace[1].act.data : binToHex(actionTrace[1].act.data);
 
-                this.processor.processTrace(block, tx, trace);
+                this.processor.processActionTrace(block, tx, trace);
             }
 
             return;
@@ -370,14 +370,14 @@ export default class StateReceiver {
         throw new Error('Unsupported trace response received: ' + actionTrace[0]);
     }
 
-    private async handleDelta(block: ShipBlock, contractRow: ShipContractRow<ExtracterData>, present: boolean): Promise<void> {
+    private async handleContractRow(block: ShipBlock, contractRow: ShipContractRow<ContractThreadData>, present: boolean): Promise<void> {
         if (contractRow[0] === 'contract_row_v0') {
-            const delta: EosioTableRow = {
+            const delta: EosioContractRow = {
                 ...contractRow[1], present,
                 value: null
             };
 
-            const processingInfo = this.processor.tableNeeded(delta.code, delta.table);
+            const processingInfo = this.processor.contractRowNeeded(delta.code, delta.table);
 
             if (processingInfo.deserialize) {
                 const abi = await this.fetchContractAbi(contractRow[1].code, block.block_num);
@@ -385,7 +385,7 @@ export default class StateReceiver {
                 if (contractRow[1].value.json && contractRow[1].value.block_num === abi.block_num) {
                     delta.value = contractRow[1].value.json;
                 } else {
-                    logger.info('Received delta from outdated ABI. Deserializing in sync mode.', {
+                    logger.info('Received contract row from outdated ABI. Deserializing in sync mode.', {
                         contract: delta.code, table: delta.table, scope: delta.scope
                     });
 
@@ -396,26 +396,26 @@ export default class StateReceiver {
                         try {
                             delta.value = eosioDeserialize(type, contractRow[1].value.binary, types);
                         } catch (e) {
-                            logger.error('Failed to deserialize delta in sync mode ' + delta.code + ':' + delta.table, e);
+                            logger.error('Failed to deserialize contract row in sync mode ' + delta.code + ':' + delta.table, e);
 
                             throw e;
                         }
                     }
                 }
 
-                logger.debug('Table delta for reader ' + this.config.name + ' received', {
+                logger.debug('Contract row for reader ' + this.config.name + ' received', {
                     contract: delta.code, table: delta.table, scope: delta.scope, value: delta.value
                 });
 
-                this.processor.processTable(block, delta);
+                this.processor.processContractRow(block, delta);
             } else if (processingInfo.process) {
-                logger.debug('Table delta for reader ' + this.config.name + ' received', {
+                logger.debug('Contract row for reader ' + this.config.name + ' received', {
                     contract: delta.code, table: delta.table, scope: delta.scope
                 });
 
                 delta.value = typeof contractRow[1].value.binary === 'string' ? contractRow[1].value.binary : binToHex(contractRow[1].value.binary);
 
-                this.processor.processTable(block, delta);
+                this.processor.processContractRow(block, delta);
             }
 
             return;

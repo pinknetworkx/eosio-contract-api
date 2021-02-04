@@ -2,15 +2,15 @@ import AtomicToolsHandler, { AtomicToolsUpdatePriority } from '../index';
 import DataProcessor from '../../../processor';
 import { ContractDBTransaction } from '../../../database';
 import { ShipBlock } from '../../../../types/ship';
-import { EosioTableRow } from '../../../../types/eosio';
+import { EosioContractRow } from '../../../../types/eosio';
 import { ConfigTableRow } from '../types/tables';
 
 export function configProcessor(core: AtomicToolsHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
 
-    destructors.push(processor.onTableUpdate(
+    destructors.push(processor.onContractRow(
         core.args.atomictools_account, 'config',
-        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<ConfigTableRow>): Promise<void> => {
+        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<ConfigTableRow>): Promise<void> => {
             if (!delta.present) {
                 throw new Error('AtomicTools: Config should not be deleted');
             }

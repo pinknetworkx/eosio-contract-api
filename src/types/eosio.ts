@@ -19,7 +19,7 @@ export type EosioTransaction = {
     net_usage_words: number
 };
 
-export type EosioTableRow<T = {[key: string]: any} | string> = {
+export type EosioContractRow<T = {[key: string]: any} | string> = {
     code: string,
     scope: string,
     table: string,

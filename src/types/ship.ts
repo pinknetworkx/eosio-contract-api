@@ -1,4 +1,4 @@
-import { EosioTableRow } from './eosio';
+import { EosioContractRow } from './eosio';
 
 export interface BlockRequestType {
     start_block_num?: number;
@@ -118,7 +118,7 @@ export type ShipTableDelta = [
     'table_delta_v0',
     {
         name: string,
-        rows: Array<{present: boolean, data: [string, EosioTableRow]}>
+        rows: Array<{present: boolean, data: [string, EosioContractRow]}>
     }
 ];
 

@@ -1,10 +1,10 @@
 import { ContractDBTransaction } from './database';
 import { ShipBlock } from '../types/ship';
-import { EosioActionTrace, EosioTableRow, EosioTransaction } from '../types/eosio';
+import { EosioActionTrace, EosioContractRow, EosioTransaction } from '../types/eosio';
 import logger from '../utils/winston';
 
 export type TraceListener = (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<any>) => Promise<any>;
-export type DeltaListener = (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow) => Promise<any>;
+export type DeltaListener = (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow) => Promise<any>;
 export type PriorityListener = (db: ContractDBTransaction) => Promise<any>;
 export type CommitListener = (db: ContractDBTransaction) => Promise<any>;
 export type CommittedListener = () => Promise<any>;
@@ -18,7 +18,7 @@ export type ListenerOptions = {
 const defaultListenerOptions = {
     deserialize: true,
     headOnly: false,
-    irreversible_queue: false // TODO add separate queue for irreversible data
+    irreversible_queue: false
 };
 
 export enum ProcessingState {
@@ -132,7 +132,7 @@ export default class DataProcessor {
         };
     }
 
-    onTrace(contract: string, action: string, listener: TraceListener, priority = 100, options: ListenerOptions = {}): () => void {
+    onActionTrace(contract: string, action: string, listener: TraceListener, priority = 100, options: ListenerOptions = {}): () => void {
         const element = {
             contract, action, callback: listener, priority,
             options: {...defaultListenerOptions, ...options}
@@ -151,7 +151,7 @@ export default class DataProcessor {
         };
     }
 
-    onTableUpdate(contract: string, table: string, listener: DeltaListener, priority = 100, options: ListenerOptions = {}): () => void {
+    onContractRow(contract: string, table: string, listener: DeltaListener, priority = 100, options: ListenerOptions = {}): () => void {
         const element = {
             contract, table, callback: listener, priority,
             options: {...defaultListenerOptions, ...options}
@@ -230,7 +230,7 @@ export default class DataProcessor {
         };
     }
 
-    traceNeeded(contract: string, action: string): { process: boolean, deserialize: boolean } {
+    actionTraceNeeded(contract: string, action: string): { process: boolean, deserialize: boolean } {
         const listeners = this.traceListeners
             .filter(element => this.state === ProcessingState.HEAD || !element.options.headOnly)
             .filter(element => matchFilter(contract, action, element.contract, element.action));
@@ -241,7 +241,7 @@ export default class DataProcessor {
         };
     }
 
-    tableNeeded(contract: string, table: string): { process: boolean, deserialize: boolean } {
+    contractRowNeeded(contract: string, table: string): { process: boolean, deserialize: boolean } {
         const listeners = this.tableListeners
             .filter(element => this.state === ProcessingState.HEAD || !element.options.headOnly)
             .filter(element => matchFilter(contract, table, element.contract, element.table));
@@ -252,7 +252,7 @@ export default class DataProcessor {
         };
     }
 
-    processTrace(block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<any>): void {
+    processActionTrace(block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<any>): void {
         for (const listener of this.traceListeners) {
             if (!matchFilter(trace.act.account, trace.act.name, listener.contract, listener.action)) {
                 continue;
@@ -275,7 +275,7 @@ export default class DataProcessor {
         }
     }
 
-    processTable(block: ShipBlock, delta: EosioTableRow): void {
+    processContractRow(block: ShipBlock, delta: EosioContractRow): void {
         for (const listener of this.tableListeners) {
             if (!matchFilter(delta.code, delta.table, listener.contract, listener.table)) {
                 continue;

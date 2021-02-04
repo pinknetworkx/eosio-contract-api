@@ -1,6 +1,6 @@
 import DataProcessor from '../../../processor';
 import { ContractDBTransaction } from '../../../database';
-import { EosioActionTrace, EosioTableRow, EosioTransaction } from '../../../../types/eosio';
+import { EosioActionTrace, EosioContractRow, EosioTransaction } from '../../../../types/eosio';
 import { ShipBlock } from '../../../../types/ship';
 import { eosioTimestampToDate } from '../../../../utils/eosio';
 import AtomicMarketHandler, { AtomicMarketUpdatePriority, AuctionState } from '../index';
@@ -19,7 +19,7 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicmarket_account;
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'lognewauct',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogNewAuctionActionData>): Promise<void> => {
             await db.insert('atomicmarket_auctions', {
@@ -54,13 +54,13 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
                 'market_contract', 'auction_id', 'assets_contract', 'asset_id'
             ]);
 
-            notifier.sendTrace('auctions', block, tx, trace);
+            notifier.sendActionTrace('auctions', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_CREATE_AUCTION.valueOf()
     ));
 
-    destructors.push(processor.onTableUpdate(
+    destructors.push(processor.onContractRow(
         contract, 'auctions',
-        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<AuctionsTableRow>): Promise<void> => {
+        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<AuctionsTableRow>): Promise<void> => {
             await db.update('atomicmarket_auctions', {
                 end_time: delta.value.end_time,
                 updated_at_block: block.block_num,
@@ -72,7 +72,7 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
         }, AtomicMarketUpdatePriority.TABLE_AUCTIONS.valueOf()
     ));
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'logauctstart',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogAuctionStartActionData>): Promise<void> => {
             await db.update('atomicmarket_auctions', {
@@ -84,11 +84,11 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
                 values: [contract, trace.act.data.auction_id]
             }, ['market_contract', 'auction_id']);
 
-            notifier.sendTrace('auctions', block, tx, trace);
+            notifier.sendActionTrace('auctions', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION.valueOf()
     ));
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'cancelauct',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<CancelAuctionActionData>): Promise<void> => {
             await db.update('atomicmarket_auctions', {
@@ -100,11 +100,11 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
                 values: [contract, trace.act.data.auction_id]
             }, ['market_contract', 'auction_id']);
 
-            notifier.sendTrace('auctions', block, tx, trace);
+            notifier.sendActionTrace('auctions', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION.valueOf()
     ));
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'auctionbid',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<AuctionBidActionData>): Promise<void> => {
             await db.update('atomicmarket_auctions', {
@@ -135,11 +135,11 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
                 created_at_time: eosioTimestampToDate(block.timestamp).getTime()
             }, ['market_contract', 'auction_id', 'bid_number']);
 
-            notifier.sendTrace('auctions', block, tx, trace);
+            notifier.sendActionTrace('auctions', block, tx, trace);
         }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION.valueOf()
     ));
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'auctclaimbuy',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<AuctionClaimBuyerActionData>): Promise<void> => {
             await db.update('atomicmarket_auctions', {
@@ -153,7 +153,7 @@ export function auctionProcessor(core: AtomicMarketHandler, processor: DataProce
         }, AtomicMarketUpdatePriority.ACTION_UPDATE_AUCTION.valueOf()
     ));
 
-    destructors.push(processor.onTrace(
+    destructors.push(processor.onActionTrace(
         contract, 'auctclaimsel',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<AuctionClaimSellerActionData>): Promise<void> => {
             await db.update('atomicmarket_auctions', {

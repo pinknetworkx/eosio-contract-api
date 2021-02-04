@@ -1,13 +1,13 @@
 import DataProcessor, { ProcessingState } from './processor';
 import { ShipBlock } from '../types/ship';
-import { EosioActionTrace, EosioTableRow, EosioTransaction } from '../types/eosio';
+import { EosioActionTrace, EosioContractRow, EosioTransaction } from '../types/eosio';
 import ConnectionManager from '../connections/manager';
 import logger from '../utils/winston';
 
 export type NotificationData = {
     channel: string,
     type: 'trace' | 'delta' | 'fork',
-    data: {block: ShipBlock, tx?: EosioTransaction, trace?: EosioActionTrace, delta?: EosioTableRow}
+    data: {block: ShipBlock, tx?: EosioTransaction, trace?: EosioActionTrace, delta?: EosioContractRow}
 };
 
 function prepareNotificationBlock(block: ShipBlock): any {
@@ -31,11 +31,11 @@ export default class ApiNotificationSender {
         this.notifications = [];
     }
 
-    sendTrace(channel: string, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<any>): void {
+    sendActionTrace(channel: string, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<any>): void {
         this.notifications.push({channel, type: 'trace', data: {block: prepareNotificationBlock(block), tx, trace}});
     }
 
-    sendDelta(channel: string, block: ShipBlock, delta: EosioTableRow): void {
+    sendContractRow(channel: string, block: ShipBlock, delta: EosioContractRow): void {
         this.notifications.push({channel, type: 'delta', data: {block: prepareNotificationBlock(block), delta}});
     }
 

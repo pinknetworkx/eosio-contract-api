@@ -1,7 +1,7 @@
 import AtomicAssetsHandler, { AtomicAssetsUpdatePriority } from '../index';
 import DataProcessor from '../../../processor';
 import { ContractDBTransaction } from '../../../database';
-import { EosioTableRow } from '../../../../types/eosio';
+import { EosioContractRow } from '../../../../types/eosio';
 import { ShipBlock } from '../../../../types/ship';
 import { eosioTimestampToDate } from '../../../../utils/eosio';
 import { SchemasTableRow } from '../types/tables';
@@ -10,9 +10,9 @@ export function schemaProcessor(core: AtomicAssetsHandler, processor: DataProces
     const destructors: Array<() => any> = [];
     const contract = core.args.atomicassets_account;
 
-    destructors.push(processor.onTableUpdate(
+    destructors.push(processor.onContractRow(
         contract, 'schemas',
-        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioTableRow<SchemasTableRow>): Promise<void> => {
+        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<SchemasTableRow>): Promise<void> => {
             if (!delta.present) {
                 throw new Error('AtomicAssets: A schema was deleted. Should not be possible by contract');
             }
