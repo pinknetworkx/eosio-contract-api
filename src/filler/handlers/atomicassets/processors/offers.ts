@@ -147,12 +147,10 @@ export function offerProcessor(core: AtomicAssetsHandler, processor: DataProcess
                     .filter(row => row.state === OfferState.PENDING.valueOf())
                     .map(row => row.offer_id);
 
-                const invalidOffers = invalidOffersQuery.rows
-                    .map((row) => row.offer_id)
-                    .filter(row => currentInvalidOffers.indexOf(row) === -1);
-                const validOffers = relatedOffersQuery.rows
-                    .map(row => row.offer_id)
-                    .filter(row => invalidOffersQuery.rows.map(row => row.offer_id).indexOf(row) === -1)
+                const newInvalidOffers = invalidOffersQuery.rows.map(row => row.offer_id);
+                const invalidOffers = newInvalidOffers.filter(row => currentInvalidOffers.indexOf(row) === -1);
+                const validOffers = relatedOffersQuery.rows.map(row => row.offer_id)
+                    .filter(row => newInvalidOffers.indexOf(row) === -1)
                     .filter(row => currentValidOffers.indexOf(row) === -1);
 
                 if (invalidOffers.length > 0) {
