@@ -152,7 +152,7 @@ export function offerProcessor(core: AtomicAssetsHandler, processor: DataProcess
                     .filter(row => currentInvalidOffers.indexOf(row) === -1);
                 const validOffers = relatedOffersQuery.rows
                     .map(row => row.offer_id)
-                    .filter(row => invalidOffers.indexOf(row) === -1)
+                    .filter(row => invalidOffersQuery.rows.map(row => row.offer_id).indexOf(row) === -1)
                     .filter(row => currentValidOffers.indexOf(row) === -1);
 
                 if (invalidOffers.length > 0) {
