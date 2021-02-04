@@ -14,7 +14,7 @@ for (const name of Object.keys(args.abis)) {
     args.abis[name].types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), args.abis[name].json);
 }
 
-logger.info('Launching extractor worker...');
+logger.info('Launching contract worker...');
 
 parentPort.on('message', (param: {type: string, data: any}) => {
     try {
@@ -44,8 +44,10 @@ parentPort.on('message', (param: {type: string, data: any}) => {
                             const type = getTableAbiType(abi.json, delta.code, delta.table);
 
                             delta.value = <any>{
-                                binary: delta.value,
-                                json: eosioDeserialize(type, delta.value, abi.types),
+                                // @ts-ignore
+                                binary: delta.value.binary,
+                                // @ts-ignore
+                                json: eosioDeserialize(type, delta.value.binary, abi.types),
                                 block_num: abi.block_num
                             };
                         } catch (e) {
@@ -94,8 +96,10 @@ parentPort.on('message', (param: {type: string, data: any}) => {
                             const type = getActionAbiType(abi.json, act.account, act.name);
 
                             act.data = <any>{
-                                binary: act.data,
-                                json: eosioDeserialize(type, act.data, abi.types, false),
+                                // @ts-ignore
+                                binary: act.data.binary,
+                                // @ts-ignore
+                                json: eosioDeserialize(type, act.data.binary, abi.types, false),
                                 block_num: abi.block_num
                             };
                         } catch (e) {

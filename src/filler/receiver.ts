@@ -107,7 +107,7 @@ export default class StateReceiver {
         this.currentBlock = startBlock - 1;
         this.lastBlockUpdate = startBlock - 1;
 
-        await this.loadDeserializationWorkers();
+        await this.initContractWorkers(startBlock);
 
         this.ship.startProcessing({
             start_block_num: startBlock,
@@ -133,9 +133,7 @@ export default class StateReceiver {
         logger.info('Reader stopped at block #' + this.currentBlock);
     }
 
-    async loadDeserializationWorkers(): Promise<void> {
-        logger.info('Contract ABIs updated. Reinitializing deserialization workers');
-
+    async initContractWorkers(blockNum: number): Promise<void> {
         const rules = this.processor.getRules(true);
         const contracts = this.processor.getContracts(true);
 
@@ -146,7 +144,7 @@ export default class StateReceiver {
                 continue;
             }
 
-            const abi = await this.fetchContractAbi(contract, this.currentBlock);
+            const abi = await this.fetchContractAbi(contract, blockNum);
 
             abis[contract] = {
                 block_num: abi.block_num,
@@ -154,9 +152,11 @@ export default class StateReceiver {
             };
         }
 
+        logger.info('Contract ABIs updated. Initializing deserialization workers');
+
         this.dsWorkers = new StaticPool({
             size: this.config.ds_contract_threads,
-            task: './build/workers/extracter.js',
+            task: './build/workers/contract.js',
             workerData: {rules: rules, abis: abis}
         });
     }
@@ -187,7 +187,7 @@ export default class StateReceiver {
                 this.dsQueue.clear();
                 this.dsQueue.pause();
 
-                logger.error('Contract deserialization queue stopped duo to an error at #' + resp.this_block.block_num, error);
+                logger.error('Consumer queue stopped duo to an error at #' + resp.this_block.block_num, error);
 
                 return;
             }
@@ -212,7 +212,7 @@ export default class StateReceiver {
 
             this.processor.setState(ProcessingState.HEAD);
 
-            await this.loadDeserializationWorkers();
+            await this.initContractWorkers(resp.this_block.block_num);
         }
 
         const db = (this.lastDatabaseTransaction && !isReversible) ? this.lastDatabaseTransaction : await this.database.startTransaction(isReversible);
@@ -325,7 +325,7 @@ export default class StateReceiver {
                 if (actionTrace[1].act.data.json && actionTrace[1].act.data.block_num === abi.block_num) {
                     trace.act.data = actionTrace[1].act.data.json;
                 } else {
-                    logger.warn('Received trace from outdated ABI', {
+                    logger.info('Received trace from outdated ABI. Deserializing in sync mode.', {
                         account: trace.act.account, name: trace.act.name
                     });
 
@@ -336,7 +336,7 @@ export default class StateReceiver {
                         try {
                             trace.act.data = eosioDeserialize(type, actionTrace[1].act.data.binary, types, false);
                         } catch (e) {
-                            logger.error(e);
+                            logger.error('Failed to deserialize trace in sync mode ' + trace.act.account + ':' + trace.act.name, e);
 
                             throw e;
                         }
@@ -385,7 +385,7 @@ export default class StateReceiver {
                 if (contractRow[1].value.json && contractRow[1].value.block_num === abi.block_num) {
                     delta.value = contractRow[1].value.json;
                 } else {
-                    logger.warn('Received delta from outdated ABI', {
+                    logger.info('Received delta from outdated ABI. Deserializing in sync mode.', {
                         contract: delta.code, table: delta.table, scope: delta.scope
                     });
 
@@ -396,7 +396,7 @@ export default class StateReceiver {
                         try {
                             delta.value = eosioDeserialize(type, contractRow[1].value.binary, types);
                         } catch (e) {
-                            logger.error(e);
+                            logger.error('Failed to deserialize delta in sync mode ' + delta.code + ':' + delta.table, e);
 
                             throw e;
                         }
@@ -412,7 +412,7 @@ export default class StateReceiver {
                 logger.debug('Table delta for reader ' + this.config.name + ' received', {
                     contract: delta.code, table: delta.table, scope: delta.scope
                 });
-                
+
                 delta.value = typeof contractRow[1].value.binary === 'string' ? contractRow[1].value.binary : binToHex(contractRow[1].value.binary);
 
                 this.processor.processTable(block, delta);
@@ -450,7 +450,7 @@ export default class StateReceiver {
                     ]
                 );
 
-                logger.info('ABI updated for contract ' + action.data.account);
+                logger.info('ABI updated for contract ' + action.data.account + ' at block #' + block.block_num);
             } catch (e) {
                 logger.info('ABI ' + action.data.account + ' already in cache. Ignoring ABI update');
             }
@@ -459,7 +459,7 @@ export default class StateReceiver {
 
             // reload workers because new ABI is loaded
             if (contracts.indexOf(action.data.account) >= 0 || contracts.indexOf('*') >= 0) {
-                await this.loadDeserializationWorkers();
+                await this.initContractWorkers(block.block_num);
             }
         } else {
             logger.error('Could not update ABI for contract because action could not be deserialized');
@@ -474,7 +474,7 @@ export default class StateReceiver {
                     [action.data.account, block.block_num, eosioTimestampToDate(block.timestamp).getTime()]
                 );
 
-                logger.info('Code updated for contract ' + action.data.account);
+                logger.info('Code updated for contract ' + action.data.account + ' at block #' + block.block_num);
             } catch (e) {
                 logger.info('Code ' + action.data.account + ' already in cache. Ignoring code update');
             }
