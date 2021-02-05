@@ -1,7 +1,6 @@
 import { Serialize } from 'eosjs';
 import { Abi } from 'eosjs/dist/eosjs-rpc-interfaces';
 import PQueue from 'p-queue';
-import { StaticPool } from 'node-worker-threads-pool';
 
 import logger from '../utils/winston';
 import ConnectionManager from '../connections/manager';
@@ -11,7 +10,14 @@ import { ShipActionTrace, ShipBlock, ShipBlockResponse, ShipContractRow, ShipTab
 import { EosioAction, EosioActionTrace, EosioContractRow, EosioTransaction } from '../types/eosio';
 import { ContractDB, ContractDBTransaction } from './database';
 import { binToHex } from '../utils/binary';
-import { eosioDeserialize, eosioTimestampToDate, getActionAbiType, getTableAbiType } from '../utils/eosio';
+import {
+    eosioDeserialize,
+    eosioTimestampToDate,
+    extractShipContractRows,
+    extractShipTraces,
+    getActionAbiType,
+    getTableAbiType
+} from '../utils/eosio';
 import DataProcessor, { ProcessingState } from './processor';
 import { ContractHandler } from './handlers/interfaces';
 import ApiNotificationSender from './notifier';
@@ -44,7 +50,6 @@ export default class StateReceiver {
 
     readonly name: string;
 
-    dsWorkers: StaticPool<{type: string, data: any}, any>;
     readonly dsLock: Semaphore;
     readonly dsQueue: PQueue;
 
@@ -107,8 +112,6 @@ export default class StateReceiver {
         this.currentBlock = startBlock - 1;
         this.lastBlockUpdate = startBlock - 1;
 
-        await this.initContractWorkers(startBlock);
-
         this.ship.startProcessing({
             start_block_num: startBlock,
             end_block_num: this.config.stop_block || 0xffffffff,
@@ -127,38 +130,7 @@ export default class StateReceiver {
         this.handlerDestructors.map(unregister => unregister());
         this.handlerDestructors = [];
 
-        await this.dsWorkers.destroy();
-        this.dsWorkers = null;
-
         logger.info('Reader stopped at block #' + this.currentBlock);
-    }
-
-    async initContractWorkers(blockNum: number): Promise<void> {
-        const rules = this.processor.getRules(true);
-        const contracts = this.processor.getContracts(true);
-
-        const abis: any = {};
-
-        for (const contract of contracts) {
-            if (contract === '*') {
-                continue;
-            }
-
-            const abi = await this.fetchContractAbi(contract, blockNum);
-
-            abis[contract] = {
-                block_num: abi.block_num,
-                json: abi.json
-            };
-        }
-
-        logger.info('Contract ABIs updated. Initializing deserialization workers');
-
-        this.dsWorkers = new StaticPool({
-            size: this.config.ds_contract_threads,
-            task: './build/workers/contract.js',
-            workerData: {rules, abis}
-        });
     }
 
     private async consumer(resp: ShipBlockResponse): Promise<void> {
@@ -183,14 +155,6 @@ export default class StateReceiver {
         }).then();
     }
 
-    private async prepareActionTraces(blockNum: number, traces: ShipTransactionTrace[]): Promise<Array<{trace: ShipActionTrace<any>, tx: EosioTransaction}>> {
-        return await this.dsWorkers.exec({type: 'traces', data: traces});
-    }
-
-    private async prepareContractRows(blockNum: number, deltas: ShipTableDelta[]): Promise<Array<{present: boolean, data: ShipContractRow<any>}>> {
-        return await this.dsWorkers.exec({type: 'deltas', data: deltas});
-    }
-
     private async process(
         resp: ShipBlockResponse,
         actionTraces: Array<{trace: ShipActionTrace<any>, tx: EosioTransaction}>,
@@ -206,8 +170,6 @@ export default class StateReceiver {
             logger.info('Catchup completed. Switching to head mode');
 
             this.processor.setState(ProcessingState.HEAD);
-
-            await this.initContractWorkers(resp.this_block.block_num);
         }
 
         const db = (this.lastDatabaseTransaction && !isReversible) ? this.lastDatabaseTransaction : await this.database.startTransaction(isReversible);
@@ -449,13 +411,6 @@ export default class StateReceiver {
             } catch (e) {
                 logger.info('ABI ' + action.data.account + ' already in cache. Ignoring ABI update');
             }
-
-            const contracts = this.processor.getContracts(true);
-
-            // reload workers because new ABI is loaded
-            if (contracts.indexOf(action.data.account) >= 0 || contracts.indexOf('*') >= 0) {
-                await this.initContractWorkers(block.block_num);
-            }
         } else {
             logger.error('Could not update ABI for contract because action could not be deserialized');
         }
@@ -476,6 +431,92 @@ export default class StateReceiver {
         } else {
             logger.error('Could not update contract code because action could not be deserialized');
         }
+    }
+
+    private async prepareActionTraces(blockNum: number, data: ShipTransactionTrace[]): Promise<Array<{trace: ShipActionTrace<any>, tx: EosioTransaction}>> {
+        const traces = extractShipTraces(data)
+            .filter(row => !(
+                row.trace[0] === 'action_trace_v0' &&
+                row.trace[1].receiver !== row.trace[1].act.account
+            ));
+
+        for (const row of traces) {
+            const actionTrace = row.trace;
+
+            if (actionTrace[0] === 'action_trace_v0') {
+                if (actionTrace[1].receiver !== actionTrace[1].act.account) {
+                    continue;
+                }
+
+                const act = actionTrace[1].act;
+
+                act.data = <any>{
+                    binary: act.data,
+                    block_num: null,
+                    json: null
+                };
+
+                const processingInfo = this.processor.actionTraceNeeded(act.account, act.name);
+
+                if (processingInfo.deserialize) {
+                    try {
+                        const abi = await this.fetchContractAbi(act.account, blockNum);
+                        const type = getActionAbiType(abi.json, act.account, act.name);
+
+                        act.data = <any>{
+                            // @ts-ignore
+                            binary: act.data.binary,
+                            // @ts-ignore
+                            json: eosioDeserialize(type, act.data.binary, abi.types, false),
+                            block_num: abi.block_num
+                        };
+                    } catch (e) {
+                        logger.warn('Failed to deserialize trace ' + act.account + ':' + act.name + ' in preprocessing', e);
+                    }
+                }
+            }
+        }
+
+        return traces;
+    }
+
+    private async prepareContractRows(blockNum: number, data: ShipTableDelta[]): Promise<Array<{present: boolean, data: ShipContractRow<any>}>> {
+        const deltas = extractShipContractRows(data);
+
+        for (const row of deltas) {
+            const contractRow = row.data;
+
+            if (contractRow[0] === 'contract_row_v0') {
+                const delta = contractRow[1];
+
+                delta.value = <any>{
+                    binary: delta.value,
+                    block_num: null,
+                    json: null
+                };
+
+                const processingInfo = this.processor.contractRowNeeded(delta.code, delta.table);
+
+                if (processingInfo.deserialize) {
+                    try {
+                        const abi = await this.fetchContractAbi(delta.code, blockNum);
+                        const type = getTableAbiType(abi.json, delta.code, delta.table);
+
+                        delta.value = <any>{
+                            // @ts-ignore
+                            binary: delta.value.binary,
+                            // @ts-ignore
+                            json: eosioDeserialize(type, delta.value.binary, abi.types),
+                            block_num: abi.block_num
+                        };
+                    } catch (e) {
+                        logger.warn('Failed to deserialize table ' + delta.code + ':' + delta.table + ' in preprocessing', e);
+                    }
+                }
+            }
+        }
+
+        return deltas;
     }
 
     private async fetchContractAbi(contract: string, blockNum: number): Promise<AbiCache> {

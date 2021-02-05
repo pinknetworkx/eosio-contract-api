@@ -13,7 +13,6 @@
     "db_group_blocks": 10,
 
     "ds_ship_threads": 4,
-    "ds_contract_threads": 2,
 
     "contracts": [
       {

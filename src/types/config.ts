@@ -65,7 +65,6 @@ export interface IReaderConfig {
     db_group_blocks: number;
 
     ds_ship_threads: number;
-    ds_contract_threads: number;
 
     delete_data: boolean;
 
