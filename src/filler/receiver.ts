@@ -7,7 +7,7 @@ import logger from '../utils/winston';
 import ConnectionManager from '../connections/manager';
 import StateHistoryBlockReader from '../connections/ship';
 import { IReaderConfig } from '../types/config';
-import { ShipActionTrace, ShipBlock, ShipBlockResponse, ShipContractRow } from '../types/ship';
+import { ShipActionTrace, ShipBlock, ShipBlockResponse, ShipContractRow, ShipTableDelta, ShipTransactionTrace } from '../types/ship';
 import { EosioAction, EosioActionTrace, EosioContractRow, EosioTransaction } from '../types/eosio';
 import { ContractDB, ContractDBTransaction } from './database';
 import { binToHex } from '../utils/binary';
@@ -164,25 +164,12 @@ export default class StateReceiver {
     private async consumer(resp: ShipBlockResponse): Promise<void> {
         await this.dsLock.acquire();
 
-        const actionTraces = this.dsWorkers.exec({type: 'traces', data: resp.traces});
-        const contractRows = this.dsWorkers.exec({type: 'deltas', data: resp.deltas});
+        const actionTraces = await this.prepareActionTraces(resp.this_block.block_num, resp.traces);
+        const contractRows = await this.prepareContractRows(resp.this_block.block_num, resp.deltas);
 
         this.dsQueue.add(async () => {
             try {
-                const actionTracesResp = await actionTraces;
-                const contractRowsResp = await contractRows;
-
-                if (!actionTracesResp.success) {
-                    // noinspection ExceptionCaughtLocallyJS
-                    throw new Error(actionTracesResp.message);
-                }
-
-                if (!contractRowsResp.success) {
-                    // noinspection ExceptionCaughtLocallyJS
-                    throw new Error(contractRowsResp.message);
-                }
-
-                await this.process(resp, actionTracesResp.data, contractRowsResp.data);
+                await this.process(resp, actionTraces, contractRows);
             } catch (error) {
                 this.dsQueue.clear();
                 this.dsQueue.pause();
@@ -194,6 +181,14 @@ export default class StateReceiver {
 
             this.dsLock.release();
         }).then();
+    }
+
+    private async prepareActionTraces(blockNum: number, traces: ShipTransactionTrace[]): Promise<Array<{trace: ShipActionTrace<any>, tx: EosioTransaction}>> {
+        return await this.dsWorkers.exec({type: 'traces', data: traces});
+    }
+
+    private async prepareContractRows(blockNum: number, deltas: ShipTableDelta[]): Promise<Array<{present: boolean, data: ShipContractRow<any>}>> {
+        return await this.dsWorkers.exec({type: 'deltas', data: deltas});
     }
 
     private async process(
