@@ -325,30 +325,6 @@
     {
       "table": {
         "schema": "public",
-        "name": "contract_traces"
-      },
-      "select_permissions": [
-        {
-          "role": "anonymous",
-          "permission": {
-            "columns": [
-              "global_sequence",
-              "account",
-              "name",
-              "metadata",
-              "txid",
-              "created_at_block",
-              "created_at_time"
-            ],
-            "filter": {},
-            "limit": 1000
-          }
-        }
-      ]
-    },
-    {
-      "table": {
-        "schema": "public",
         "name": "atomicassets_mints"
       },
       "select_permissions": [
@@ -955,6 +931,192 @@
     {
       "table": {
         "schema": "public",
+        "name": "atomicmarket_bonusfees"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "market_contract",
+              "bonusfee_id",
+              "name",
+              "recipient",
+              "fee",
+              "start_sale_id",
+              "end_sale_id",
+              "start_auction_id",
+              "end_auction_id",
+              "start_buyoffer_id",
+              "end_buyoffer_id",
+              "created_at_block",
+              "created_at_time"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicmarket_buyoffers"
+      },
+      "object_relationships": [
+        {
+          "name": "atomicassets_collection",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_collections"
+              },
+              "column_mapping": {
+                "collection_name": "collection_name",
+                "assets_contract": "contract"
+              }
+            }
+          }
+        },
+        {
+          "name": "atomicmarket_marketplace",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicmarket_marketplaces"
+              },
+              "column_mapping": {
+                "maker_marketplace": "marketplace_name",
+                "market_contract": "market_contract"
+              }
+            }
+          }
+        },
+        {
+          "name": "atomicmarketMarketplaceByMarketContractTakerMarketplace",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicmarket_marketplaces"
+              },
+              "column_mapping": {
+                "taker_marketplace": "marketplace_name",
+                "market_contract": "market_contract"
+              }
+            }
+          }
+        },
+        {
+          "name": "atomicmarket_token",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicmarket_tokens"
+              },
+              "column_mapping": {
+                "token_symbol": "token_symbol",
+                "market_contract": "market_contract"
+              }
+            }
+          }
+        }
+      ],
+      "array_relationships": [
+        {
+          "name": "atomicmarket_buyoffers_assets",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicmarket_buyoffers_assets"
+              },
+              "column_mapping": {
+                "buyoffer_id": "buyoffer_id",
+                "market_contract": "market_contract"
+              }
+            }
+          }
+        }
+      ],
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "market_contract",
+              "buyoffer_id",
+              "buyer",
+              "seller",
+              "price",
+              "token_symbol",
+              "assets_contract",
+              "maker_marketplace",
+              "taker_marketplace",
+              "collection_name",
+              "collection_fee",
+              "state",
+              "memo",
+              "decline_memo",
+              "updated_at_block",
+              "updated_at_time",
+              "created_at_block",
+              "created_at_time"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "atomicmarket_buyoffers_assets"
+      },
+      "object_relationships": [
+        {
+          "name": "atomicassets_asset",
+          "using": {
+            "manual_configuration": {
+              "remote_table": {
+                "schema": "public",
+                "name": "atomicassets_assets"
+              },
+              "column_mapping": {
+                "asset_id": "asset_id",
+                "assets_contract": "contract"
+              }
+            }
+          }
+        }
+      ],
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "market_contract",
+              "buyoffer_id",
+              "assets_contract",
+              "index",
+              "asset_id"
+            ],
+            "filter": {},
+            "limit": 1000,
+            "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
         "name": "atomicmarket_config"
       },
       "select_permissions": [
@@ -1293,6 +1455,30 @@
             "filter": {},
             "limit": 1000,
             "allow_aggregations": true
+          }
+        }
+      ]
+    },
+    {
+      "table": {
+        "schema": "public",
+        "name": "contract_traces"
+      },
+      "select_permissions": [
+        {
+          "role": "anonymous",
+          "permission": {
+            "columns": [
+              "global_sequence",
+              "account",
+              "name",
+              "metadata",
+              "txid",
+              "created_at_block",
+              "created_at_time"
+            ],
+            "filter": {},
+            "limit": 1000
           }
         }
       ]
