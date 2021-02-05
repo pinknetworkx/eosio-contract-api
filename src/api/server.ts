@@ -5,7 +5,6 @@ import * as path from 'path';
 
 import * as expressRateLimit from 'express-rate-limit';
 import * as expressRedisStore from 'rate-limit-redis';
-import { Namespace } from 'socket.io';
 
 import * as bodyParser from 'body-parser';
 import * as cors from 'cors';
@@ -271,27 +270,5 @@ export class SocketServer {
         const key = ['eosio-contract-api', this.server.connection.chain.name, 'socket-connections', ip].join(':');
 
         await this.server.connection.redis.ioRedis.decr(key);
-    }
-
-    addForkSubscription(reader: string, namespace: Namespace): void {
-        const chainChannelName = [
-            'eosio-contract-api', this.server.connection.chain.name, reader, 'chain'
-        ].join(':');
-
-        this.server.connection.redis.ioRedisSub.setMaxListeners(this.server.connection.redis.ioRedisSub.getMaxListeners() + 1);
-
-        this.server.connection.redis.ioRedisSub.subscribe(chainChannelName, () => {
-            this.server.connection.redis.ioRedisSub.on('message', async (channel, message) => {
-                if (channel !== chainChannelName) {
-                    return;
-                }
-
-                const msg = JSON.parse(message);
-
-                if (msg.action === 'fork') {
-                    namespace.emit('fork', {block_num: msg.block_num});
-                }
-            });
-        });
     }
 }

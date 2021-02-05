@@ -74,6 +74,7 @@ export class AtomicToolsNamespace extends ApiNamespace {
             }
         }
 
+        logger.info('atomictools docs on ' + this.path + '/docs');
         logger.debug('atomictools swagger docs', documentation);
 
         server.web.express.use(this.path + '/docs', swagger.serve, swagger.setup(documentation, {

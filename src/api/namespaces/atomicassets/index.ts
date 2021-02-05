@@ -92,6 +92,7 @@ export class AtomicAssetsNamespace extends ApiNamespace {
             Object.assign(documentation.paths, doc.paths);
         }
 
+        logger.info('atomicassets docs on ' + this.path + '/docs');
         logger.debug('atomicassets swagger docs', documentation);
 
         server.web.express.use(this.path + '/docs', express.static(path.resolve(__dirname, '../../../../docs/atomicassets')));
