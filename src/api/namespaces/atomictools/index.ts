@@ -1,5 +1,4 @@
 import * as express from 'express';
-import * as swagger from 'swagger-ui-express';
 
 import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
@@ -8,6 +7,7 @@ import logger from '../../../utils/winston';
 import { atomictoolsComponents } from './openapi';
 import { configEndpoints } from './routes/config';
 import { linksEndpoints } from './routes/links';
+import * as swagger from 'swagger-ui-express';
 
 export type AtomicToolsNamespaceArgs = {
     atomictools_account: string,
@@ -77,7 +77,8 @@ export class AtomicToolsNamespace extends ApiNamespace {
         logger.info('atomictools docs on ' + this.path + '/docs');
         logger.debug('atomictools swagger docs', documentation);
 
-        server.web.express.use(this.path + '/docs', swagger.serve, swagger.setup(documentation, {
+        router.use('/docs', swagger.serve);
+        router.get('/docs', swagger.setup(documentation, {
             customCss: '.topbar { display: none; }',
             customCssUrl: 'https://cdn.jsdelivr.net/npm/swagger-ui-themes@3.0.0/themes/3.x/theme-flattop.min.css'
         }));

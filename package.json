@@ -37,7 +37,7 @@
     "rate-limit-redis": "^2.0.0",
     "redis": "^3.0.2",
     "socket.io": "^2.4.1",
-    "swagger-ui-express": "^4.1.4",
+    "swagger-ui-express": "4.1.4",
     "text-encoding": "^0.7.0",
     "winston": "^3.3.3",
     "ws": "^7.4.2",

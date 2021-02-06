@@ -151,9 +151,10 @@ export class AtomicMarketNamespace extends ApiNamespace {
         logger.info('atomicmarket docs on ' + this.path + '/docs');
         logger.debug('atomicmarket swagger docs', documentation);
 
-        server.web.express.use(this.path + '/docs', express.static(path.resolve(__dirname, '../../../../docs/atomicmarket')));
+        router.use('/docs', express.static(path.resolve(__dirname, '../../../../docs/atomicmarket')));
 
-        server.web.express.use(this.path + '/docs/swagger', swagger.serve, swagger.setup(documentation, {
+        router.use('/docs/swagger', swagger.serve);
+        router.get('/docs/swagger', swagger.setup(documentation, {
             customCss: '.topbar { display: none; }',
             customCssUrl: 'https://cdn.jsdelivr.net/npm/swagger-ui-themes@3.0.0/themes/3.x/theme-flattop.min.css'
         }));

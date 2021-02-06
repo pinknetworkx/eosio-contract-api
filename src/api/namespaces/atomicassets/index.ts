@@ -95,9 +95,10 @@ export class AtomicAssetsNamespace extends ApiNamespace {
         logger.info('atomicassets docs on ' + this.path + '/docs');
         logger.debug('atomicassets swagger docs', documentation);
 
-        server.web.express.use(this.path + '/docs', express.static(path.resolve(__dirname, '../../../../docs/atomicassets')));
+        router.use('/docs', express.static(path.resolve(__dirname, '../../../../docs/atomicassets')));
 
-        server.web.express.use(this.path + '/docs/swagger', swagger.serve, swagger.setup(documentation, {
+        router.use('/docs/swagger', swagger.serve);
+        router.get('/docs/swagger', swagger.setup(documentation, {
             customCss: '.topbar { display: none; }',
             customCssUrl: 'https://cdn.jsdelivr.net/npm/swagger-ui-themes@3.0.0/themes/3.x/theme-flattop.min.css'
         }));
