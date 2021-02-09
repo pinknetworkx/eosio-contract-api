@@ -30,7 +30,8 @@ export class HTTPServer {
 
     constructor(readonly config: IServerConfig, readonly connection: ConnectionManager) {
         this.database = connection.database.createPool({
-            statement_timeout: 15000
+            statement_timeout: 10000,
+            max: 100
         });
         this.web = new WebServer(this);
 
