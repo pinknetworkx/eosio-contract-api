@@ -30,8 +30,8 @@ export class HTTPServer {
 
     constructor(readonly config: IServerConfig, readonly connection: ConnectionManager) {
         this.database = connection.database.createPool({
-            statement_timeout: 10000,
-            max: 100
+            statement_timeout: config.max_query_time_ms || 10000,
+            max: config.max_db_connections || 50
         });
         this.web = new WebServer(this);
 
@@ -236,40 +236,5 @@ export class SocketServer {
         }
 
         await pipeline.exec();
-    }
-
-    async reserveConnection(socket: socketio.Socket): Promise<boolean> {
-        let ip;
-        if (this.server.config.trust_proxy && socket.handshake.headers['x-forwarded-for']) {
-            ip = socket.handshake.headers['x-forwarded-for'].split(',')[0];
-        } else {
-            ip = socket.conn.remoteAddress;
-        }
-
-        logger.debug('reserve socket connection for ' + ip);
-
-        const key = ['eosio-contract-api', this.server.connection.chain.name, 'socket-connections', ip].join(':');
-        const connections = parseInt(await this.server.connection.redis.ioRedis.get(key), 10);
-
-        if (isNaN(connections) || connections < this.server.config.socket_limit.connections_per_ip) {
-            await this.server.connection.redis.ioRedis.incr(key);
-
-            return true;
-        }
-
-        return false;
-    }
-
-    async releaseConnection(socket: socketio.Socket): Promise<void> {
-        let ip;
-        if (this.server.config.trust_proxy) {
-            ip = socket.handshake.headers['x-forwarded-for'].split(',')[0];
-        } else {
-            ip = socket.conn.remoteAddress;
-        }
-
-        const key = ['eosio-contract-api', this.server.connection.chain.name, 'socket-connections', ip].join(':');
-
-        await this.server.connection.redis.ioRedis.decr(key);
     }
 }

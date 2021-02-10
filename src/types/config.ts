@@ -34,13 +34,11 @@ export interface IServerConfig {
         requests: number
     };
 
-    socket_limit: {
-        connections_per_ip: number,
-        subscriptions_per_connection: number
-    };
-
     ip_whitelist: string[];
     slow_query_threshold: number;
+
+    max_query_time_ms: number;
+    max_db_connections: number;
 
     namespaces: INamespaceConfig[];
 }

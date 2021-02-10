@@ -6,7 +6,7 @@
   "server_name": "wax.api.atomicassets.io",
   "server_port": 9000,
 
-  "cache_life": 1,
+  "cache_life": 2,
   "trust_proxy": true,
 
   "rate_limit": {
@@ -14,13 +14,11 @@
     "requests": 240
   },
 
-  "socket_limit": {
-    "connections_per_ip": 25,
-    "subscriptions_per_connection": 200
-  },
-
   "ip_whitelist": [],
   "slow_query_threshold": 7500,
+
+  "max_query_time_ms": 10000,
+  "max_db_connections": 50,
 
   "namespaces": [
     {

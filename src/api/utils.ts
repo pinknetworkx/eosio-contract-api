@@ -1,5 +1,4 @@
 import { HTTPServer } from './server';
-import logger from '../utils/winston';
 import { Namespace } from 'socket.io';
 import { NotificationData } from '../filler/notifier';
 
@@ -21,26 +20,7 @@ export async function getContractActionLogs(
 }
 
 export function createSocketApiNamespace(server: HTTPServer, path: string): Namespace {
-    const namespace = server.socket.io.of(path);
-
-    namespace.on('connection', async (socket) => {
-        logger.debug('socket transfer client connected');
-
-        let verifiedConnection = false;
-        if (!(await server.socket.reserveConnection(socket))) {
-            socket.disconnect(true);
-        } else {
-            verifiedConnection = true;
-        }
-
-        socket.on('disconnect', async () => {
-            if (verifiedConnection) {
-                await server.socket.releaseConnection(socket);
-            }
-        });
-    });
-
-    return namespace;
+    return server.socket.io.of(path);
 }
 
 export function extractNotificationIdentifiers(notifications: NotificationData[], key: string): string[] {

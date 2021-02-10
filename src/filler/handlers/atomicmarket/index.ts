@@ -88,12 +88,14 @@ export default class AtomicMarketHandler extends ContractHandler {
             'atomicmarket_template_prices',
             'atomicmarket_auction_mints', 'atomicmarket_auction_stats',
             'atomicmarket_buyoffer_mints', 'atomicmarket_buyoffer_stats',
-            'atomicmarket_sale_mints', 'atomicmarket_sale_stats', 'atomicmarket_sale_prices'
+            'atomicmarket_sale_mints', 'atomicmarket_sale_stats', 'atomicmarket_sale_prices',
+            'atomicmarket_stats_prices', 'atomicmarket_stats_markets'
         ];
         const views = [
             'atomicmarket_assets_master', 'atomicmarket_auctions_master',
             'atomicmarket_sales_master', 'atomicmarket_sale_prices_master',
-            'atomicmarket_template_prices_master', 'atomicmarket_buyoffers_master'
+            'atomicmarket_template_prices_master', 'atomicmarket_buyoffers_master',
+            'atomicmarket_stats_prices_master', 'atomicmarket_stats_markets_master'
         ];
 
         if (!existsQuery.rows[0].exists) {
