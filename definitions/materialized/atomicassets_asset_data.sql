@@ -1,7 +1,7 @@
 CREATE MATERIALIZED VIEW IF NOT EXISTS atomicassets_asset_data AS
     SELECT
         "asset".contract, "asset".asset_id, "asset".collection_name, "asset".schema_name,
-    	("asset".mutable_data || asset.immutable_data || COALESCE("template".immutable_data, '{}'::jsonb)) "data"
+    	remove_long_jsonb_pairs("asset".mutable_data || asset.immutable_data || COALESCE("template".immutable_data, '{}'::jsonb), 128) "data"
     FROM
         atomicassets_assets "asset"
     	LEFT JOIN atomicassets_templates "template" ON (
