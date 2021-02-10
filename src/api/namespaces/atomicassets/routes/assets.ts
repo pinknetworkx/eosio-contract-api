@@ -445,22 +445,26 @@ export class AssetApi {
                             asset_id: assetID,
                             asset: assets.find(row => String(row.asset_id) === String(assetID))
                         });
-                    } else if (trace.act.name === 'logbackasset') {
-                        namespace.emit('back', {
-                            transaction: notification.data.tx,
-                            block: notification.data.block,
-                            trace: trace,
-                            asset_id: assetID,
-                            asset: assets.find(row => String(row.asset_id) === String(assetID))
-                        });
-                    } else if (trace.act.name === 'logsetdata') {
-                        namespace.emit('update', {
-                            transaction: notification.data.tx,
-                            block: notification.data.block,
-                            trace: trace,
-                            asset_id: assetID,
-                            asset: assets.find(row => String(row.asset_id) === String(assetID))
-                        });
+                    }
+
+                    if (this.core.args.socket_features.asset_update) {
+                        if (trace.act.name === 'logbackasset') {
+                            namespace.emit('back', {
+                                transaction: notification.data.tx,
+                                block: notification.data.block,
+                                trace: trace,
+                                asset_id: assetID,
+                                asset: assets.find(row => String(row.asset_id) === String(assetID))
+                            });
+                        } else if (trace.act.name === 'logsetdata') {
+                            namespace.emit('update', {
+                                transaction: notification.data.tx,
+                                block: notification.data.block,
+                                trace: trace,
+                                asset_id: assetID,
+                                asset: assets.find(row => String(row.asset_id) === String(assetID))
+                            });
+                        }
                     }
                 } else if (notification.type === 'fork') {
                     namespace.emit('fork', {block_num: notification.data.block.block_num});

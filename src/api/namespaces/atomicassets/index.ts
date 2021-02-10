@@ -20,7 +20,10 @@ import ApiNotificationReceiver from '../../notification';
 
 export type AtomicAssetsNamespaceArgs = {
     atomicassets_account: string,
-    connected_reader: string
+    connected_reader: string,
+    socket_features: {
+        asset_update: boolean
+    }
 };
 
 export class AtomicAssetsNamespace extends ApiNamespace {
@@ -31,6 +34,12 @@ export class AtomicAssetsNamespace extends ApiNamespace {
     async init(): Promise<void> {
         if (typeof this.args.atomicassets_account !== 'string') {
             throw new Error('Argument missing in atomicassets api namespace: atomicassets_account');
+        }
+
+        if (!this.args.socket_features) {
+            this.args.socket_features = {
+                asset_update: true,
+            };
         }
     }
 
