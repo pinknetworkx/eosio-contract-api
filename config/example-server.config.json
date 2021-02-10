@@ -26,7 +26,10 @@
       "path": "/atomicassets",
       "args": {
         "atomicassets_account": "atomicassets",
-        "connected_reader": "atomic-1"
+        "connected_reader": "atomic-1",
+        "socket_features": {
+          "asset_update": false
+        }
       }
     },
     {

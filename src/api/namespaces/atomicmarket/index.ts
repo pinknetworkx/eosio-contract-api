@@ -27,7 +27,11 @@ export type AtomicMarketNamespaceArgs = {
     atomicassets_account: string,
     delphioracle_account: string,
 
-    connected_reader: string
+    connected_reader: string,
+
+    socket_features: {
+        asset_update: boolean
+    }
 };
 
 export enum SaleApiState {
@@ -76,6 +80,12 @@ export class AtomicMarketNamespace extends ApiNamespace {
         } else {
             this.args.atomicassets_account = query.rows[0].assets_contract;
             this.args.delphioracle_account = query.rows[0].delphi_contract;
+        }
+
+        if (!this.args.socket_features) {
+            this.args.socket_features = {
+                asset_update: true,
+            };
         }
     }
 
