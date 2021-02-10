@@ -37,7 +37,10 @@
       "path": "/atomicmarket",
       "args": {
         "atomicmarket_account": "atomicmarket",
-        "connected_reader": "atomic-1"
+        "connected_reader": "atomic-1",
+        "socket_features": {
+          "asset_update": false
+        }
       }
     },
     {
