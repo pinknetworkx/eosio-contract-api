@@ -84,24 +84,23 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
     function buildAccountStatsQuery(after?: number, before?: number): string {
         return `
         SELECT account, SUM(buy_volume_inner) buy_volume, SUM(sell_volume_inner) sell_volume
-        FROM
+        FROM (
             (
-                (
-                    SELECT buyer account, SUM(price) buy_volume_inner, 0 sell_volume_inner 
-                    FROM atomicmarket_stats_markets
-                    WHERE sale.market_contract = $1 AND sale.symbol = $2 
-                        ${buildRangeCondition('"time"', after, before)}
-                        ${getGreylistCondition('collection_name', 3, 4)}
-                    GROUP BY buyer
-                ) UNION ALL (
-                    SELECT seller account, 0 buy_volume_inner, SUM(price) sell_volume_inner 
-                    FROM atomicmarket_stats_markets
-                    WHERE sale.market_contract = $1 AND sale.symbol = $2 
-                        ${buildRangeCondition('"time"', after, before)}
-                        ${getGreylistCondition('collection_name', 3, 4)}
-                    GROUP BY seller
-                )
-            ) accounts
+                SELECT buyer account, SUM(price) buy_volume_inner, 0 sell_volume_inner 
+                FROM atomicmarket_stats_markets
+                WHERE market_contract = $1 AND symbol = $2 
+                    ${buildRangeCondition('"time"', after, before)}
+                    ${getGreylistCondition('collection_name', 3, 4)}
+                GROUP BY buyer
+            ) UNION ALL (
+                SELECT seller account, 0 buy_volume_inner, SUM(price) sell_volume_inner 
+                FROM atomicmarket_stats_markets
+                WHERE market_contract = $1 AND symbol = $2 
+                    ${buildRangeCondition('"time"', after, before)}
+                    ${getGreylistCondition('collection_name', 3, 4)}
+                GROUP BY seller
+            )
+        ) accounts
         GROUP BY account
         `;
     }
@@ -130,7 +129,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         return `
         SELECT 
             market_contract, marketplace, SUM(sellers) sellers, SUM(buyers) buyers, 
-            SUM(sell_volume) sell_volume, SUM(buy_volume) buy_volume 
+            SUM(maker_volume) maker_volume, SUM(taker_volume) taker_volume 
         FROM (
             (
                 SELECT market_contract, maker_marketplace marketplace, COUNT(DISTINCT seller) sellers, 0 buyers, SUM(price) maker_volume, 0 taker_volume
@@ -140,7 +139,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                     ${getGreylistCondition('collection_name', 3, 4)}
                 GROUP BY market_contract, maker_marketplace
             ) UNION ALL (
-                SELECT market_contract, maker_marketplace marketplace, 0 sellers, COUNT(DISTINCT buyer) buyers, 0 maker_volume, SUM(price) taker_volume
+                SELECT market_contract, taker_marketplace marketplace, 0 sellers, COUNT(DISTINCT buyer) buyers, 0 maker_volume, SUM(price) taker_volume
                 FROM atomicmarket_stats_markets
                 WHERE market_contract = $1 AND symbol = $2 
                     ${buildRangeCondition('"time"', after, before)}
@@ -157,7 +156,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         SELECT div("time", 24 * 3600 * 1000) "time", COUNT(*) sales, SUM(price) volume 
         FROM atomicmarket_stats_markets
         WHERE market_contract = $1 AND symbol = $2
-            ${getGreylistCondition('auction.collection_name', 3, 4)}
+            ${getGreylistCondition('collection_name', 3, 4)}
         GROUP BY "time" ORDER BY "time" ASC
         `;
     }
@@ -436,7 +435,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             ];
 
             // @ts-ignore
-            queryString += 'ORDER BY users DESC NULLS LAST ';
+            queryString += 'ORDER BY maker_volume + taker_volume DESC NULLS LAST ';
 
             const query = await server.query(queryString, queryValues);
 
@@ -444,14 +443,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 success: true,
                 data: {
                     symbol,
-                    results: query.rows.map(row => ({
-                        ...row,
-                        volume: {
-                            total: (parseInt(row.auction_volume.total, 10) || 0) + (parseInt(row.sale_volume.total, 10) || 0),
-                            taker: (parseInt(row.auction_volume.taker, 10) || 0) + (parseInt(row.sale_volume.taker, 10) || 0),
-                            maker: (parseInt(row.auction_volume.maker, 10) || 0) + (parseInt(row.sale_volume.maker, 10) || 0)
-                        }
-                    }))
+                    results: query.rows
                 },
                 query_time: Date.now()
             });
