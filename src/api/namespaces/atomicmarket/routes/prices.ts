@@ -46,7 +46,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
             }
 
             if (args.symbol) {
-                queryString += 'AND price.token_symbol = ANY ($' + ++varCounter + ') ';
+                queryString += 'AND price.symbol = ANY ($' + ++varCounter + ') ';
                 queryValues.push(args.symbol.split(','));
             }
 
