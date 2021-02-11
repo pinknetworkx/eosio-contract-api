@@ -1,21 +1,15 @@
 import * as express from 'express';
 
-import { AtomicMarketNamespace, AuctionApiState, SaleApiState } from '../index';
+import { AtomicMarketNamespace, SaleApiState } from '../index';
 import { HTTPServer } from '../../../server';
 import { filterQueryArgs, mergeRequestData } from '../../utils';
 import { formatCollection } from '../../atomicassets/format';
-import { AuctionState, SaleState } from '../../../../filler/handlers/atomicmarket';
+import { SaleState } from '../../../../filler/handlers/atomicmarket';
 import { atomicassetsComponents, greylistFilterParameters } from '../../atomicassets/openapi';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import { buildGreylistFilter } from '../../atomicassets/utils';
 
 export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
-    // use fixed time to avoid that one query uses multiple different timestamps
-    let currentTime = Date.now();
-    setInterval(() => {
-        currentTime = Date.now();
-    }, 1000);
-
     function getSaleSubCondition (state: SaleApiState, table: string, after?: number, before?: number, filterState: boolean = true): string {
         if (state.valueOf() === SaleApiState.LISTED.valueOf()) {
             let queryString = '';
@@ -54,78 +48,34 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         throw new Error('Sale State not supported');
     }
 
-    function getAuctionSubCondition (state: AuctionApiState, table: string, after?: number, before?: number, filterState: boolean = true): string {
-        if (state.valueOf() === AuctionApiState.LISTED.valueOf()) {
-            let queryString = '';
-
-            if (filterState) {
-                queryString += 'AND ' + table + '.state = ' + AuctionState.LISTED.valueOf() + ' AND ' + table + '.end_time > ' + (currentTime / 1000) + ' ';
-            }
-
-            if (typeof after === 'number') {
-                queryString += 'AND ' + table + '.created_at_time > ' + after + ' ';
-            }
-
-            if (typeof before === 'number') {
-                queryString += 'AND ' + table + '.created_at_time < ' + before + ' ';
-            }
-
-            return queryString;
-        } else if (state.valueOf() === AuctionApiState.SOLD.valueOf()) {
-            let queryString = '';
-
-            if (filterState) {
-                queryString += 'AND ' + table + '.state = ' + AuctionState.LISTED.valueOf() + ' AND ' + table + '.end_time < ' + (currentTime / 1000) + ' AND ' + table + '.buyer IS NOT NULL ';
-            }
-
-            if (typeof after === 'number') {
-                queryString += 'AND ' + table + '.end_time > ' + (after / 1000) + ' ';
-            }
-
-            if (typeof before === 'number') {
-                queryString += 'AND ' + table + '.end_time < ' + (before / 1000) + ' ';
-            }
-
-            return queryString;
-        }
-
-        throw new Error('Auction State not supported');
-    }
-
     function getGreylistCondition (column: string, whitelistVar: number, blacklistVar: number): string {
         return 'AND (' + column + ' = ANY ($' + whitelistVar + ') OR CARDINALITY($' + whitelistVar + ') = 0) AND ' +
             '(NOT (' + column + '  = ANY ($' + blacklistVar + ')) OR CARDINALITY($' + blacklistVar + ') = 0) ';
     }
 
+    function buildRangeCondition(column: string, after?: number, before?: number): string {
+        let queryStr = '';
+
+        if (typeof after === 'number') {
+            queryStr += 'AND ' + column + ' > ' + after + ' ';
+        }
+
+        if (typeof before === 'number') {
+            queryStr += 'AND ' + column + ' < ' + before + ' ';
+        }
+
+        return queryStr;
+    }
+
     function buildCollectionStatsQuery(after?: number, before?: number): string {
         return `
-        SELECT collection.*, t1.volume, t1.listings, t1.sales
+        SELECT collection.*, t1.volume, 0 listings, t1.sales
         FROM
             atomicassets_collections_master collection
             JOIN (
-                SELECT t2.contract, t2.collection_name, SUM(t2.volume) volume, SUM(t2.listings) listings, SUM(t2.sales) sales
-                FROM (
-                    (
-                        SELECT 
-                            sale.assets_contract contract, sale.collection_name, 
-                            SUM(sale.final_price) FILTER(WHERE 1 = 1 ${getSaleSubCondition(SaleApiState.SOLD, 'sale', after, before)}) volume,
-                            COUNT(*) FILTER(WHERE 1 = 1 ${getSaleSubCondition(SaleApiState.LISTED, 'sale', after, before)}) listings,
-                            COUNT(*) FILTER(WHERE 1 = 1 ${getSaleSubCondition(SaleApiState.SOLD, 'sale', after, before)}) sales
-                        FROM atomicmarket_sales sale
-                        WHERE sale.settlement_symbol = $2
-                        GROUP BY sale.assets_contract, sale.collection_name
-                    ) UNION ALL (
-                        SELECT 
-                            auction.assets_contract contract, auction.collection_name, 
-                            SUM(auction.price) FILTER(WHERE 1 = 1 ${getAuctionSubCondition(AuctionApiState.SOLD, 'auction', after, before)}) volume,
-                            COUNT(*) FILTER(WHERE 1 = 1 ${getAuctionSubCondition(AuctionApiState.LISTED, 'auction', after, before)}) listings,
-                            COUNT(*) FILTER(WHERE 1 = 1 ${getAuctionSubCondition(AuctionApiState.SOLD, 'auction', after, before)}) sales
-                        FROM atomicmarket_auctions auction
-                        WHERE auction.token_symbol = $2
-                        GROUP BY auction.assets_contract, auction.collection_name
-                    )
-                ) t2
-                GROUP BY t2.contract, t2.collection_name
+                SELECT assets_contract contract, collection_name, SUM(price) volume, COUNT(*) sales FROM atomicmarket_stats_markets
+                WHERE symbol = $2 ${buildRangeCondition('"time"', after, before)}
+                GROUP BY assets_contract, collection_name
             ) t1 ON (collection.contract = t1.contract AND collection.collection_name = t1.collection_name)
         WHERE collection.contract = $1 
         `;
@@ -137,32 +87,18 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         FROM
             (
                 (
-                    SELECT buyer account, SUM(final_price) buy_volume_inner, 0 sell_volume_inner 
-                    FROM atomicmarket_sales sale
-                    WHERE sale.market_contract = $1 AND sale.settlement_symbol = $2
-                        ${getSaleSubCondition(SaleApiState.SOLD, 'sale', after, before)}  
-                        ${getGreylistCondition('sale.collection_name', 3, 4)}
-                    GROUP BY buyer
-                ) UNION ALL (
-                    SELECT seller account, 0 buy_volume_inner, SUM(final_price) sell_volume_inner 
-                    FROM atomicmarket_sales sale
-                    WHERE sale.market_contract = $1 AND sale.settlement_symbol = $2  
-                        ${getSaleSubCondition(SaleApiState.SOLD, 'sale', after, before)}  
-                        ${getGreylistCondition('sale.collection_name', 3, 4)}
-                    GROUP BY seller
-                ) UNION ALL (
                     SELECT buyer account, SUM(price) buy_volume_inner, 0 sell_volume_inner 
-                    FROM atomicmarket_auctions auction
-                    WHERE auction.market_contract = $1 AND auction.token_symbol = $2 
-                        ${getAuctionSubCondition(AuctionApiState.SOLD, 'auction', after, before)} 
-                        ${getGreylistCondition('auction.collection_name', 3, 4)}
+                    FROM atomicmarket_stats_markets
+                    WHERE sale.market_contract = $1 AND sale.symbol = $2 
+                        ${buildRangeCondition('"time"', after, before)}
+                        ${getGreylistCondition('collection_name', 3, 4)}
                     GROUP BY buyer
                 ) UNION ALL (
                     SELECT seller account, 0 buy_volume_inner, SUM(price) sell_volume_inner 
-                    FROM atomicmarket_auctions auction
-                    WHERE auction.market_contract = $1 AND auction.token_symbol = $2 
-                        ${getAuctionSubCondition(AuctionApiState.SOLD, 'auction', after, before)} 
-                        ${getGreylistCondition('auction.collection_name', 3, 4)}
+                    FROM atomicmarket_stats_markets
+                    WHERE sale.market_contract = $1 AND sale.symbol = $2 
+                        ${buildRangeCondition('"time"', after, before)}
+                        ${getGreylistCondition('collection_name', 3, 4)}
                     GROUP BY seller
                 )
             ) accounts
@@ -193,91 +129,36 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
     function buildMarketStatsQuery(after?: number, before?: number): string {
         return `
         SELECT 
-            mp.market_contract, mp.marketplace_name,
+            market_contract, marketplace, SUM(sellers) sellers, SUM(buyers) buyers, 
+            SUM(sell_volume) sell_volume, SUM(buy_volume) buy_volume 
+        FROM (
             (
-                SELECT COUNT(*) FROM (
-                    SELECT ut2.account FROM (
-                        (
-                            SELECT seller account FROM atomicmarket_sales sale
-                            WHERE sale.market_contract = mp.market_contract ${getSaleSubCondition(SaleApiState.LISTED, 'sale', after, before, false)} 
-                                AND (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name) 
-                                ${getGreylistCondition('sale.collection_name', 3, 4)}
-                            GROUP BY account
-                        ) UNION (
-                            SELECT buyer account FROM atomicmarket_sales sale
-                            WHERE sale.market_contract = mp.market_contract ${getSaleSubCondition(SaleApiState.SOLD, 'sale', after, before)} 
-                                AND (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name) 
-                                ${getGreylistCondition('sale.collection_name', 3, 4)}
-                            GROUP BY account
-                        ) UNION (
-                            SELECT seller account FROM atomicmarket_auctions auction
-                            WHERE auction.market_contract = mp.market_contract ${getAuctionSubCondition(AuctionApiState.LISTED, 'auction', after, before, false)} 
-                                AND (auction.maker_marketplace = mp.marketplace_name OR auction.taker_marketplace = mp.marketplace_name) 
-                                ${getGreylistCondition('auction.collection_name', 3, 4)}
-                            GROUP BY account
-                        ) UNION (
-                            SELECT buyer account FROM atomicmarket_auctions auction
-                            WHERE auction.market_contract = mp.market_contract ${getAuctionSubCondition(AuctionApiState.SOLD, 'auction', after, before)} 
-                                AND (auction.maker_marketplace = mp.marketplace_name OR auction.taker_marketplace = mp.marketplace_name) 
-                                ${getGreylistCondition('auction.collection_name', 3, 4)}
-                            GROUP BY account
-                        )
-                    ) ut2 GROUP BY ut2.account
-                ) ut1
-            ) users,
-            (
-                SELECT 
-                    json_build_object(
-                        'total', COALESCE(SUM(final_price), 0),
-                        'taker', COALESCE(SUM(final_price) FILTER (WHERE sale.taker_marketplace = mp.marketplace_name), 0),
-                        'maker', COALESCE(SUM(final_price) FILTER (WHERE sale.maker_marketplace = mp.marketplace_name), 0)
-                    )
-                FROM atomicmarket_sales sale 
-                WHERE
-                    sale.settlement_symbol = $2 AND sale.market_contract = mp.market_contract 
-                    ${getSaleSubCondition(SaleApiState.SOLD, 'sale', after, before)} 
-                    AND (sale.maker_marketplace = mp.marketplace_name OR sale.taker_marketplace = mp.marketplace_name)  
-                    ${getGreylistCondition('sale.collection_name', 3, 4)}
-            ) sale_volume,
-            (
-                SELECT 
-                    json_build_object(
-                        'total', COALESCE(SUM(price), 0),
-                        'taker', COALESCE(SUM(price) FILTER (WHERE auction.taker_marketplace = mp.marketplace_name), 0),
-                        'maker', COALESCE(SUM(price) FILTER (WHERE auction.maker_marketplace = mp.marketplace_name), 0)
-                    )
-                FROM atomicmarket_auctions auction 
-                WHERE
-                    auction.token_symbol = $2 AND auction.market_contract = mp.market_contract 
-                    ${getAuctionSubCondition(AuctionApiState.SOLD, 'auction', after, before)} 
-                    AND (auction.maker_marketplace = mp.marketplace_name OR auction.taker_marketplace = mp.marketplace_name)  
-                    ${getGreylistCondition('auction.collection_name', 3, 4)}
-            ) auction_volume
-        FROM atomicmarket_marketplaces mp
-        WHERE mp.market_contract = $1
+                SELECT market_contract, maker_marketplace marketplace, COUNT(DISTINCT seller) sellers, 0 buyers, SUM(price) maker_volume, 0 taker_volume
+                FROM atomicmarket_stats_markets
+                WHERE market_contract = $1 AND symbol = $2 
+                    ${buildRangeCondition('"time"', after, before)}
+                    ${getGreylistCondition('collection_name', 3, 4)}
+                GROUP BY market_contract, maker_marketplace
+            ) UNION ALL (
+                SELECT market_contract, maker_marketplace marketplace, 0 sellers, COUNT(DISTINCT buyer) buyers, 0 maker_volume, SUM(price) taker_volume
+                FROM atomicmarket_stats_markets
+                WHERE market_contract = $1 AND symbol = $2 
+                    ${buildRangeCondition('"time"', after, before)}
+                    ${getGreylistCondition('collection_name', 3, 4)}
+                GROUP BY market_contract, taker_marketplace
+            )
+        ) t1
+        GROUP BY market_contract, marketplace
         `;
     }
 
     function buildGraphStatsQuery(): string {
         return `
-        SELECT t1."time", SUM(t1.sales) sales, SUM(t1.volume) volume FROM (
-            (
-                SELECT div(sale.updated_at_time, 24 * 3600 * 1000) "time", COUNT(*) sales, SUM(final_price) volume
-                FROM atomicmarket_sales sale 
-                WHERE market_contract = $1 AND settlement_symbol = $2 
-                    ${getSaleSubCondition(SaleApiState.SOLD, 'sale')}
-                    ${getGreylistCondition('sale.collection_name', 3, 4)}
-                GROUP BY "time"
-            ) UNION ALL (
-                SELECT div(auction.end_time, 24 * 3600) "time", COUNT(*) sales, SUM(price) volume
-                FROM atomicmarket_auctions auction 
-                WHERE market_contract = $1 AND token_symbol = $2 
-                    ${getAuctionSubCondition(AuctionApiState.SOLD, 'auction')}
-                    ${getGreylistCondition('auction.collection_name', 3, 4)}
-                GROUP BY "time"
-            ) 
-        ) t1
-        GROUP BY t1."time" ORDER BY t1."time" ASC
+        SELECT div("time", 24 * 3600 * 1000) "time", COUNT(*) sales, SUM(price) volume 
+        FROM atomicmarket_stats_markets
+        WHERE market_contract = $1 AND symbol = $2
+            ${getGreylistCondition('auction.collection_name', 3, 4)}
+        GROUP BY "time" ORDER BY "time" ASC
         `;
     }
 

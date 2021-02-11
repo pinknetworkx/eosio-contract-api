@@ -4,7 +4,7 @@ CREATE OR REPLACE VIEW atomicmarket_stats_markets_master AS
         (
             SELECT
                 sale.market_contract, 'sale' listing_type, sale.sale_id listing_id,
-                sale.maker_marketplace, sale.taker_marketplace,
+                sale.buyer, sale.seller, sale.maker_marketplace, sale.taker_marketplace,
                 sale.assets_contract, sale.collection_name,
                 sale.settlement_symbol symbol, sale.final_price price, sale.updated_at_time "time"
             FROM atomicmarket_sales sale
@@ -12,7 +12,7 @@ CREATE OR REPLACE VIEW atomicmarket_stats_markets_master AS
         ) UNION ALL (
             SELECT
                 auction.market_contract, 'auction' listing_type, auction.auction_id listing_id,
-                auction.maker_marketplace, auction.taker_marketplace,
+                auction.buyer, auction.seller, auction.maker_marketplace, auction.taker_marketplace,
                 auction.assets_contract, auction.collection_name,
                 auction.token_symbol symbol, auction.price, (auction.end_time * 1000) "time"
             FROM atomicmarket_auctions auction
@@ -20,7 +20,7 @@ CREATE OR REPLACE VIEW atomicmarket_stats_markets_master AS
         ) UNION ALL (
             SELECT
                 buyoffer.market_contract, 'buyoffer' listing_type, buyoffer.buyoffer_id listing_id,
-                buyoffer.maker_marketplace, buyoffer.taker_marketplace,
+                buyoffer.buyer, buyoffer.seller, buyoffer.maker_marketplace, buyoffer.taker_marketplace,
                 buyoffer.assets_contract, buyoffer.collection_name,
                 buyoffer.token_symbol symbol, buyoffer.price, buyoffer.updated_at_time "time"
             FROM atomicmarket_buyoffers buyoffer
