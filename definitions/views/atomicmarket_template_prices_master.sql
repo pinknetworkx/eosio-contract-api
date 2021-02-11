@@ -9,6 +9,6 @@ CREATE OR REPLACE VIEW atomicmarket_template_prices_master AS
     FROM (
         SELECT
             t1.*, row_number() OVER (PARTITION BY t1.assets_contract, t1.collection_name, t1.template_id ORDER BY t1."time" DESC) "number"
-        FROM atomicmarket_stats_prices t1
+        FROM atomicmarket_stats_prices_master t1
     ) t2
     GROUP BY t2.market_contract, t2.assets_contract, t2.collection_name, t2.template_id, t2.symbol

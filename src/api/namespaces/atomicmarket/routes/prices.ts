@@ -50,7 +50,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 queryValues.push(args.symbol.split(','));
             }
 
-            queryString += 'ORDER BY price.time DESC LIMIT 500';
+            queryString += 'ORDER BY price."time" DESC LIMIT 500';
 
             const prices = await server.query(queryString, queryValues);
 
