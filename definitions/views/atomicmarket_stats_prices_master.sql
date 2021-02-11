@@ -4,7 +4,8 @@ CREATE OR REPLACE VIEW atomicmarket_stats_prices_master AS
         (
             SELECT
                 sale.market_contract, 'sale' listing_type, sale.sale_id listing_id,
-                sale.assets_contract, sale.collection_name, MIN(asset.template_id) template_id,
+                sale.assets_contract, sale.collection_name,
+                MIN(asset.schema_name) schema_name, MIN(asset.template_id) template_id, MIN(asset.asset_id) asset_id,
                 sale.settlement_symbol symbol, sale.final_price price, sale.updated_at_time "time"
             FROM
                 atomicassets_assets asset, atomicassets_offers_assets offer_asset, atomicmarket_sales sale
@@ -17,7 +18,8 @@ CREATE OR REPLACE VIEW atomicmarket_stats_prices_master AS
         ) UNION ALL (
             SELECT
                 auction.market_contract, 'auction' listing_type, auction.auction_id listing_id,
-                auction.assets_contract, auction.collection_name, MIN(asset.template_id) template_id,
+                auction.assets_contract, auction.collection_name,
+                MIN(asset.schema_name) schema_name, MIN(asset.template_id) template_id, MIN(asset.asset_id) asset_id,
                 auction.token_symbol symbol, auction.price, (auction.end_time * 1000) "time"
             FROM
                 atomicassets_assets asset, atomicmarket_auctions_assets auction_asset, atomicmarket_auctions auction
@@ -30,7 +32,8 @@ CREATE OR REPLACE VIEW atomicmarket_stats_prices_master AS
         ) UNION ALL (
             SELECT
                 buyoffer.market_contract, 'buyoffer' listing_type, buyoffer.buyoffer_id listing_id,
-                buyoffer.assets_contract, buyoffer.collection_name, MIN(asset.template_id) template_id,
+                buyoffer.assets_contract, buyoffer.collection_name,
+                MIN(asset.schema_name) schema_name, MIN(asset.template_id) template_id, MIN(asset.asset_id) asset_id,
                 buyoffer.token_symbol symbol, buyoffer.price, buyoffer.updated_at_time "time"
             FROM
                 atomicassets_assets asset, atomicmarket_buyoffers_assets buyoffer_asset, atomicmarket_buyoffers buyoffer

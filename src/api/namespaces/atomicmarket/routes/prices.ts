@@ -22,78 +22,35 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 symbol: {type: 'string', min: 1}
             });
 
-            let subQueryString = 'AND listing.market_contract = $1 ';
+            let queryString = 'SELECT price.*, token.token_precision, token.token_contract, mint.template_mint, price."time" block_time ' +
+                'FROM atomicmarket_stats_prices price, atomicassets_asset_mints mint, atomicmarket_tokens token ' +
+                'WHERE price.assets_contract = mint.contract AND price.asset_id = mint.asset_id AND ' +
+                'price.market_contract = token.market_contract AND price.token_symbol = token.token_symbol AND ' +
+                'price.market_contract = $1 ';
             const queryValues = [core.args.atomicmarket_account];
             let varCounter = queryValues.length;
 
             if (args.collection_name) {
-                subQueryString += 'AND asset.collection_name = ANY ($' + ++varCounter + ') ';
+                queryString += 'AND price.collection_name = ANY ($' + ++varCounter + ') ';
                 queryValues.push(args.collection_name.split(','));
             }
 
             if (args.schema_name) {
-                subQueryString += 'AND asset.schema_name = ANY ($' + ++varCounter + ') ';
+                queryString += 'AND price.schema_name = ANY ($' + ++varCounter + ') ';
                 queryValues.push(args.schema_name.split(','));
             }
 
             if (args.template_id) {
-                subQueryString += 'AND asset.template_id = ANY ($' + ++varCounter + ') ';
+                queryString += 'AND price.template_id = ANY ($' + ++varCounter + ') ';
                 queryValues.push(args.template_id.split(','));
             }
 
             if (args.symbol) {
-                subQueryString += 'AND symbol.token_symbol = ANY ($' + ++varCounter + ') ';
+                queryString += 'AND price.token_symbol = ANY ($' + ++varCounter + ') ';
                 queryValues.push(args.symbol.split(','));
             }
 
-            const queryString = `
-            SELECT * FROM (
-                (
-                    SELECT
-                        listing.market_contract, asset.contract assets_contract, NULL auction_id, listing.sale_id,
-                        listing.collection_name, asset.schema_name "schema_name", asset.template_id template_id,
-                        mint.min_template_mint template_mint,
-                        symbol.token_symbol token_symbol, symbol.token_precision token_precision, symbol.token_contract token_contract, 
-                        listing.final_price price, listing.updated_at_time block_time
-                    FROM
-                        atomicassets_assets asset, atomicassets_offers_assets offer_asset, atomicmarket_sales listing, 
-                        atomicmarket_sale_mints mint, atomicmarket_tokens symbol
-                    WHERE
-                        listing.assets_contract = offer_asset.contract AND listing.offer_id = offer_asset.offer_id AND
-                        listing.market_contract = mint.market_contract AND listing.sale_id = mint.sale_id AND
-                        listing.market_contract = symbol.market_contract AND listing.settlement_symbol = symbol.token_symbol AND
-                        offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND
-                        asset.template_id IS NOT NULL AND listing.final_price IS NOT NULL AND listing.state = 3 AND
-                        NOT EXISTS(
-                            SELECT * FROM atomicassets_offers_assets inner_asset 
-                            WHERE inner_asset.contract = offer_asset.contract AND inner_asset.offer_id = offer_asset.offer_id AND 
-                            inner_asset.asset_id != offer_asset.asset_id
-                        ) ${subQueryString}
-                ) UNION ALL (
-                    SELECT
-                        listing.market_contract, asset.contract assets_contract,  listing.auction_id, NULL sale_id,
-                        listing.collection_name, asset.schema_name "schema_name", asset.template_id template_id,
-                        mint.min_template_mint template_mint,
-                        symbol.token_symbol token_symbol, symbol.token_precision token_precision, symbol.token_contract token_contract, 
-                        listing.price, (listing.end_time * 1000) block_time
-                    FROM
-                        atomicassets_assets asset, atomicmarket_auctions_assets auction_asset, atomicmarket_auctions listing, 
-                        atomicmarket_auction_mints mint, atomicmarket_tokens symbol
-                    WHERE
-                        listing.assets_contract = auction_asset.assets_contract AND listing.auction_id = auction_asset.auction_id AND
-                        mint.market_contract = listing.market_contract AND mint.auction_id = listing.auction_id AND
-                        listing.market_contract = symbol.market_contract AND listing.token_symbol = symbol.token_symbol AND
-                        listing.assets_contract = asset.contract AND auction_asset.asset_id = asset.asset_id AND
-                        asset.template_id IS NOT NULL AND listing.buyer IS NOT NULL AND listing.state = 1 AND listing.end_time < extract(epoch from now()) AND
-                        NOT EXISTS(
-                            SELECT * FROM atomicmarket_auctions_assets inner_asset 
-                            WHERE inner_asset.market_contract = auction_asset.market_contract AND inner_asset.auction_id = auction_asset.auction_id AND 
-                            inner_asset.asset_id != auction_asset.asset_id
-                        ) ${subQueryString}
-                )
-            ) t1
-            ORDER BY t1.block_time DESC LIMIT 500
-            `;
+            queryString += 'ORDER BY price.time ASC LIMIT 500';
 
             const prices = await server.query(queryString, queryValues);
 
