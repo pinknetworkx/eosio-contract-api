@@ -19,6 +19,26 @@ export async function getContractActionLogs(
     }));
 }
 
+export function applyActionGreylistFilters(actions: string[], args: any): string[] {
+    let result = [...actions];
+
+    if (args.action_whitelist) {
+        result = args.action_whitelist.split(',');
+    }
+
+    if (args.action_blacklist) {
+        for (const action of args.action_blacklist.split(',')) {
+            const index = result.indexOf(action);
+
+            if (index > -1) {
+                result.splice(index, 1);
+            }
+        }
+    }
+
+    return result;
+}
+
 export function createSocketApiNamespace(server: HTTPServer, path: string): Namespace {
     return server.socket.io.of(path);
 }

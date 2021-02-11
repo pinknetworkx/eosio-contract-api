@@ -3,13 +3,19 @@ import { Numeric } from 'eosjs/dist';
 
 import { AtomicToolsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
+import {
+    actionGreylistParameters,
+    dateBoundaryParameters,
+    getOpenAPI3Responses,
+    paginationParameters,
+    primaryBoundaryParameters
+} from '../../../docs';
 import { fillLinks } from '../filler';
 import { formatLink } from '../format';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { LinkState } from '../../../../filler/handlers/atomictools';
 import { greylistFilterParameters } from '../../atomicassets/openapi';
-import { getContractActionLogs } from '../../../utils';
+import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
 import logger from '../../../../utils/winston';
 
 export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, router: express.Router): any {
@@ -150,7 +156,7 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
                 success: true,
                 data: await getContractActionLogs(
                     server, core.args.atomictools_account,
-                    ['lognewlink', 'loglinkstart', 'cancellink', 'claimlink'],
+                    applyActionGreylistFilters(['lognewlink', 'loglinkstart', 'cancellink', 'claimlink'], args),
                     {link_id: req.params.link_id},
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
@@ -256,7 +262,8 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
                             required: true,
                             schema: {type: 'integer'}
                         },
-                        ...paginationParameters
+                        ...paginationParameters,
+                        ...actionGreylistParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Log'}})
                 }

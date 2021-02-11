@@ -5,9 +5,15 @@ import { HTTPServer } from '../../../server';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { buildGreylistFilter } from '../utils';
 import { formatSchema } from '../format';
-import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
+import {
+    actionGreylistParameters,
+    dateBoundaryParameters,
+    getOpenAPI3Responses,
+    paginationParameters,
+    primaryBoundaryParameters
+} from '../../../docs';
 import { greylistFilterParameters } from '../openapi';
-import { getContractActionLogs } from '../../../utils';
+import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
 
 export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/schemas', '/v1/schemas/_count'], server.web.caching(), (async (req, res) => {
@@ -140,7 +146,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                 success: true,
                 data: await getContractActionLogs(
                     server, core.args.atomicassets_account,
-                    ['createschema', 'extendschema'],
+                    applyActionGreylistFilters(['createschema', 'extendschema'], args),
                     {collection_name: req.params.collection_name, schema_name: req.params.schema_name},
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
@@ -280,7 +286,8 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                             required: true,
                             schema: {type: 'string'}
                         },
-                        ...paginationParameters
+                        ...paginationParameters,
+                        ...actionGreylistParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Log'}})
                 }

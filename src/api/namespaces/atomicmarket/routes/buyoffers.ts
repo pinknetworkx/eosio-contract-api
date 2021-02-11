@@ -5,13 +5,24 @@ import { HTTPServer } from '../../../server';
 import { formatBuyoffer } from '../format';
 import { fillBuyoffers } from '../filler';
 import { buildBuyofferFilter } from '../utils';
-import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
+import {
+    actionGreylistParameters,
+    dateBoundaryParameters,
+    getOpenAPI3Responses,
+    paginationParameters,
+    primaryBoundaryParameters
+} from '../../../docs';
 import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/openapi';
 import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
 import { buildGreylistFilter } from '../../atomicassets/utils';
-import { createSocketApiNamespace, extractNotificationIdentifiers, getContractActionLogs } from '../../../utils';
+import {
+    applyActionGreylistFilters,
+    createSocketApiNamespace,
+    extractNotificationIdentifiers,
+    getContractActionLogs
+} from '../../../utils';
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
 
@@ -140,7 +151,7 @@ export function buyoffersEndpoints(core: AtomicMarketNamespace, server: HTTPServ
                 success: true,
                 data: await getContractActionLogs(
                     server, core.args.atomicmarket_account,
-                    ['lognewbuyo', 'cancelbuyo', 'acceptbuyo', 'declinebuyo'],
+                    applyActionGreylistFilters(['lognewbuyo', 'cancelbuyo', 'acceptbuyo', 'declinebuyo'], args),
                     {buyoffer_id: req.params.buyoffer_id},
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
@@ -231,7 +242,8 @@ export function buyoffersEndpoints(core: AtomicMarketNamespace, server: HTTPServ
                             required: true,
                             schema: {type: 'integer'}
                         },
-                        ...paginationParameters
+                        ...paginationParameters,
+                        ...actionGreylistParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Log'}})
                 }

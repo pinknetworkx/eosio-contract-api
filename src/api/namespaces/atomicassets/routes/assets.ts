@@ -5,10 +5,21 @@ import { HTTPServer } from '../../../server';
 import { buildAssetFilter, buildGreylistFilter, hideOfferAssets } from '../utils';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
-import { primaryBoundaryParameters, getOpenAPI3Responses, paginationParameters, dateBoundaryParameters } from '../../../docs';
+import {
+    primaryBoundaryParameters,
+    getOpenAPI3Responses,
+    paginationParameters,
+    dateBoundaryParameters,
+    actionGreylistParameters
+} from '../../../docs';
 import { assetFilterParameters, atomicDataFilter, greylistFilterParameters, hideOffersParameters } from '../openapi';
 import { fillAssets, FillerHook } from '../filler';
-import { createSocketApiNamespace, extractNotificationIdentifiers, getContractActionLogs } from '../../../utils';
+import {
+    applyActionGreylistFilters,
+    createSocketApiNamespace,
+    extractNotificationIdentifiers,
+    getContractActionLogs
+} from '../../../utils';
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
 
@@ -279,7 +290,9 @@ export class AssetApi {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100},
-                order: {type: 'string', values: ['asc', 'desc'], default: 'asc'}
+                order: {type: 'string', values: ['asc', 'desc'], default: 'asc'},
+                action_whitelist: {type: 'string', min: 1},
+                action_blacklist: {type: 'string', min: 1}
             });
 
             try {
@@ -287,7 +300,7 @@ export class AssetApi {
                     success: true,
                     data: await getContractActionLogs(
                         this.server, this.core.args.atomicassets_account,
-                        ['logmint', 'logburnasset', 'logbackasset', 'logsetdata'],
+                        applyActionGreylistFilters(['logmint', 'logburnasset', 'logbackasset', 'logsetdata'], args),
                         {asset_id: req.params.asset_id},
                         (args.page - 1) * args.limit, args.limit, args.order
                     ), query_time: Date.now()
@@ -399,7 +412,8 @@ export class AssetApi {
                                 required: true,
                                 schema: {type: 'integer'}
                             },
-                            ...paginationParameters
+                            ...paginationParameters,
+                            ...actionGreylistParameters
                         ],
                         responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Log'}})
                     }

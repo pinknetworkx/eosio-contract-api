@@ -5,10 +5,15 @@ import { HTTPServer } from '../../../server';
 import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { FillerHook, fillOffers } from '../filler';
-import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
+import { actionGreylistParameters, getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { greylistFilterParameters } from '../openapi';
-import { createSocketApiNamespace, extractNotificationIdentifiers, getContractActionLogs } from '../../../utils';
+import {
+    applyActionGreylistFilters,
+    createSocketApiNamespace,
+    extractNotificationIdentifiers,
+    getContractActionLogs
+} from '../../../utils';
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
 
@@ -42,6 +47,11 @@ export class OfferApi {
                     collection_name: {type: 'string', min: 1},
                     template_id: {type: 'string', min: 1},
                     schema_name: {type: 'string', min: 1},
+
+                    asset_whitelist: {type: 'string', min: 1},
+                    asset_blacklist: {type: 'string', min: 1},
+                    account_whitelist: {type: 'string', min: 1},
+                    account_blacklist: {type: 'string', min: 1},
                     collection_blacklist: {type: 'string', min: 1},
                     collection_whitelist: {type: 'string', min: 1},
 
@@ -110,22 +120,70 @@ export class OfferApi {
 
                 if (args.collection_blacklist) {
                     queryString += 'AND NOT EXISTS(' +
-                        'SELECT * FROM atomicassets_offers_assets asset_o, atomicassets_assets asset_a ' +
-                        'WHERE asset_o.contract = offer.contract AND asset_o.offer_id = offer.offer_id AND ' +
-                        'asset_o.contract = asset_a.contract AND asset_o.asset_id = asset_a.asset_id AND ' +
-                        'asset_a.collection_name = ANY ($' + ++varCounter + ')' +
+                        'SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
+                        'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
+                        'offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND ' +
+                        'asset.collection_name = ANY ($' + ++varCounter + ')' +
                         ') ';
                     queryValues.push(args.collection_blacklist.split(','));
                 }
 
                 if (args.collection_whitelist) {
                     queryString += 'AND NOT EXISTS(' +
-                        'SELECT * FROM atomicassets_offers_assets asset_o, atomicassets_assets asset_a ' +
-                        'WHERE asset_o.contract = offer.contract AND asset_o.offer_id = offer.offer_id AND ' +
-                        'asset_o.contract = asset_a.contract AND asset_o.asset_id = asset_a.asset_id AND ' +
-                        'NOT (asset_a.collection_name = ANY ($' + ++varCounter + '))' +
+                        'SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
+                        'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
+                        'offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND ' +
+                        'NOT (asset.collection_name = ANY ($' + ++varCounter + '))' +
                         ') ';
                     queryValues.push(args.collection_whitelist.split(','));
+                }
+
+                if (args.account_blacklist) {
+                    const varNumber = ++varCounter;
+                    queryString += 'AND NOT (offer.sender = ANY($' + varNumber + ') OR offer.recipient = ANY($' + varNumber + ')) ';
+                    queryValues.push(args.account_blacklist.split(','));
+                }
+
+                if (args.account_whitelist) {
+                    const varNumber = ++varCounter;
+                    queryString += 'AND (offer.sender = ANY($' + varNumber + ') OR offer.recipient = ANY($' + varNumber + ')) ';
+                    queryValues.push(args.account_whitelist.split(','));
+                }
+
+                if (args.recipient_asset_blacklist) {
+                    queryString += 'AND NOT EXISTS(' +
+                        'SELECT * FROM atomicassets_offers_assets offer_asset ' +
+                        'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
+                        'offer_asset.owner = offer.recipient AND offer_asset.asset_id = ANY ($' + ++varCounter + ')' +
+                        ') ';
+                    queryValues.push(args.recipient_asset_blacklist.split(','));
+                }
+
+                if (args.recipient_asset_whitelist) {
+                    queryString += 'AND NOT EXISTS(' +
+                        'SELECT * FROM atomicassets_offers_assets offer_asset ' +
+                        'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
+                        'offer_asset.owner = offer.recipient AND NOT (offer_asset.asset_id = ANY ($' + ++varCounter + '))' +
+                        ') ';
+                    queryValues.push(args.recipient_asset_whitelist.split(','));
+                }
+
+                if (args.sender_asset_blacklist) {
+                    queryString += 'AND NOT EXISTS(' +
+                        'SELECT * FROM atomicassets_offers_assets offer_asset ' +
+                        'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
+                        'offer_asset.owner = offer.sender AND offer_asset.asset_id = ANY ($' + ++varCounter + ')' +
+                        ') ';
+                    queryValues.push(args.sender_asset_blacklist.split(','));
+                }
+
+                if (args.sender_asset_whitelist) {
+                    queryString += 'AND NOT EXISTS(' +
+                        'SELECT * FROM atomicassets_offers_assets offer_asset ' +
+                        'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
+                        'offer_asset.owner = offer.sender AND NOT (offer_asset.asset_id = ANY ($' + ++varCounter + '))' +
+                        ') ';
+                    queryValues.push(args.sender_asset_whitelist.split(','));
                 }
 
                 const boundaryFilter = buildBoundaryFilter(
@@ -217,7 +275,7 @@ export class OfferApi {
                     success: true,
                     data: await getContractActionLogs(
                         this.server, this.core.args.atomicassets_account,
-                        ['lognewoffer', 'acceptoffer', 'declineoffer', 'canceloffer'],
+                        applyActionGreylistFilters(['lognewoffer', 'acceptoffer', 'declineoffer', 'canceloffer'], args),
                         {offer_id: req.params.offer_id},
                         (args.page - 1) * args.limit, args.limit, args.order
                     ), query_time: Date.now()
@@ -310,6 +368,48 @@ export class OfferApi {
                                 required: false,
                                 schema: {type: 'string'}
                             },
+                            {
+                                name: 'account_whitelist',
+                                in: 'query',
+                                description: 'Only offers which are sent by one of these accounts',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
+                            {
+                                name: 'account_blacklist',
+                                in: 'query',
+                                description: 'Exclude offers which are sent by one of these accounts',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
+                            {
+                                name: 'sender_asset_whitelist',
+                                in: 'query',
+                                description: 'Only offers which contain these assets',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
+                            {
+                                name: 'sender_asset_blacklist',
+                                in: 'query',
+                                description: 'Exclude offers which contain these assets',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
+                            {
+                                name: 'recipient_asset_whitelist',
+                                in: 'query',
+                                description: 'Only offers which contain these assets',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
+                            {
+                                name: 'recipient_asset_blacklist',
+                                in: 'query',
+                                description: 'Exclude offers which contain these assets',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
                             ...greylistFilterParameters,
                             ...paginationParameters,
                             {
@@ -355,7 +455,8 @@ export class OfferApi {
                                 required: true,
                                 schema: {type: 'integer'}
                             },
-                            ...paginationParameters
+                            ...paginationParameters,
+                            ...actionGreylistParameters
                         ],
                         responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Log'}})
                     }

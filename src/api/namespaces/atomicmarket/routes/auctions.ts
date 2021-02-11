@@ -5,13 +5,24 @@ import { HTTPServer } from '../../../server';
 import { formatAuction } from '../format';
 import { fillAuctions } from '../filler';
 import { buildAuctionFilter } from '../utils';
-import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
+import {
+    actionGreylistParameters,
+    dateBoundaryParameters,
+    getOpenAPI3Responses,
+    paginationParameters,
+    primaryBoundaryParameters
+} from '../../../docs';
 import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/openapi';
 import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
 import { buildGreylistFilter } from '../../atomicassets/utils';
-import { createSocketApiNamespace, extractNotificationIdentifiers, getContractActionLogs } from '../../../utils';
+import {
+    applyActionGreylistFilters,
+    createSocketApiNamespace,
+    extractNotificationIdentifiers,
+    getContractActionLogs
+} from '../../../utils';
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
 import { eosioTimestampToDate } from '../../../../utils/eosio';
@@ -142,7 +153,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                 success: true,
                 data: await getContractActionLogs(
                     server, core.args.atomicmarket_account,
-                    ['lognewauct', 'logauctstart', 'cancelauct', 'auctclaimbuy', 'auctclaimsel'],
+                    applyActionGreylistFilters(['lognewauct', 'logauctstart', 'cancelauct', 'auctclaimbuy', 'auctclaimsel'], args),
                     {auction_id: req.params.auction_id},
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
@@ -233,7 +244,8 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                             required: true,
                             schema: {type: 'integer'}
                         },
-                        ...paginationParameters
+                        ...paginationParameters,
+                        ...actionGreylistParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Log'}})
                 }

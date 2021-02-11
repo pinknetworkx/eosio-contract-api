@@ -23,7 +23,8 @@ function estimateSeconds(blocks: number, speed: number): number {
 export default class Filler {
     readonly reader: StateReceiver;
 
-    private readonly materializedViews: Array<{name: string, interval: number, refreshed: number}>;
+    private readonly standardMaterializedViews: Array<{name: string, interval: number, refreshed: number}>;
+    private readonly priorityMaterializedViews: Array<{name: string, interval: number, refreshed: number}>;
     private running: boolean;
 
     private readonly handlers: ContractHandler[];
@@ -32,7 +33,7 @@ export default class Filler {
         this.handlers = getHandlers(config.contracts, this);
         this.reader = new StateReceiver(config, connection, this.handlers);
 
-        this.materializedViews = [];
+        this.standardMaterializedViews = [];
         this.running = false;
 
         logger.info(this.handlers.length + ' contract handlers registered');
@@ -171,7 +172,25 @@ export default class Filler {
 
         setTimeout(async () => {
             while (this.running) {
-                for (const view of this.materializedViews) {
+                for (const view of this.standardMaterializedViews) {
+                    if (view.refreshed + view.interval < Date.now()) {
+                        try {
+                            await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view.name);
+                        } catch (err){
+                            logger.error('Error while refreshing materalized view ' + view.name, err);
+                        } finally {
+                            view.refreshed = Date.now();
+                        }
+                    }
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }, 5000);
+
+        setTimeout(async () => {
+            while (this.running) {
+                for (const view of this.priorityMaterializedViews) {
                     if (view.refreshed + view.interval < Date.now()) {
                         try {
                             await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view.name);
@@ -194,7 +213,11 @@ export default class Filler {
         await this.reader.stopProcessing();
     }
 
-    registerMaterializedViewRefresh(name: string, interval: number): void {
-        this.materializedViews.push({name, interval, refreshed: Date.now()});
+    registerMaterializedViewRefresh(name: string, interval: number, priority = false): void {
+        if (priority) {
+            this.priorityMaterializedViews.push({name, interval, refreshed: Date.now()});
+        } else {
+            this.standardMaterializedViews.push({name, interval, refreshed: Date.now()});
+        }
     }
 }

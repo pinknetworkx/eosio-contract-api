@@ -17,6 +17,7 @@ import { TransferApi } from './routes/transfers';
 import { OfferApi } from './routes/offers';
 import { accountsEndpoints } from './routes/accounts';
 import ApiNotificationReceiver from '../../notification';
+import { burnEndpoints } from './routes/burns';
 
 export type AtomicAssetsNamespaceArgs = {
     atomicassets_account: string,
@@ -91,6 +92,7 @@ export class AtomicAssetsNamespace extends ApiNamespace {
         endpointsDocs.push(offerApi.endpoints(router));
         endpointsDocs.push(transferApi.endpoints(router));
         endpointsDocs.push(accountsEndpoints(this, server, router));
+        endpointsDocs.push(burnEndpoints(this, server, router));
         endpointsDocs.push(configEndpoints(this, server, router));
 
         for (const doc of endpointsDocs) {

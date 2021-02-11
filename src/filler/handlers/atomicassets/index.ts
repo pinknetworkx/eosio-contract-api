@@ -167,8 +167,18 @@ export default class AtomicAssetsHandler extends ContractHandler {
             };
         }
 
+        const priorityViews = ['atomicassets_asset_mints'];
+
         for (const view of materializedViews) {
+            if (priorityViews.indexOf(view) >= 0) {
+                continue;
+            }
+
             this.filler.registerMaterializedViewRefresh(view, 60000);
+        }
+
+        for (const view of priorityViews) {
+            this.filler.registerMaterializedViewRefresh(view, 15000, true);
         }
     }
 

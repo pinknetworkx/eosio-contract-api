@@ -111,6 +111,23 @@ export const paginationParameters = [
     }
 ];
 
+export const actionGreylistParameters = [
+    {
+        name: 'action_whitelist',
+        in: 'query',
+        description: 'Action whitelist',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'action_blacklist',
+        in: 'query',
+        description: 'Action blacklist',
+        required: false,
+        schema: {type: 'integer'}
+    },
+];
+
 export const primaryBoundaryParameters = [
     {
         name: 'ids',

@@ -5,9 +5,15 @@ import { HTTPServer } from '../../../server';
 import { buildGreylistFilter, buildDataConditions } from '../utils';
 import { buildBoundaryFilter, filterQueryArgs, mergeRequestData } from '../../utils';
 import { formatTemplate } from '../format';
-import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
+import {
+    actionGreylistParameters,
+    dateBoundaryParameters,
+    getOpenAPI3Responses,
+    paginationParameters,
+    primaryBoundaryParameters
+} from '../../../docs';
 import { atomicDataFilter, greylistFilterParameters } from '../openapi';
-import { getContractActionLogs } from '../../../utils';
+import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
 
 export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/templates', '/v1/templates/_count'], server.web.caching(), (async (req, res) => {
@@ -190,7 +196,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                 success: true,
                 data: await getContractActionLogs(
                     server, core.args.atomicassets_account,
-                    ['lognewtempl', 'locktemplate'],
+                    applyActionGreylistFilters(['lognewtempl', 'locktemplate'], args),
                     {collection_name: req.params.collection_name, template_id: req.params.template_id},
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
@@ -358,7 +364,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                             required: true,
                             schema: {type: 'integer'}
                         },
-                        ...paginationParameters
+                        ...paginationParameters,
+                        ...actionGreylistParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Log'}})
                 }

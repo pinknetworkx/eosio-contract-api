@@ -6,12 +6,23 @@ import { buildSaleFilter } from '../utils';
 import { fillSales } from '../filler';
 import { formatSale } from '../format';
 import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/openapi';
-import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
+import {
+    actionGreylistParameters,
+    dateBoundaryParameters,
+    getOpenAPI3Responses,
+    paginationParameters,
+    primaryBoundaryParameters
+} from '../../../docs';
 import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
 import { buildGreylistFilter } from '../../atomicassets/utils';
-import { createSocketApiNamespace, extractNotificationIdentifiers, getContractActionLogs } from '../../../utils';
+import {
+    applyActionGreylistFilters,
+    createSocketApiNamespace,
+    extractNotificationIdentifiers,
+    getContractActionLogs
+} from '../../../utils';
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
 
@@ -141,7 +152,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 success: true,
                 data: await getContractActionLogs(
                     server, core.args.atomicmarket_account,
-                    ['lognewsale', 'logsalestart', 'cancelsale', 'purchasesale'],
+                    applyActionGreylistFilters(['lognewsale', 'logsalestart', 'cancelsale', 'purchasesale'], args),
                     {sale_id: req.params.sale_id},
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
@@ -232,7 +243,8 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             required: true,
                             schema: {type: 'integer'}
                         },
-                        ...paginationParameters
+                        ...paginationParameters,
+                        ...actionGreylistParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Log'}})
                 }
