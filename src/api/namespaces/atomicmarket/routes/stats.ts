@@ -153,11 +153,11 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
     function buildGraphStatsQuery(): string {
         return `
-        SELECT div("time", 24 * 3600 * 1000) "time", COUNT(*) sales, SUM(price) volume 
+        SELECT div("time", 24 * 3600 * 1000) "time_block", COUNT(*) sales, SUM(price) volume 
         FROM atomicmarket_stats_markets
         WHERE market_contract = $1 AND symbol = $2
             ${getGreylistCondition('collection_name', 3, 4)}
-        GROUP BY "time" ORDER BY "time" ASC
+        GROUP BY "time_block" ORDER BY "time" ASC
         `;
     }
 
@@ -478,7 +478,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             res.json({
                 success: true,
-                data: {symbol, results: query.rows.map(row => ({...row, time: String(row.time * 3600 * 24 * 1000)}))},
+                data: {symbol, results: query.rows.map(row => ({sales: row.sales, volume: row.volume, time: String(row.block_time * 3600 * 24 * 1000)}))},
                 query_time: Date.now()
             });
         } catch (e) {
