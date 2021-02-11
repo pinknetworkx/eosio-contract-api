@@ -22,7 +22,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 symbol: {type: 'string', min: 1}
             });
 
-            let queryString = 'SELECT price.*, token.token_symbol, token.token_precision, token.token_contract, mint.template_mint, price."time" block_time ' +
+            let queryString = 'SELECT price.*, token.token_precision, token.token_contract, mint.template_mint ' +
                 'FROM atomicmarket_stats_prices price, atomicassets_asset_mints mint, atomicmarket_tokens token ' +
                 'WHERE price.assets_contract = mint.contract AND price.asset_id = mint.asset_id AND ' +
                 'price.market_contract = token.market_contract AND price.symbol = token.token_symbol AND ' +
@@ -50,13 +50,23 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 queryValues.push(args.symbol.split(','));
             }
 
-            queryString += 'ORDER BY price.time ASC LIMIT 500';
+            queryString += 'ORDER BY price.time DESC LIMIT 500';
 
             const prices = await server.query(queryString, queryValues);
 
             res.json({
                 success: true,
-                data: prices.rows,
+                data: prices.rows.map(row => ({
+                    sale_id: row.listing_type === 'sale' ? row.listing_id : null,
+                    auction_id: row.listing_type === 'auction' ? row.listing_id : null,
+                    buyoffer_id: row.listing_type === 'buyoffer' ? row.listing_id : null,
+                    price: row.price,
+                    template_mint: row.template_mint,
+                    token_symbol: row.symbol,
+                    token_precision: row.token_precision,
+                    token_contract: row.token_contract,
+                    block_time: row.time,
+                })).reverse(),
                 query_time: Date.now()
             });
         } catch (e) {
@@ -195,6 +205,8 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                             type: 'object',
                             properties: {
                                 sale_id: {type: 'string'},
+                                auction_id: {type: 'string'},
+                                buyoffer_id: {type: 'string'},
                                 template_mint: {type: 'string'},
                                 price: {type: 'string'},
                                 token_symbol: {type: 'string'},
