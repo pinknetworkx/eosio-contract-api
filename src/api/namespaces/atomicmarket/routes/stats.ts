@@ -157,7 +157,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         FROM atomicmarket_stats_markets
         WHERE market_contract = $1 AND symbol = $2
             ${getGreylistCondition('collection_name', 3, 4)}
-        GROUP BY "time_block" ORDER BY "time" ASC
+        GROUP BY "time_block" ORDER BY "time_block" ASC
         `;
     }
 
