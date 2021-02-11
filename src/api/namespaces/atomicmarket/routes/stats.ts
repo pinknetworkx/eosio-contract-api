@@ -147,7 +147,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 GROUP BY market_contract, taker_marketplace
             )
         ) t1
-        GROUP BY market_contract, marketplace
+        GROUP BY market_contract, marketplace_name
         `;
     }
 
