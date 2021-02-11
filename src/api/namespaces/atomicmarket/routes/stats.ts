@@ -128,18 +128,18 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
     function buildMarketStatsQuery(after?: number, before?: number): string {
         return `
         SELECT 
-            market_contract, marketplace, SUM(sellers) sellers, SUM(buyers) buyers, 
+            market_contract, marketplace_name, SUM(sellers) sellers, SUM(buyers) buyers, 
             SUM(maker_volume) maker_volume, SUM(taker_volume) taker_volume 
         FROM (
             (
-                SELECT market_contract, maker_marketplace marketplace, COUNT(DISTINCT seller) sellers, 0 buyers, SUM(price) maker_volume, 0 taker_volume
+                SELECT market_contract, maker_marketplace marketplace_name, COUNT(DISTINCT seller) sellers, 0 buyers, SUM(price) maker_volume, 0 taker_volume
                 FROM atomicmarket_stats_markets
                 WHERE market_contract = $1 AND symbol = $2 
                     ${buildRangeCondition('"time"', after, before)}
                     ${getGreylistCondition('collection_name', 3, 4)}
                 GROUP BY market_contract, maker_marketplace
             ) UNION ALL (
-                SELECT market_contract, taker_marketplace marketplace, 0 sellers, COUNT(DISTINCT buyer) buyers, 0 maker_volume, SUM(price) taker_volume
+                SELECT market_contract, taker_marketplace marketplace_name, 0 sellers, COUNT(DISTINCT buyer) buyers, 0 maker_volume, SUM(price) taker_volume
                 FROM atomicmarket_stats_markets
                 WHERE market_contract = $1 AND symbol = $2 
                     ${buildRangeCondition('"time"', after, before)}
