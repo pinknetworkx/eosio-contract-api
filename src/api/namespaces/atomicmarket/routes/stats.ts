@@ -478,7 +478,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             res.json({
                 success: true,
-                data: {symbol, results: query.rows.map(row => ({sales: row.sales, volume: row.volume, time: String(row.block_time * 3600 * 24 * 1000)}))},
+                data: {symbol, results: query.rows.map(row => ({sales: row.sales, volume: row.volume, time: String(row.time_block * 3600 * 24 * 1000)}))},
                 query_time: Date.now()
             });
         } catch (e) {
