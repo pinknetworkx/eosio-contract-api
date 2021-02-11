@@ -34,6 +34,7 @@ export default class Filler {
         this.reader = new StateReceiver(config, connection, this.handlers);
 
         this.standardMaterializedViews = [];
+        this.priorityMaterializedViews = [];
         this.running = false;
 
         logger.info(this.handlers.length + ' contract handlers registered');
