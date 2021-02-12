@@ -2,7 +2,6 @@ import * as express from 'express';
 
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
-import { formatCollection } from '../format';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { greylistFilterParameters, hideOffersParameters } from '../openapi';
@@ -118,22 +117,10 @@ export function burnEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, r
             const collectionQuery = await server.query(collectionQueryString, queryValues);
             const templateQuery = await server.query(templateQueryString, queryValues);
 
-            const collections = await server.query(
-                'SELECT * FROM atomicassets_collections_master WHERE contract = $1 AND collection_name = ANY ($2)',
-                [core.args.atomicassets_account, collectionQuery.rows.map(row => row.collection_name)]
-            );
-
-            const lookupCollections = collections.rows.reduce(
-                (prev, current) => Object.assign(prev, {[current.collection_name]: formatCollection(current)}), {}
-            );
-
             return res.json({
                 success: true,
                 data: {
-                    collections: collectionQuery.rows.map(row => ({
-                        collection: lookupCollections[row.collection_name],
-                        assets: row.assets
-                    })),
+                    collections: collectionQuery.rows,
                     templates: templateQuery.rows,
                     assets: collectionQuery.rows.reduce((prev, current) => prev + parseInt(current.assets, 10), 0)
                 }
@@ -216,7 +203,7 @@ export function burnEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, r
                                     items: {
                                         type: 'object',
                                         properties: {
-                                            collection: {'$ref': '#/components/schemas/Collection'},
+                                            collection_name: {type: 'string'},
                                             assets: {type: 'string'}
                                         }
                                     }
@@ -226,6 +213,7 @@ export function burnEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, r
                                     items: {
                                         type: 'object',
                                         properties: {
+                                            collection_name: {type: 'string'},
                                             template_id: {type: 'string'},
                                             assets: {type: 'string'}
                                         }
