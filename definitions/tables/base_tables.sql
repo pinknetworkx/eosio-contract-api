@@ -30,7 +30,7 @@ CREATE TABLE contract_traces (
     txid bytea NOT NULL,
     created_at_block bigint NOT NULL,
     created_at_time bigint NOT NULL,
-    CONSTRAINT atomicassets_logs_pkey PRIMARY KEY (global_sequence)
+    CONSTRAINT contract_traces_pkey PRIMARY KEY (global_sequence)
 );
 
 CREATE TABLE dbinfo (
