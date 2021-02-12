@@ -48,8 +48,10 @@ export class OfferApi {
                     template_id: {type: 'string', min: 1},
                     schema_name: {type: 'string', min: 1},
 
-                    asset_whitelist: {type: 'string', min: 1},
-                    asset_blacklist: {type: 'string', min: 1},
+                    recipient_asset_blacklist: {type: 'string', min: 1},
+                    recipient_asset_whitelist: {type: 'string', min: 1},
+                    sender_asset_blacklist: {type: 'string', min: 1},
+                    sender_asset_whitelist: {type: 'string', min: 1},
                     account_whitelist: {type: 'string', min: 1},
                     account_blacklist: {type: 'string', min: 1},
                     collection_blacklist: {type: 'string', min: 1},
