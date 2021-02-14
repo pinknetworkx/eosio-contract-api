@@ -19,6 +19,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 collection_name: {type: 'string', min: 1},
                 template_id: {type: 'string', min: 1},
                 schema_name: {type: 'string', min: 1},
+                asset_id: {type: 'string', min: 1},
                 symbol: {type: 'string', min: 1}
             });
 
@@ -43,6 +44,11 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
             if (args.template_id) {
                 queryString += 'AND price.template_id = ANY ($' + ++varCounter + ') ';
                 queryValues.push(args.template_id.split(','));
+            }
+
+            if (args.asset_id) {
+                queryString += 'AND price.asset_id = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.asset_id.split(','));
             }
 
             if (args.symbol) {

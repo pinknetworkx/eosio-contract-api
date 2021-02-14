@@ -76,30 +76,34 @@ export default class DelphiOracleHandler extends ContractHandler {
 
             logger.info('DelphiOracle tables successfully created');
 
-            const resp = await this.connection.chain.rpc.get_table_rows({
-                json: true, code: this.args.delphioracle_account, scope: this.args.delphioracle_account,
-                table: 'pairs', limit: 100
-            });
+            try {
+                const resp = await this.connection.chain.rpc.get_table_rows({
+                    json: true, code: this.args.delphioracle_account, scope: this.args.delphioracle_account,
+                    table: 'pairs', limit: 100
+                });
 
-            const createdPairs = [];
+                const createdPairs = [];
 
-            for (const row of resp.rows) {
-                const data = this.getDatabaseRow(row);
-                const keys = Object.keys(data);
+                for (const row of resp.rows) {
+                    const data = this.getDatabaseRow(row);
+                    const keys = Object.keys(data);
 
-                await client.query(
-                    'INSERT INTO delphioracle_pairs (' +
-                    keys.map((key) => client.escapeIdentifier(key)).join(',') +
-                    ') VALUES (' +
-                    keys.map((_, index) => '$' + (index + 1)).join(',') +
-                    ')',
-                    keys.map(key => data[key])
-                );
+                    await client.query(
+                        'INSERT INTO delphioracle_pairs (' +
+                        keys.map((key) => client.escapeIdentifier(key)).join(',') +
+                        ') VALUES (' +
+                        keys.map((_, index) => '$' + (index + 1)).join(',') +
+                        ')',
+                        keys.map(key => data[key])
+                    );
 
-                createdPairs.push(row.name);
+                    createdPairs.push(row.name);
+                }
+
+                logger.info('Successfully created ' + createdPairs.length + ' delphi pairs on first run', createdPairs);
+            } catch (e) {
+                logger.warn('Failed to fetch current delphioracle pairs');
             }
-
-            logger.info('Successfully created ' + createdPairs.length + ' delphi pairs on first run', createdPairs);
         }
     }
 
