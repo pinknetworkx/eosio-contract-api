@@ -28,4 +28,4 @@ CREATE OR REPLACE VIEW atomicassets_templates_master AS
     FROM
         atomicassets_templates "template"
         JOIN atomicassets_collections collection ON (collection.contract = "template".contract AND collection.collection_name = "template".collection_name)
-        JOIN atomicassets_schemas "schema" ON ("schema".contract = "template".contract AND "schema".schema_name = "template".schema_name)
+        JOIN atomicassets_schemas "schema" ON ("schema".contract = "template".contract AND "schema".collection_name = "template".collection_name AND "schema".schema_name = "template".schema_name)
