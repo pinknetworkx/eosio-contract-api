@@ -197,7 +197,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                 data: await getContractActionLogs(
                     server, core.args.atomicassets_account,
                     applyActionGreylistFilters(['lognewtempl', 'locktemplate'], args),
-                    {collection_name: req.params.collection_name, template_id: req.params.template_id},
+                    {collection_name: req.params.collection_name, template_id: parseInt(req.params.template_id, 10)},
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });
