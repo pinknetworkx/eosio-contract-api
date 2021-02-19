@@ -13,6 +13,7 @@ import { ShipBlock } from '../../../../types/ship';
 import { eosioTimestampToDate, splitEosioToken } from '../../../../utils/eosio';
 import { convertAttributeMapToObject } from '../utils';
 import ApiNotificationSender from '../../../notifier';
+import { arrayChunk } from '../../../../utils';
 
 export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcessor, notifier: ApiNotificationSender): () => any {
     const destructors: Array<() => any> = [];
@@ -63,11 +64,19 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
     destructors.push(processor.onPriorityComplete(AtomicAssetsUpdatePriority.ACTION_MINT_ASSET.valueOf(),
         async (db: ContractDBTransaction) => {
             if (tableInserts.assets.length > 0) {
-                await db.insert('atomicassets_assets', tableInserts.assets, ['contract', 'asset_id']);
+                const chunks = arrayChunk(tableInserts.assets, 30);
+
+                for (const chunk of chunks) {
+                    await db.insert('atomicassets_assets',chunk, ['contract', 'asset_id']);
+                }
             }
 
             if (tableInserts.mints.length > 0) {
-                await db.insert('atomicassets_mints', tableInserts.mints, ['contract', 'asset_id']);
+                const chunks = arrayChunk(tableInserts.mints, 30);
+
+                for (const chunk of chunks) {
+                    await db.insert('atomicassets_mints', chunk, ['contract', 'asset_id']);
+                }
             }
 
             tableInserts = {
