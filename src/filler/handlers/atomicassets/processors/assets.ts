@@ -64,15 +64,15 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
     destructors.push(processor.onPriorityComplete(AtomicAssetsUpdatePriority.ACTION_MINT_ASSET.valueOf(),
         async (db: ContractDBTransaction) => {
             if (tableInserts.assets.length > 0) {
-                const chunks = arrayChunk(tableInserts.assets, 30);
+                const chunks = arrayChunk(tableInserts.assets, 50);
 
                 for (const chunk of chunks) {
-                    await db.insert('atomicassets_assets',chunk, ['contract', 'asset_id']);
+                    await db.insert('atomicassets_assets', chunk, ['contract', 'asset_id']);
                 }
             }
 
             if (tableInserts.mints.length > 0) {
-                const chunks = arrayChunk(tableInserts.mints, 30);
+                const chunks = arrayChunk(tableInserts.mints, 50);
 
                 for (const chunk of chunks) {
                     await db.insert('atomicassets_mints', chunk, ['contract', 'asset_id']);

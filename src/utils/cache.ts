@@ -48,7 +48,16 @@ export function expressRedisCache(
             }
 
             redis.get(key, (_, reply) => {
-                if (reply === null) {
+                let expire = 0;
+                if (reply) {
+                    const split = reply.split('::');
+
+                    if (split[3]) {
+                        expire = parseInt(split[3], 10) || 0;
+                    }
+                }
+
+                if (expire < Date.now()) {
                     const sendFn = res.send.bind(res);
 
                     res.send = (data: Buffer | string): express.Response => {
@@ -61,7 +70,8 @@ export function expressRedisCache(
                             content = data.toString('base64');
                         }
 
-                        redis.set(key, res.getHeader('content-type') + '::' + res.statusCode + '::' + content, () => {
+                        expire = Date.now() + Math.round(cacheLife) * 1000;
+                        redis.set(key, res.getHeader('content-type') + '::' + res.statusCode + '::' + content + '::' + expire, () => {
                             redis.expire(key, Math.round(cacheLife));
 
                             logger.debug('Cache request ' + key + ' for ' + cacheLife + ' seconds', mergeRequestData(req));
@@ -72,8 +82,6 @@ export function expressRedisCache(
 
                     next();
                 } else {
-                    logger.debug('Request was cached - returning cached version for ' + key, mergeRequestData(req));
-
                     const split = reply.split('::');
 
                     if (split[0]) {
