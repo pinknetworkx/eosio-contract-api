@@ -12,7 +12,7 @@ export function arraysEqual(arr1: any[], arr2: any[]): boolean {
     return true;
 }
 
-export function arrayChunk(arr: any[], size: number) {
+export function arrayChunk(arr: any[], size: number): any[] {
     return Array.from({ length: Math.ceil(arr.length / size) }, (v, i) =>
         arr.slice(i * size, i * size + size)
     );
