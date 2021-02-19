@@ -127,7 +127,7 @@ export default class Filler {
 
             if (lastBlockNum === this.reader.currentBlock && lastBlockNum > 0) {
                 const staleTime = Date.now() - lastBlockTime;
-                const threshold = 120000;
+                const threshold = 180000;
 
                 if (staleTime > threshold) {
                     process.send({msg: 'failure'});
