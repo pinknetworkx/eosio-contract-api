@@ -6,7 +6,7 @@ import * as exitHook from 'async-exit-hook';
 import ConnectionManager from '../connections/manager';
 import { ShipBlock } from '../types/ship';
 import { eosioTimestampToDate } from '../utils/eosio';
-import { arraysEqual } from '../utils';
+import { arrayChunk, arraysEqual } from '../utils';
 import logger from '../utils/winston';
 import { EosioActionTrace, EosioTransaction } from '../types/eosio';
 
@@ -601,7 +601,13 @@ export class ContractDBTransaction {
 
     async commit(): Promise<void> {
         if (this.actionLogs.length > 0) {
-            await this.insert('contract_traces',  this.actionLogs, ['global_sequence']);
+            const chunks = arrayChunk(this.actionLogs, 100);
+
+            for (const chunk of chunks) {
+                await this.insert('contract_traces', chunk, ['global_sequence']);
+            }
+
+            this.actionLogs = [];
         }
 
         await this.acquireLock();

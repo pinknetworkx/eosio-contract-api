@@ -7,13 +7,15 @@ CREATE OR REPLACE VIEW atomicassets_offers_master AS
         ARRAY(
             SELECT offer_asset.asset_id
             FROM atomicassets_offers_assets offer_asset
-            WHERE offer_asset.offer_id = offer.offer_id AND offer_asset.contract::text = offer.contract::text AND offer_asset.owner::text = offer.sender::text
+            WHERE offer_asset.offer_id = offer.offer_id AND offer_asset.contract = offer.contract AND offer_asset.owner = offer.sender
+            ORDER BY "index" ASC
         ) sender_assets,
 
         ARRAY(
             SELECT offer_asset.asset_id
             FROM atomicassets_offers_assets offer_asset
-            WHERE offer_asset.offer_id = offer.offer_id AND offer_asset.contract::text = offer.contract::text AND offer_asset.owner::text = offer.recipient::text
+            WHERE offer_asset.offer_id = offer.offer_id AND offer_asset.contract = offer.contract AND offer_asset.owner = offer.recipient
+            ORDER BY "index" ASC
         ) recipient_assets,
 
         EXISTS(SELECT * FROM contract_codes WHERE account = offer.sender) is_sender_contract,

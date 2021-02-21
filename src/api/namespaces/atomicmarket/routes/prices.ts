@@ -80,6 +80,79 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
         }
     });
 
+    router.all(['/v1/prices/sales/days'], server.web.caching(), async (req, res) => {
+        try {
+            const args = filterQueryArgs(req, {
+                collection_name: {type: 'string', min: 1},
+                template_id: {type: 'string', min: 1},
+                schema_name: {type: 'string', min: 1},
+                asset_id: {type: 'string', min: 1},
+                symbol: {type: 'string', min: 1}
+            });
+
+            let queryString = `
+            SELECT 
+                (PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY price.price))::bigint median, 
+                AVG(price.price)::bigint average,
+                COUNT(*) sales, token.token_symbol, token.token_precision, token.token_contract,
+                (price.time / (3600 * 24 * 1000)) daytime
+            FROM atomicmarket_stats_prices price, atomicassets_asset_mints mint, atomicmarket_tokens token 
+            WHERE price.assets_contract = mint.contract AND price.asset_id = mint.asset_id AND
+                price.market_contract = token.market_contract AND price.symbol = token.token_symbol AND 
+                price.market_contract = $1
+            `;
+
+            const queryValues = [core.args.atomicmarket_account];
+            let varCounter = queryValues.length;
+
+            if (args.collection_name) {
+                queryString += 'AND price.collection_name = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.collection_name.split(','));
+            }
+
+            if (args.schema_name) {
+                queryString += 'AND price.schema_name = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.schema_name.split(','));
+            }
+
+            if (args.template_id) {
+                queryString += 'AND price.template_id = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.template_id.split(','));
+            }
+
+            if (args.asset_id) {
+                queryString += 'AND price.asset_id = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.asset_id.split(','));
+            }
+
+            if (args.symbol) {
+                queryString += 'AND price.symbol = ANY ($' + ++varCounter + ') ';
+                queryValues.push(args.symbol.split(','));
+            }
+
+            queryString += 'GROUP BY token.market_contract, token.token_symbol, daytime ';
+            queryString += 'ORDER BY daytime ASC ';
+
+            const prices = await server.query(queryString, queryValues);
+
+            res.json({
+                success: true,
+                data: prices.rows.map(row => ({
+                    median: row.median,
+                    average: row.average,
+                    sales: row.sales,
+                    token_symbol: row.token_symbol,
+                    token_precision: row.token_precision,
+                    token_contract: row.token_contract,
+                    time: row.daytime * 3600 * 24 * 1000 + 3600 * 12 * 1000,
+                })).reverse(),
+                query_time: Date.now()
+            });
+        } catch (e) {
+            res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
+    });
+
     router.all('/v1/prices/templates', server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {

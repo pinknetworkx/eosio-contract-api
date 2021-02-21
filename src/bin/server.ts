@@ -30,6 +30,6 @@ const connection = new ConnectionManager(connectionConfig);
 
         await server.listen();
     } catch (e) {
-        logger.error(e);
+        logger.error('Failed to start server', e);
     }
 })();

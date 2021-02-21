@@ -22,6 +22,7 @@ CREATE OR REPLACE VIEW atomicmarket_buyoffers_master AS
             SELECT asset.asset_id
             FROM atomicmarket_buyoffers_assets asset
             WHERE buyoffer.buyoffer_id = asset.buyoffer_id AND asset.market_contract = buyoffer.market_contract
+            ORDER BY "index" ASC
         ) assets,
 
         buyoffer.maker_marketplace,

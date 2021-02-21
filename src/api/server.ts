@@ -221,20 +221,5 @@ export class SocketServer {
         this.io = socketio(this.server.httpServer, {
             origins: '*:*'
         });
-
-        this.init().then();
-    }
-
-    async init(): Promise<void> {
-        const pattern = ['eosio-contract-api', this.server.connection.chain.name, 'socket-connections', '*'].join(':');
-        const keys = await this.server.connection.redis.ioRedis.keys(pattern);
-
-        const pipeline = this.server.connection.redis.ioRedis.pipeline();
-
-        for (const key of keys) {
-            pipeline.del(key);
-        }
-
-        await pipeline.exec();
     }
 }

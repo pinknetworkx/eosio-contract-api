@@ -3,8 +3,8 @@ CREATE OR REPLACE VIEW atomicmarket_template_prices_master AS
         t2.market_contract, t2.assets_contract::text, t2.collection_name, t2.template_id, t2.symbol,
         PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY t2.price) median,
         AVG(t2.price)::bigint average,
-        PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY t2.price) FILTER (WHERE t2.number <= 5 OR t2."time" / 1000 >= extract(epoch from now()) - 3600 * 24 * 7) suggested_median,
-        (AVG(t2.price) FILTER (WHERE t2.number <= 5 OR t2."time" / 1000 >= extract(epoch from now()) - 3600 * 24 * 7))::bigint suggested_average,
+        PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY t2.price) FILTER (WHERE t2.number <= 5 OR t2."time" / 1000 >= extract(epoch from now()) - 3600 * 24 * 3) suggested_median,
+        (AVG(t2.price) FILTER (WHERE t2.number <= 5 OR t2."time" / 1000 >= extract(epoch from now()) - 3600 * 24 * 3))::bigint suggested_average,
         MIN(t2.price) "min", MAX(t2.price) "max", COUNT(*) sales
     FROM (
         SELECT

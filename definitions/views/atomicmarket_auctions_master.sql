@@ -22,6 +22,7 @@ CREATE OR REPLACE VIEW atomicmarket_auctions_master AS
             SELECT asset.asset_id
             FROM atomicmarket_auctions_assets asset
             WHERE auction.auction_id = asset.auction_id AND asset.market_contract = auction.market_contract
+            ORDER BY "index" ASC
         ) assets,
 
         ARRAY(
