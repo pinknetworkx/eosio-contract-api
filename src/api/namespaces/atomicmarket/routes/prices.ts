@@ -297,6 +297,36 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                     })
                 }
             },
+            '/v1/prices/sales/days': {
+                get: {
+                    tags: ['pricing'],
+                    summary: 'Gets price history for a template or schema',
+                    parameters: [
+                        ...baseAssetFilterParameters,
+                        {
+                            name: 'symbol',
+                            in: 'query',
+                            description: 'Token symbol',
+                            required: false,
+                            schema: {type: 'string'}
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([500, 200], {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                average: {type: 'string'},
+                                median: {type: 'string'},
+                                token_symbol: {type: 'string'},
+                                token_precision: {type: 'integer'},
+                                token_contract: {type: 'string'},
+                                time: {type: 'string'}
+                            }
+                        }
+                    })
+                }
+            },
             '/v1/prices/templates': {
                 get: {
                     tags: ['pricing'],

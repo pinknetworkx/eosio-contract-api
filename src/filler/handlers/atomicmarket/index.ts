@@ -202,8 +202,21 @@ export default class AtomicMarketHandler extends ContractHandler {
             };
         }
 
+        const priorityViews = [
+            'atomicmarket_auction_stats', 'atomicmarket_auction_mints',
+            'atomicmarket_sale_stats', 'atomicmarket_sale_mints'
+        ];
+
         for (const view of materializedViews) {
+            if (priorityViews.indexOf(view) >= 0) {
+                continue;
+            }
+
             this.filler.registerMaterializedViewRefresh(view, 60000);
+        }
+
+        for (const view of priorityViews) {
+            this.filler.registerMaterializedViewRefresh(view, 15000, true);
         }
     }
 

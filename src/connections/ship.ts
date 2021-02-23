@@ -153,6 +153,9 @@ export default class StateHistoryBlockReader {
                         } catch (error) {
                             logger.error('Failed to deserialize traces at block #' + response.this_block.block_num, error);
 
+                            this.blocksQueue.clear();
+                            this.blocksQueue.pause();
+
                             throw error;
                         }
 
@@ -160,6 +163,9 @@ export default class StateHistoryBlockReader {
                             deserializedDeltas = await deltas;
                         } catch (error) {
                             logger.error('Failed to deserialize deltas at block #' + response.this_block.block_num, error);
+
+                            this.blocksQueue.clear();
+                            this.blocksQueue.pause();
 
                             throw error;
                         }
@@ -180,13 +186,12 @@ export default class StateHistoryBlockReader {
                                 deltas: deserializedDeltas
                             });
                         } catch (error) {
-                            // abort reader if error is thrown
+                            logger.error('Ship blocks queue stopped duo to an error at #' + response.this_block.block_num, error);
+
                             this.blocksQueue.clear();
                             this.blocksQueue.pause();
 
-                            logger.error('Ship blocks queue stopped duo to an error at #' + response.this_block.block_num, error);
-
-                            return;
+                            throw error;
                         }
 
                         this.unconfirmed += 1;

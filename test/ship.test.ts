@@ -7,8 +7,7 @@ import StateHistoryBlockReader from '../src/connections/ship';
 describe('Ship Test', () => {
     const ship = new StateHistoryBlockReader('ws://127.0.0.1:8080', {
         min_block_confirmation: 1,
-        ds_threads: 1,
-        ds_experimental: false
+        ds_threads: 1
     });
 
     it('connect and receive first block', async () => {
@@ -21,7 +20,7 @@ describe('Ship Test', () => {
             });
 
             ship.startProcessing({
-                start_block_num: 78636526,
+                start_block_num: 97708771,
                 max_messages_in_flight: 1,
                 fetch_block: true,
                 fetch_traces: true,
