@@ -138,12 +138,12 @@ There are two suggested ways to run the project: Docker if you want to container
 
 Prerequisites:
 - Postgres
-  - create a database and user which is allowed to read and write on that db
+  - Create a database and user which is allowed to read and write on that db
     
 - EOSIO node 
   - State History Plugin enabled with options `trace-history = true`, `chain-state-history = true`
-  - fully synced for the block range you want to process
-  - open socket and http api
+  - Fully synced for the block range you want to process
+  - Open socket and http api
 
 - Copy and modify example configs with the correct connection params
 
