@@ -6,7 +6,7 @@ import { formatSecondsLeft } from '../utils/time';
 import { getHandlers } from './handlers';
 import { ContractHandler } from './handlers/interfaces';
 
-function estimateSeconds(blocks: number, speed: number): number {
+function estimateSeconds(blocks: number, speed: number, depth: number = 0): number {
     if (blocks <= 2) {
         return 1;
     }
@@ -15,9 +15,13 @@ function estimateSeconds(blocks: number, speed: number): number {
         return -1;
     }
 
+    if (depth > 20) {
+        return 0;
+    }
+
     const seconds = Math.floor(blocks / speed);
 
-    return seconds + estimateSeconds(seconds * 2, speed);
+    return seconds + estimateSeconds(seconds * 2, speed, depth + 1);
 }
 
 export default class Filler {

@@ -72,7 +72,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         SELECT collection.*, t1.volume, 0 listings, t1.sales
         FROM
             atomicassets_collections_master collection
-            JOIN (
+            LEFT JOIN (
                 SELECT assets_contract contract, collection_name, SUM(price) volume, COUNT(*) sales FROM atomicmarket_stats_markets
                 WHERE symbol = $2 ${buildRangeCondition('"time"', after, before)}
                 GROUP BY assets_contract, collection_name
@@ -107,21 +107,19 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
     function buildSchemaStatsQuery(after?: number, before?: number): string {
         return `
-        SELECT "schema_name", 
-            SUM(final_price) FILTER (WHERE 1 = 1 ${getSaleSubCondition(SaleApiState.SOLD, 't1', after, before)}) volume, 
-            COUNT(*) FILTER (WHERE 1 = 1 ${getSaleSubCondition(SaleApiState.LISTED, 't1', after, before)}) listings
-        FROM (
-            SELECT sale.assets_contract, sale.sale_id, sale.state, sale.final_price, asset.schema_name
-            FROM
-                atomicmarket_sales sale, atomicassets_assets asset, atomicassets_offers_assets offer_asset
-            WHERE
-                sale.assets_contract = offer_asset.contract AND sale.offer_id = offer_asset.offer_id AND
-                offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND
-                sale.market_contract = $1 AND sale.settlement_symbol = $2 AND sale.collection_name = $3 AND 
-                sale."state" IN (${SaleState.LISTED.valueOf()}, ${SaleState.SOLD.valueOf()})
-            GROUP BY sale.assets_contract, sale.sale_id, sale.state, sale.final_price, asset.schema_name
-        ) t1
-        GROUP BY "schema_name"
+        SELECT 
+            asset.contract, asset.collection_name, asset.schema_name, 
+            SUM(final_price) FILTER (WHERE 1 = 1 ${getSaleSubCondition(SaleApiState.SOLD, 'sale', after, before)}) volume, 
+            COUNT(*) FILTER (WHERE 1 = 1 ${getSaleSubCondition(SaleApiState.SOLD, 'sale', after, before)}) sales, 
+            COUNT(*) FILTER (WHERE 1 = 1 ${getSaleSubCondition(SaleApiState.LISTED, 'sale', after, before)}) listings
+        FROM
+            atomicmarket_sales sale, atomicassets_assets asset, atomicassets_offers_assets offer_asset
+        WHERE
+            sale.assets_contract = offer_asset.contract AND sale.offer_id = offer_asset.offer_id AND
+            offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND
+            sale.market_contract = $1 AND sale.settlement_symbol = $2 AND sale.collection_name = $3 AND 
+            sale."state" IN (${SaleState.LISTED.valueOf()}, ${SaleState.SOLD.valueOf()})
+        GROUP BY asset.contract, asset.collection_name, asset.schema_name
         `;
     }
 
@@ -201,7 +199,9 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
-            let queryString = 'SELECT * FROM (' + buildCollectionStatsQuery(args.after, args.before) + ') x WHERE (volume IS NOT NULL OR listings IS NOT NULL) ';
+            let queryString = 'SELECT * FROM (' + buildCollectionStatsQuery(args.after, args.before) + ') x ' +
+                'WHERE (volume IS NOT NULL OR listings IS NOT NULL) ';
+
             const queryValues = [core.args.atomicassets_account, args.symbol];
             let varCounter = queryValues.length;
 

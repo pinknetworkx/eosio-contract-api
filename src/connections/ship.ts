@@ -214,7 +214,7 @@ export default class StateHistoryBlockReader {
         } catch (e) {
             logger.error(e);
 
-            process.exit(1);
+            this.ws.close();
         }
     }
 
@@ -223,6 +223,7 @@ export default class StateHistoryBlockReader {
 
         if (this.ws) {
             await this.ws.terminate();
+            this.ws = null;
         }
 
         this.abi = null;

@@ -134,10 +134,8 @@ This project consists of two separated processes which need to be started and st
 
 The filler needs to be started before the API when running it for the first time:
 
-There are two suggested ways to run the project: Docker if you want to containerize the application or PM2 if you want to run it on system level
-
 Prerequisites:
-- Postgres
+- PostgreSQL
   - Create a database and user which is allowed to read and write on that db
     
 - EOSIO node 
@@ -146,6 +144,8 @@ Prerequisites:
   - Open socket and http api
 
 - Copy and modify example configs with the correct connection params
+
+There are two suggested ways to run the project: Docker if you want to containerize the application or PM2 if you want to run it on system level
 
 ### Docker
 

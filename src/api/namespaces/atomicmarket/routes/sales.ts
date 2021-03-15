@@ -16,7 +16,7 @@ import {
 import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
-import { buildGreylistFilter } from '../../atomicassets/utils';
+import { buildAssetFilter, buildGreylistFilter } from '../../atomicassets/utils';
 import {
     applyActionGreylistFilters,
     createSocketApiNamespace,
@@ -25,6 +25,8 @@ import {
 } from '../../../utils';
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
+import { OfferState } from '../../../../filler/handlers/atomicassets';
+import { SaleState } from '../../../../filler/handlers/atomicmarket';
 
 export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/sales', '/v1/sales/_count'], server.web.caching(), async (req, res) => {
@@ -87,6 +89,101 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 template_mint: 'mint.min_template_mint',
                 schema_mint: 'mint.min_schema_mint',
                 collection_mint: 'mint.min_collection_mint'
+            };
+
+            // @ts-ignore
+            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' NULLS LAST, listing.sale_id ASC ';
+            queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
+            queryValues.push(args.limit);
+            queryValues.push((args.page - 1) * args.limit);
+
+            const saleQuery = await server.query(queryString, queryValues);
+
+            const saleLookup: {[key: string]: any} = {};
+            const query = await server.query(
+                'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY ($2)',
+                [core.args.atomicmarket_account, saleQuery.rows.map(row => row.sale_id)]
+            );
+
+            query.rows.reduce((prev, current) => {
+                prev[String(current.sale_id)] = current;
+
+                return prev;
+            }, saleLookup);
+
+            const sales = await fillSales(
+                server, core.args.atomicassets_account, saleQuery.rows.map((row) => formatSale(saleLookup[String(row.sale_id)]))
+            );
+
+            res.json({success: true, data: sales, query_time: Date.now()});
+        } catch (e) {
+            res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
+    });
+
+    router.all(['/v1/sales/templates'], server.web.caching(), async (req, res) => {
+        try {
+            const args = filterQueryArgs(req, {
+                symbol: {type: 'string', min: 1},
+                min_price: {type: 'float', min: 0},
+                max_price: {type: 'float', min: 0},
+
+                page: {type: 'int', min: 1, default: 1},
+                limit: {type: 'int', min: 1, max: 100, default: 100},
+                sort: {
+                    type: 'string',
+                    values: ['template_id', 'price'],
+                    default: 'created'
+                },
+                order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
+            });
+
+            if (!args.symbol) {
+                return res.json({success: false, message: 'symbol parameter is required'});
+            }
+
+            let queryString = `
+            SELECT * FROM (
+                SELECT DISTINCT ON(asset.contract, asset.template_id) 
+                    sale.market_contract, sale.sale_id, asset.contract assets_contract, asset.template_id, price.price
+                FROM 
+                    atomicmarket_sales sale, atomicassets_offers offer, atomicassets_offers_assets offer_asset, 
+                    atomicassets_assets asset, atomicmarket_sale_prices price
+                WHERE sale.assets_contract = offer.contract AND sale.offer_id = offer.offer_id AND
+                    offer.contract = offer_asset.contract AND offer.offer_id = offer_asset.offer_id AND
+                    offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND
+                    sale.market_contract = price.market_contract AND sale.sale_id = price.sale_id AND 
+                    asset.template_id IS NOT NULL AND offer.state = ${OfferState.PENDING.valueOf()} AND sale.state = ${SaleState.LISTED.valueOf()} AND 
+                    sale.market_contract = $1 AND sale.settlement_symbol = $2
+                `;
+            const queryValues = [core.args.atomicmarket_account, args.symbol];
+            let varCounter = queryValues.length;
+
+            const blacklistFilter = buildGreylistFilter(req, varCounter, 'asset.collection_name');
+            queryValues.push(...blacklistFilter.values);
+            varCounter += blacklistFilter.values.length;
+            queryString += blacklistFilter.str;
+
+            const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"'});
+            queryValues.push(...filter.values);
+            varCounter += filter.values.length;
+            queryString += filter.str;
+
+            if (args.min_price) {
+                queryString += 'AND price.price >= $' + ++varCounter + ' * POW(10, price.settlement_precision) ';
+                queryValues.push(args.min_price);
+            }
+
+            if (args.max_price) {
+                queryString += 'AND price.price <= $' + ++varCounter + ' * POW(10, price.settlement_precision) ';
+                queryValues.push(args.min_price);
+            }
+
+            queryString += 'ORDER BY asset.contract, asset.template_id, price.price ASC) t1 ';
+
+            const sortColumnMapping = {
+                price: 't1.price',
+                template_id: 't1.template_id',
             };
 
             // @ts-ignore
@@ -205,6 +302,54 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                     'created', 'updated', 'sale_id', 'price',
                                     'template_mint', 'schema_mint', 'collection_mint'
                                 ],
+                                default: 'created'
+                            }
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'array',
+                        items: {'$ref': '#/components/schemas/Sale'}
+                    })
+                }
+            },
+            '/v1/sales/templates': {
+                get: {
+                    tags: ['sales'],
+                    summary: 'Get the cheapest sale grouped by templates. ',
+                    description: atomicDataFilter,
+                    parameters: [
+                        {
+                            name: 'symbol',
+                            in: 'query',
+                            description: 'Token symbol',
+                            required: true,
+                            schema: {type: 'number'}
+                        },
+                        ...assetFilterParameters,
+                        {
+                            name: 'min_price',
+                            in: 'query',
+                            description: 'Min price',
+                            required: false,
+                            schema: {type: 'number'}
+                        },
+                        {
+                            name: 'max_price',
+                            in: 'query',
+                            description: 'Max price',
+                            required: false,
+                            schema: {type: 'number'}
+                        },
+                        ...primaryBoundaryParameters,
+                        ...paginationParameters,
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                                enum: ['template_id', 'price'],
                                 default: 'created'
                             }
                         }

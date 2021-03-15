@@ -39,11 +39,11 @@ export function formatBuyoffer(row: any): any {
 
     if (row.buyoffer_state === BuyofferState.PENDING.valueOf() && !data.assets.find((asset: any) => asset.owner !== row.seller)) {
         data.state = BuyofferApiState.PENDING.valueOf();
-    } else if (row.buyoffer_state === BuyofferState.DECLINED.valueOf() && row.end_time > Date.now() / 1000) {
+    } else if (row.buyoffer_state === BuyofferState.DECLINED.valueOf()) {
         data.state = BuyofferApiState.DECLINED.valueOf();
     } else if (row.buyoffer_state === BuyofferState.CANCELED.valueOf()) {
         data.state = BuyofferApiState.CANCELED.valueOf();
-    } else if (row.buyoffer_state === BuyofferState.ACCEPTED.valueOf() && row.end_time <= Date.now() / 1000 && row.buyer !== null) {
+    } else if (row.buyoffer_state === BuyofferState.ACCEPTED.valueOf()) {
         data.state = BuyofferApiState.ACCEPTED.valueOf();
     } else {
         data.state = BuyofferApiState.INVALID.valueOf();
