@@ -133,7 +133,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 sort: {
                     type: 'string',
                     values: ['template_id', 'price'],
-                    default: 'created'
+                    default: 'template_id'
                 },
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
             });
@@ -153,13 +153,17 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                     offer.contract = offer_asset.contract AND offer.offer_id = offer_asset.offer_id AND
                     offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND
                     sale.market_contract = price.market_contract AND sale.sale_id = price.sale_id AND 
-                    asset.template_id IS NOT NULL AND offer.state = ${OfferState.PENDING.valueOf()} AND sale.state = ${SaleState.LISTED.valueOf()} AND 
+                    asset.template_id IS NOT NULL AND NOT EXISTS (
+                        SELECT * FROM atomicassets_offers_assets inner_offer_asset 
+                        WHERE inner_offer_asset.contract = offer_asset.contract AND inner_offer_asset.offer_id = offer_asset.offer_id AND 
+                            inner_offer_asset.asset_id != offer_asset.asset_id
+                    ) offer.state = ${OfferState.PENDING.valueOf()} AND sale.state = ${SaleState.LISTED.valueOf()} AND 
                     sale.market_contract = $1 AND sale.settlement_symbol = $2
                 `;
             const queryValues = [core.args.atomicmarket_account, args.symbol];
             let varCounter = queryValues.length;
 
-            const blacklistFilter = buildGreylistFilter(req, varCounter, 'asset.collection_name');
+            const blacklistFilter = buildGreylistFilter(req, varCounter, 'sale.collection_name');
             queryValues.push(...blacklistFilter.values);
             varCounter += blacklistFilter.values.length;
             queryString += blacklistFilter.str;
@@ -187,7 +191,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             };
 
             // @ts-ignore
-            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' NULLS LAST, listing.sale_id ASC ';
+            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' NULLS LAST, t1.template_id ASC ';
             queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
@@ -323,9 +327,8 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             in: 'query',
                             description: 'Token symbol',
                             required: true,
-                            schema: {type: 'number'}
+                            schema: {type: 'string'}
                         },
-                        ...assetFilterParameters,
                         {
                             name: 'min_price',
                             in: 'query',
@@ -340,6 +343,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             required: false,
                             schema: {type: 'number'}
                         },
+                        ...assetFilterParameters,
                         ...primaryBoundaryParameters,
                         ...paginationParameters,
                         {

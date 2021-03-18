@@ -53,3 +53,17 @@ export function binToHex(data: any): string {
 
     return hex;
 }
+
+export function parseJsonObject(data: string): any {
+    try {
+        const result = JSON.parse(data);
+
+        if (typeof result === 'object' && !Array.isArray(result)) {
+            return result;
+        }
+
+        return {};
+    } catch {
+        return {};
+    }
+}

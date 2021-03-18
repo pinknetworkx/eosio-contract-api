@@ -106,12 +106,6 @@ export class AtomicMarketNamespace extends ApiNamespace {
             tags: [],
             paths: {},
             components: {
-                securitySchemes: {
-                    adminAuth: {
-                        type: 'http',
-                        scheme: 'bearer'
-                    }
-                },
                 schemas: atomicmarketComponents
             }
         };

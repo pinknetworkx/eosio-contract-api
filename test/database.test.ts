@@ -10,7 +10,7 @@ describe('database tests', () => {
     const contract = new ContractDB('test', connection);
 
     it('Contract DB Transaction Insert', async () => {
-        const transaction = await contract.startTransaction(1, 0);
+        const transaction = await contract.startTransaction(1);
 
         await transaction.insert('contract_abis', {
             account: 'pinknetworkx',
@@ -23,7 +23,7 @@ describe('database tests', () => {
     });
 
     it('Contract DB Transaction Replace', async () => {
-        const transaction = await contract.startTransaction(2, 0);
+        const transaction = await contract.startTransaction(2);
 
         await transaction.replace('contract_abis', {
             account: 'pink.gg',
@@ -43,7 +43,7 @@ describe('database tests', () => {
     });
 
     it('Contract DB Transaction Update', async () => {
-        const transaction = await contract.startTransaction(3, 0);
+        const transaction = await contract.startTransaction(3);
 
         await transaction.update('contract_abis', {
             account: 'pink.gg',
@@ -59,7 +59,7 @@ describe('database tests', () => {
     });
 
     it('Contract DB Transaction Delete', async () => {
-        const transaction = await contract.startTransaction(4, 0);
+        const transaction = await contract.startTransaction(4);
 
         await transaction.delete('contract_abis', {
             str: 'account = $1',
@@ -70,7 +70,7 @@ describe('database tests', () => {
     });
 
     it('Contract DB Rollback', async () => {
-        const transaction = await contract.startTransaction(4, 0);
+        const transaction = await contract.startTransaction(4);
 
         await transaction.rollbackReversibleBlocks(1);
 
