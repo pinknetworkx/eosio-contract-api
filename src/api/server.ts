@@ -1,5 +1,5 @@
 import * as express from 'express';
-import * as socketio from 'socket.io';
+import {Server} from 'socket.io';
 import * as http from 'http';
 import * as path from 'path';
 
@@ -215,11 +215,13 @@ export class WebServer {
 }
 
 export class SocketServer {
-    readonly io: socketio.Server;
+    readonly io: Server;
 
     constructor(readonly server: HTTPServer) {
-        this.io = socketio(this.server.httpServer, {
-            origins: '*:*'
+        this.io = new Server(this.server.httpServer, {
+            cors: {origin: '*'},
+            allowEIO3: true,
+            transports: ['websocket'],
         });
     }
 }
