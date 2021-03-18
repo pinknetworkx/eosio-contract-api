@@ -221,7 +221,7 @@ export class SocketServer {
         this.io = new Server(this.server.httpServer, {
             cors: {origin: '*'},
             allowEIO3: true,
-            transports: ['websocket'],
+            transports: ['websocket']
         });
     }
 }
