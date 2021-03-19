@@ -153,11 +153,8 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                     offer.contract = offer_asset.contract AND offer.offer_id = offer_asset.offer_id AND
                     offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND
                     sale.market_contract = price.market_contract AND sale.sale_id = price.sale_id AND 
-                    asset.template_id IS NOT NULL AND NOT EXISTS (
-                        SELECT * FROM atomicassets_offers_assets inner_offer_asset 
-                        WHERE inner_offer_asset.contract = offer_asset.contract AND inner_offer_asset.offer_id = offer_asset.offer_id AND 
-                            inner_offer_asset.asset_id != offer_asset.asset_id
-                    ) AND offer.state = ${OfferState.PENDING.valueOf()} AND sale.state = ${SaleState.LISTED.valueOf()} AND 
+                    asset.template_id IS NOT NULL AND offer_asset.index = 1 AND
+                    offer.state = ${OfferState.PENDING.valueOf()} AND sale.state = ${SaleState.LISTED.valueOf()} AND 
                     sale.market_contract = $1 AND sale.settlement_symbol = $2
                 `;
             const queryValues = [core.args.atomicmarket_account, args.symbol];
