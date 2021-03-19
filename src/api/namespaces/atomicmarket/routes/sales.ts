@@ -125,6 +125,9 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         try {
             const args = filterQueryArgs(req, {
                 symbol: {type: 'string', min: 1},
+                collection_name: {type: 'string', min: 1},
+                collection_whitelist: {type: 'string', min: 1},
+
                 min_price: {type: 'float', min: 0},
                 max_price: {type: 'float', min: 0},
 
@@ -135,11 +138,15 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                     values: ['template_id', 'price'],
                     default: 'template_id'
                 },
-                order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
+                order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
             });
 
             if (!args.symbol) {
                 return res.json({success: false, message: 'symbol parameter is required'});
+            }
+
+            if (!args.collection_name && !args.collection_whitelist) {
+                return res.json({success: false, message: 'You need to specify a collection name'});
             }
 
             let queryString = `
@@ -178,6 +185,11 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             if (args.max_price) {
                 queryString += 'AND price.price <= $' + ++varCounter + ' * POW(10, price.settlement_precision) ';
                 queryValues.push(args.min_price);
+            }
+
+            if (args.collection_name) {
+                queryString += 'AND sale.collection_name = ANY($' + ++varCounter + ') ';
+                queryValues.push(args.collection_name.split(','));
             }
 
             queryString += 'ORDER BY asset.contract, asset.template_id, price.price ASC) t1 ';
