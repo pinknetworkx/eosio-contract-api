@@ -27,7 +27,7 @@ Notes
 * Redis: Can be used for multiple chains without further action
 * PostgreSQL: Each chain needs it own postgres database (can use the same postgres instance), but multiple readers of the same
 chain can use the same database if they are non conflicting
-* Nodeos: nodeos should habe a full state history for the range you are trying to index
+* Nodeos: nodeos should have a full state history for the range you are trying to index
 
 ```javascript
 {
