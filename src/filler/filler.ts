@@ -134,11 +134,11 @@ export default class Filler {
                 const threshold = 300000;
 
                 if (staleTime > threshold) {
-                    process.send({msg: 'failure'});
+                    /*process.send({msg: 'failure'});
 
                     await new Promise(resolve => setTimeout(resolve, logInterval / 2 * 1000));
 
-                    process.exit(1);
+                    process.exit(1);*/
                 }
 
                 logger.warn('Reader ' + this.config.name + ' - No blocks processed - Stopping in ' + Math.round((threshold - staleTime) / 1000) + ' seconds');
