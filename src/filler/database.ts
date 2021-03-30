@@ -504,6 +504,8 @@ export class ContractDBTransaction {
                 const values = row.values;
                 const condition: Condition | null = row.condition;
 
+                logger.info('Reverse Query', row);
+
                 if (condition) {
                     condition.values = condition.values.map((value) => deserializeValue(value));
                 }
