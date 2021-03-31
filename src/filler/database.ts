@@ -284,20 +284,14 @@ export class ContractDBTransaction {
 
             const query = await this.clientQuery(queryStr, queryValues);
 
-            if (this.currentBlock && reversible) {
-                const condition: Condition = {
-                    str: '',
-                    values: []
-                };
+            if (primaryKey.length > 0 && this.currentBlock && reversible) {
+                const rollbacks = [];
 
-                condition.str = query.rows.map((row) => {
-                    const primaryCondition = buildPrimaryCondition(row, primaryKey, condition.values.length);
-                    condition.values = condition.values.concat(primaryCondition.values);
+                for (const row of query.rows) {
+                    rollbacks.push(this.buildRollbackQuery('delete', table, null, buildPrimaryCondition(row, primaryKey)));
+                }
 
-                    return '(' + primaryCondition.str + ')';
-                }).join(' OR ');
-
-                await this.addRollbackQuery('delete', table, null, condition);
+                await this.saveRollbackQueries(rollbacks);
             }
 
             return query;
@@ -363,6 +357,8 @@ export class ContractDBTransaction {
             }
 
             if (selectQuery && selectQuery.rows.length > 0) {
+                const rollbacks = [];
+
                 for (const row of selectQuery.rows) {
                     const filteredValues = removeIdenticalValues(row, values, primaryKey);
 
@@ -370,8 +366,10 @@ export class ContractDBTransaction {
                         continue;
                     }
 
-                    await this.addRollbackQuery('update', table, filteredValues, buildPrimaryCondition(row, primaryKey));
+                    rollbacks.push(await this.buildRollbackQuery('update', table, filteredValues, buildPrimaryCondition(row, primaryKey)));
                 }
+
+                await this.saveRollbackQueries(rollbacks);
             }
 
             return query;
@@ -399,7 +397,9 @@ export class ContractDBTransaction {
             const query = await this.clientQuery(queryStr, condition.values);
 
             if (selectQuery && selectQuery.rows.length > 0) {
-                await this.addRollbackQuery('insert', table, selectQuery.rows);
+                const rollback = this.buildRollbackQuery('insert', table, selectQuery.rows);
+
+                await this.saveRollbackQueries([rollback]);
             }
 
             return query;
@@ -439,7 +439,9 @@ export class ContractDBTransaction {
                     const filteredValues = removeIdenticalValues(selectQuery.rows[0], updateValues, primaryKey);
 
                     if (Object.keys(filteredValues).length > 0) {
-                        await this.addRollbackQuery('update', table, filteredValues, condition);
+                        const rollback = await this.buildRollbackQuery('update', table, filteredValues, condition);
+
+                        await this.saveRollbackQueries([rollback]);
                     }
                 }
             } else {
@@ -450,7 +452,19 @@ export class ContractDBTransaction {
         }
     }
 
-    async addRollbackQuery(operation: string, table: string, values: any, condition?: Condition): Promise<void> {
+    async saveRollbackQueries(data: any[]): Promise<void> {
+        if (data.length === 0) {
+            return;
+        }
+
+        const chunks = arrayChunk(data, 100);
+
+        for (const chunk of chunks) {
+            await this.insert('reversible_queries', chunk, [], false, false);
+        }
+    }
+
+    buildRollbackQuery(operation: string, table: string, values: any, condition?: Condition): any {
         let serializedCondition = null;
         if (condition) {
             serializedCondition = {
@@ -480,11 +494,12 @@ export class ContractDBTransaction {
             }
         }
 
-        await this.clientQuery(
-            'INSERT INTO reversible_queries (operation, "table", "values", condition, block_num, reader) ' +
-            'VALUES ($1, $2, $3, $4, $5, $6);',
-            [operation, table, JSON.stringify(serializedValues), JSON.stringify(serializedCondition), this.currentBlock, this.name]
-        );
+        return {
+            operation, table,
+            values: JSON.stringify(serializedValues),
+            condition: JSON.stringify(serializedCondition),
+            block_num: this.currentBlock, reader: this.name
+        };
     }
 
     async rollbackReversibleBlocks(blockNum: number, lock: boolean = true): Promise<void> {
@@ -503,8 +518,6 @@ export class ContractDBTransaction {
             for (const row of query.rows) {
                 const values = row.values;
                 const condition: Condition | null = row.condition;
-
-                logger.info('Reverse Query', row);
 
                 if (condition) {
                     condition.values = condition.values.map((value) => deserializeValue(value));

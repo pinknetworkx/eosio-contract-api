@@ -105,6 +105,7 @@ export default class Filler {
         let blockRange = 0;
         let lastBlockNum = 0;
         let lastBlockTime = Date.now();
+        let timeout = 3600 * 1000;
 
         const interval = setInterval(async () => {
             if (!this.running) {
@@ -131,19 +132,19 @@ export default class Filler {
 
             if (lastBlockNum === this.reader.currentBlock && lastBlockNum > 0) {
                 const staleTime = Date.now() - lastBlockTime;
-                const threshold = 300000;
 
-                if (staleTime > threshold) {
-                    /*process.send({msg: 'failure'});
+                if (staleTime > timeout) {
+                    process.send({msg: 'failure'});
 
                     await new Promise(resolve => setTimeout(resolve, logInterval / 2 * 1000));
 
-                    process.exit(1);*/
+                    process.exit(1);
                 }
 
-                logger.warn('Reader ' + this.config.name + ' - No blocks processed - Stopping in ' + Math.round((threshold - staleTime) / 1000) + ' seconds');
+                logger.warn('Reader ' + this.config.name + ' - No blocks processed - Stopping in ' + Math.round((timeout - staleTime) / 1000) + ' seconds');
             } else if (this.reader.blocksUntilHead > 120) {
                 lastBlockTime = Date.now();
+                timeout = 3 * 60 * 1000;
 
                 if (blockRange === 0) {
                     blockRange = this.reader.blocksUntilHead;
