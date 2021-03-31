@@ -163,6 +163,7 @@ export default class Filler {
             } else {
                 lastBlockTime = Date.now();
                 blockRange = 0;
+                timeout = 3 * 60 * 1000;
 
                 logger.info(
                     'Reader ' + this.config.name + ' - ' +
