@@ -261,7 +261,8 @@ export function buyofferSockets(core: AtomicMarketNamespace, server: HTTPServer,
             'SELECT * FROM atomicmarket_buyoffers_master WHERE market_contract = $1 AND buyoffer_id = ANY($2)',
             [core.args.atomicmarket_account, buyofferIDs]
         );
-        const buyoffers = query.rows.map((row: any) => formatBuyoffer(row));
+
+        const buyoffers = await fillBuyoffers(server, core.args.atomicassets_account, query.rows.map((row: any) => formatBuyoffer(row)));
 
         for (const notification of notifications) {
             if (notification.type === 'trace' && notification.data.trace) {

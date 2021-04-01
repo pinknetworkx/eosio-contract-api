@@ -420,7 +420,8 @@ export function salesSockets(core: AtomicMarketNamespace, server: HTTPServer, no
             'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY($2)',
             [core.args.atomicmarket_account, saleIDs]
         );
-        const sales = query.rows.map((row: any) => formatSale(row));
+
+        const sales = await fillSales(server, core.args.atomicassets_account, query.rows.map((row: any) => formatSale(row)));
 
         for (const notification of notifications) {
             if (notification.type === 'trace' && notification.data.trace) {

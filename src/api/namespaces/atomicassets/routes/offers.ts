@@ -476,7 +476,12 @@ export class OfferApi {
                 'SELECT * FROM ' + this.offerView + ' WHERE contract = $1 AND offer_id = ANY($2)',
                 [this.core.args.atomicassets_account, offerIDs]
             );
-            const offers = query.rows.map(row => this.offerFormatter(row));
+
+            const offers = await fillOffers(
+                this.server, this.core.args.atomicassets_account,
+                query.rows.map((row) => this.offerFormatter(row)),
+                this.assetFormatter, this.assetView, this.fillerHook
+            );
 
             for (const notification of notifications) {
                 if (notification.type === 'trace' && notification.data.trace) {

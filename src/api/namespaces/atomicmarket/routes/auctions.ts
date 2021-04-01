@@ -263,7 +263,8 @@ export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer, 
             'SELECT * FROM atomicmarket_auctions_master WHERE market_contract = $1 AND auction_id = ANY($2)',
             [core.args.atomicmarket_account, auctionIDs]
         );
-        const auctions = query.rows.map((row: any) => formatAuction(row));
+
+        const auctions = await fillAuctions(server, core.args.atomicassets_account, query.rows.map((row: any) => formatAuction(row)));
 
         for (const notification of notifications) {
             if (notification.type === 'trace' && notification.data.trace) {

@@ -251,7 +251,12 @@ export class TransferApi {
                 'SELECT * FROM ' + this.transferView + ' WHERE contract = $1 AND transfer_id = ANY($2)',
                 [this.core.args.atomicassets_account, transferIDs]
             );
-            const transfers = query.rows.map(row => this.transferFormatter(row));
+
+            const transfers = await fillTransfers(
+                this.server, this.core.args.atomicassets_account,
+                query.rows.map((row) => this.transferFormatter(row)),
+                this.assetFormatter, this.assetView, this.fillerHook
+            );
 
             for (const notification of notifications) {
                 if (notification.type === 'trace' && notification.data.trace) {
