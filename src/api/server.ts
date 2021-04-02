@@ -157,11 +157,13 @@ export class WebServer {
             infoRequest = this.server.connection.chain.rpc.get_info();
         }, 500);
 
-        router.get(['/health', '/eosio-contract-api/health'], async (_: express.Request, res: express.Response) => {
+        const server = this.server;
+
+        async function buildHealthResponse(): Promise<any> {
             let databaseHealth = {status: 'INVALID', readers: <string[]>[]};
 
             try {
-                const query = await this.server.connection.database.query('SELECT block_num FROM contract_readers');
+                const query = await server.connection.database.query('SELECT block_num FROM contract_readers');
 
                 if (query.rowCount > 0) {
                     databaseHealth = {status: 'OK', readers: query.rows};
@@ -192,19 +194,51 @@ export class WebServer {
                 chainHealth = {status: 'ERROR', head_block: 0, head_time: 0};
             }
 
-            res.json({
+            return {
                 success: true, data: {
                     version: packageJson.version,
                     postgres: databaseHealth,
                     redis: {
-                        status: this.server.connection.redis.ioRedis.status === 'ready' ? 'OK' : 'ERROR'
+                        status: server.connection.redis.ioRedis.status === 'ready' ? 'OK' : 'ERROR'
                     },
                     chain: chainHealth
                 }, query_time: Date.now()
-            });
+            };
+        }
+
+        router.get(['/health', '/eosio-contract-api/health'], async (_: express.Request, res: express.Response) => {
+            res.json(await buildHealthResponse());
         });
 
-        router.get(['/eosio-contract-api/timestamp'], async (_: express.Request, res: express.Response) => {
+        router.get(['/alive', '/eosio-contract-api/alive'], async (_: express.Request, res: express.Response) => {
+            const health = await buildHealthResponse();
+
+            if(!health.success) {
+                return res.status(500).send('internal server error');
+            }
+
+            if (health.data.chain.head_time <= Date.now() - 30 * 1000) {
+                return res.status(500).send('chain api behind for ' + ((Date.now() - health.data.chain.head_time) / 1000) + ' seconds');
+            }
+
+            if (health.data.redis.status !== 'OK') {
+                return res.status(500).send('redis state: ' + health.data.redis.status);
+            }
+
+            if (health.data.postgres.status !== 'OK') {
+                return res.status(500).send('postgres state: ' + health.data.postgres.status);
+            }
+
+            for (const reader of health.data.postgres.readers) {
+                if (reader.block_num <= health.data.chain.head_block - 180) {
+                    return res.status(500).send('reader behind for ' + (health.data.chain.head_block - reader.block_num) + ' blocks');
+                }
+            }
+
+            return res.send('success');
+        });
+
+        router.get(['/timestamp', '/eosio-contract-api/timestamp'], async (_: express.Request, res: express.Response) => {
             res.json({success: true, data: Date.now(), query_time: Date.now()});
         });
 
