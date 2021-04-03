@@ -19,7 +19,7 @@ export function buyofferProcessor(core: AtomicMarketHandler, processor: DataProc
                 market_contract: core.args.atomicmarket_account,
                 buyoffer_id: trace.act.data.buyoffer_id,
                 buyer: trace.act.data.buyer,
-                recipient: trace.act.data.recipient,
+                seller: trace.act.data.recipient,
                 price: preventInt64Overflow(trace.act.data.price.split(' ')[0].replace('.', '')),
                 token_symbol: trace.act.data.price.split(' ')[1],
                 assets_contract: core.args.atomicassets_account,
