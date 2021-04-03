@@ -37,7 +37,7 @@ export function formatBuyoffer(row: any): any {
 
     data.price.amount = row.raw_price;
 
-    if (row.buyoffer_state === BuyofferState.PENDING.valueOf() && !data.assets.find((asset: any) => asset.owner !== row.seller)) {
+    if (row.buyoffer_state === BuyofferState.PENDING.valueOf()) {
         data.state = BuyofferApiState.PENDING.valueOf();
     } else if (row.buyoffer_state === BuyofferState.DECLINED.valueOf()) {
         data.state = BuyofferApiState.DECLINED.valueOf();
