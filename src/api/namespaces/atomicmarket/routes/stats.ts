@@ -165,7 +165,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
 
         const query = await server.query(
-            'SELECT token_symbol, token_contract, token_precision FROM atomicmarket_tokens WHERE contract = $1 AND token_symbol = $2',
+            'SELECT token_symbol, token_contract, token_precision FROM atomicmarket_tokens WHERE market_contract = $1 AND token_symbol = $2',
             [core.args.atomicassets_account, symbol]
         );
 
