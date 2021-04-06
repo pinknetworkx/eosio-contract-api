@@ -149,11 +149,11 @@ export function buildGreylistFilter(
     let collectionWhitelist: string[] = [];
 
     if (args.collection_blacklist) {
-        collectionBlacklist = args.collection_blacklist.replace(/[^\w\s,]/g, '').split(',');
+        collectionBlacklist = args.collection_blacklist.replace(/[^\w\s,.]/g, '').split(',');
     }
 
     if (args.collection_whitelist) {
-        collectionWhitelist = args.collection_whitelist.replace(/[^\w\s,]/g, '').split(',');
+        collectionWhitelist = args.collection_whitelist.replace(/[^\w\s,.]/g, '').split(',');
     }
 
     if (collectionWhitelist.length > 0) {
@@ -175,7 +175,7 @@ export function buildGreylistFilter(
     }
 
     if (accountColumns.length > 0 && args.account_blacklist) {
-        const accounts = args.account_blacklist.replace(/[^\w\s,]/g, '').split(',');
+        const accounts = args.account_blacklist.replace(/[^\w\s,.]/g, '').split(',');
 
         if (accounts.length > 0) {
             queryString += 'AND NOT EXISTS (SELECT * FROM ' + buildTemporaryTable(accounts, 'alist', 'name') + ' ' +
