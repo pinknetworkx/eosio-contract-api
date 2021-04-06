@@ -144,30 +144,47 @@ export function buildGreylistFilter(
     });
 
     let queryString = '';
-    const queryValues: any[] = [];
-    let varCounter = varOffset;
+
+    let collectionBlacklist: string[] = [];
+    let collectionWhitelist: string[] = [];
 
     if (args.collection_blacklist) {
-        queryString += 'AND NOT (' + collectionColumn + ' = ANY ($' + ++varCounter + ')) ';
-        queryValues.push(args.collection_blacklist.split(','));
+        collectionBlacklist = args.collection_blacklist.replace(/[^\w\s,]/g, '').split(',');
     }
 
     if (args.collection_whitelist) {
-        queryString += 'AND ' + collectionColumn + ' = ANY ($' + ++varCounter + ') ';
-        queryValues.push(args.collection_whitelist.split(','));
+        collectionWhitelist = args.collection_whitelist.replace(/[^\w\s,]/g, '').split(',');
     }
 
-    if (args.account_blacklist) {
-        const varCount = ++varCounter;
-        queryValues.push(args.account_blacklist.split(','));
+    if (collectionWhitelist.length > 0) {
+        collectionWhitelist = collectionWhitelist.filter(name => collectionBlacklist.indexOf(name) === -1);
+    }
 
-        for (const column of accountColumns) {
-            queryString += 'AND NOT (' + column + ' = ANY ($' + varCount + ')) ';
+    function buildTemporaryTable(values: string[], table: string, column: string): string {
+        return ' (VALUES ' + values.map(row => ('(\'' + row + '\')')).join(', ') + ') ' + table + ' (' + column + ') ';
+    }
+
+    if (collectionColumn) {
+        if (collectionWhitelist.length > 0) {
+            queryString += 'AND EXISTS (SELECT * FROM ' + buildTemporaryTable(collectionWhitelist, 'clist', 'name') + ' ' +
+                'WHERE clist.name = ' + collectionColumn + ') ';
+        } else if (collectionBlacklist.length > 0) {
+            queryString += 'AND NOT EXISTS (SELECT * FROM ' + buildTemporaryTable(collectionBlacklist, 'clist', 'name') + ' ' +
+                'WHERE clist.name = ' + collectionColumn + ') ';
+        }
+    }
+
+    if (accountColumns.length > 0 && args.account_blacklist) {
+        const accounts = args.account_blacklist.replace(/[^\w\s,]/g, '').split(',');
+
+        if (accounts.length > 0) {
+            queryString += 'AND NOT EXISTS (SELECT * FROM ' + buildTemporaryTable(accounts, 'alist', 'name') + ' ' +
+                'WHERE ' + accountColumns.map(column => (column + ' = alist.name')).join(' OR ') + ') ';
         }
     }
 
     return {
-        values: queryValues,
+        values: [],
         str: queryString
     };
 }
