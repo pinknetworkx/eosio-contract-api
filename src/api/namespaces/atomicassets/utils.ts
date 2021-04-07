@@ -168,11 +168,11 @@ export function buildGreylistFilter(
 
     if (collectionColumn) {
         if (collectionWhitelist.length > 0) {
-            queryString += 'AND EXISTS (SELECT * FROM UNNEST($' + ++varCounter + ') ' +
+            queryString += 'AND EXISTS (SELECT * FROM UNNEST($' + ++varCounter + '::text[]) ' +
                 'WHERE "unnest" = ' + collectionColumn + ') ';
             queryValues.push(collectionWhitelist);
         } else if (collectionBlacklist.length > 0) {
-            queryString += 'AND NOT EXISTS (SELECT * FROM UNNEST($' + ++varCounter + ') ' +
+            queryString += 'AND NOT EXISTS (SELECT * FROM UNNEST($' + ++varCounter + '::text[]) ' +
                 'WHERE "unnest" = ' + collectionColumn + ') ';
             queryValues.push(collectionBlacklist);
         }
@@ -182,7 +182,7 @@ export function buildGreylistFilter(
         const accounts = args.account_blacklist.split(',');
 
         if (accounts.length > 0) {
-            queryString += 'AND NOT EXISTS (SELECT * FROM UNNEST($' + ++varCounter + ') ' +
+            queryString += 'AND NOT EXISTS (SELECT * FROM UNNEST($' + ++varCounter + '::text[]) ' +
                 'WHERE ' + accountColumns.map(column => ('"unnest" = ' + column)).join(' OR ') + ') ';
             queryValues.push(accounts);
         }
