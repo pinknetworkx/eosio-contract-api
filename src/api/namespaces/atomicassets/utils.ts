@@ -162,16 +162,14 @@ export function buildGreylistFilter(
         collectionWhitelist = args.collection_whitelist.split(',');
     }
 
-    if (collectionWhitelist.length > 0) {
-        collectionWhitelist = collectionWhitelist.filter(name => collectionBlacklist.indexOf(name) === -1);
-    }
-
     if (collectionColumn) {
         if (collectionWhitelist.length > 0) {
             queryString += 'AND EXISTS (SELECT * FROM UNNEST($' + ++varCounter + '::text[]) ' +
                 'WHERE "unnest" = ' + collectionColumn + ') ';
             queryValues.push(collectionWhitelist);
-        } else if (collectionBlacklist.length > 0) {
+        }
+
+        if (collectionBlacklist.length > 0) {
             queryString += 'AND NOT EXISTS (SELECT * FROM UNNEST($' + ++varCounter + '::text[]) ' +
                 'WHERE "unnest" = ' + collectionColumn + ') ';
             queryValues.push(collectionBlacklist);
