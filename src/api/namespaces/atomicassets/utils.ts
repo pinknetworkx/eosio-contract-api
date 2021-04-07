@@ -134,6 +134,10 @@ export function buildAssetFilter(
     };
 }
 
+export function buildTemporaryTable(values: string[], table: string, column: string): string {
+    return ' (VALUES ' + values.map(row => ('(\'' + row + '\')')).join(', ') + ') ' + table + ' (' + column + ') ';
+}
+
 export function buildGreylistFilter(
     req: express.Request, varOffset: number, collectionColumn: string = 'collection_name', accountColumns: string[] = []
 ): {str: string, values: any[]} {
@@ -144,47 +148,48 @@ export function buildGreylistFilter(
     });
 
     let queryString = '';
+    const queryValues: any[] = [];
+    let varCounter = varOffset;
 
     let collectionBlacklist: string[] = [];
     let collectionWhitelist: string[] = [];
 
     if (args.collection_blacklist) {
-        collectionBlacklist = args.collection_blacklist.replace(/[^\w\s,.]/g, '').split(',');
+        collectionBlacklist = args.collection_blacklist.split(',');
     }
 
     if (args.collection_whitelist) {
-        collectionWhitelist = args.collection_whitelist.replace(/[^\w\s,.]/g, '').split(',');
+        collectionWhitelist = args.collection_whitelist.split(',');
     }
 
     if (collectionWhitelist.length > 0) {
         collectionWhitelist = collectionWhitelist.filter(name => collectionBlacklist.indexOf(name) === -1);
     }
 
-    function buildTemporaryTable(values: string[], table: string, column: string): string {
-        return ' (VALUES ' + values.map(row => ('(\'' + row + '\')')).join(', ') + ') ' + table + ' (' + column + ') ';
-    }
-
     if (collectionColumn) {
         if (collectionWhitelist.length > 0) {
-            queryString += 'AND EXISTS (SELECT * FROM ' + buildTemporaryTable(collectionWhitelist, 'clist', 'name') + ' ' +
-                'WHERE clist.name = ' + collectionColumn + ') ';
+            queryString += 'AND EXISTS (SELECT * FROM UNNEST($' + ++varCounter + ') ' +
+                'WHERE "unnest" = ' + collectionColumn + ') ';
+            queryValues.push(collectionWhitelist);
         } else if (collectionBlacklist.length > 0) {
-            queryString += 'AND NOT EXISTS (SELECT * FROM ' + buildTemporaryTable(collectionBlacklist, 'clist', 'name') + ' ' +
-                'WHERE clist.name = ' + collectionColumn + ') ';
+            queryString += 'AND NOT EXISTS (SELECT * FROM UNNEST($' + ++varCounter + ') ' +
+                'WHERE "unnest" = ' + collectionColumn + ') ';
+            queryValues.push(collectionBlacklist);
         }
     }
 
     if (accountColumns.length > 0 && args.account_blacklist) {
-        const accounts = args.account_blacklist.replace(/[^\w\s,.]/g, '').split(',');
+        const accounts = args.account_blacklist.split(',');
 
         if (accounts.length > 0) {
-            queryString += 'AND NOT EXISTS (SELECT * FROM ' + buildTemporaryTable(accounts, 'alist', 'name') + ' ' +
-                'WHERE ' + accountColumns.map(column => (column + ' = alist.name')).join(' OR ') + ') ';
+            queryString += 'AND NOT EXISTS (SELECT * FROM UNNEST($' + ++varCounter + ') ' +
+                'WHERE ' + accountColumns.map(column => ('"unnest" = ' + column)).join(' OR ') + ') ';
+            queryValues.push(accounts);
         }
     }
 
     return {
-        values: [],
+        values: queryValues,
         str: queryString
     };
 }
