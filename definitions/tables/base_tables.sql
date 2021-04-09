@@ -72,5 +72,12 @@ CREATE INDEX contract_codes_block_time ON contract_codes USING btree (block_time
 
 CREATE INDEX contract_traces_metadata ON contract_traces USING gin (metadata);
 CREATE INDEX contract_traces_created_at_time ON contract_traces USING btree (created_at_time);
+CREATE INDEX contract_traces_metadata_asset_id ON contract_traces USING btree ((metadata->>'asset_id'));
+CREATE INDEX contract_traces_metadata_collection_name ON contract_traces USING btree ((metadata->>'collection_name'));
+CREATE INDEX contract_traces_metadata_offer_id ON contract_traces USING btree ((metadata->>'offer_id'));
+CREATE INDEX contract_traces_metadata_auction_id ON contract_traces USING btree ((metadata->>'auction_id'));
+CREATE INDEX contract_traces_metadata_buyoffer_id ON contract_traces USING btree ((metadata->>'buyoffer_id'));
+CREATE INDEX contract_traces_metadata_sale_id ON contract_traces USING btree ((metadata->>'sale_id'));
+CREATE INDEX contract_traces_metadata_link_id ON contract_traces USING btree ((metadata->>'link_id'));
 
 CREATE INDEX reversible_queries_block_num ON reversible_queries USING btree (block_num);
