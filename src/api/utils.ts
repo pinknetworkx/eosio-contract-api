@@ -9,13 +9,33 @@ import logger from '../utils/winston';
 export async function getContractActionLogs(
     db: DB, contract: string, actions: string[], condition: { [key: string]: any },
     offset: number = 0, limit: number = 100, order: 'asc' | 'desc' = 'asc'
-): Promise<Array<{ log_id: number, name: string, data: any, txid: string, created_at_block: string, created_at_time: string }>> {
+): Promise<Array<{log_id: number, name: string, data: any, txid: string, created_at_block: string, created_at_time: string}>> {
+
+    let metadata_query = 'metadata @> $3::jsonb ';
+    let metadata_value = JSON.stringify(condition);
+    const metadata_key = Object.keys(condition)[0];
+
+    switch(metadata_key){
+
+        case 'asset_id':
+        case 'collection_name':
+        case 'offer_id':
+        case 'auction_id':
+        case 'buyoffer_id':
+        case 'sale_id':
+        case 'link_id':
+            metadata_query = 'metadata ->> \''+ metadata_key +'\' = $3 ';
+            metadata_value = condition[metadata_key];
+            break;
+    }
+
     const queryStr = 'SELECT global_sequence log_id, name, metadata "data", encode(txid::bytea, \'hex\') txid, created_at_block, created_at_time ' +
         'FROM contract_traces ' +
-        'WHERE account = $1 AND name = ANY($2) AND metadata @> $3::jsonb ' +
+        'WHERE account = $1 AND name = ANY($2) AND ' +
+        metadata_query +
         'ORDER BY global_sequence ' + (order === 'asc' ? 'ASC' : 'DESC') + ' LIMIT $4 OFFSET $5 ';
 
-    const query = await db.query(queryStr, [contract, actions, JSON.stringify(condition), limit, offset]);
+    const query = await server.query(queryStr, [contract, actions, metadata_value, limit, offset]);
     const emptyCondition = Object.keys(condition).reduce((prev, curr) => ({...prev, [curr]: undefined}), {});
 
     return query.rows.map(row => ({
