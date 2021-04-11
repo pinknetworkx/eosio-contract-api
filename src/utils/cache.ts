@@ -63,6 +63,10 @@ export function expressRedisCache(
                     res.send = (data: Buffer | string): express.Response => {
                         sendFn(data);
 
+                        if (res.statusCode !== 200) {
+                            return res;
+                        }
+
                         let content;
                         if (typeof data === 'string') {
                             content = Buffer.from(data, 'utf8').toString('base64');
