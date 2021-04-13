@@ -17,7 +17,7 @@ export class ModuleLoader {
             logger.info('Loading module ' + name);
 
             // eslint-disable-next-line @typescript-eslint/no-var-requires
-            const _module = require(join(__dirname, '../../modules/enabled/', name + '.js'));
+            const _module = require(join(__dirname, '../../modules/', name + '.js'));
 
             this.modules.push(_module);
         }
