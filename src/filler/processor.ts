@@ -2,6 +2,7 @@ import { ContractDBTransaction } from './database';
 import { ShipBlock } from '../types/ship';
 import { EosioActionTrace, EosioContractRow, EosioTransaction } from '../types/eosio';
 import logger from '../utils/winston';
+import { ModuleLoader } from './modules';
 
 export type TraceListener = (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<any>) => Promise<any>;
 export type DeltaListener = (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow) => Promise<any>;
@@ -56,7 +57,7 @@ export default class DataProcessor {
     private liveQueue: Array<{listener: {callback: any}, args: any[], priority: number, index: number}>;
     private irreversibleQueue: Array<{listener: {callback: any}, args: any[], priority: number, index: number}>;
 
-    constructor(initialState: ProcessingState) {
+    constructor(initialState: ProcessingState, readonly modules: ModuleLoader) {
         this.traceListeners = [];
         this.tableListeners = [];
         this.commitListeners = [];
@@ -253,6 +254,10 @@ export default class DataProcessor {
     }
 
     processActionTrace(block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<any>): void {
+        if (!this.modules.checkTrace(block, tx, trace)) {
+            return;
+        }
+
         for (const listener of this.traceListeners) {
             if (!matchFilter(trace.act.account, trace.act.name, listener.contract, listener.action)) {
                 continue;

@@ -3,8 +3,8 @@ import { SerialBuffer } from 'eosjs/dist/eosjs-serialize';
 
 import { deserializeUInt, serializeUInt } from './binary';
 import { Serialize } from 'eosjs';
-import { ShipActionTrace, ShipContractRow, ShipTableDelta, ShipTransactionTrace } from '../types/ship';
-import { EosioTransaction } from '../types/eosio';
+import { ShipTableDelta, ShipTransactionTrace } from '../types/ship';
+import { EosioActionTrace, EosioContractRow, EosioTransaction } from '../types/eosio';
 import { Abi } from 'eosjs/dist/eosjs-rpc-interfaces';
 
 export function serializeEosioName(name: string): string {
@@ -77,58 +77,80 @@ export function eosioSerialize(type: string, value: any, types: Map<string, Seri
     return buffer.asUint8Array();
 }
 
-export function extractShipTraces(transactions: ShipTransactionTrace[]): Array<{trace: ShipActionTrace, tx: EosioTransaction}> {
-    const result: Array<{trace: ShipActionTrace, tx: EosioTransaction}> = [];
+export function extractShipTraces(data: ShipTransactionTrace[]): Array<{trace: EosioActionTrace<any>, tx: EosioTransaction<any>}> {
+    const transactions: EosioTransaction[] = [];
 
-    for (const transaction of transactions) {
+    for (const transaction of data) {
         if (transaction[0] === 'transaction_trace_v0') {
-            // transaction failed
             if (transaction[1].status !== 0) {
                 continue;
             }
 
-            const tx: EosioTransaction = {
+            transactions.push({
                 id: transaction[1].id,
                 cpu_usage_us: transaction[1].cpu_usage_us,
-                net_usage_words: transaction[1].net_usage_words
-            };
+                net_usage_words: transaction[1].net_usage_words,
+                traces: transaction[1].action_traces.map(trace => {
+                    if (trace[0] === 'action_trace_v0') {
+                        if (trace[1].receiver !== trace[1].act.account) {
+                            return null;
+                        }
 
-            result.push(...transaction[1].action_traces.map((trace) => {
-                return {trace, tx};
-            }));
+                        return {
+                            action_ordinal: trace[1].action_ordinal,
+                            creator_action_ordinal: trace[1].creator_action_ordinal,
+                            global_sequence: trace[1].receipt[1].global_sequence,
+                            account_ram_deltas: trace[1].account_ram_deltas,
+                            act: {
+                                account: trace[1].act.account,
+                                name: trace[1].act.name,
+                                authorization: trace[1].act.authorization,
+                                data: trace[1].act.data
+                            }
+                        };
+                    }
+
+                    throw new Error('Invalid action trace type ' + trace[0]);
+                }).filter(trace => !!trace).sort((a, b) => {
+                    return parseInt(a.global_sequence, 10) - parseInt(b.global_sequence, 10);
+                })
+            });
         } else {
-            throw new Error('unsupported transaction response received: ' + transaction[0]);
+            throw new Error('Unsupported transaction response received: ' + transaction[0]);
         }
     }
 
-    // sort by global_sequence because inline actions do not have the correct order
-    result.sort((a, b) => {
-        if (a.trace[0] === 'action_trace_v0' && b.trace[0] === 'action_trace_v0') {
-            if (a.trace[1].receipt[0] === 'action_receipt_v0' && b.trace[1].receipt[0] === 'action_receipt_v0') {
-                return parseInt(a.trace[1].receipt[1].global_sequence, 10) - parseInt(b.trace[1].receipt[1].global_sequence, 10);
-            }
+    const result: Array<{trace: EosioActionTrace<any>, tx: EosioTransaction<any>}> = [];
 
-            throw new Error('unsupported trace receipt response received: ' + a.trace[0] + ' ' + b.trace[0]);
+    for (const tx of transactions) {
+        for (const trace of tx.traces) {
+            result.push({trace, tx});
         }
+    }
 
-        throw new Error('unsupported trace response received: ' + a.trace[0] + ' ' + b.trace[0]);
+    result.sort((a, b) => {
+        return parseInt(a.trace.global_sequence, 10) - parseInt(b.trace.global_sequence, 10);
     });
 
     return result;
 }
 
-export function extractShipContractRows(deltas: ShipTableDelta[]): Array<{present: boolean, data: ShipContractRow}> {
-    const result: Array<{present: boolean, data: ShipContractRow}> = [];
+export function extractShipContractRows(deltas: ShipTableDelta[]): Array<EosioContractRow<any>> {
+    const result: EosioContractRow<any>[] = [];
 
     for (const delta of deltas) {
-        if (delta[0] !== 'table_delta_v0') {
-            throw new Error('Unsupported table delta response received: ' + delta[0]);
-        }
-
-        if (delta[1].name === 'contract_row') {
-            for (const row of delta[1].rows) {
-                result.push({present: row.present, data: <ShipContractRow>row.data});
+        if (delta[0] === 'table_delta_v0') {
+            if (delta[1].name === 'contract_row') {
+                for (const row of delta[1].rows) {
+                    if (row.data[0] === 'contract_row_v0') {
+                        result.push({...row.data[1], present: row.present});
+                    } else {
+                        throw new Error('Unsupported contract row received: ' + row.data[0]);
+                    }
+                }
             }
+        } else {
+            throw new Error('Unsupported table delta response received: ' + delta[0]);
         }
     }
 

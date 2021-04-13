@@ -7,27 +7,29 @@ import { getOpenAPI3Responses } from '../../../docs';
 export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/config', server.web.caching({ignoreQueryString: true}), (async (_, res) => {
         try {
-            const query = await server.query(
+            const configQuery = await server.query(
                 'SELECT * FROM atomicassets_config WHERE contract = $1',
                 [core.args.atomicassets_account]
             );
 
-            if (query.rowCount === 0) {
+            if (configQuery.rowCount === 0) {
                 res.status(500);
 
                 return res.json({success: false, message: 'Config not found'});
             }
 
+            const config = configQuery.rows[0];
+
             const tokensQuery = await server.query(
                 'SELECT token_symbol, token_contract, token_precision FROM atomicassets_tokens WHERE contract = $1',
-                [core.args.atomicassets_account]
+                [config.contract]
             );
 
             return res.json({
                 success: true, data: {
-                    contract: core.args.atomicassets_account,
-                    version: query.rows[0].version,
-                    collection_format: query.rows[0].collection_format,
+                    contract: config.contract,
+                    version: config.version,
+                    collection_format: config.collection_format,
                     supported_tokens: tokensQuery.rows
                 }, query_time: Date.now()
             });

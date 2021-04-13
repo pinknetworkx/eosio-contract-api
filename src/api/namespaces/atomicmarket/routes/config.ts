@@ -12,6 +12,12 @@ export function configEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 [core.args.atomicmarket_account]
             );
 
+            if (configQuery.rowCount === 0) {
+                res.status(500);
+
+                return res.json({success: false, message: 'Config not found'});
+            }
+
             const config = configQuery.rows[0];
 
             const queryString =

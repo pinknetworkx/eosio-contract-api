@@ -141,6 +141,23 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
         }
     }));
 
+    router.all('/v1/collections/:collection_name/schemas', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+        try {
+            const query = await server.query(
+                'SELECT schema_name, COUNT(*) assets ' +
+                'FROM atomicassets_assets ' +
+                'WHERE contract = $1 AND collection_name = $2 AND owner IS NOT NULL ' +
+                'GROUP BY contract, collection_name, schema_name ' +
+                'ORDER BY assets DESC',
+                [core.args.atomicassets_account, req.params.collection_name]
+            );
+
+            return res.json({success: true, data: query.rows[0]});
+        } catch (e) {
+            res.status(500).json({success: false, message: 'Internal Server Error'});
+        }
+    }));
+
     router.all('/v1/collections/:collection_name/logs', server.web.caching(), (async (req, res) => {
         const args = filterQueryArgs(req, {
             page: {type: 'int', min: 1, default: 1},

@@ -5,6 +5,7 @@ import { IReaderConfig } from '../types/config';
 import { formatSecondsLeft } from '../utils/time';
 import { getHandlers } from './handlers';
 import { ContractHandler } from './handlers/interfaces';
+import { ModuleLoader } from './modules';
 
 function estimateSeconds(blocks: number, speed: number, depth: number = 0): number {
     if (blocks <= 2) {
@@ -26,6 +27,7 @@ function estimateSeconds(blocks: number, speed: number, depth: number = 0): numb
 
 export default class Filler {
     readonly reader: StateReceiver;
+    readonly modules: ModuleLoader;
 
     private readonly standardMaterializedViews: Array<{name: string, interval: number, refreshed: number}>;
     private readonly priorityMaterializedViews: Array<{name: string, interval: number, refreshed: number}>;
@@ -35,7 +37,8 @@ export default class Filler {
 
     constructor(private readonly config: IReaderConfig, readonly connection: ConnectionManager) {
         this.handlers = getHandlers(config.contracts, this);
-        this.reader = new StateReceiver(config, connection, this.handlers);
+        this.modules = new ModuleLoader(config.modules || []);
+        this.reader = new StateReceiver(config, connection, this.handlers, this.modules);
 
         this.standardMaterializedViews = [];
         this.priorityMaterializedViews = [];

@@ -66,6 +66,7 @@ export interface IReaderConfig {
 
     delete_data: boolean;
 
+    modules?: string[],
     contracts: IContractConfig[];
 }
 

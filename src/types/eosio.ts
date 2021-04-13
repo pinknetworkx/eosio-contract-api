@@ -13,10 +13,11 @@ export type EosioActionTrace<T = {[key: string]: any} | string> = {
     act: EosioAction<T>
 };
 
-export type EosioTransaction = {
+export type EosioTransaction<T = {[key: string]: any} | string> = {
     id: string,
     cpu_usage_us: number,
-    net_usage_words: number
+    net_usage_words: number,
+    traces: Array<EosioActionTrace<T>>
 };
 
 export type EosioContractRow<T = {[key: string]: any} | string> = {

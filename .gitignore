@@ -5,6 +5,9 @@ node_modules
 # logs
 logs/*.log
 
+# modules
+modules/enabled/*.js
+
 # config
 config/connections.config.json
 config/readers.config.json
