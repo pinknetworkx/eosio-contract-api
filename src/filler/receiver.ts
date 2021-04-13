@@ -277,7 +277,10 @@ export default class StateReceiver {
                     try {
                         trace.act.data = eosioDeserialize(type, trace.act.data.binary, types, false);
                     } catch (e) {
-                        logger.error('Failed to deserialize trace in sync mode ' + trace.act.account + ':' + trace.act.name, e);
+                        logger.error(
+                            'Failed to deserialize trace in sync mode ' +
+                            trace.act.account + ':' + trace.act.name + ' (abi version: ' + abi.block_num + ')', e
+                        );
 
                         throw e;
                     }
@@ -327,7 +330,10 @@ export default class StateReceiver {
                     try {
                         delta.value = eosioDeserialize(type, delta.value.binary, types);
                     } catch (e) {
-                        logger.error('Failed to deserialize contract row in sync mode ' + delta.code + ':' + delta.table, e);
+                        logger.error(
+                            'Failed to deserialize contract row in sync mode ' +
+                            delta.code + ':' + delta.table + ' (abi version: ' + abi.block_num + ')', e
+                        );
 
                         throw e;
                     }
@@ -499,14 +505,14 @@ export default class StateReceiver {
             if (rawAbi) {
                 try {
                     abiJson = this.connection.chain.deserializeAbi(rawAbi.data);
-                    abiBlock = rawAbi.block_num;
+                    abiBlock = -1;
                 } catch (e) {
                     logger.warn('Could not deserialize ABI of ' + contract, e);
                 }
             } else {
                 try {
                     abiJson = (await this.connection.chain.rpc.get_abi(contract)).abi;
-                    abiBlock = blockNum;
+                    abiBlock = -1;
                 } catch (e) {
                     logger.warn('Could not fetch ABI of ' + contract, e);
                 }
