@@ -281,6 +281,10 @@ export default class DataProcessor {
     }
 
     processContractRow(block: ShipBlock, delta: EosioContractRow): void {
+        if (!this.modules.checkDelta(block, delta)) {
+            return;
+        }
+
         for (const listener of this.tableListeners) {
             if (!matchFilter(delta.code, delta.table, listener.contract, listener.table)) {
                 continue;

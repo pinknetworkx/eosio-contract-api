@@ -1,10 +1,11 @@
 import {join} from 'path';
-import { EosioActionTrace, EosioTransaction } from '../types/eosio';
+import { EosioActionTrace, EosioContractRow, EosioTransaction } from '../types/eosio';
 import { ShipBlock } from '../types/ship';
 import logger from '../utils/winston';
 
 export interface IModule {
-    traceFilter?: (block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<any>) => boolean
+    traceFilter?: (block: ShipBlock, tx: EosioTransaction<any>, trace: EosioActionTrace<any>) => boolean,
+    deltaFilter?: (block: ShipBlock, delta: EosioContractRow<any>) => boolean,
 }
 
 export class ModuleLoader {
@@ -23,9 +24,19 @@ export class ModuleLoader {
         }
     }
 
-    checkTrace(block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<any>): boolean {
+    checkTrace(block: ShipBlock, tx: EosioTransaction<any>, trace: EosioActionTrace<any>): boolean {
         for (const mod of this.modules) {
             if (mod.traceFilter && !mod.traceFilter(block, tx, trace)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    checkDelta(block: ShipBlock, delta: EosioContractRow<any>): boolean {
+        for (const mod of this.modules) {
+            if (mod.deltaFilter && !mod.deltaFilter(block, delta)) {
                 return false;
             }
         }
