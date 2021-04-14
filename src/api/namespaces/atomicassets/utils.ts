@@ -134,10 +134,6 @@ export function buildAssetFilter(
     };
 }
 
-export function buildTemporaryTable(values: string[], table: string, column: string): string {
-    return ' (VALUES ' + values.map(row => ('(\'' + row + '\')')).join(', ') + ') ' + table + ' (' + column + ') ';
-}
-
 export function buildGreylistFilter(
     req: express.Request, varOffset: number, collectionColumn: string = 'collection_name', accountColumns: string[] = []
 ): {str: string, values: any[]} {
@@ -163,16 +159,22 @@ export function buildGreylistFilter(
     }
 
     if (collectionColumn) {
-        if (collectionWhitelist.length > 0) {
+        if (collectionWhitelist.length > 0 && collectionBlacklist.length > 0) {
             queryString += 'AND EXISTS (SELECT * FROM UNNEST($' + ++varCounter + '::text[]) ' +
                 'WHERE "unnest" = ' + collectionColumn + ') ';
-            queryValues.push(collectionWhitelist);
-        }
+            queryValues.push(collectionWhitelist.filter(row => collectionBlacklist.indexOf(row) === -1));
+        } else {
+            if (collectionWhitelist.length > 0) {
+                queryString += 'AND EXISTS (SELECT * FROM UNNEST($' + ++varCounter + '::text[]) ' +
+                    'WHERE "unnest" = ' + collectionColumn + ') ';
+                queryValues.push(collectionWhitelist);
+            }
 
-        if (collectionBlacklist.length > 0) {
-            queryString += 'AND NOT EXISTS (SELECT * FROM UNNEST($' + ++varCounter + '::text[]) ' +
-                'WHERE "unnest" = ' + collectionColumn + ') ';
-            queryValues.push(collectionBlacklist);
+            if (collectionBlacklist.length > 0) {
+                queryString += 'AND NOT EXISTS (SELECT * FROM UNNEST($' + ++varCounter + '::text[]) ' +
+                    'WHERE "unnest" = ' + collectionColumn + ') ';
+                queryValues.push(collectionBlacklist);
+            }
         }
     }
 
