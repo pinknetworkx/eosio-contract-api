@@ -152,7 +152,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
                 [core.args.atomicassets_account, req.params.collection_name]
             );
 
-            return res.json({success: true, data: query.rows[0]});
+            return res.json({success: true, data: query.rows});
         } catch (e) {
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
