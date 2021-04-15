@@ -34,6 +34,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100},
+                collection_name: {type: 'string', min: 1},
                 sort: {
                     type: 'string',
                     values: [
@@ -58,10 +59,12 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             const queryValues = [core.args.atomicmarket_account, ...filter.values];
             let varCounter = queryValues.length;
 
-            const blacklistFilter = buildGreylistFilter(req, varCounter, 'listing.collection_name');
-            queryValues.push(...blacklistFilter.values);
-            varCounter += blacklistFilter.values.length;
-            queryString += blacklistFilter.str;
+            if (!args.collection_name) {
+                const blacklistFilter = buildGreylistFilter(req, varCounter, 'listing.collection_name');
+                queryValues.push(...blacklistFilter.values);
+                varCounter += blacklistFilter.values.length;
+                queryString += blacklistFilter.str;
+            }
 
             const boundaryFilter = buildBoundaryFilter(
                 req, varCounter, 'listing.sale_id', 'int',
