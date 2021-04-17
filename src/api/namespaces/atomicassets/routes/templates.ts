@@ -172,9 +172,9 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
     router.all('/v1/templates/:collection_name/:template_id/stats', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
             const query = await server.query(
-                'SELECT ' +
-                '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND template_id = $3) assets, ' +
-                '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND template_id = $3 AND owner IS NULL) burned ',
+                'SELECT COUNT(*) assets, COUNT(*) FILTER (WHERE owner IS NULL) burned ' +
+                'FROM atomicassets_assets ' +
+                'WHERE contract = $1 AND collection_name = $2 AND template_id = $3 ',
                 [core.args.atomicassets_account, req.params.collection_name, req.params.template_id]
             );
 
