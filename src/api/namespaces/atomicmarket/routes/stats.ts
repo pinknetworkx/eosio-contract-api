@@ -149,11 +149,12 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         `;
     }
 
-    function buildGraphStatsQuery(): string {
+    function buildGraphStatsQuery(after?: number, before?: number): string {
         return `
         SELECT div("time", 24 * 3600 * 1000) "time_block", COUNT(*) sales, SUM(price) volume 
         FROM atomicmarket_stats_markets
         WHERE market_contract = $1 AND symbol = $2
+            ${buildRangeCondition('"time"', after, before)}
             ${getGreylistCondition('collection_name', 3, 4)}
         GROUP BY "time_block" ORDER BY "time_block" ASC
         `;
@@ -458,7 +459,9 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 collection_whitelist: {type: 'string', min: 1, default: ''},
                 collection_blacklist: {type: 'string', min: 1, default: ''},
 
-                symbol: {type: 'string', min: 1}
+                symbol: {type: 'string', min: 1},
+                before: {type: 'int', min: 1},
+                after: {type: 'int', min: 1}
             });
 
             const symbol = await fetchSymbol(args.symbol);
@@ -467,7 +470,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
-            const queryString = buildGraphStatsQuery();
+            const queryString = buildGraphStatsQuery(args.after, args.before);
             const queryValues = [
                 core.args.atomicmarket_account, args.symbol,
                 args.collection_whitelist.split(',').filter((x: string) => !!x),
