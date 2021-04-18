@@ -63,7 +63,7 @@ export class TransferApi {
                     queryValues.push(args.recipient.split(','));
                 }
 
-                if (['asset_id', 'collection_name', 'template_id', 'schema_name'].find(key => args[key])) {
+                if (['collection_name', 'template_id', 'schema_name'].find(key => args[key])) {
                     const conditions: string[] = [];
 
                     if (args.asset_id) {
@@ -94,7 +94,7 @@ export class TransferApi {
 
                 if (args.asset_id) {
                     queryString += 'AND EXISTS(' +
-                        'SELECT transfer_id FROM atomicassets_transfers_assets asset ' +
+                        'SELECT * FROM atomicassets_transfers_assets asset ' +
                         'WHERE transfer.contract = asset.contract AND transfer.transfer_id = asset.transfer_id AND ' +
                         'asset_id = ANY ($' + ++varCounter + ')' +
                         ') ';

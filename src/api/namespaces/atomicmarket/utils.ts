@@ -171,8 +171,8 @@ export function buildSaleFilter(
     queryValues.push(...listingFilter.values);
     varCounter += listingFilter.values.length;
 
-    if (hasAssetFilter(req)) {
-        const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', allowDataFilter: false});
+    if (hasAssetFilter(req) || hasDataFilters(req)) {
+        const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', allowDataFilter: true});
 
         queryString += 'AND EXISTS(' +
             'SELECT * ' +
@@ -184,23 +184,6 @@ export function buildSaleFilter(
 
         queryValues.push(...filter.values);
         varCounter += filter.values.length;
-    }
-
-    if (hasDataFilters(req)) {
-        const dataConditions = buildDataConditions(mergeRequestData(req), varCounter, '"asset_data"."data"');
-
-        if (dataConditions) {
-            queryString += 'AND EXISTS(' +
-                'SELECT * ' +
-                'FROM atomicassets_offers_assets offer_asset, atomicassets_asset_data asset_data ' +
-                'WHERE ' +
-                'asset_data.contract = offer_asset.contract AND asset_data.asset_id = offer_asset.asset_id AND ' +
-                'offer_asset.offer_id = listing.offer_id AND offer_asset.contract = listing.assets_contract ' + dataConditions.str + ' ' +
-                ') ';
-
-            queryValues.push(...dataConditions.values);
-            varCounter += dataConditions.values.length;
-        }
     }
 
     if (args.max_assets) {
@@ -313,8 +296,8 @@ export function buildAuctionFilter(
     queryValues.push(...listingFilter.values);
     varCounter += listingFilter.values.length;
 
-    if (hasAssetFilter(req)) {
-        const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', allowDataFilter: false});
+    if (hasAssetFilter(req) || hasDataFilters(req)) {
+        const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', allowDataFilter: true});
 
         queryString += 'AND EXISTS(' +
                 'SELECT * ' +
@@ -327,24 +310,6 @@ export function buildAuctionFilter(
 
         queryValues.push(...filter.values);
         varCounter += filter.values.length;
-    }
-
-    if (hasDataFilters(req)) {
-        const dataConditions = buildDataConditions(mergeRequestData(req), varCounter, '"asset_data"."data"');
-
-        if (dataConditions) {
-            queryString += 'AND EXISTS(' +
-                'SELECT * ' +
-                'FROM atomicmarket_auctions_assets auction_asset, atomicassets_asset_data asset_data ' +
-                'WHERE ' +
-                'asset_data.contract = auction_asset.assets_contract AND asset_data.asset_id = auction_asset.asset_id AND ' +
-                'auction_asset.auction_id = listing.auction_id AND ' +
-                'auction_asset.market_contract = listing.market_contract ' + dataConditions.str + ' ' +
-                ') ';
-
-            queryValues.push(...dataConditions.values);
-            varCounter += dataConditions.values.length;
-        }
     }
 
     if (args.participant) {
@@ -471,8 +436,8 @@ export function buildBuyofferFilter(
     queryValues.push(...listingFilter.values);
     varCounter += listingFilter.values.length;
 
-    if (hasAssetFilter(req)) {
-        const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', allowDataFilter: false});
+    if (hasAssetFilter(req) || hasDataFilters(req)) {
+        const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', allowDataFilter: true});
 
         queryString += 'AND EXISTS(' +
             'SELECT * ' +
@@ -485,24 +450,6 @@ export function buildBuyofferFilter(
 
         queryValues.push(...filter.values);
         varCounter += filter.values.length;
-    }
-
-    if (hasDataFilters(req)) {
-        const dataConditions = buildDataConditions(mergeRequestData(req), varCounter, '"asset_data"."data"');
-
-        if (dataConditions) {
-            queryString += 'AND EXISTS(' +
-                'SELECT * ' +
-                'FROM atomicmarket_buyoffers_assets buyoffer_asset, atomicassets_asset_data asset_data ' +
-                'WHERE ' +
-                'asset_data.contract = buyoffer_asset.assets_contract AND asset_data.asset_id = buyoffer_asset.asset_id AND ' +
-                'buyoffer_asset.buyoffer_id = listing.buyoffer_id AND ' +
-                'buyoffer_asset.market_contract = listing.market_contract ' + dataConditions.str + ' ' +
-                ') ';
-
-            queryValues.push(...dataConditions.values);
-            varCounter += dataConditions.values.length;
-        }
     }
 
     if (args.max_assets) {
