@@ -144,11 +144,12 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
     router.all('/v1/collections/:collection_name/schemas', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
             const query = await server.query(
-                'SELECT schema_name, COUNT(*) assets ' +
-                'FROM atomicassets_assets ' +
-                'WHERE contract = $1 AND collection_name = $2 AND owner IS NOT NULL ' +
-                'GROUP BY contract, collection_name, schema_name ' +
-                'ORDER BY assets DESC',
+                `SELECT schema_name FROM atomicassets_schemas "schema"
+                WHERE contract = $1 AND collection_name = $2 AND EXISTS (
+                    SELECT * FROM atomicassets_assets asset 
+                    WHERE asset.contract = "schema".contract AND asset.collection_name = "schema".collection_name AND 
+                        asset.schema_name = "schema".schema_name AND "owner" IS NOT NULL
+                )`,
                 [core.args.atomicassets_account, req.params.collection_name]
             );
 

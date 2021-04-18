@@ -137,7 +137,7 @@ CREATE TABLE atomicmarket_sales
     created_at_block bigint NOT NULL,
     created_at_time bigint NOT NULL,
     CONSTRAINT atomicmarket_sales_pkey PRIMARY KEY (market_contract, sale_id),
-    CONSTRAINT atomicmarket_sales_offer_id_key UNIQUE (market_contract, assets_contract, offer_id)
+    CONSTRAINT atomicmarket_sales_offer_id_key UNIQUE (assets_contract, offer_id)
 );
 
 CREATE TABLE atomicmarket_buyoffers
