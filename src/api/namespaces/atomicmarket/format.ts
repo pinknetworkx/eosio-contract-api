@@ -106,7 +106,7 @@ export async function hookAssetFiller(server: HTTPServer, contract: string, rows
             'FROM atomicmarket_auctions auction, atomicmarket_auctions_assets auction_asset ' +
             'WHERE auction.market_contract = auction_asset.market_contract AND auction.auction_id = auction_asset.auction_id AND ' +
             'auction_asset.assets_contract = $1 AND auction_asset.asset_id = ANY($2) AND ' +
-            'auction.state = ' + AuctionState.LISTED.valueOf() + ' AND auction.end_time > ' + (Date.now() / 1000),
+            'auction.state = ' + AuctionState.LISTED.valueOf() + ' AND auction.end_time > ' + (Date.now() / 1000) + '::BIGINT ',
             [contract, assetIDs]
         ),
         server.query(

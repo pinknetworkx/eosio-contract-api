@@ -84,18 +84,17 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
             }
 
-            const sortColumnMapping = {
-                sale_id: 'listing.sale_id',
-                created: 'listing.created_at_block',
-                updated: 'listing.updated_at_block',
-                price: 'price.price',
-                template_mint: 'mint.min_template_mint',
-                schema_mint: 'mint.min_schema_mint',
-                collection_mint: 'mint.min_collection_mint'
+            const sortMapping: {[key: string]: {column: string, nullable: boolean}}  = {
+                sale_id: {column: 'listing.sale_id', nullable: false},
+                created: {column: 'listing.created_at_block', nullable: false},
+                updated: {column: 'listing.updated_at_block', nullable: false},
+                price: {column: 'price.price', nullable: true},
+                template_mint: {column: 'mint.min_template_mint', nullable: true},
+                schema_mint: {column: 'mint.min_schema_mint', nullable: true},
+                collection_mint: {column: 'mint.min_collection_mint', nullable: true}
             };
 
-            // @ts-ignore
-            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' NULLS LAST, listing.sale_id ASC ';
+            queryString += 'ORDER BY ' + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.sale_id ASC ';
             queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);

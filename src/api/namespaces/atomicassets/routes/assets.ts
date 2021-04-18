@@ -194,38 +194,47 @@ export class AssetApi {
                     return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
                 }
 
-                let sortColumn: string;
+                let sorting: {column: string, nullable: boolean};
 
                 if (args.sort) {
                     if (args.sort.startsWith('data')) {
                         if (args.sort.startsWith('data:text.')) {
-                            sortColumn = '"data_table"."data"->>\'' + args.sort.substr('data:text.'.length).replace('\'', '') + '\'';
+                            sorting = {
+                                column: '"data_table"."data"->>\'' + args.sort.substr('data:text.'.length).replace('\'', '') + '\'',
+                                nullable: true
+                            };
                         } else if (args.sort.startsWith('data:number.')) {
-                            sortColumn = '("data_table"."data"->>\'' + args.sort.substr('data:number.'.length).replace('\'', '') + '\')::double precision';
+                            sorting = {
+                                column: '("data_table"."data"->>\'' + args.sort.substr('data:number.'.length).replace('\'', '') + '\')::double precision',
+                                nullable: true
+                            };
                         } else {
-                            sortColumn = '"data_table"."data"->>\'' + args.sort.substr('data.'.length).replace('\'', '') + '\'';
+                            sorting = {
+                                column: '"data_table"."data"->>\'' + args.sort.substr('data.'.length).replace('\'', '') + '\'',
+                                nullable: true
+                            };
                         }
                     } else {
-                        const sortColumnMapping: {[key: string]: string} = {
-                            asset_id: 'asset.asset_id',
-                            updated: 'asset.updated_at_block',
-                            transferred: 'asset.transferred_at_block',
-                            minted: 'asset.minted_at_block',
-                            collection_mint: 'mint.collection_mint',
-                            schema_mint: 'mint.schema_mint',
-                            template_mint: 'mint.template_mint'
+                        const sortColumnMapping: {[key: string]: {column: string, nullable: boolean}} = {
+                            asset_id: {column: 'asset.asset_id', nullable: false},
+                            updated: {column: 'asset.updated_at_block', nullable: false},
+                            transferred: {column: 'asset.transferred_at_block', nullable: false},
+                            minted: {column: 'asset.minted_at_block', nullable: false},
+                            collection_mint: {column: 'mint.collection_mint', nullable: true},
+                            schema_mint: {column: 'mint.schema_mint', nullable: true},
+                            template_mint: {column: 'mint.template_mint', nullable: true}
                         };
 
-                        sortColumn = sortColumnMapping[args.sort];
+                        sorting = sortColumnMapping[args.sort];
                     }
                 }
 
-                if (!sortColumn) {
-                    sortColumn = 'asset.asset_id';
+                if (!sorting) {
+                    sorting = {column: 'asset.asset_id', nullable: false};
                 }
 
                 // @ts-ignore
-                queryString += 'ORDER BY ' + sortColumn + ' ' + args.order + ' NULLS LAST, asset.asset_id ASC ';
+                queryString += 'ORDER BY ' + sorting.column + ' ' + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC ';
                 queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
                 queryValues.push(args.limit);
                 queryValues.push((args.page - 1) * args.limit);
