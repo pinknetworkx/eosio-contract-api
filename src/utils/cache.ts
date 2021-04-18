@@ -7,6 +7,7 @@ import { mergeRequestData } from '../api/namespaces/utils';
 
 export type ExpressRedisCacheOptions = {
     expire?: number,
+    factor?: number,
     ignoreQueryString?: boolean,
     urlHandler?: express.RequestHandler
 };
@@ -18,7 +19,8 @@ export function expressRedisCache(
 ): ExpressRedisCacheHandler {
     return (options: ExpressRedisCacheOptions = {}) => {
         return (req: express.Request, res: express.Response, next: express.NextFunction): void => {
-            const cacheLife = options.expire ? options.expire : expire;
+            const factor = options.factor ? options.factor : 1;
+            const cacheLife = options.expire ? (options.expire * factor) : (expire * factor);
 
             if (cacheLife === 0) {
                 return next();

@@ -452,7 +452,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     });
 
-    router.all('/v1/stats/graph', server.web.caching(), async (req, res) => {
+    router.all('/v1/stats/graph', server.web.caching({factor: 60}), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 collection_whitelist: {type: 'string', min: 1, default: ''},
