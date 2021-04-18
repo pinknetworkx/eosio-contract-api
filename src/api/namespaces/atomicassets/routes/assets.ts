@@ -224,8 +224,11 @@ export class AssetApi {
                     sortColumn = 'asset.asset_id';
                 }
 
+                const nonNullableColumns = ['asset.asset_id', 'asset.updated_at_block', 'asset.transferred_at_block', 'asset.minted_at_block'];
+                const nullsLast = nonNullableColumns.includes(sortColumn) ? '' : ' NULLS LAST';
+
                 // @ts-ignore
-                queryString += 'ORDER BY ' + sortColumn + ' ' + args.order + ' NULLS LAST, asset.asset_id ASC ';
+                queryString += 'ORDER BY ' + sortColumn + ' ' + args.order + nullsLast + ', asset.asset_id ASC ';
                 queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
                 queryValues.push(args.limit);
                 queryValues.push((args.page - 1) * args.limit);

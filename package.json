@@ -7,7 +7,7 @@
   "repository": "https://github.com/pinknetworkx/eosio-contract-api",
   "scripts": {
     "clean": "rimraf ./build/* && rimraf ./logs/*",
-    "lint": "eslint 'src/**/*.ts'",
+    "lint": "eslint \"src/**/*.ts\"",
     "build": "yarn clean && yarn lint && tsc",
     "test": "mocha -r ts-node/register test/**/*.test.ts",
     "postinstall": "yarn build",
