@@ -1,7 +1,7 @@
 import * as express from 'express';
 
 import { filterQueryArgs, mergeRequestData } from '../utils';
-import { buildAssetFilter, buildDataConditions } from '../atomicassets/utils';
+import { buildAssetFilter } from '../atomicassets/utils';
 import { AuctionApiState, BuyofferApiState, SaleApiState } from './index';
 import { AuctionState, BuyofferState, SaleState } from '../../../filler/handlers/atomicmarket';
 import { OfferState } from '../../../filler/handlers/atomicassets';
