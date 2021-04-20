@@ -51,7 +51,7 @@ export default class ApiNotificationSender {
 
         if (this.processor.getState() === ProcessingState.HEAD) {
             try {
-                const chunks = arrayChunk(this.notifications, 100);
+                const chunks = arrayChunk(this.notifications, 50);
 
                 for (const chunk of chunks) {
                     await this.connection.redis.ioRedis.publish(this.channelName, JSON.stringify(chunk));

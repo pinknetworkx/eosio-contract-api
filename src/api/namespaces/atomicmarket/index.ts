@@ -110,7 +110,9 @@ export class AtomicMarketNamespace extends ApiNamespace {
             }
         };
 
-        server.web.express.use(this.path + '/v1', server.web.limiter);
+        if (this.path + '/v1', server.web.limiter) {
+            server.web.express.use(this.path + '/v1', server.web.limiter);
+        }
 
         const docs = [];
 

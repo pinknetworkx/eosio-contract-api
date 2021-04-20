@@ -104,25 +104,28 @@ export class WebServer {
             next();
         }));
 
-        this.limiter = expressRateLimit({
-            windowMs: this.server.config.rate_limit.interval * 1000,
-            max: this.server.config.rate_limit.requests,
-            handler: (req: express.Request, res: express.Response, next: express.NextFunction): any => {
-                if (this.server.config.ip_whitelist.indexOf(req.ip) >= 0) {
-                    return next();
-                }
+        if (this.server.config.rate_limit) {
+            this.limiter = expressRateLimit({
+                windowMs: this.server.config.rate_limit.interval * 1000,
+                max: this.server.config.rate_limit.requests,
+                handler: (req: express.Request, res: express.Response, next: express.NextFunction): any => {
+                    if (this.server.config.ip_whitelist.indexOf(req.ip) >= 0) {
+                        return next();
+                    }
 
-                res.status(429).json({success: false, message: 'Rate limit'});
-            },
-            keyGenerator(req: express.Request): string {
-                return req.ip;
-            },
-            store: new expressRedisStore({
-                client: this.server.connection.redis.nodeRedis,
-                prefix: 'eosio-contract-api:' + server.connection.chain.name + ':rate-limit:',
-                expiry: this.server.config.rate_limit.interval
-            })
-        });
+                    res.status(429).json({success: false, message: 'Rate limit'});
+                },
+                keyGenerator(req: express.Request): string {
+                    return req.ip;
+                },
+                store: new expressRedisStore({
+                    client: this.server.connection.redis.nodeRedis,
+                    prefix: 'eosio-contract-api:' + server.connection.chain.name + ':rate-limit:',
+                    expiry: this.server.config.rate_limit.interval
+                })
+            });
+        }
+
 
         this.caching = expressRedisCache(
             this.server.connection.redis.nodeRedis,

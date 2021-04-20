@@ -29,7 +29,7 @@ export interface IServerConfig {
     cache_life: number;
     trust_proxy: boolean;
 
-    rate_limit: {
+    rate_limit?: {
         interval: number,
         requests: number
     };

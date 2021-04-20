@@ -21,13 +21,14 @@ export default class StateHistoryBlockReader {
     types: Map<string, Serialize.Type>;
     tables: Map<string, string>;
 
+    blocksQueue: PQueue;
+
     private ws: any;
 
     private connected: boolean;
     private connecting: boolean;
     private stopped: boolean;
 
-    private blocksQueue: PQueue;
     private deserializeWorkers: StaticPool<Array<{type: string, data: Uint8Array, abi?: any}>, any>;
 
     private unconfirmed: number;
