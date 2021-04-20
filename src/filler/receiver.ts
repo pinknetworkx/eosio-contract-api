@@ -260,6 +260,10 @@ export default class StateReceiver {
     private async handleActionTrace(block: ShipBlock, trace: EosioActionTrace<ContractDataEstimation>, tx: EosioTransaction<ContractDataEstimation>): Promise<void> {
         const processingInfo = this.processor.actionTraceNeeded(trace.act.account, trace.act.name);
 
+        if (processingInfo.process && !this.modules.checkTrace(block, tx, trace)) {
+            return;
+        }
+
         if (processingInfo.deserialize) {
             const abi = await this.fetchContractAbi(trace.act.account, block.block_num);
 
@@ -312,6 +316,10 @@ export default class StateReceiver {
 
     private async handleContractRow(block: ShipBlock, delta: EosioContractRow<ContractDataEstimation>): Promise<void> {
         const processingInfo = this.processor.contractRowNeeded(delta.code, delta.table);
+
+        if (processingInfo.process && !this.modules.checkDelta(block, delta)) {
+            return;
+        }
 
         if (processingInfo.deserialize) {
             const abi = await this.fetchContractAbi(delta.code, block.block_num);
