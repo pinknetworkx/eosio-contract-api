@@ -165,3 +165,17 @@ export function buildBoundaryFilter(
         str: queryString
     };
 }
+
+export function equalMany(column: string, value: string, queryValues: any[], varNum: number, separator = ','): string {
+    const values = value.split(separator);
+
+    if (values.length === 1) {
+        queryValues.push(values[0]);
+
+        return ' ' + column + ' = $' + varNum + ' ';
+    } else {
+        queryValues.push(values);
+
+        return ' ' + column + ' = ANY($' + varNum + ') ';
+    }
+}

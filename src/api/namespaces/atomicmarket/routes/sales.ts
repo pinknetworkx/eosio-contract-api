@@ -99,22 +99,20 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
 
-            const saleQuery = await server.query(queryString, queryValues);
-
-            const saleLookup: {[key: string]: any} = {};
-            const query = await server.query(
-                'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY ($2)',
-                [core.args.atomicmarket_account, saleQuery.rows.map(row => row.sale_id)]
+            const saleQuery = await server.query(
+                `
+                    WITH sales AS MATERIALIZED (
+                        ${queryString}
+                    )
+                    SELECT m.*
+                    FROM atomicmarket_sales_master m
+                        JOIN sales s USING (market_contract, sale_id)
+                `,
+                queryValues
             );
 
-            query.rows.reduce((prev, current) => {
-                prev[String(current.sale_id)] = current;
-
-                return prev;
-            }, saleLookup);
-
             const sales = await fillSales(
-                server, core.args.atomicassets_account, saleQuery.rows.map((row) => formatSale(saleLookup[String(row.sale_id)]))
+                server, core.args.atomicassets_account, saleQuery.rows.map(formatSale)
             );
 
             res.json({success: true, data: sales, query_time: Date.now()});

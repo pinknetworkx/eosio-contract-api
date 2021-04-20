@@ -1,6 +1,6 @@
 import * as express from 'express';
 
-import { filterQueryArgs, mergeRequestData } from '../utils';
+import { equalMany, filterQueryArgs, mergeRequestData } from '../utils';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 import { SaleState } from '../../../filler/handlers/atomicmarket';
 
@@ -85,23 +85,19 @@ export function buildAssetFilter(
     }
 
     if (args.owner) {
-        queryString += 'AND ' + options.assetTable + '.owner = ANY($' + ++varCounter + ') ';
-        queryValues.push(args.owner.split(','));
+        queryString += 'AND ' + equalMany(options.assetTable + '.owner', args.owner, queryValues, ++varCounter);
     }
 
     if (args.template_id) {
-        queryString += 'AND ' + options.assetTable + '.template_id = ANY($' + ++varCounter + ') ';
-        queryValues.push(args.template_id.split(','));
+        queryString += 'AND ' + equalMany(options.assetTable + '.template_id', args.template_id, queryValues, ++varCounter);
     }
 
     if (args.collection_name) {
-        queryString += 'AND ' + options.assetTable + '.collection_name = ANY ($' + ++varCounter + ') ';
-        queryValues.push(args.collection_name.split(','));
+        queryString += 'AND ' + equalMany(options.assetTable + '.collection_name', args.collection_name, queryValues, ++varCounter);
     }
 
     if (args.schema_name) {
-        queryString += 'AND ' + options.assetTable + '.schema_name = ANY($' + ++varCounter + ') ';
-        queryValues.push(args.schema_name.split(','));
+        queryString += 'AND ' + equalMany(options.assetTable + '.schema_name', args.schema_name, queryValues, ++varCounter);
     }
 
     if (typeof args.burned === 'boolean') {
@@ -114,7 +110,7 @@ export function buildAssetFilter(
 
     if (options.templateTable && typeof args.is_transferable === 'boolean') {
         if (args.is_transferable) {
-            queryString += 'AND (' + options.templateTable + '.transferable IS NULL OR  ' + options.templateTable + '.transferable = TRUE) ';
+            queryString += 'AND ' + options.templateTable + '.transferable IS DISTINCT FROM FALSE ';
         } else {
             queryString += 'AND ' + options.templateTable + '.transferable = FALSE ';
         }
@@ -122,7 +118,7 @@ export function buildAssetFilter(
 
     if (options.templateTable && typeof args.is_burnable === 'boolean') {
         if (args.is_burnable) {
-            queryString += 'AND (' + options.templateTable + '.burnable IS NULL OR  ' + options.templateTable + '.burnable = TRUE) ';
+            queryString += 'AND ' + options.templateTable + '.burnable IS DISTINCT FROM FALSE ';
         } else {
             queryString += 'AND ' + options.templateTable + '.burnable = FALSE ';
         }

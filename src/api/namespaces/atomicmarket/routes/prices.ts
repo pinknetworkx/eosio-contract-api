@@ -96,9 +96,8 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 AVG(price.price)::bigint average,
                 COUNT(*) sales, token.token_symbol, token.token_precision, token.token_contract,
                 (price.time / (3600 * 24 * 1000)) daytime
-            FROM atomicmarket_stats_prices price, atomicassets_asset_mints mint, atomicmarket_tokens token 
-            WHERE price.assets_contract = mint.contract AND price.asset_id = mint.asset_id AND
-                price.market_contract = token.market_contract AND price.symbol = token.token_symbol AND 
+            FROM atomicmarket_stats_prices price, atomicmarket_tokens token 
+            WHERE price.market_contract = token.market_contract AND price.symbol = token.token_symbol AND 
                 price.market_contract = $1
             `;
 

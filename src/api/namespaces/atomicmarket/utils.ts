@@ -1,6 +1,6 @@
 import * as express from 'express';
 
-import { filterQueryArgs, mergeRequestData } from '../utils';
+import { equalMany, filterQueryArgs, mergeRequestData } from '../utils';
 import { buildAssetFilter } from '../atomicassets/utils';
 import { AuctionApiState, BuyofferApiState, SaleApiState } from './index';
 import { AuctionState, BuyofferState, SaleState } from '../../../filler/handlers/atomicmarket';
@@ -64,18 +64,15 @@ export function buildListingFilter(
     let queryString = '';
 
     if (args.seller) {
-        queryString += 'AND listing.seller = ANY ($' + ++varCounter + ') ';
-        queryValues.push(args.seller.split(','));
+        queryString += 'AND ' + equalMany('listing.seller', args.seller, queryValues, ++varCounter);
     }
 
     if (args.buyer) {
-        queryString += 'AND listing.buyer = ANY ($' + ++varCounter + ') ';
-        queryValues.push(args.buyer.split(','));
+        queryString += 'AND ' + equalMany('listing.buyer', args.buyer, queryValues, ++varCounter);
     }
 
     if (args.collection_name) {
-        queryString += 'AND listing.collection_name = ANY ($' + ++varCounter + ') ';
-        queryValues.push(args.collection_name.split(','));
+        queryString += 'AND ' + equalMany('listing.collection_name', args.collection_name, queryValues, ++varCounter);
     }
 
     if (!args.show_seller_contracts) {
