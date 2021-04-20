@@ -49,7 +49,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             const filter = buildSaleFilter(req, 1);
 
             let queryString = `
-                SELECT listing.market_contract, listing.sale_id 
+                SELECT listing.sale_id 
                 FROM atomicmarket_sales listing 
                     JOIN atomicassets_offers offer ON (listing.assets_contract = offer.contract AND listing.offer_id = offer.offer_id)
                     LEFT JOIN atomicmarket_sale_prices price ON (price.market_contract = listing.market_contract AND price.sale_id = listing.sale_id)
@@ -99,20 +99,22 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
 
-            const saleQuery = await server.query(
-                `
-                    WITH sales AS MATERIALIZED (
-                        ${queryString}
-                    )
-                    SELECT m.*
-                    FROM atomicmarket_sales_master m
-                        JOIN sales s USING (market_contract, sale_id)
-                `,
-                queryValues
+            const saleQuery = await server.query(queryString, queryValues);
+
+            const saleLookup: {[key: string]: any} = {};
+            const query = await server.query(
+                'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY ($2)',
+                [core.args.atomicmarket_account, saleQuery.rows.map(row => row.sale_id)]
             );
 
+            query.rows.reduce((prev, current) => {
+                prev[String(current.sale_id)] = current;
+
+                return prev;
+            }, saleLookup);
+
             const sales = await fillSales(
-                server, core.args.atomicassets_account, saleQuery.rows.map(formatSale)
+                server, core.args.atomicassets_account, saleQuery.rows.map((row) => formatSale(saleLookup[String(row.sale_id)]))
             );
 
             res.json({success: true, data: sales, query_time: Date.now()});
