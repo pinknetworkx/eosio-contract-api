@@ -155,8 +155,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
     router.all('/v1/templates/:collection_name/:template_id', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
             const query = await server.query(
-                'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND collection_name = $2 AND template_id = $3 LIMIT 1',
-                [core.args.atomicassets_account, req.params.collection_name, req.params.template_id]
+                'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND template_id = $2 LIMIT 1',
+                [core.args.atomicassets_account, req.params.template_id]
             );
 
             if (query.rowCount === 0) {
@@ -174,8 +174,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             const query = await server.query(
                 'SELECT COUNT(*) assets, COUNT(*) FILTER (WHERE owner IS NULL) burned ' +
                 'FROM atomicassets_assets ' +
-                'WHERE contract = $1 AND collection_name = $2 AND template_id = $3 ',
-                [core.args.atomicassets_account, req.params.collection_name, req.params.template_id]
+                'WHERE contract = $1 AND template_id = $2 ',
+                [core.args.atomicassets_account, req.params.template_id]
             );
 
             return res.json({success: true, data: query.rows[0]});
