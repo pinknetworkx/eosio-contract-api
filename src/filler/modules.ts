@@ -6,6 +6,8 @@ import logger from '../utils/winston';
 export interface IModule {
     traceFilter?: (block: ShipBlock, tx: EosioTransaction<any>, trace: EosioActionTrace<any>) => boolean,
     deltaFilter?: (block: ShipBlock, delta: EosioContractRow<any>) => boolean,
+    rawTraceFilter?: (blockNum: number, tx: EosioTransaction<any>, trace: EosioActionTrace<any>) => boolean,
+    rawDeltaFilter?: (blockNum: number, delta: EosioContractRow<any>) => boolean,
 }
 
 export class ModuleLoader {
@@ -26,6 +28,10 @@ export class ModuleLoader {
 
     checkTrace(block: ShipBlock, tx: EosioTransaction<any>, trace: EosioActionTrace<any>): boolean {
         for (const mod of this.modules) {
+            if (mod.rawTraceFilter && !mod.rawTraceFilter(block.block_num, tx, trace)) {
+                return false;
+            }
+
             if (mod.traceFilter && !mod.traceFilter(block, tx, trace)) {
                 return false;
             }
@@ -36,7 +42,31 @@ export class ModuleLoader {
 
     checkDelta(block: ShipBlock, delta: EosioContractRow<any>): boolean {
         for (const mod of this.modules) {
+            if (mod.rawDeltaFilter && !mod.rawDeltaFilter(block.block_num, delta)) {
+                return false;
+            }
+
             if (mod.deltaFilter && !mod.deltaFilter(block, delta)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    checkRawTrace(blockNum: number, tx: EosioTransaction<any>, trace: EosioActionTrace<any>): boolean {
+        for (const mod of this.modules) {
+            if (mod.rawTraceFilter && !mod.rawTraceFilter(blockNum, tx, trace)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    checkRawDelta(blockNum: number, delta: EosioContractRow<any>): boolean {
+        for (const mod of this.modules) {
+            if (mod.rawDeltaFilter && !mod.rawDeltaFilter(blockNum, delta)) {
                 return false;
             }
         }

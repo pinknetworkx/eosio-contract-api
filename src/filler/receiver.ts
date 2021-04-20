@@ -425,7 +425,7 @@ export default class StateReceiver {
 
             const processingInfo = this.processor.actionTraceNeeded(act.account, act.name);
 
-            if (processingInfo.deserialize) {
+            if (processingInfo.deserialize && this.modules.checkRawTrace(blockNum, row.tx, row.trace)) {
                 try {
                     const abi = await this.fetchContractAbi(act.account, blockNum);
                     const type = getActionAbiType(abi.json, act.account, act.name);
@@ -458,7 +458,7 @@ export default class StateReceiver {
 
             const processingInfo = this.processor.contractRowNeeded(delta.code, delta.table);
 
-            if (processingInfo.deserialize) {
+            if (processingInfo.deserialize && this.modules.checkRawDelta(blockNum, delta)) {
                 try {
                     const abi = await this.fetchContractAbi(delta.code, blockNum);
                     const type = getTableAbiType(abi.json, delta.code, delta.table);
