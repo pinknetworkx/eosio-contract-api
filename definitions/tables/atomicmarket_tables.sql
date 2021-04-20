@@ -200,11 +200,6 @@ ALTER TABLE ONLY atomicmarket_auctions_assets
     ADD CONSTRAINT atomicmarket_auctions_assets_auctions_fkey FOREIGN KEY (market_contract, auction_id)
     REFERENCES atomicmarket_auctions (market_contract, auction_id) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
-ALTER TABLE ONLY atomicmarket_auctions_assets
-    ADD CONSTRAINT atomicmarket_auctions_assets_assets_fkey FOREIGN KEY (assets_contract, asset_id)
-    REFERENCES atomicassets_assets (contract, asset_id) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
-
-
 
 ALTER TABLE ONLY atomicmarket_balances
     ADD CONSTRAINT atomicmarket_balances_symbols_fkey FOREIGN KEY (token_symbol, market_contract)
@@ -247,10 +242,6 @@ ALTER TABLE ONLY atomicmarket_buyoffers
 ALTER TABLE ONLY atomicmarket_buyoffers_assets
     ADD CONSTRAINT atomicmarket_buyoffers_assets_buyoffers_fkey FOREIGN KEY (market_contract, buyoffer_id)
     REFERENCES atomicmarket_buyoffers (market_contract, buyoffer_id) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
-
-ALTER TABLE ONLY atomicmarket_buyoffers_assets
-    ADD CONSTRAINT atomicmarket_buyoffers_assets_assets_fkey FOREIGN KEY (assets_contract, asset_id)
-    REFERENCES atomicassets_assets (contract, asset_id) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 
 

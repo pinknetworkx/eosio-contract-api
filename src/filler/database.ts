@@ -551,7 +551,10 @@ export class ContractDBTransaction {
                 }
 
                 counter += 1;
-                logger.info('Executed rollback query ' + counter + ' / ' + query.rowCount, row);
+
+                if (counter % 1000 === 0) {
+                    logger.info('Executed rollback query ' + counter + ' / ' + query.rowCount);
+                }
             }
 
             await this.clientQuery(
