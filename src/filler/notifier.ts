@@ -3,6 +3,7 @@ import { ShipBlock } from '../types/ship';
 import { EosioActionTrace, EosioContractRow, EosioTransaction } from '../types/eosio';
 import ConnectionManager from '../connections/manager';
 import logger from '../utils/winston';
+import { arrayChunk } from '../utils';
 
 export type NotificationData = {
     channel: string,
@@ -50,7 +51,11 @@ export default class ApiNotificationSender {
 
         if (this.processor.getState() === ProcessingState.HEAD) {
             try {
-                await this.connection.redis.ioRedis.publish(this.channelName, JSON.stringify(this.notifications));
+                const chunks = arrayChunk(this.notifications, 100);
+
+                for (const chunk of chunks) {
+                    await this.connection.redis.ioRedis.publish(this.channelName, JSON.stringify(chunk));
+                }
             } catch (e) {
                 logger.warn('Failed to send API notifications', e);
             }
