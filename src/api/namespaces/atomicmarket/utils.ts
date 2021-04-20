@@ -185,15 +185,19 @@ export function buildSaleFilter(
 
     if (args.max_assets) {
         queryString += `AND (
-            SELECT COUNT(*) FROM atomicassets_offers_assets asset 
-            WHERE asset.contract = listing.assets_contract AND asset.offer_id = listing.offer_id
+            SELECT COUNT(*) FROM (
+                SELECT FROM atomicassets_offers_assets asset
+                WHERE asset.contract = listing.assets_contract AND asset.offer_id = listing.offer_id LIMIT ${args.max_assets + 1}
+            ) ct        
         ) <= ${args.max_assets} `;
     }
 
     if (args.min_assets) {
         queryString += `AND (
-            SELECT COUNT(*) FROM atomicassets_offers_assets asset 
-            WHERE asset.contract = listing.assets_contract AND asset.offer_id = listing.offer_id
+            SELECT COUNT(*) FROM (
+                SELECT FROM atomicassets_offers_assets asset
+                WHERE asset.contract = listing.assets_contract AND asset.offer_id = listing.offer_id LIMIT ${args.min_assets}
+            ) ct        
         ) >= ${args.min_assets} `;
     }
 
