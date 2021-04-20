@@ -515,6 +515,8 @@ export class ContractDBTransaction {
                 [blockNum, this.name]
             );
 
+            logger.info('Rollback ' + query.rowCount + ' operations until block #' + blockNum);
+
             for (const row of query.rows) {
                 const values = row.values;
                 const condition: Condition | null = row.condition;
@@ -546,6 +548,8 @@ export class ContractDBTransaction {
                 } else {
                     throw Error('Invalid rollback operation in database');
                 }
+
+                logger.info('Executed rollback query', row);
             }
 
             await this.clientQuery(
