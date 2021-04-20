@@ -160,7 +160,7 @@ export default class Filler {
                     'Reader ' + this.config.name + ' - ' +
                     'Progress: ' + this.reader.currentBlock + ' / ' + (this.reader.currentBlock + this.reader.blocksUntilHead) + ' ' +
                     '(' + (100 * currentBlock / blockRange).toFixed(2) + '%) ' +
-                    'Speed: ' + speed.toFixed(1) + ' B/s [DS:' + this.reader.dsQueue.size + '|SH:' + this.reader.ship.blocksQueue.size + ']' +
+                    'Speed: ' + speed.toFixed(1) + ' B/s [DS:' + this.reader.dsQueue.size + '|SH:' + this.reader.ship.blocksQueue.size + '] ' +
                     '(Syncs ' + formatSecondsLeft(estimateSeconds(this.reader.blocksUntilHead, averageSpeed)) + ')'
                 );
             } else {
