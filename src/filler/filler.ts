@@ -145,9 +145,9 @@ export default class Filler {
                 }
 
                 logger.warn('Reader ' + this.config.name + ' - No blocks processed - Stopping in ' + Math.round((timeout - staleTime) / 1000) + ' seconds');
-            } else if (this.reader.blocksUntilHead > 120) {
+            } else if (this.reader.blocksUntilHead > 60) {
                 lastBlockTime = Date.now();
-                timeout = 3 * 60 * 1000;
+                timeout = 4 * 60 * 1000;
 
                 if (blockRange === 0) {
                     blockRange = this.reader.blocksUntilHead;
@@ -166,7 +166,7 @@ export default class Filler {
             } else {
                 lastBlockTime = Date.now();
                 blockRange = 0;
-                timeout = 3 * 60 * 1000;
+                timeout = 4 * 60 * 1000;
 
                 logger.info(
                     'Reader ' + this.config.name + ' - ' +
