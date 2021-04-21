@@ -50,7 +50,6 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                 'FROM atomicmarket_auctions listing ' +
                     'JOIN atomicmarket_tokens "token" ON (listing.market_contract = "token".market_contract AND listing.token_symbol = "token".token_symbol) ' +
                     'LEFT JOIN atomicmarket_auction_mints mint ON (mint.market_contract = listing.market_contract AND mint.auction_id = listing.auction_id) ' +
-                    'LEFT JOIN atomicmarket_auction_stats stats ON (stats.market_contract = listing.market_contract AND stats.auction_id = listing.auction_id) ' +
                 'WHERE listing.market_contract = $1 ' + auctionFilter.str;
             const queryValues = [core.args.atomicmarket_account, ...auctionFilter.values];
             let varCounter = queryValues.length;
