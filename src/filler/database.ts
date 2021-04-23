@@ -176,7 +176,7 @@ export class ContractDB {
         return {
             live: query.rows[0].live,
             block_num: parseInt(query.rows[0].block_num, 10),
-            updated: query.rows[0].updated
+            updated: parseInt(query.rows[0].updated, 10)
         };
     }
 
