@@ -120,6 +120,10 @@ export default class AtomicMarketHandler extends ContractHandler {
             }
         }
 
+        await client.query(fs.readFileSync('./definitions/tables/atomicmarket_migrate.sql', {
+            encoding: 'utf8'
+        }));
+
         const configQuery = await client.query(
             'SELECT * FROM atomicmarket_config WHERE market_contract = $1',
             [this.args.atomicmarket_account]

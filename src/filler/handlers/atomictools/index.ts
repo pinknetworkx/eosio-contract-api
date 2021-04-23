@@ -78,6 +78,10 @@ export default class AtomicToolsHandler extends ContractHandler {
             }
         }
 
+        await client.query(fs.readFileSync('./definitions/tables/atomictools_migrate.sql', {
+            encoding: 'utf8'
+        }));
+
         const configQuery = await client.query(
             'SELECT * FROM atomictools_config WHERE tools_contract = $1',
             [this.args.atomictools_account]

@@ -110,6 +110,10 @@ export default class AtomicAssetsHandler extends ContractHandler {
             }
         }
 
+        await client.query(fs.readFileSync('./definitions/tables/atomicassets_migrate.sql', {
+            encoding: 'utf8'
+        }));
+
         const configQuery = await client.query(
             'SELECT * FROM atomicassets_config WHERE contract = $1',
             [this.args.atomicassets_account]

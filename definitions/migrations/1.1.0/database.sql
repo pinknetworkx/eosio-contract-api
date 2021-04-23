@@ -101,12 +101,6 @@ DROP INDEX IF EXISTS contract_abis_block_time;
 DROP INDEX IF EXISTS contract_codes_block_time;
 DROP INDEX IF EXISTS contract_traces_created_at_block;
 
-CREATE INDEX IF NOT EXISTS atomicassets_transfers_assets_asset_id ON atomicassets_transfers_assets USING btree (asset_id);
-CREATE INDEX IF NOT EXISTS atomicmarket_sales_assets_asset_id ON atomicmarket_sales_assets USING btree (asset_id);
-CREATE INDEX IF NOT EXISTS atomicmarket_auctions_assets_asset_id ON atomicmarket_auctions_assets USING btree (asset_id);
-CREATE INDEX IF NOT EXISTS atomicmarket_buyoffers_assets_asset_id ON atomicmarket_buyoffers_assets USING btree (asset_id);
-CREATE INDEX IF NOT EXISTS atomictools_links_assets_asset_id ON atomictools_links_assets USING btree (asset_id);
-
 CREATE INDEX IF NOT EXISTS atomicmarket_sales_offer_id ON atomicmarket_sales USING btree (offer_id);
 
 CREATE INDEX IF NOT EXISTS contract_traces_created_at_block ON contract_traces USING btree (created_at_block);
