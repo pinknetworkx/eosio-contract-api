@@ -101,8 +101,6 @@ DROP INDEX IF EXISTS contract_abis_block_time;
 DROP INDEX IF EXISTS contract_codes_block_time;
 DROP INDEX IF EXISTS contract_traces_created_at_block;
 
-CREATE INDEX IF NOT EXISTS atomicmarket_sales_offer_id ON atomicmarket_sales USING btree (offer_id);
-
 CREATE INDEX IF NOT EXISTS contract_traces_created_at_block ON contract_traces USING btree (created_at_block);
 
 UPDATE dbinfo SET "value" = '1.1.0' WHERE name = 'version';
