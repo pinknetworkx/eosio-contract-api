@@ -57,8 +57,8 @@ export default class StateReceiver {
     readonly ship: StateHistoryBlockReader;
     readonly processor: DataProcessor;
     readonly notifier: ApiNotificationSender;
+    readonly database: ContractDB;
 
-    private readonly database: ContractDB;
     private readonly abis: {[key: string]: AbiCache};
 
     constructor(

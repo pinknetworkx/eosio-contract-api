@@ -122,12 +122,18 @@ function buildPrimaryCondition(values: {[key: string]: any}, primaryKey: string[
 export class ContractDB {
     static transactions: ContractDBTransaction[] = [];
 
-    constructor(readonly name: string, readonly connection: ConnectionManager) { }
+    public stats: {operations: number};
+
+    constructor(readonly name: string, readonly connection: ConnectionManager) {
+        this.stats = {operations: 0};
+    }
 
     async startTransaction(currentBlock?: number): Promise<ContractDBTransaction> {
         const client = await this.connection.database.pool.connect();
 
-        return new ContractDBTransaction(client, this.name, currentBlock);
+        this.stats.operations = this.stats.operations % Math.pow(2, 32);
+
+        return new ContractDBTransaction(client, this.name, this.stats, currentBlock);
     }
 
     async fetchAbi(contract: string, blockNum: number): Promise<{data: Uint8Array, block_num: number} | null> {
@@ -199,7 +205,7 @@ export class ContractDBTransaction {
     actionLogs: any[];
 
     constructor(
-        readonly client: PoolClient, readonly name: string, readonly currentBlock?: number
+        readonly client: PoolClient, readonly name: string, readonly stats: {operations: number}, readonly currentBlock?: number
     ) {
         this.lock = new AwaitLock();
         this.committed = false;
@@ -286,6 +292,8 @@ export class ContractDBTransaction {
 
             const query = await this.clientQuery(queryStr, queryValues);
 
+            this.stats.operations += query.rowCount;
+
             if (primaryKey.length > 0 && this.currentBlock && reversible) {
                 const rollbacks = [];
 
@@ -354,6 +362,8 @@ export class ContractDBTransaction {
 
             const query = await this.clientQuery(queryStr, queryValues);
 
+            this.stats.operations += query.rowCount;
+
             if (query.rowCount === 0) {
                 throw new Error('Table ' + table + ' updated but no rows affacted ' + JSON.stringify(values) + ' ' + JSON.stringify(condition));
             }
@@ -398,6 +408,8 @@ export class ContractDBTransaction {
             const queryStr = 'DELETE FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition.str + ';';
             const query = await this.clientQuery(queryStr, condition.values);
 
+            this.stats.operations += selectQuery ? selectQuery.rowCount : 1;
+
             if (selectQuery && selectQuery.rows.length > 0) {
                 const rollback = this.buildRollbackQuery('insert', table, selectQuery.rows);
 
@@ -423,6 +435,8 @@ export class ContractDBTransaction {
             const selectQuery = await this.clientQuery(
                 'SELECT * FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition.str + ' LIMIT 1;', condition.values
             );
+
+            this.stats.operations += 1;
 
             if (selectQuery.rows.length > 0) {
                 const updateValues: {[key: string]: any} = {...values};

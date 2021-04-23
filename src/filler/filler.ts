@@ -105,9 +105,13 @@ export default class Filler {
         await this.reader.startProcessing();
 
         const lastBlockSpeeds: number[] = [];
+
         let blockRange = 0;
-        let lastBlockNum = 0;
         let lastBlockTime = Date.now();
+
+        let lastBlockNum = 0;
+        let lastOperations = 0;
+
         let timeout = 3600 * 1000;
 
         const interval = setInterval(async () => {
@@ -126,8 +130,9 @@ export default class Filler {
                 return;
             }
 
-            const speed = (this.reader.currentBlock - lastBlockNum) / logInterval;
-            lastBlockSpeeds.push(speed);
+            const blockSpeed = (this.reader.currentBlock - lastBlockNum) / logInterval;
+            const dbSpeed = (this.reader.database.stats.operations - lastOperations) / logInterval;
+            lastBlockSpeeds.push(blockSpeed);
 
             if (lastBlockSpeeds.length > 60) {
                 lastBlockSpeeds.shift();
@@ -160,7 +165,7 @@ export default class Filler {
                     'Reader ' + this.config.name + ' - ' +
                     'Progress: ' + this.reader.currentBlock + ' / ' + (this.reader.currentBlock + this.reader.blocksUntilHead) + ' ' +
                     '(' + (100 * currentBlock / blockRange).toFixed(2) + '%) ' +
-                    'Speed: ' + speed.toFixed(1) + ' B/s [DS:' + this.reader.dsQueue.size + '|SH:' + this.reader.ship.blocksQueue.size + '] ' +
+                    'Speed: ' + blockSpeed.toFixed(1) + ' B/s ' + dbSpeed.toFixed(0) + ' W/s [DS:' + this.reader.dsQueue.size + '|SH:' + this.reader.ship.blocksQueue.size + '] ' +
                     '(Syncs ' + formatSecondsLeft(estimateSeconds(this.reader.blocksUntilHead, averageSpeed)) + ')'
                 );
             } else {
@@ -171,11 +176,13 @@ export default class Filler {
                 logger.info(
                     'Reader ' + this.config.name + ' - ' +
                     'Current Block: ' + this.reader.currentBlock + ' ' +
-                    'Speed: ' + speed.toFixed(1) + ' B/s '
+                    'Speed: ' + blockSpeed.toFixed(1) + ' B/s ' +
+                    dbSpeed.toFixed(0) + ' W/s '
                 );
             }
 
             lastBlockNum = this.reader.currentBlock;
+            lastOperations = this.reader.database.stats.operations;
         }, logInterval * 1000);
 
         this.running = true;

@@ -35,7 +35,7 @@ if (cluster.isMaster) {
             logger.info('Base tables successfully created');
         }
 
-        logger.info('Checking for available migrations...');
+        logger.info('Checking for available updates...');
 
         const versionQuery = await connection.database.query('SELECT "value" FROM dbinfo WHERE name = \'version\'');
         const currentVersion = versionQuery.rows.length > 0 ? versionQuery.rows[0].value : '1.0.0';
@@ -45,10 +45,10 @@ if (cluster.isMaster) {
             .filter(version => compareVersionString(version, currentVersion) > 0);
 
         if (availableVersions.length > 0) {
-            logger.info('Found ' + availableVersions.length + ' available migrations. Starting to migrate...');
+            logger.info('Found ' + availableVersions.length + ' available updates. Starting to update...');
 
             for (const version of availableVersions) {
-                logger.info('Migrating to ' + version + ' ...');
+                logger.info('Update to ' + version + ' ...');
 
                 const client = await connection.database.begin();
 
@@ -65,7 +65,7 @@ if (cluster.isMaster) {
 
                 client.release();
 
-                logger.info('Successfully migrated to ' + version);
+                logger.info('Successfully updated to ' + version);
             }
         }
 
