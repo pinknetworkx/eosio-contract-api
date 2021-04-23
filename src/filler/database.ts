@@ -436,8 +436,6 @@ export class ContractDBTransaction {
                 'SELECT * FROM ' + this.client.escapeIdentifier(table) + ' WHERE ' + condition.str + ' LIMIT 1;', condition.values
             );
 
-            this.stats.operations += 1;
-
             if (selectQuery.rows.length > 0) {
                 const updateValues: {[key: string]: any} = {...values};
 
