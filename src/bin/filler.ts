@@ -61,6 +61,8 @@ if (cluster.isMaster) {
 
                 migrateFn(client);
 
+                await client.query('COMMIT');
+
                 client.release();
 
                 logger.info('Successfully migrated to ' + version);
