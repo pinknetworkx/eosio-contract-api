@@ -1,6 +1,6 @@
 {
   "name": "eosio-contract-api",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "AtomicAssets API",
   "author": "pink.network",
   "license": "AGPL-3.0",

@@ -62,7 +62,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             queryString += hideOfferAssets(req);
 
             const boundaryFilter = buildBoundaryFilter(
-                req, varCounter, 'owner', 'string', null, null
+                req, varCounter, 'owner', 'string', null
             );
             queryValues.push(...boundaryFilter.values);
             varCounter += boundaryFilter.values.length;

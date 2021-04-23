@@ -73,7 +73,6 @@ CREATE INDEX contract_codes_block_time ON contract_codes USING btree (block_time
 CREATE INDEX contract_traces_account ON contract_traces USING btree (account);
 CREATE INDEX contract_traces_name ON contract_traces USING btree (name);
 CREATE INDEX contract_traces_metadata ON contract_traces USING gin (metadata);
-CREATE INDEX contract_traces_created_at_block ON contract_traces USING btree (created_at_block);
 CREATE INDEX contract_traces_created_at_time ON contract_traces USING btree (created_at_time);
 
 CREATE INDEX reversible_queries_block_num ON reversible_queries USING btree (block_num);

@@ -98,7 +98,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
 
             const boundaryFilter = buildBoundaryFilter(
                 req, varCounter, 'template.template_id', 'int',
-                'template.created_at_time', 'template.created_at_block'
+                'template.created_at_time'
             );
             queryValues.push(...boundaryFilter.values);
             varCounter += boundaryFilter.values.length;

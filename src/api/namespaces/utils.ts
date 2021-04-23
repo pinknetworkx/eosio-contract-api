@@ -109,7 +109,7 @@ export function filterQueryArgs(req: express.Request, filter: FilterDefinition, 
 export function buildBoundaryFilter(
     req: express.Request, varOffset: number,
     primaryColumn: string, primaryType: 'string' | 'int',
-    dateColumn: string | null, blockColumn: string | null
+    dateColumn: string | null
 ): {values: any[], str: string} {
     const args = filterQueryArgs(req, {
         lower_bound: {type: primaryType, min: 1},
@@ -122,8 +122,6 @@ export function buildBoundaryFilter(
     let queryString = '';
     const queryValues: any[] = [];
     let varCounter = varOffset;
-
-    const timeThreshold = new Date('1.1.2000').getTime();
 
     if (primaryColumn && args.ids) {
         queryString += 'AND ' + primaryColumn + ' = ANY ($' + ++varCounter + ') ';
@@ -140,24 +138,14 @@ export function buildBoundaryFilter(
         queryValues.push(args.upper_bound);
     }
 
-    if (args.before) {
-        if (dateColumn && args.before > timeThreshold) {
-            queryString += 'AND ' + dateColumn + ' < $' + ++varCounter + ' ';
-            queryValues.push(args.before);
-        } else if (blockColumn) {
-            queryString += 'AND ' + blockColumn + ' < $' + ++varCounter + ' ';
-            queryValues.push(args.before);
-        }
+    if (dateColumn && args.before) {
+        queryString += 'AND ' + dateColumn + ' < $' + ++varCounter + ' ';
+        queryValues.push(args.before);
     }
 
-    if (args.after) {
-        if (dateColumn && args.after > timeThreshold) {
-            queryString += 'AND ' + dateColumn + ' > $' + ++varCounter + ' ';
-            queryValues.push(args.after);
-        } else if (blockColumn) {
-            queryString += 'AND ' + blockColumn + ' > $' + ++varCounter + ' ';
-            queryValues.push(args.after);
-        }
+    if (dateColumn && args.after) {
+        queryString += 'AND ' + dateColumn + ' > $' + ++varCounter + ' ';
+        queryValues.push(args.after);
     }
 
     return {

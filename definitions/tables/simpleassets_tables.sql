@@ -66,24 +66,17 @@ CREATE INDEX simpleassets_assets_asset_id ON simpleassets_assets USING btree (as
 CREATE INDEX simpleassets_assets_author_btree ON simpleassets_assets USING btree (author);
 CREATE INDEX simpleassets_assets_author_hash ON simpleassets_assets USING hash (author);
 CREATE INDEX simpleassets_assets_categpry ON simpleassets_assets USING btree (category);
-CREATE INDEX simpleassets_assets_owner_btree ON simpleassets_assets USING btree (owner);
-CREATE INDEX simpleassets_assets_owner_hash ON simpleassets_assets USING hash (owner);
+CREATE INDEX simpleassets_assets_owner ON simpleassets_assets USING btree (owner);
 CREATE INDEX simpleassets_assets_burned_by_account ON simpleassets_assets USING btree (burned_by_account);
-CREATE INDEX simpleassets_assets_burned_at_block ON simpleassets_assets USING btree (burned_at_block);
 CREATE INDEX simpleassets_assets_burned_at_time ON simpleassets_assets USING btree (burned_at_time);
-CREATE INDEX simpleassets_assets_updated_at_block ON simpleassets_assets USING btree (updated_at_block);
 CREATE INDEX simpleassets_assets_updated_at_time ON simpleassets_assets USING btree (updated_at_time);
-CREATE INDEX simpleassets_assets_transferred_at_block ON simpleassets_assets USING btree (transferred_at_block);
 CREATE INDEX simpleassets_assets_transferred_at_time ON simpleassets_assets USING btree (transferred_at_time);
-CREATE INDEX simpleassets_assets_minted_at_block ON simpleassets_assets USING btree (minted_at_block);
 CREATE INDEX simpleassets_assets_minted_at_time ON simpleassets_assets USING btree (minted_at_time);
 CREATE INDEX simpleassets_assets_immutable_data_gin ON simpleassets_assets USING gin (mutable_data);
 CREATE INDEX simpleassets_assets_immutable_data_gin ON simpleassets_assets USING gin (immutable_data);
 
 CREATE INDEX simpleassets_transfers_sender ON simpleassets_transfers USING btree (sender);
 CREATE INDEX simpleassets_transfers_recipient ON simpleassets_transfers USING btree (recipient);
-CREATE INDEX simpleassets_transfers_created_at_block ON simpleassets_transfers USING btree (created_at_block);
 CREATE INDEX simpleassets_transfers_created_at_time ON simpleassets_transfers USING btree (created_at_time);
 
-CREATE INDEX simpleassets_transfers_assets_transfer_id ON simpleassets_transfers_assets USING btree (transfer_id);
-CREATE INDEX simpleassets_transfers_assets_index ON simpleassets_transfers_assets USING btree ("index");
+CREATE INDEX simpleassets_transfers_assets_asset_id ON simpleassets_transfers_assets USING btree (asset_id);

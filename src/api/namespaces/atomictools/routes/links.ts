@@ -85,7 +85,7 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
 
             const boundaryFilter = buildBoundaryFilter(
                 req, varCounter, 'link_id', 'int',
-                args.sort === 'updated' ? 'updated_at_time' : 'created_at_time', args.sort === 'updated' ? 'updated_at_block' : 'created_at_block'
+                args.sort === 'updated' ? 'updated_at_time' : 'created_at_time'
             );
             queryValues.push(...boundaryFilter.values);
             varCounter += boundaryFilter.values.length;
@@ -102,7 +102,7 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
 
             const sortColumnMapping = {
                 created: 'link_id',
-                updated: 'updated_at_block'
+                updated: 'updated_at_time'
             };
 
             // @ts-ignore

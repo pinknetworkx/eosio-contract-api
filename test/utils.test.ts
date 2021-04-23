@@ -1,8 +1,7 @@
 import 'mocha';
-import { expect } from 'chai';
 import PQueue from 'p-queue';
 
-async function sleep(timeout: number) {
+async function sleep(timeout: number): Promise<any> {
     return new Promise((resolve => setTimeout(resolve, timeout)));
 }
 

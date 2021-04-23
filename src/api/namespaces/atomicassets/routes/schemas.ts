@@ -62,7 +62,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
 
             const boundaryFilter = buildBoundaryFilter(
                 req, varCounter, 'schema_name', 'string',
-                'created_at_time', 'created_at_block'
+                'created_at_time'
             );
             queryValues.push(...boundaryFilter.values);
             varCounter += boundaryFilter.values.length;
@@ -83,7 +83,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
             }
 
             const sortColumnMapping = {
-                created: 'created_at_block',
+                created: 'created_at_time',
                 schema_name: 'schema_name'
             };
 

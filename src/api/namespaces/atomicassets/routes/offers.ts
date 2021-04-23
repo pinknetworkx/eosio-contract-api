@@ -199,15 +199,15 @@ export class OfferApi {
 
                 const boundaryFilter = buildBoundaryFilter(
                     req, varCounter, 'offer_id', 'int',
-                    args.sort === 'updated' ? 'updated_at_time' : 'created_at_time', args.sort === 'updated' ? 'updated_at_block' : 'created_at_block'
+                    args.sort === 'updated' ? 'updated_at_time' : 'created_at_time'
                 );
                 queryValues.push(...boundaryFilter.values);
                 varCounter += boundaryFilter.values.length;
                 queryString += boundaryFilter.str;
 
                 const sortColumnMapping = {
-                    created: 'created_at_block',
-                    updated: 'updated_at_block'
+                    created: 'created_at_time',
+                    updated: 'updated_at_time'
                 };
 
                 if (req.originalUrl.search('/_count') >= 0) {

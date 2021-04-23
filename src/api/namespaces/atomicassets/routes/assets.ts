@@ -177,8 +177,7 @@ export class AssetApi {
                 const boundaryFilter = buildBoundaryFilter(
                     req, varCounter,
                     'asset.asset_id', 'int',
-                    args.sort === 'updated' ? 'asset.updated_at_time' : 'asset.minted_at_time',
-                    args.sort === 'updated' ? 'asset.updated_at_block' : 'asset.minted_at_block'
+                    args.sort === 'updated' ? 'asset.updated_at_time' : 'asset.minted_at_time'
                 );
 
                 queryValues = queryValues.concat(boundaryFilter.values);
@@ -217,9 +216,9 @@ export class AssetApi {
                     } else {
                         const sortColumnMapping: {[key: string]: {column: string, nullable: boolean}} = {
                             asset_id: {column: 'asset.asset_id', nullable: false},
-                            updated: {column: 'asset.updated_at_block', nullable: false},
-                            transferred: {column: 'asset.transferred_at_block', nullable: false},
-                            minted: {column: 'asset.minted_at_block', nullable: false},
+                            updated: {column: 'asset.updated_at_time', nullable: false},
+                            transferred: {column: 'asset.transferred_at_time', nullable: false},
+                            minted: {column: 'asset.minted_at_time', nullable: false},
                             collection_mint: {column: 'mint.collection_mint', nullable: true},
                             schema_mint: {column: 'mint.schema_mint', nullable: true},
                             template_mint: {column: 'mint.template_mint', nullable: true}

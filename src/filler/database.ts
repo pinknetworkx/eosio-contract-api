@@ -162,19 +162,21 @@ export class ContractDB {
         };
     }
 
-    async getReaderPosition(): Promise<{ live: boolean, block_num: number }> {
-        const query = await this.connection.database.query('SELECT live, block_num FROM contract_readers WHERE name = $1', [this.name]);
+    async getReaderPosition(): Promise<{ live: boolean, block_num: number, updated: number }> {
+        const query = await this.connection.database.query('SELECT live, block_num, updated FROM contract_readers WHERE name = $1', [this.name]);
 
         if (query.rows.length === 0) {
             return {
                 live: false,
-                block_num: 0
+                block_num: 0,
+                updated: 0
             };
         }
 
         return {
             live: query.rows[0].live,
-            block_num: parseInt(query.rows[0].block_num, 10)
+            block_num: parseInt(query.rows[0].block_num, 10),
+            updated: query.rows[0].updated
         };
     }
 

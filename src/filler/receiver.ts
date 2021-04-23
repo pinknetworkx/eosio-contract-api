@@ -89,7 +89,18 @@ export default class StateReceiver {
     }
 
     async startProcessing(): Promise<void> {
-        const position = await this.database.getReaderPosition();
+        let position = await this.database.getReaderPosition();
+
+        while (position.updated + 10 * 1000 > Date.now()) {
+            logger.warn(
+                'This reader processed a block less than 10 seconds ago. ' +
+                'Please make sure that only 1 reader with the same name is running at the same time.'
+            );
+
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
+            position = await this.database.getReaderPosition();
+        }
 
         this.processor.setState(position.live ? ProcessingState.HEAD : ProcessingState.CATCHUP);
 

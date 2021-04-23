@@ -235,9 +235,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
             queryValues = queryValues.concat(assetFilter.values);
 
             const boundaryFilter = buildBoundaryFilter(
-                req, varCounter,
-                'asset.asset_id', 'int',
-                null, null
+                req, varCounter, 'asset.asset_id', 'int', null
             );
 
             queryValues = queryValues.concat(boundaryFilter.values);

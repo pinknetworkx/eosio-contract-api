@@ -54,7 +54,7 @@ export function burnEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, r
             }
 
             const boundaryFilter = buildBoundaryFilter(
-                req, varCounter, 'burned_by_account', 'string', 'burned_at_time', 'burned_at_block'
+                req, varCounter, 'burned_by_account', 'string', 'burned_at_time'
             );
             queryValues.push(...boundaryFilter.values);
             varCounter += boundaryFilter.values.length;

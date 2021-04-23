@@ -3,6 +3,7 @@ import 'mocha';
 import ConnectionManager from '../src/connections/manager';
 import { ContractDB } from '../src/filler/database';
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const config = require('../config/connections.config.json');
 
 describe('database tests', () => {

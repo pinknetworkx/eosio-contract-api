@@ -123,7 +123,7 @@ export class TransferApi {
 
                 const boundaryFilter = buildBoundaryFilter(
                     req, varCounter, 'transfer_id', 'int',
-                    'created_at_time', 'created_at_block'
+                    'created_at_time'
                 );
                 queryValues.push(...boundaryFilter.values);
                 varCounter += boundaryFilter.values.length;

@@ -67,8 +67,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             const boundaryFilter = buildBoundaryFilter(
                 req, varCounter, 'listing.sale_id', 'int',
-                args.sort === 'updated' ? 'listing.updated_at_time' : 'listing.created_at_time',
-                args.sort === 'updated' ? 'listing.updated_at_block' : 'listing.created_at_block'
+                args.sort === 'updated' ? 'listing.updated_at_time' : 'listing.created_at_time'
             );
             queryValues.push(...boundaryFilter.values);
             varCounter += boundaryFilter.values.length;
@@ -85,8 +84,8 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             const sortMapping: {[key: string]: {column: string, nullable: boolean}}  = {
                 sale_id: {column: 'listing.sale_id', nullable: false},
-                created: {column: 'listing.created_at_block', nullable: false},
-                updated: {column: 'listing.updated_at_block', nullable: false},
+                created: {column: 'listing.created_at_time', nullable: false},
+                updated: {column: 'listing.updated_at_time', nullable: false},
                 price: {column: 'price.price', nullable: true},
                 template_mint: {column: 'mint.min_template_mint', nullable: true},
                 schema_mint: {column: 'mint.min_schema_mint', nullable: true},

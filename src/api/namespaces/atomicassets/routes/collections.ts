@@ -58,7 +58,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
 
             const boundaryFilter = buildBoundaryFilter(
                 req, varCounter, 'collection_name', 'string',
-                'created_at_time', 'created_at_block'
+                'created_at_time'
             );
             queryValues.push(...boundaryFilter.values);
             varCounter += boundaryFilter.values.length;
@@ -79,7 +79,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
             }
 
             const sortColumnMapping = {
-                created: 'created_at_block',
+                created: 'created_at_time',
                 collection_name: 'collection_name'
             };
 

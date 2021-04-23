@@ -61,8 +61,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
 
             const boundaryFilter = buildBoundaryFilter(
                 req, varCounter, 'listing.auction_id', 'int',
-                args.sort === 'updated' ? 'listing.updated_at_time' : 'listing.created_at_time',
-                args.sort === 'updated' ? 'listing.updated_at_block' : 'listing.created_at_block'
+                args.sort === 'updated' ? 'listing.updated_at_time' : 'listing.created_at_time'
             );
             queryValues.push(...boundaryFilter.values);
             varCounter += boundaryFilter.values.length;
@@ -80,8 +79,8 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             const sortMapping: {[key: string]: {column: string, nullable: boolean}} = {
                 auction_id: {column: 'listing.auction_id', nullable: false},
                 ending: {column: 'listing.end_time', nullable: false},
-                created: {column: 'listing.created_at_block', nullable: false},
-                updated: {column: 'listing.updated_at_block', nullable: false},
+                created: {column: 'listing.created_at_time', nullable: false},
+                updated: {column: 'listing.updated_at_time', nullable: false},
                 price: {column: 'listing.price', nullable: true},
                 template_mint: {column: 'mint.min_template_mint', nullable: true},
                 schema_mint: {column: 'mint.min_schema_mint', nullable: true},
