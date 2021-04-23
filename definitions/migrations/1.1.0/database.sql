@@ -105,4 +105,4 @@ CREATE INDEX IF NOT EXISTS atomicmarket_sales_offer_id ON atomicmarket_sales USI
 
 CREATE INDEX IF NOT EXISTS contract_traces_created_at_block ON contract_traces USING btree (created_at_block);
 
-UPDATE dbinfo SET "value" = "1.1.0" WHERE name = 'version';
+UPDATE dbinfo SET "value" = '1.1.0' WHERE name = 'version';
