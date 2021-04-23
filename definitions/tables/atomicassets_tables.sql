@@ -234,4 +234,4 @@ CREATE INDEX atomicassets_transfers_sender ON atomicassets_transfers USING btree
 CREATE INDEX atomicassets_transfers_recipient ON atomicassets_transfers USING btree (recipient);
 CREATE INDEX atomicassets_transfers_created_at_time ON atomicassets_transfers USING btree (created_at_time);
 
-CREATE INDEX IF NOT EXISTS atomicassets_transfers_assets_asset_id ON atomicassets_transfers_assets USING btree (asset_id);
+CREATE INDEX atomicassets_transfers_assets_asset_id ON atomicassets_transfers_assets USING btree (asset_id);

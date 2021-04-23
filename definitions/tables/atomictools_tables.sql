@@ -42,4 +42,4 @@ CREATE INDEX atomictools_links_key_data ON atomictools_links USING hash (key_dat
 CREATE INDEX atomictools_links_created_at_time ON atomictools_links USING btree (created_at_time);
 CREATE INDEX atomictools_links_updated_at_time ON atomictools_links USING btree (updated_at_time);
 
-CREATE INDEX IF NOT EXISTS atomictools_links_assets_asset_id ON atomictools_links_assets USING btree (asset_id);
+CREATE INDEX atomictools_links_assets_asset_id ON atomictools_links_assets USING btree (asset_id);
