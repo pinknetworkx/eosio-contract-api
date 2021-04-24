@@ -270,7 +270,6 @@ CREATE INDEX atomicmarket_sales_updated_at_time ON atomicmarket_sales USING btre
 CREATE INDEX atomicmarket_sales_created_at_block ON atomicmarket_sales USING btree (created_at_block);
 CREATE INDEX atomicmarket_sales_created_at_time ON atomicmarket_sales USING btree (created_at_time);
 
-CREATE INDEX atomicmarket_sales_assets_asset_id ON atomicmarket_sales_assets USING btree (asset_id);
 CREATE INDEX atomicmarket_sales_offer_id ON atomicmarket_sales USING btree (offer_id);
 
 CREATE INDEX atomicmarket_buyoffers_buyoffer_id ON atomicmarket_buyoffers USING btree (buyoffer_id);
