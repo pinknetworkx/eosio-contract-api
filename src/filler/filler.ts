@@ -165,7 +165,8 @@ export default class Filler {
                     'Reader ' + this.config.name + ' - ' +
                     'Progress: ' + this.reader.currentBlock + ' / ' + (this.reader.currentBlock + this.reader.blocksUntilHead) + ' ' +
                     '(' + (100 * currentBlock / blockRange).toFixed(2) + '%) ' +
-                    'Speed: ' + blockSpeed.toFixed(1) + ' B/s ' + dbSpeed.toFixed(0) + ' W/s [DS:' + this.reader.dsQueue.size + '|SH:' + this.reader.ship.blocksQueue.size + '] ' +
+                    'Speed: ' + blockSpeed.toFixed(1) + ' B/s ' + dbSpeed.toFixed(0) + ' W/s ' +
+                    '[DS:' + this.reader.dsQueue.size + '|SH:' + this.reader.ship.blocksQueue.size + '] ' +
                     '(Syncs ' + formatSecondsLeft(estimateSeconds(this.reader.blocksUntilHead, averageSpeed)) + ')'
                 );
             } else {
@@ -176,8 +177,8 @@ export default class Filler {
                 logger.info(
                     'Reader ' + this.config.name + ' - ' +
                     'Current Block: ' + this.reader.currentBlock + ' ' +
-                    'Speed: ' + blockSpeed.toFixed(1) + ' B/s ' +
-                    dbSpeed.toFixed(0) + ' W/s '
+                    'Speed: ' + blockSpeed.toFixed(1) + ' B/s ' + dbSpeed.toFixed(0) + ' W/s ' +
+                    '[DS:' + this.reader.dsQueue.size + '|SH:' + this.reader.ship.blocksQueue.size + '] '
                 );
             }
 
