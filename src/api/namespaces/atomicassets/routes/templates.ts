@@ -29,6 +29,9 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                 authorized_account: {type: 'string', min: 1, max: 12},
 
                 issued_supply: {type: 'int', min: 0},
+                min_issued_supply: {type: 'int', min: 0},
+                max_issued_supply: {type: 'int', min: 0},
+
                 max_supply: {type: 'int', min: 0},
                 is_transferable: {type: 'bool'},
                 is_burnable: {type: 'bool'}
@@ -59,6 +62,16 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             if (typeof args.issued_supply === 'number') {
                 queryString += 'AND template.issued_supply = $' + ++varCounter + ' ';
                 queryValues.push(args.issued_supply);
+            }
+
+            if (typeof args.min_issued_supply === 'number') {
+                queryString += 'AND template.issued_supply >= $' + ++varCounter + ' ';
+                queryValues.push(args.min_issued_supply);
+            }
+
+            if (typeof args.max_issued_supply === 'number') {
+                queryString += 'AND template.issued_supply <= $' + ++varCounter + ' ';
+                queryValues.push(args.max_issued_supply);
             }
 
             if (typeof args.max_supply === 'number') {
@@ -234,6 +247,20 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                         },
                         {
                             name: 'issued_supply',
+                            in: 'query',
+                            description: 'Filter by issued supply',
+                            required: false,
+                            schema: {type: 'number'}
+                        },
+                        {
+                            name: 'min_issued_supply',
+                            in: 'query',
+                            description: 'Filter by issued supply',
+                            required: false,
+                            schema: {type: 'number'}
+                        },
+                        {
+                            name: 'max_issued_supply',
                             in: 'query',
                             description: 'Filter by issued supply',
                             required: false,
