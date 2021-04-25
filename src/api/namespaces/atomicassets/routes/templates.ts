@@ -31,6 +31,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                 issued_supply: {type: 'int', min: 0},
                 min_issued_supply: {type: 'int', min: 0},
                 max_issued_supply: {type: 'int', min: 0},
+                has_assets: {type: 'bool'},
 
                 max_supply: {type: 'int', min: 0},
                 is_transferable: {type: 'bool'},
@@ -72,6 +73,13 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             if (typeof args.max_issued_supply === 'number') {
                 queryString += 'AND template.issued_supply <= $' + ++varCounter + ' ';
                 queryValues.push(args.max_issued_supply);
+            }
+
+            if (args.has_assets) {
+                queryString += 'AND EXISTS(' +
+                    'SELECT * FROM atomicassets_assets asset ' +
+                    'WHERE template.contract = asset.contract AND template.template_id = asset.template_id AND owner IS NOT NULL' +
+                    ') ';
             }
 
             if (typeof args.max_supply === 'number') {
@@ -265,6 +273,13 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                             description: 'Filter by issued supply',
                             required: false,
                             schema: {type: 'number'}
+                        },
+                        {
+                            name: 'has_assets',
+                            in: 'query',
+                            description: 'Only show templates with existing supply > 0',
+                            required: false,
+                            schema: {type: 'boolean'}
                         },
                         {
                             name: 'max_supply',
