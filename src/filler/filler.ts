@@ -29,8 +29,8 @@ export default class Filler {
     readonly reader: StateReceiver;
     readonly modules: ModuleLoader;
 
-    private readonly standardMaterializedViews: Array<{name: string, interval: number, refreshed: number}>;
-    private readonly priorityMaterializedViews: Array<{name: string, interval: number, refreshed: number}>;
+    private readonly standardMaterializedViews: Array<{fn: () => any, interval: number, updated: number}>;
+    private readonly priorityMaterializedViews: Array<{fn: () => any, interval: number, updated: number}>;
     private running: boolean;
 
     private readonly handlers: ContractHandler[];
@@ -191,13 +191,13 @@ export default class Filler {
         setTimeout(async () => {
             while (this.running) {
                 for (const view of this.standardMaterializedViews) {
-                    if (view.refreshed + view.interval < Date.now()) {
+                    if (view.updated + view.interval < Date.now()) {
                         try {
-                            await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view.name);
+                            await view.fn();
                         } catch (err){
-                            logger.error('Error while refreshing materalized view ' + view.name, err);
+                            logger.error('Error while refreshing standard job', err);
                         } finally {
-                            view.refreshed = Date.now();
+                            view.updated = Date.now();
                         }
                     }
                 }
@@ -209,13 +209,13 @@ export default class Filler {
         setTimeout(async () => {
             while (this.running) {
                 for (const view of this.priorityMaterializedViews) {
-                    if (view.refreshed + view.interval < Date.now()) {
+                    if (view.updated + view.interval < Date.now()) {
                         try {
-                            await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view.name);
+                            await view.fn();
                         } catch (err){
-                            logger.error('Error while refreshing materalized view ' + view.name, err);
+                            logger.error('Error while processing priority update job', err);
                         } finally {
-                            view.refreshed = Date.now();
+                            view.updated = Date.now();
                         }
                     }
                 }
@@ -232,10 +232,16 @@ export default class Filler {
     }
 
     registerMaterializedViewRefresh(name: string, interval: number, priority = false): void {
+        this.registerUpdateJob(async () => {
+            await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + name);
+        }, interval, priority);
+    }
+
+    registerUpdateJob(fn: () => any, interval: number, priority = false): void {
         if (priority) {
-            this.priorityMaterializedViews.push({name, interval, refreshed: Date.now()});
+            this.priorityMaterializedViews.push({fn, interval, updated: Date.now()});
         } else {
-            this.standardMaterializedViews.push({name, interval, refreshed: Date.now()});
+            this.standardMaterializedViews.push({fn, interval, updated: Date.now()});
         }
     }
 }
