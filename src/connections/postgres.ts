@@ -1,4 +1,5 @@
 import { Pool, PoolClient, PoolConfig, QueryResult } from 'pg';
+import logger from '../utils/winston';
 
 export default class PostgresConnection {
     readonly pool: Pool;
@@ -13,6 +14,10 @@ export default class PostgresConnection {
             application_name: 'eosio-contract-api'
         };
         this.pool = new Pool(this.args);
+
+        this.pool.on('error', (err) => {
+            logger.warn('PG pool error', err);
+        });
 
         this.name = host + '::' + port + '::' + database;
     }
