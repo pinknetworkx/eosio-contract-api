@@ -25,6 +25,12 @@ const connection = new ConnectionManager(connectionConfig);
         process.exit(1);
     }
 
+    process.on('unhandledRejection', error => {
+        logger.error('Unhandled error', error);
+
+        process.exit(1);
+    });
+
     try {
         const server = new Api(serverConfig, connection);
 
