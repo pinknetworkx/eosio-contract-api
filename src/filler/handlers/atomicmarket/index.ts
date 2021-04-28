@@ -70,15 +70,7 @@ export default class AtomicMarketHandler extends ContractHandler {
 
     config: ConfigTableRow;
 
-    constructor(filler: Filler, args: {[key: string]: any}) {
-        super(filler, args);
-
-        if (typeof args.atomicmarket_account !== 'string') {
-            throw new Error('AtomicMarket: Argument missing in atomicmarket handler: atomicmarket_account');
-        }
-    }
-
-    async init(client: PoolClient): Promise<void> {
+    static async setup(client: PoolClient, schema: string) {
         const existsQuery = await client.query(
             'SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2)',
             [await this.connection.database.schema(), 'atomicmarket_config']
@@ -114,16 +106,22 @@ export default class AtomicMarketHandler extends ContractHandler {
             }
 
             logger.info('AtomicMarket tables successfully created');
-        } else {
-            for (const view of views) {
-                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
-            }
         }
+    }
 
-        await client.query(fs.readFileSync('./definitions/tables/atomicmarket_migrate.sql', {
-            encoding: 'utf8'
-        }));
+    static upgrade(client: PoolClient, version: string) {
 
+    }
+
+    constructor(filler: Filler, args: {[key: string]: any}) {
+        super(filler, args);
+
+        if (typeof args.atomicmarket_account !== 'string') {
+            throw new Error('AtomicMarket: Argument missing in atomicmarket handler: atomicmarket_account');
+        }
+    }
+
+    async init(client: PoolClient): Promise<void> {
         const configQuery = await client.query(
             'SELECT * FROM atomicmarket_config WHERE market_contract = $1',
             [this.args.atomicmarket_account]

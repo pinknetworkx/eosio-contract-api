@@ -238,12 +238,8 @@ CREATE INDEX atomicmarket_auctions_seller ON atomicmarket_auctions USING hash (s
 CREATE INDEX atomicmarket_auctions_buyer ON atomicmarket_auctions USING hash (buyer);
 CREATE INDEX atomicmarket_auctions_price ON atomicmarket_auctions USING btree (price);
 CREATE INDEX atomicmarket_auctions_collection_name ON atomicmarket_auctions USING btree (collection_name);
-CREATE INDEX atomicmarket_auctions_maker_marketplace ON atomicmarket_auctions USING hash (maker_marketplace);
-CREATE INDEX atomicmarket_auctions_taker_marketplace ON atomicmarket_auctions USING hash (taker_marketplace);
 CREATE INDEX atomicmarket_auctions_state ON atomicmarket_auctions USING btree (state);
-CREATE INDEX atomicmarket_auctions_updated_at_block ON atomicmarket_auctions USING btree (updated_at_block);
 CREATE INDEX atomicmarket_auctions_updated_at_time ON atomicmarket_auctions USING btree (updated_at_time);
-CREATE INDEX atomicmarket_auctions_created_at_block ON atomicmarket_auctions USING btree (created_at_block);
 CREATE INDEX atomicmarket_auctions_created_at_time ON atomicmarket_auctions USING btree (created_at_time);
 CREATE INDEX atomicmarket_auctions_end_time ON atomicmarket_auctions USING btree (end_time);
 
@@ -251,10 +247,8 @@ CREATE INDEX atomicmarket_auctions_assets_asset_id ON atomicmarket_auctions_asse
 
 CREATE INDEX atomicmarket_auctions_bids_account ON atomicmarket_auctions_bids USING btree (account);
 CREATE INDEX atomicmarket_auctions_bids_amount ON atomicmarket_auctions_bids USING btree (amount);
-CREATE INDEX atomicmarket_auctions_bids_created_at_block ON atomicmarket_auctions_bids USING btree (created_at_block);
 
 CREATE INDEX atomicmarket_balances_owner ON atomicmarket_balances USING btree (owner);
-CREATE INDEX atomicmarket_balances_updated_at_block ON atomicmarket_balances USING btree (updated_at_block);
 
 CREATE INDEX atomicmarket_sales_sale_id ON atomicmarket_sales USING btree (sale_id);
 CREATE INDEX atomicmarket_sales_seller ON atomicmarket_sales USING hash (seller);
@@ -262,12 +256,8 @@ CREATE INDEX atomicmarket_sales_buyer ON atomicmarket_sales USING hash (buyer);
 CREATE INDEX atomicmarket_sales_listing_price ON atomicmarket_sales USING btree (listing_price);
 CREATE INDEX atomicmarket_sales_final_price ON atomicmarket_sales USING btree (final_price);
 CREATE INDEX atomicmarket_sales_collection_name ON atomicmarket_sales USING btree (collection_name);
-CREATE INDEX atomicmarket_sales_maker_marketplace ON atomicmarket_sales USING hash (maker_marketplace);
-CREATE INDEX atomicmarket_sales_taker_marketplace ON atomicmarket_sales USING hash (taker_marketplace);
 CREATE INDEX atomicmarket_sales_state ON atomicmarket_sales USING btree (state);
-CREATE INDEX atomicmarket_sales_updated_at_block ON atomicmarket_sales USING btree (updated_at_block);
 CREATE INDEX atomicmarket_sales_updated_at_time ON atomicmarket_sales USING btree (updated_at_time);
-CREATE INDEX atomicmarket_sales_created_at_block ON atomicmarket_sales USING btree (created_at_block);
 CREATE INDEX atomicmarket_sales_created_at_time ON atomicmarket_sales USING btree (created_at_time);
 
 CREATE INDEX atomicmarket_sales_offer_id ON atomicmarket_sales USING btree (offer_id);
@@ -276,14 +266,9 @@ CREATE INDEX atomicmarket_buyoffers_buyoffer_id ON atomicmarket_buyoffers USING 
 CREATE INDEX atomicmarket_buyoffers_seller ON atomicmarket_buyoffers USING hash (seller);
 CREATE INDEX atomicmarket_buyoffers_buyer ON atomicmarket_buyoffers USING hash (buyer);
 CREATE INDEX atomicmarket_buyoffers_price ON atomicmarket_buyoffers USING btree (price);
-CREATE INDEX atomicmarket_buyoffers_token_symbol ON atomicmarket_buyoffers USING btree (token_symbol);
 CREATE INDEX atomicmarket_buyoffers_collection_name ON atomicmarket_buyoffers USING btree (collection_name);
-CREATE INDEX atomicmarket_buyoffers_maker_marketplace ON atomicmarket_buyoffers USING hash (maker_marketplace);
-CREATE INDEX atomicmarket_buyoffers_taker_marketplace ON atomicmarket_buyoffers USING hash (taker_marketplace);
 CREATE INDEX atomicmarket_buyoffers_state ON atomicmarket_buyoffers USING btree (state);
-CREATE INDEX atomicmarket_buyoffers_updated_at_block ON atomicmarket_buyoffers USING btree (updated_at_block);
 CREATE INDEX atomicmarket_buyoffers_updated_at_time ON atomicmarket_buyoffers USING btree (updated_at_time);
-CREATE INDEX atomicmarket_buyoffers_created_at_block ON atomicmarket_buyoffers USING btree (created_at_block);
 CREATE INDEX atomicmarket_buyoffers_created_at_time ON atomicmarket_buyoffers USING btree (created_at_time);
 
 CREATE INDEX atomicmarket_buyoffers_assets_asset_id ON atomicmarket_buyoffers_assets USING btree (asset_id);
