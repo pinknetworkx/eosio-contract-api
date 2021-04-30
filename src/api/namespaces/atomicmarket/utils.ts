@@ -301,7 +301,7 @@ export function buildAuctionFilter(
 
         queryString += 'AND EXISTS(' +
                 'SELECT * ' +
-                'FROM atomicmarket_auctions_assets auction_asset ' +
+                'FROM atomicmarket_auctions_assets auction_asset, ' +
                     'atomicassets_assets asset LEFT JOIN atomicassets_templates "template" ON ("asset".contract = "template".contract AND "asset".template_id = "template".template_id) ' +
                 'WHERE ' +
                     'asset.contract = auction_asset.assets_contract AND asset.asset_id = auction_asset.asset_id AND ' +
@@ -431,7 +431,7 @@ export function buildBuyofferFilter(
 
         queryString += 'AND EXISTS(' +
             'SELECT * ' +
-            'FROM atomicmarket_buyoffers_assets buyoffer_asset ' +
+            'FROM atomicmarket_buyoffers_assets buyoffer_asset, ' +
                 'atomicassets_assets asset LEFT JOIN atomicassets_templates "template" ON ("asset".contract = "template".contract AND "asset".template_id = "template".template_id) ' +
             'WHERE ' +
             'asset.contract = buyoffer_asset.assets_contract AND asset.asset_id = buyoffer_asset.asset_id AND ' +
