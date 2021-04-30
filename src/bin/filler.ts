@@ -44,8 +44,8 @@ if (cluster.isMaster) {
 
         const availableHandlers = handlers;
         const availableContracts: string[] = readerConfigs
-            .reduce((prev, curr) => [...prev, curr.contracts.map(row => row.handler)], [])
-            .filter((row, pos, arr) => arr.indexOf(row) == pos);
+            .reduce((prev, curr) => [...prev, ...curr.contracts.map(row => row.handler)], [])
+            .filter((row, pos, arr) => arr.indexOf(row) === pos);
         const availableVersions: string[] = fs.readdirSync('./definitions/migrations')
             .sort((a, b) => compareVersionString(a, b));
 
