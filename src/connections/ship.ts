@@ -36,7 +36,7 @@ export default class StateHistoryBlockReader {
 
     constructor(
         private readonly endpoint: string,
-        private options: IBlockReaderOptions = {min_block_confirmation: 1, ds_threads: 4}
+        private options: IBlockReaderOptions = {min_block_confirmation: 1, ds_threads: 4, allow_empty_deltas: false, allow_empty_traces: false, allow_empty_blocks: false}
     ) {
         this.connected = false;
         this.connecting = false;
@@ -129,19 +129,37 @@ export default class StateHistoryBlockReader {
                         if (response.block) {
                             block = this.deserializeParallel('signed_block', response.block);
                         } else if(this.currentArgs.fetch_block) {
-                            logger.warn('Block #' + response.this_block.block_num + ' does not contain block data');
+                            if (this.options.allow_empty_blocks) {
+                                logger.warn('Block #' + response.this_block.block_num + ' does not contain block data');
+                            } else {
+                                logger.error('Block #' + response.this_block.block_num + ' does not contain block data');
+
+                                return this.blocksQueue.pause();
+                            }
                         }
 
                         if (response.traces) {
                             traces = this.deserializeParallel('transaction_trace[]', response.traces);
                         } else if(this.currentArgs.fetch_traces) {
-                            logger.warn('Block #' + response.this_block.block_num + ' does not contain trace data');
+                            if (this.options.allow_empty_traces) {
+                                logger.warn('Block #' + response.this_block.block_num + ' does not contain trace data');
+                            } else {
+                                logger.error('Block #' + response.this_block.block_num + ' does not contain trace data');
+
+                                return this.blocksQueue.pause();
+                            }
                         }
 
                         if (response.deltas) {
                             deltas = this.deserializeDeltas(response.deltas);
                         } else if(this.currentArgs.fetch_deltas) {
-                            logger.warn('Block #' + response.this_block.block_num + ' does not contain delta data');
+                            if (this.options.allow_empty_deltas) {
+                                logger.warn('Block #' + response.this_block.block_num + ' does not contain delta data');
+                            } else {
+                                logger.error('Block #' + response.this_block.block_num + ' does not contain delta data');
+
+                                return this.blocksQueue.pause();
+                            }
                         }
                     }
 

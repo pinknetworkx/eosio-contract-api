@@ -14,6 +14,9 @@ export interface BlockRequestType {
 export interface IBlockReaderOptions {
     min_block_confirmation: number;
     ds_threads: number;
+    allow_empty_traces: boolean;
+    allow_empty_deltas: boolean;
+    allow_empty_blocks: boolean;
 }
 
 export type ShipBlockResponse = {

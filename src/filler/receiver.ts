@@ -79,7 +79,10 @@ export default class StateReceiver {
 
         this.ship = connection.createShipBlockReader({
             min_block_confirmation: config.ship_min_block_confirmation,
-            ds_threads: config.ds_ship_threads
+            ds_threads: config.ds_ship_threads,
+            allow_empty_deltas: false,
+            allow_empty_traces: false,
+            allow_empty_blocks: false
         });
 
         this.dsQueue = new PQueue({concurrency: 1, autoStart: true});
