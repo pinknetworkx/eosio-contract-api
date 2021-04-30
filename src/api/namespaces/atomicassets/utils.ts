@@ -99,8 +99,7 @@ export function buildAssetFilter(
         if (dataConditions) {
             queryValues = queryValues.concat(dataConditions.values);
             varCounter += dataConditions.values.length;
-
-            queryString += 'AND ' + dataConditions.str + ' ';
+            queryString += dataConditions.str;
         }
     }
 
