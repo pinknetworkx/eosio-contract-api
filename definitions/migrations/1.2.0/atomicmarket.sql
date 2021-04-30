@@ -1,0 +1,35 @@
+DROP INDEX IF EXISTS atomicmarket_sales_maker_marketplace;
+DROP INDEX IF EXISTS atomicmarket_sales_taker_marketplace;
+DROP INDEX IF EXISTS atomicmarket_auctions_maker_marketplace;
+DROP INDEX IF EXISTS atomicmarket_auctions_taker_marketplace;
+DROP INDEX IF EXISTS atomicmarket_buyoffers_maker_marketplace;
+DROP INDEX IF EXISTS atomicmarket_buyoffers_taker_marketplace;
+DROP INDEX IF EXISTS atomicmarket_buyoffers_token_symbol;
+
+DROP INDEX IF EXISTS atomicmarket_template_prices_market_contract;
+DROP INDEX IF EXISTS atomicmarket_template_prices_assets_contract;
+DROP INDEX IF EXISTS atomicmarket_sale_prices_contract;
+DROP INDEX IF EXISTS atomicmarket_sale_mints_contract;
+DROP INDEX IF EXISTS atomicmarket_sale_mints_max_schema_mint;
+DROP INDEX IF EXISTS atomicmarket_sale_mints_min_schema_mint;
+DROP INDEX IF EXISTS atomicmarket_sale_mints_max_collection_mint;
+DROP INDEX IF EXISTS atomicmarket_sale_mints_min_collection_mint;
+DROP INDEX IF EXISTS atomicmarket_buyoffer_mints_max_schema_mint;
+DROP INDEX IF EXISTS atomicmarket_buyoffer_mints_min_schema_mint;
+DROP INDEX IF EXISTS atomicmarket_buyoffer_mints_max_collection_mint;
+DROP INDEX IF EXISTS atomicmarket_buyoffer_mints_min_collection_mint;
+DROP INDEX IF EXISTS atomicmarket_auction_mints_max_schema_mint;
+DROP INDEX IF EXISTS atomicmarket_auction_mints_min_schema_mint;
+DROP INDEX IF EXISTS atomicmarket_auction_mints_max_collection_mint;
+DROP INDEX IF EXISTS atomicmarket_auction_mints_min_collection_mint;
+DROP INDEX IF EXISTS atomicmarket_auction_mints_contract;
+DROP INDEX IF EXISTS atomicassets_asset_mints_contract;
+DROP INDEX IF EXISTS atomicmarket_stats_markets_maker_marketplace;
+DROP INDEX IF EXISTS atomicmarket_stats_markets_taker_marketplace;
+DROP INDEX IF EXISTS atomicmarket_stats_markets_symbol;
+DROP INDEX IF EXISTS atomicmarket_stats_prices_symbol;
+
+
+DROP INDEX IF EXISTS atomicmarket_buyoffers_token_symbol;
+
+CREATE INDEX IF NOT EXISTS atomicmarket_auctions_bids_created_at_time ON atomicmarket_auctions_bids USING btree (created_at_time);

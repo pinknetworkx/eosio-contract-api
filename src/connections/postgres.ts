@@ -28,6 +28,7 @@ export default class PostgresConnection {
         }
 
         await this.pool.query('SET search_path TO public');
+
         this.initialized = true;
     }
 
@@ -53,14 +54,10 @@ export default class PostgresConnection {
         return client;
     }
 
-    async schema(): Promise<string> {
-        return 'public';
-    }
-
     async tableExists(table: string): Promise<boolean> {
         const existsQuery = await this.query(
             'SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2)',
-            [await this.schema(), table]
+            ['public', table]
         );
 
         return existsQuery.rows[0].exists;

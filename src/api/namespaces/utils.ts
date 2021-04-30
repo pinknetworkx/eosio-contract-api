@@ -139,12 +139,12 @@ export function buildBoundaryFilter(
     }
 
     if (dateColumn && args.before) {
-        queryString += 'AND ' + dateColumn + ' < $' + ++varCounter + ' ';
+        queryString += 'AND ' + dateColumn + ' < $' + ++varCounter + '::BIGINT ';
         queryValues.push(args.before);
     }
 
     if (dateColumn && args.after) {
-        queryString += 'AND ' + dateColumn + ' > $' + ++varCounter + ' ';
+        queryString += 'AND ' + dateColumn + ' > $' + ++varCounter + '::BIGINT ';
         queryValues.push(args.after);
     }
 

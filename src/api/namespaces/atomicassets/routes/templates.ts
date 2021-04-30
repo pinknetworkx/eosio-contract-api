@@ -42,7 +42,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             let queryString = 'SELECT "template".template_id FROM atomicassets_templates "template" WHERE "template".contract = $1 ';
             let queryValues: any[] = [core.args.atomicassets_account];
 
-            const dataCondition = buildDataConditions(mergeRequestData(req), varCounter, '"template".immutable_data');
+            const dataCondition = buildDataConditions(mergeRequestData(req), varCounter, {templateTable: '"template"'});
 
             if (dataCondition) {
                 queryString += dataCondition.str;

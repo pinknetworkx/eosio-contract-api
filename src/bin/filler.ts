@@ -6,6 +6,7 @@ import ConnectionManager from '../connections/manager';
 import logger from '../utils/winston';
 import { IConnectionsConfig, IReaderConfig } from '../types/config';
 import { compareVersionString } from '../utils';
+import { handlers } from '../filler/handlers/loader';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const readerConfigs: IReaderConfig[] = require('../../config/readers.config.json');
@@ -37,20 +38,51 @@ if (cluster.isMaster) {
 
         logger.info('Checking for available updates...');
 
-        const versionQuery = await connection.database.query('SELECT "value" FROM dbinfo WHERE name = \'version\'');
+        const client = await connection.database.begin();
+        const versionQuery = await client.query('SELECT "value" FROM dbinfo WHERE name = \'version\'');
         const currentVersion = versionQuery.rows.length > 0 ? versionQuery.rows[0].value : '1.0.0';
 
-        const availableVersions = fs.readdirSync('./definitions/migrations')
-            .sort((a, b) => compareVersionString(a, b))
-            .filter(version => compareVersionString(version, currentVersion) > 0);
+        const availableHandlers = handlers;
+        const availableContracts: string[] = readerConfigs
+            .reduce((prev, curr) => [...prev, curr.contracts.map(row => row.handler)], [])
+            .filter((row, pos, arr) => arr.indexOf(row) == pos);
+        const availableVersions: string[] = fs.readdirSync('./definitions/migrations')
+            .sort((a, b) => compareVersionString(a, b));
 
-        if (availableVersions.length > 0) {
-            logger.info('Found ' + availableVersions.length + ' available updates. Starting to update...');
+        // init contracts
+        for (const handlerName of availableContracts) {
+            const handler = availableHandlers.find(row => row.handlerName === handlerName);
 
-            for (const version of availableVersions) {
+            if (!handler) {
+                logger.error('Contract handler configured which does not exist: ' + handlerName);
+
+                process.exit(1);
+            }
+
+            if (await handler.setup(client)) {
+                logger.info('Tables for handler ' + handlerName + ' created.');
+
+                const pastVersions = availableVersions.filter(version => compareVersionString(version, currentVersion) <= 0);
+
+                for (const version of pastVersions) {
+                    const filename = './definitions/migrations/' + version + '/' + handlerName + '.sql';
+
+                    if (fs.existsSync(filename)) {
+                        await client.query(fs.readFileSync(filename, {encoding: 'utf8'}));
+                    }
+
+                    await handler.upgrade(client, version);
+                }
+            }
+        }
+
+        const upgradeVersions = availableVersions.filter(version => compareVersionString(version, currentVersion) > 0);
+
+        if (upgradeVersions.length > 0) {
+            logger.info('Found ' + upgradeVersions.length + ' available updates. Starting to update...');
+
+            for (const version of upgradeVersions) {
                 logger.info('Update to ' + version + ' ...');
-
-                const client = await connection.database.begin();
 
                 await client.query(fs.readFileSync('./definitions/migrations/' + version + '/database.sql', {
                     encoding: 'utf8'
@@ -61,13 +93,27 @@ if (cluster.isMaster) {
 
                 migrateFn(client);
 
-                await client.query('COMMIT');
+                for (const handlerName of availableContracts) {
+                    const handler = availableHandlers.find(row => row.handlerName === handlerName);
 
-                client.release();
+                    const filename = './definitions/migrations/' + version + '/' + handlerName + '.sql';
 
-                logger.info('Successfully updated to ' + version);
+                    if (fs.existsSync(filename)) {
+                        await client.query(fs.readFileSync(filename, {encoding: 'utf8'}));
+                    }
+
+                    await handler.upgrade(client, version);
+
+                    logger.info('Upgraded ' + handlerName + ' to ' + version);
+                }
+
+                logger.info('Successfully upgraded to ' + version);
             }
         }
+
+        await client.query('COMMIT');
+
+        client.release();
 
         for (let i = 0; i < readerConfigs.length; i++) {
             const worker = cluster.fork({config_index: i});

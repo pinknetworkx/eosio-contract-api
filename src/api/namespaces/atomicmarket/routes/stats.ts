@@ -19,11 +19,11 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             }
 
             if (typeof after === 'number') {
-                queryString += 'AND ' + table + '.created_at_time > ' + after + ' ';
+                queryString += 'AND ' + table + '.created_at_time > ' + after + '::BIGINT ';
             }
 
             if (typeof before === 'number') {
-                queryString += 'AND ' + table + '.created_at_time < ' + before + ' ';
+                queryString += 'AND ' + table + '.created_at_time < ' + before + '::BIGINT ';
             }
 
             return queryString;
@@ -35,11 +35,11 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             }
 
             if (typeof after === 'number') {
-                queryString += 'AND ' + table + '.updated_at_time > ' + after + ' ';
+                queryString += 'AND ' + table + '.updated_at_time > ' + after + '::BIGINT ';
             }
 
             if (typeof before === 'number') {
-                queryString += 'AND ' + table + '.updated_at_time < ' + before + ' ';
+                queryString += 'AND ' + table + '.updated_at_time < ' + before + '::BIGINT ';
             }
 
             return queryString;

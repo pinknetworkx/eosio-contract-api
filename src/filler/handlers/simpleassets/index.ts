@@ -32,6 +32,27 @@ export default class SimpleAssetsHandler extends ContractHandler {
 
     tokenconfigs: TokenConfigsTableRow;
 
+    static async setup(client: PoolClient): Promise<boolean> {
+        const existsQuery = await client.query(
+            'SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2)',
+            ['public', 'simpleassets_config']
+        );
+
+        if (!existsQuery.rows[0].exists) {
+            logger.info('Could not find SimpleAssets tables. Create them now...');
+
+            await client.query(fs.readFileSync('./definitions/tables/simpleassets_tables.sql', {
+                encoding: 'utf8'
+            }));
+
+            logger.info('SimpleAssets tables successfully created');
+
+            return true;
+        }
+
+        return false;
+    }
+
     constructor(filler: Filler, args: {[key: string]: any}) {
         super(filler, args);
 
@@ -45,21 +66,6 @@ export default class SimpleAssetsHandler extends ContractHandler {
     }
 
     async init(client: PoolClient): Promise<void> {
-        const existsQuery = await client.query(
-            'SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2)',
-            [await this.connection.database.schema(), 'simpleassets_config']
-        );
-
-        if (!existsQuery.rows[0].exists) {
-            logger.info('Could not find SimpleAssets tables. Create them now...');
-
-            await client.query(fs.readFileSync('./definitions/tables/simpleassets_tables.sql', {
-                encoding: 'utf8'
-            }));
-
-            logger.info('SimpleAssets tables successfully created');
-        }
-
         const configQuery = await client.query(
             'SELECT * FROM simpleassets_config WHERE contract = $1',
             [this.args.simpleassets_account]

@@ -1,4 +1,4 @@
-import { SIMPLEASSETS_BASE_PRIORITY } from '../index';
+import { SimpleAssetsUpdatePriority } from '../index';
 import DataProcessor from '../../../processor';
 import { ContractDBTransaction } from '../../../database';
 import { EosioContractRow } from '../../../../types/eosio';
@@ -27,7 +27,7 @@ export function configProcessor(core: SimpleAssetsHandler, processor: DataProces
             }
 
             core.tokenconfigs = delta.value;
-        }, SIMPLEASSETS_BASE_PRIORITY
+        }, SimpleAssetsUpdatePriority.TABLE_CONFIG.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());

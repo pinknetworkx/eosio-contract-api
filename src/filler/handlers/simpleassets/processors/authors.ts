@@ -1,4 +1,4 @@
-import SimpleAssetsHandler, { SIMPLEASSETS_BASE_PRIORITY } from '../index';
+import SimpleAssetsHandler, { SimpleAssetsUpdatePriority } from '../index';
 import DataProcessor from '../../../processor';
 import { ContractDBTransaction } from '../../../database';
 import { EosioContractRow } from '../../../../types/eosio';
@@ -30,7 +30,7 @@ export function authorProcessor(core: SimpleAssetsHandler, processor: DataProces
                     created_at_time: eosioTimestampToDate(block.timestamp).getTime()
                 }, ['contract', 'author'], ['created_at_block', 'created_at_time']);
             }
-        }, SIMPLEASSETS_BASE_PRIORITY
+        }, SimpleAssetsUpdatePriority.TABLE_AUTHORS.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());

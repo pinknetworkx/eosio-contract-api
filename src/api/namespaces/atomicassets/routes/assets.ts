@@ -157,12 +157,6 @@ export class AssetApi {
                         'asset.contract = mint.contract AND asset.asset_id = mint.asset_id' +
                     ') ';
 
-                if (args.sort && args.sort.startsWith('data')) {
-                    queryString += 'LEFT JOIN atomicassets_asset_data data_table ON (' +
-                            'asset.contract = data_table.contract AND asset.asset_id = data_table.asset_id' +
-                        ') ';
-                }
-
                 queryString += 'WHERE asset.contract = $1 ';
                 let queryValues: any[] = [this.core.args.atomicassets_account];
 
@@ -196,36 +190,17 @@ export class AssetApi {
                 let sorting: {column: string, nullable: boolean};
 
                 if (args.sort) {
-                    if (args.sort.startsWith('data')) {
-                        if (args.sort.startsWith('data:text.')) {
-                            sorting = {
-                                column: '"data_table"."data"->>\'' + args.sort.substr('data:text.'.length).replace('\'', '') + '\'',
-                                nullable: true
-                            };
-                        } else if (args.sort.startsWith('data:number.')) {
-                            sorting = {
-                                column: '("data_table"."data"->>\'' + args.sort.substr('data:number.'.length).replace('\'', '') + '\')::double precision',
-                                nullable: true
-                            };
-                        } else {
-                            sorting = {
-                                column: '"data_table"."data"->>\'' + args.sort.substr('data.'.length).replace('\'', '') + '\'',
-                                nullable: true
-                            };
-                        }
-                    } else {
-                        const sortColumnMapping: {[key: string]: {column: string, nullable: boolean}} = {
-                            asset_id: {column: 'asset.asset_id', nullable: false},
-                            updated: {column: 'asset.updated_at_time', nullable: false},
-                            transferred: {column: 'asset.transferred_at_time', nullable: false},
-                            minted: {column: 'asset.minted_at_time', nullable: false},
-                            collection_mint: {column: 'mint.collection_mint', nullable: true},
-                            schema_mint: {column: 'mint.schema_mint', nullable: true},
-                            template_mint: {column: 'mint.template_mint', nullable: true}
-                        };
+                    const sortColumnMapping: {[key: string]: {column: string, nullable: boolean}} = {
+                        asset_id: {column: 'asset.asset_id', nullable: false},
+                        updated: {column: 'asset.updated_at_time', nullable: false},
+                        transferred: {column: 'asset.transferred_at_time', nullable: false},
+                        minted: {column: 'asset.minted_at_time', nullable: false},
+                        collection_mint: {column: 'mint.collection_mint', nullable: true},
+                        schema_mint: {column: 'mint.schema_mint', nullable: true},
+                        template_mint: {column: 'mint.template_mint', nullable: true}
+                    };
 
-                        sorting = sortColumnMapping[args.sort];
-                    }
+                    sorting = sortColumnMapping[args.sort];
                 }
 
                 if (!sorting) {

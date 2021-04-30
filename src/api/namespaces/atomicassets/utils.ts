@@ -5,37 +5,60 @@ import { OfferState } from '../../../filler/handlers/atomicassets';
 import { SaleState } from '../../../filler/handlers/atomicmarket';
 
 export function buildDataConditions(
-    args: any, varCounter: number = 0, column: string
+    args: any, varCounter: number = 0, options: {assetTable?: string, templateTable?: string}
 ): {str: string, values: any[]} | null {
     const keys = Object.keys(args);
+
+    function buildConditionObject(name: string): {[key: string]: string | number | boolean} {
+        const query: {[key: string]: string | number | boolean} = {};
+
+        for (const key of keys) {
+            if (key.startsWith(name + ':text.')) {
+                query[key.substr((name + ':text.').length)] = String(args[key]);
+            } else if (key.startsWith(name + ':number.')) {
+                query[key.substr((name + ':number.').length)] = parseFloat(args[key]);
+            } else if (key.startsWith(name + ':bool.')) {
+                query[key.substr((name + ':bool.').length)] = (args[key] === 'true' || args[key] === '1') ? 1 : 0;
+            } else if (key.startsWith(name + '.')) {
+                query[key.substr((name + '.').length)] = args[key];
+            }
+        }
+
+        return query;
+    }
 
     const conditions: string[] = [];
     const values: any[] = [];
 
-    const query: {[key: string]: string | number | boolean} = {};
-    for (const key of keys) {
-        if (key.startsWith('data:text.')) {
-            query[key.substr('data:text.'.length)] = String(args[key]);
-        } else if (key.startsWith('data:number.')) {
-            query[key.substr('data:number.'.length)] = parseFloat(args[key]);
-        } else if (key.startsWith('data:bool.')) {
-            query[key.substr('data:bool.'.length)] = (args[key] === 'true' || args[key] === '1') ? 1 : 0;
-        } else if (key.startsWith('data.')) {
-            query[key.substr('data.'.length)] = args[key];
+    const templateCondition = Object.assign({}, buildConditionObject('data'), buildConditionObject('template_data'));
+    const mutableCondition = buildConditionObject('mutable_data');
+    const immutableCondition = buildConditionObject('immutable_data');
+
+    if (options.assetTable) {
+        if (Object.keys(mutableCondition).length > 0) {
+            conditions.push(' ' + options.assetTable + '.mutable_data @> $' + ++varCounter + '::jsonb ');
+            values.push(JSON.stringify(mutableCondition));
+        }
+
+        if (Object.keys(immutableCondition).length > 0) {
+            conditions.push(' ' + options.assetTable + '.immutable_data @> $' + ++varCounter + '::jsonb ');
+            values.push(JSON.stringify(immutableCondition));
         }
     }
 
-    if (Object.keys(query).length > 0) {
-        conditions.push(' ' + column + ' @> $' + ++varCounter + '::jsonb ');
-        values.push(JSON.stringify(query));
-    }
+    if (options.templateTable) {
+        if (Object.keys(templateCondition).length > 0) {
+            conditions.push(' ' + options.templateTable + '.immutable_data @> $' + ++varCounter + '::jsonb ');
+            values.push(JSON.stringify(templateCondition));
+        }
 
-    if (args.match && typeof args.match === 'string' && args.match.length > 0) {
-        conditions.push(
-            column + '->>\'name\' IS NOT NULL AND ' +
-            'POSITION($' + ++varCounter + ' IN LOWER(' + column + '->>\'name\')) > 0'
-        );
-        values.push(args.match.toLowerCase());
+        if (args.match && typeof args.match === 'string' && args.match.length > 0) {
+            conditions.push(
+                options.templateTable + '.immutable_data->>\'name\' IS NOT NULL AND ' +
+                'POSITION($' + ++varCounter + ' IN LOWER(' + options.templateTable + '.immutable_data->>\'name\')) > 0'
+            );
+            values.push(args.match.toLowerCase());
+        }
     }
 
     if (conditions.length > 0) {
@@ -69,7 +92,8 @@ export function buildAssetFilter(
 
     if (options.allowDataFilter !== false) {
         const dataConditions = buildDataConditions(
-            mergeRequestData(req), varCounter, '"data_table".data'
+            mergeRequestData(req), varCounter,
+            {assetTable: options.assetTable, templateTable: options.templateTable}
         );
 
         if (dataConditions) {

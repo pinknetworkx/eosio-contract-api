@@ -53,18 +53,10 @@ export default class DelphiOracleHandler extends ContractHandler {
 
     pairs: string[] = [];
 
-    constructor(filler: Filler, args: {[key: string]: any}) {
-        super(filler, args);
-
-        if (typeof args.delphioracle_account !== 'string') {
-            throw new Error('DelphiOracle: Argument missing in handler: delphioracle_account');
-        }
-    }
-
-    async init(client: PoolClient): Promise<void> {
+    static async setup(client: PoolClient): Promise<boolean> {
         const existsQuery = await client.query(
             'SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2)',
-            [await this.connection.database.schema(), 'delphioracle_pairs']
+            ['public', 'delphioracle_pairs']
         );
 
         if (!existsQuery.rows[0].exists) {
@@ -76,18 +68,39 @@ export default class DelphiOracleHandler extends ContractHandler {
 
             logger.info('DelphiOracle tables successfully created');
 
-            try {
-                const resp = await this.connection.chain.rpc.get_table_rows({
-                    json: true, code: this.args.delphioracle_account, scope: this.args.delphioracle_account,
-                    table: 'pairs', limit: 100
-                });
+            return true;
+        }
 
-                const createdPairs = [];
+        return false;
+    }
 
-                for (const row of resp.rows) {
-                    const data = this.getDatabaseRow(row);
-                    const keys = Object.keys(data);
+    constructor(filler: Filler, args: {[key: string]: any}) {
+        super(filler, args);
 
+        if (typeof args.delphioracle_account !== 'string') {
+            throw new Error('DelphiOracle: Argument missing in handler: delphioracle_account');
+        }
+    }
+
+    async init(client: PoolClient): Promise<void> {
+        try {
+            const resp = await this.connection.chain.rpc.get_table_rows({
+                json: true, code: this.args.delphioracle_account, scope: this.args.delphioracle_account,
+                table: 'pairs', limit: 100
+            });
+
+            const createdPairs = [];
+
+            for (const row of resp.rows) {
+                const data = this.getDatabaseRow(row);
+                const keys = Object.keys(data);
+
+                const existsQuery = await client.query(
+                    'SELECT * FROM delphioracle_pairs WHERE contract = $1 AND delphi_pair_name = $2',
+                    [this.args.delphioracle_account, data.delphi_pair_name]
+                );
+
+                if (existsQuery.rowCount === 0) {
                     await client.query(
                         'INSERT INTO delphioracle_pairs (' +
                         keys.map((key) => client.escapeIdentifier(key)).join(',') +
@@ -97,13 +110,15 @@ export default class DelphiOracleHandler extends ContractHandler {
                         keys.map(key => data[key])
                     );
 
-                    createdPairs.push(row.name);
+                    createdPairs.push(data.delphi_pair_name);
                 }
-
-                logger.info('Successfully created ' + createdPairs.length + ' delphi pairs on first run', createdPairs);
-            } catch (e) {
-                logger.warn('Failed to fetch current delphioracle pairs');
             }
+
+            if (createdPairs.length > 0) {
+                logger.info('Successfully created ' + createdPairs.length + ' delphi pairs', createdPairs);
+            }
+        } catch (e) {
+            logger.warn('Failed to fetch current delphioracle pairs');
         }
     }
 

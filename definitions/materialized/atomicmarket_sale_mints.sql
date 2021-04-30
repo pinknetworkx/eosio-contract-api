@@ -11,11 +11,6 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS atomicmarket_sale_mints AS
 
 CREATE UNIQUE INDEX atomicmarket_sale_mints_pkey ON atomicmarket_sale_mints (market_contract, sale_id);
 
-CREATE INDEX atomicmarket_sale_mints_contract ON atomicmarket_sale_mints USING btree (market_contract);
 CREATE INDEX atomicmarket_sale_mints_sale_id ON atomicmarket_sale_mints USING btree (sale_id);
 CREATE INDEX atomicmarket_sale_mints_max_template_mint ON atomicmarket_sale_mints USING btree (max_template_mint);
 CREATE INDEX atomicmarket_sale_mints_min_template_mint ON atomicmarket_sale_mints USING btree (min_template_mint);
-CREATE INDEX atomicmarket_sale_mints_max_schema_mint ON atomicmarket_sale_mints USING btree (max_schema_mint);
-CREATE INDEX atomicmarket_sale_mints_min_schema_mint ON atomicmarket_sale_mints USING btree (min_schema_mint);
-CREATE INDEX atomicmarket_sale_mints_max_collection_mint ON atomicmarket_sale_mints USING btree (max_collection_mint);
-CREATE INDEX atomicmarket_sale_mints_min_collection_mint ON atomicmarket_sale_mints USING btree (min_collection_mint);

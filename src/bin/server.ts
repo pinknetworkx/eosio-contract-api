@@ -25,7 +25,7 @@ const connection = new ConnectionManager(connectionConfig);
         process.exit(1);
     }
 
-    if (!(await connection.database.tableExists('contract_readers'))) {
+    if (!(await connection.database.tableExists('dbinfo'))) {
         logger.error('Tables not initialized yet. Stopping API...');
 
         process.exit(1);

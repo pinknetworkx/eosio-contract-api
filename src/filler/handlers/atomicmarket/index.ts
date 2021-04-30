@@ -70,10 +70,10 @@ export default class AtomicMarketHandler extends ContractHandler {
 
     config: ConfigTableRow;
 
-    static async setup(client: PoolClient, schema: string) {
+    static async setup(client: PoolClient): Promise<boolean> {
         const existsQuery = await client.query(
             'SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2)',
-            [await this.connection.database.schema(), 'atomicmarket_config']
+            ['public', 'atomicmarket_config']
         );
 
         const views = [
@@ -106,11 +106,11 @@ export default class AtomicMarketHandler extends ContractHandler {
             }
 
             logger.info('AtomicMarket tables successfully created');
+
+            return true;
         }
-    }
 
-    static upgrade(client: PoolClient, version: string) {
-
+        return false;
     }
 
     constructor(filler: Filler, args: {[key: string]: any}) {
@@ -203,35 +203,16 @@ export default class AtomicMarketHandler extends ContractHandler {
             };
         }
 
-        this.filler.registerUpdateJob(async () => {
-            await this.connection.database.query(`
-                WITH assets_to_update AS MATERIALIZED (
-                    SELECT asset_id, template_id
-                    FROM atomicassets_assets
-                    WHERE template_id IS NOT NULL AND template_mint IS NULL
-                    ORDER BY template_id, asset_id
-                    LIMIT 100000
-                ), last_mint AS (
-                    SELECT DISTINCT ON (template_id) template_id, template_mint
-                    FROM atomicassets_assets assets
-                    WHERE template_id IN (SELECT DISTINCT template_id FROM assets_to_update)
-                        AND template_mint IS NOT NULL
-                    ORDER BY template_id, asset_id DESC
-                ), new_mints AS (
-                    SELECT assets.asset_id, COALESCE(last_mint.template_mint, 0) + ROW_NUMBER() OVER (PARTITION BY assets.template_id ORDER BY asset_id) AS template_mint
-                    FROM assets_to_update assets
-                        LEFT OUTER JOIN last_mint ON assets.template_id = last_mint.template_id
-                )
-                
-                UPDATE atomicassets_assets assets
-                    SET template_mint = new_mints.template_mint
-                FROM new_mints
-                WHERE assets.asset_id = new_mints.asset_id;
-            `);
-        }, 60000, true);
+        const materializedViews = [
+            'atomicmarket_template_prices',
+            'atomicmarket_auction_mints', 'atomicmarket_buyoffer_mints',
+            'atomicmarket_sale_mints', 'atomicmarket_sale_prices',
+            'atomicmarket_stats_prices', 'atomicmarket_stats_markets'
+        ];
 
         const priorityViews = [
-            'atomicmarket_auction_mints', 'atomicmarket_sale_mints', 'atomicmarket_sale_prices'
+            'atomicmarket_buyoffer_mints', 'atomicmarket_auction_mints',
+            'atomicmarket_sale_mints', 'atomicmarket_sale_prices'
         ];
 
         for (const view of materializedViews) {

@@ -40,22 +40,10 @@ export default class AtomicToolsHandler extends ContractHandler {
 
     config: ConfigTableRow;
 
-    constructor(filler: Filler, args: {[key: string]: any}) {
-        super(filler, args);
-
-        if (typeof this.args.atomictools_account !== 'string') {
-            throw new Error('AtomicTools: Argument missing in handler: atomictools_account');
-        }
-
-        if (typeof this.args.store_logs !== 'boolean') {
-            throw new Error('AtomicTools: Argument missing in handler: store_logs');
-        }
-    }
-
-    async init(client: PoolClient): Promise<void> {
+    static async setup(client: PoolClient): Promise<boolean> {
         const existsQuery = await client.query(
             'SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2)',
-            [await this.connection.database.schema(), 'atomictools_config']
+            ['public', 'atomictools_config']
         );
 
         const views = ['atomictools_links_master'];
@@ -72,16 +60,26 @@ export default class AtomicToolsHandler extends ContractHandler {
             }
 
             logger.info('AtomicTools tables successfully created');
-        } else {
-            for (const view of views) {
-                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
-            }
+
+            return true;
         }
 
-        await client.query(fs.readFileSync('./definitions/tables/atomictools_migrate.sql', {
-            encoding: 'utf8'
-        }));
+        return false;
+    }
 
+    constructor(filler: Filler, args: {[key: string]: any}) {
+        super(filler, args);
+
+        if (typeof this.args.atomictools_account !== 'string') {
+            throw new Error('AtomicTools: Argument missing in handler: atomictools_account');
+        }
+
+        if (typeof this.args.store_logs !== 'boolean') {
+            throw new Error('AtomicTools: Argument missing in handler: store_logs');
+        }
+    }
+
+    async init(client: PoolClient): Promise<void> {
         const configQuery = await client.query(
             'SELECT * FROM atomictools_config WHERE tools_contract = $1',
             [this.args.atomictools_account]

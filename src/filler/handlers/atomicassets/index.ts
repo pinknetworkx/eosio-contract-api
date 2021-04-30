@@ -55,6 +55,44 @@ export default class AtomicAssetsHandler extends ContractHandler {
     config: ConfigTableRow;
     tokenconfigs: TokenConfigsTableRow;
 
+    static async setup(client: PoolClient): Promise<boolean> {
+        const existsQuery = await client.query(
+            'SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2)',
+            ['public', 'atomicassets_config']
+        );
+
+        const materializedViews = ['atomicassets_asset_mints'];
+        const views = [
+            'atomicassets_asset_mints_master', 'atomicassets_templates_master',
+            'atomicassets_schemas_master', 'atomicassets_collections_master', 'atomicassets_offers_master',
+            'atomicassets_transfers_master'
+        ];
+
+        if (!existsQuery.rows[0].exists) {
+            logger.info('Could not find AtomicAssets tables. Create them now...');
+
+            await client.query(fs.readFileSync('./definitions/tables/atomicassets_tables.sql', {
+                encoding: 'utf8'
+            }));
+
+            for (const view of views) {
+                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
+            }
+
+            for (const view of materializedViews) {
+                await client.query(fs.readFileSync('./definitions/materialized/' + view + '.sql', {encoding: 'utf8'}));
+            }
+
+            await client.query(fs.readFileSync('./definitions/views/atomicassets_assets_master.sql', {encoding: 'utf8'}));
+
+            logger.info('AtomicAssets tables successfully created');
+
+            return true;
+        }
+
+        return false;
+    }
+
     constructor(filler: Filler, args: {[key: string]: any}) {
         super(filler, args);
 
@@ -72,48 +110,6 @@ export default class AtomicAssetsHandler extends ContractHandler {
     }
 
     async init(client: PoolClient): Promise<void> {
-        const existsQuery = await client.query(
-            'SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2)',
-            [await this.connection.database.schema(), 'atomicassets_config']
-        );
-
-        const materializedViews = ['atomicassets_asset_mints', 'atomicassets_asset_data'];
-        const views = [
-            'atomicassets_asset_mints_master', 'atomicassets_templates_master',
-            'atomicassets_schemas_master', 'atomicassets_collections_master', 'atomicassets_offers_master',
-            'atomicassets_transfers_master'
-        ];
-
-        if (!existsQuery.rows[0].exists) {
-            logger.info('Could not find AtomicAssets tables. Create them now...');
-
-            await client.query(fs.readFileSync('./definitions/tables/atomicassets_tables.sql', {
-                encoding: 'utf8'
-            }));
-
-            await client.query(fs.readFileSync('./definitions/functions/atomicassets.sql', {encoding: 'utf8'}));
-
-            for (const view of views) {
-                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
-            }
-
-            for (const view of materializedViews) {
-                await client.query(fs.readFileSync('./definitions/materialized/' + view + '.sql', {encoding: 'utf8'}));
-            }
-
-            await client.query(fs.readFileSync('./definitions/views/atomicassets_assets_master.sql', {encoding: 'utf8'}));
-
-            logger.info('AtomicAssets tables successfully created');
-        } else {
-            for (const view of views) {
-                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
-            }
-        }
-
-        await client.query(fs.readFileSync('./definitions/tables/atomicassets_migrate.sql', {
-            encoding: 'utf8'
-        }));
-
         const configQuery = await client.query(
             'SELECT * FROM atomicassets_config WHERE contract = $1',
             [this.args.atomicassets_account]
@@ -171,6 +167,30 @@ export default class AtomicAssetsHandler extends ContractHandler {
             };
         }
 
+        this.filler.registerUpdateJob(async () => {
+            await this.connection.database.query(`
+                WITH assets_to_update AS MATERIALIZED (
+                    SELECT contract, asset_id, template_id
+                    FROM atomicassets_assets
+                    WHERE template_id IS NOT NULL AND template_mint IS NULL
+                    ORDER BY template_id, asset_id
+                    LIMIT 100000
+                ), last_mint AS (
+                    SELECT DISTINCT ON (template_id, contract) template_id, contract, template_mint
+                    FROM atomicassets_assets assets
+                    WHERE (template_id, contract) IN (SELECT DISTINCT template_id, contract FROM assets_to_update)
+                        AND template_mint IS NOT NULL
+                    ORDER BY template_id, contract, asset_id DESC
+                ), new_mints AS (
+                    SELECT assets.contract, assets.asset_id, COALESCE(last_mint.template_mint, 0) + ROW_NUMBER() OVER (PARTITION BY assets.template_id, assets.contract ORDER BY asset_id) AS template_mint
+                    FROM assets_to_update assets
+                        LEFT OUTER JOIN last_mint ON assets.template_id = last_mint.template_id
+                            AND  assets.contract = last_mint.contract
+                )
+            `);
+        }, 30000, true);
+
+        const materializedViews = ['atomicassets_asset_mints'];
         const priorityViews = ['atomicassets_asset_mints'];
 
         for (const view of materializedViews) {
@@ -202,7 +222,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
             );
         }
 
-        const views = ['atomicassets_asset_mints', 'atomicassets_asset_data'];
+        const views = ['atomicassets_asset_mints'];
 
         for (const view of views) {
             await client.query('REFRESH MATERIALIZED VIEW ' + client.escapeIdentifier(view) + '');

@@ -5,8 +5,7 @@ CREATE UNIQUE INDEX atomicmarket_template_prices_pkey ON atomicmarket_template_p
 
 CREATE INDEX atomicmarket_template_prices_fkey ON atomicmarket_template_prices (assets_contract, collection_name, template_id);
 
-CREATE INDEX atomicmarket_template_prices_market_contract ON atomicmarket_template_prices USING btree (market_contract);
-CREATE INDEX atomicmarket_template_prices_assets_contract ON atomicmarket_template_prices USING btree (assets_contract);
+
 CREATE INDEX atomicmarket_template_prices_collection_name ON atomicmarket_template_prices USING btree (collection_name);
 CREATE INDEX atomicmarket_template_prices_template_id ON atomicmarket_template_prices USING btree (template_id);
 CREATE INDEX atomicmarket_template_prices_symbol ON atomicmarket_template_prices USING btree (symbol);
