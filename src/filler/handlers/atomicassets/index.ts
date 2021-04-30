@@ -187,6 +187,13 @@ export default class AtomicAssetsHandler extends ContractHandler {
                         LEFT OUTER JOIN last_mint ON assets.template_id = last_mint.template_id
                             AND  assets.contract = last_mint.contract
                 )
+                
+                UPDATE atomicassets_assets assets
+                    SET template_mint = new_mints.template_mint
+                FROM new_mints
+                WHERE assets.asset_id = new_mints.asset_id
+                    AND assets.contract = new_mints.contract
+                ;
             `);
         }, 30000, true);
 
