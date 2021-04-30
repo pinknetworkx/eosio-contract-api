@@ -36,7 +36,7 @@ if (cluster.isMaster) {
             logger.info('Base tables successfully created');
         }
 
-        logger.info('Checking for available updates...');
+        logger.info('Checking for available upgrades...');
 
         const client = await connection.database.begin();
         const versionQuery = await client.query('SELECT "value" FROM dbinfo WHERE name = \'version\'');
@@ -79,10 +79,10 @@ if (cluster.isMaster) {
         const upgradeVersions = availableVersions.filter(version => compareVersionString(version, currentVersion) > 0);
 
         if (upgradeVersions.length > 0) {
-            logger.info('Found ' + upgradeVersions.length + ' available updates. Starting to update...');
+            logger.info('Found ' + upgradeVersions.length + ' available upgrades. Starting to upgrade...');
 
             for (const version of upgradeVersions) {
-                logger.info('Update to ' + version + ' ...');
+                logger.info('Upgrade to ' + version + ' ...');
 
                 await client.query(fs.readFileSync('./definitions/migrations/' + version + '/database.sql', {
                     encoding: 'utf8'

@@ -1,4 +1,4 @@
-DROP MATERIALIZED VIEW IF EXISTS atomicmarket_asset_data;
+DROP MATERIALIZED VIEW IF EXISTS atomicassets_asset_data;
 DROP FUNCTION IF EXISTS remove_long_jsonb_pairs;
 
 -- TODO add to base tables
