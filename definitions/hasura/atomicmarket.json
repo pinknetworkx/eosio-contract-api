@@ -4,29 +4,6 @@
     {
       "table": {
         "schema": "public",
-        "name": "atomicassets_asset_data"
-      },
-      "select_permissions": [
-        {
-          "role": "anonymous",
-          "permission": {
-            "columns": [
-              "contract",
-              "asset_id",
-              "collection_name",
-              "schema_name",
-              "data"
-            ],
-            "filter": {},
-            "limit": 1000,
-            "allow_aggregations": true
-          }
-        }
-      ]
-    },
-    {
-      "table": {
-        "schema": "public",
         "name": "atomicassets_asset_mints"
       },
       "select_permissions": [
@@ -53,21 +30,6 @@
         "name": "atomicassets_assets"
       },
       "object_relationships": [
-        {
-          "name": "atomicassets_asset_data",
-          "using": {
-            "manual_configuration": {
-              "remote_table": {
-                "schema": "public",
-                "name": "atomicassets_asset_data"
-              },
-              "column_mapping": {
-                "asset_id": "asset_id",
-                "contract": "contract"
-              }
-            }
-          }
-        },
         {
           "name": "atomicassets_asset_mints",
           "using": {

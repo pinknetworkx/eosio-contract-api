@@ -100,11 +100,7 @@ export function buildAssetFilter(
             queryValues = queryValues.concat(dataConditions.values);
             varCounter += dataConditions.values.length;
 
-            queryString += 'AND EXISTS (' +
-                'SELECT * FROM atomicassets_asset_data "data_table" ' +
-                'WHERE "data_table".contract = ' + options.assetTable + '.contract AND ' +
-                '"data_table".asset_id = ' + options.assetTable + '.asset_id ' + dataConditions.str +
-                ') ';
+            queryString += 'AND ' + dataConditions.str + ' ';
         }
     }
 
