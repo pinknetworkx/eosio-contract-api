@@ -10,5 +10,5 @@ DROP INDEX IF EXISTS atomicassets_assets_template_id;
 
 CREATE INDEX IF NOT EXISTS atomicassets_assets_template_id_asset_id on atomicassets_assets (template_id, asset_id);
 
-CREATE INDEX atomicassets_assets_mutable_data ON atomicassets_assets USING gin (mutable_data);
-CREATE INDEX atomicassets_assets_immutable_data ON atomicassets_assets USING gin (immutable_data);
+CREATE INDEX IF NOT EXISTS atomicassets_assets_mutable_data ON atomicassets_assets USING gin (mutable_data);
+CREATE INDEX IF NOT EXISTS atomicassets_assets_immutable_data ON atomicassets_assets USING gin (immutable_data);
