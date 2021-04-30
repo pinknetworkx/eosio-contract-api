@@ -49,7 +49,12 @@ export function buyoffersEndpoints(core: AtomicMarketNamespace, server: HTTPServ
                 'FROM atomicmarket_buyoffers listing ' +
                     'JOIN atomicmarket_tokens "token" ON (listing.market_contract = "token".market_contract AND listing.token_symbol = "token".token_symbol) ' +
                     'LEFT JOIN atomicmarket_buyoffer_mints mint ON (mint.market_contract = listing.market_contract AND mint.buyoffer_id = listing.buyoffer_id) ' +
-                'WHERE listing.market_contract = $1 ' + buyofferFilter.str;
+                'WHERE listing.market_contract = $1 ' + buyofferFilter.str + ' AND ' +
+                'NOT EXISTS (' +
+                    'SELECT * FROM atomicmarket_buyoffers_assets buyoffer_asset ' +
+                    'WHERE buyoffer_asset.market_contract = listing.market_contract AND buyoffer_asset.buyoffer_id = listing.buyoffer_id AND ' +
+                '       NOT EXISTS (SELECT * FROM atomicassets_assets asset WHERE asset.contract = buyoffer_asset.assets_contract AND asset.asset_id = buyoffer_asset.asset_id)' +
+                ')';
             const queryValues = [core.args.atomicmarket_account, ...buyofferFilter.values];
             let varCounter = queryValues.length;
 

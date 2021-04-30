@@ -29,7 +29,6 @@ DROP INDEX IF EXISTS atomicmarket_stats_markets_taker_marketplace;
 DROP INDEX IF EXISTS atomicmarket_stats_markets_symbol;
 DROP INDEX IF EXISTS atomicmarket_stats_prices_symbol;
 
-
 DROP INDEX IF EXISTS atomicmarket_buyoffers_token_symbol;
 
 CREATE INDEX IF NOT EXISTS atomicmarket_auctions_bids_created_at_time ON atomicmarket_auctions_bids USING btree (created_at_time);
