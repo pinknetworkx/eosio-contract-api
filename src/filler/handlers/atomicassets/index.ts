@@ -167,9 +167,15 @@ export default class AtomicAssetsHandler extends ContractHandler {
             };
         }
 
-        this.filler.registerUpdateJob(async () => {
-            try {
-                await this.connection.database.query(`
+        this.filler.registerMaterializedViewRefresh('atomicassets_asset_mints', 60000, true);
+
+        (async (): Promise<any> => {
+            // eslint-disable-next-line no-constant-condition
+            while (true) {
+                await new Promise(resolve => setTimeout(resolve, 30000));
+
+                try {
+                    await this.connection.database.query(`
                     WITH assets_to_update AS MATERIALIZED (
                         SELECT contract, asset_id, template_id
                         FROM atomicassets_assets
@@ -194,22 +200,17 @@ export default class AtomicAssetsHandler extends ContractHandler {
                     FROM new_mints
                     WHERE assets.asset_id = new_mints.asset_id AND assets.contract = new_mints.contract
                 `);
-            } catch (e) {
-                if (e.code === '55P03') {
-                    logger.warn('Unable to acquire locks for updating asset mints');
+                } catch (e) {
+                    if (e.code === '55P03') {
+                        logger.warn('Unable to acquire locks for updating asset mints');
 
-                    return;
+                        return;
+                    }
+
+                    throw e;
                 }
-
-                throw e;
             }
-        }, 30000, true);
-
-        const materializedViews = ['atomicassets_asset_mints'];
-
-        for (const view of materializedViews) {
-            this.filler.registerMaterializedViewRefresh(view, 60000);
-        }
+        })().then();
     }
 
     async deleteDB(client: PoolClient): Promise<void> {
