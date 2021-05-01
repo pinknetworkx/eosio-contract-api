@@ -203,11 +203,9 @@ export default class AtomicAssetsHandler extends ContractHandler {
                 } catch (e) {
                     if (e.code === '55P03') {
                         logger.warn('Unable to acquire locks for updating asset mints');
-
-                        return;
+                    } else {
+                        throw e;
                     }
-
-                    throw e;
                 }
             }
         })().then();
