@@ -168,10 +168,49 @@ export default class AtomicAssetsHandler extends ContractHandler {
         }
 
         this.filler.registerMaterializedViewRefresh('atomicassets_asset_mints', 60000, true);
+    }
+
+    async deleteDB(client: PoolClient): Promise<void> {
+        const tables = [
+            'atomicassets_assets', 'atomicassets_assets_backed_tokens', 'atomicassets_mints',
+            'atomicassets_balances', 'atomicassets_collections', 'atomicassets_config',
+            'atomicassets_offers', 'atomicassets_offers_assets',
+            'atomicassets_templates', 'atomicassets_schemas',
+            'atomicassets_tokens', 'atomicassets_transfers', 'atomicassets_transfers_assets'
+        ];
+
+        for (const table of tables) {
+            await client.query(
+                'DELETE FROM ' + client.escapeIdentifier(table) + ' WHERE contract = $1',
+                [this.args.atomicassets_account]
+            );
+        }
+
+        const views = ['atomicassets_asset_mints'];
+
+        for (const view of views) {
+            await client.query('REFRESH MATERIALIZED VIEW ' + client.escapeIdentifier(view) + '');
+        }
+    }
+
+    async register(processor: DataProcessor, notifier: ApiNotificationSender): Promise<() => any> {
+        let running = true;
+        const destructors: Array<() => any> = [];
+
+        destructors.push(assetProcessor(this, processor, notifier));
+        destructors.push(balanceProcessor(this, processor));
+        destructors.push(collectionProcessor(this, processor));
+        destructors.push(configProcessor(this, processor));
+        destructors.push(offerProcessor(this, processor, notifier));
+        destructors.push(schemaProcessor(this, processor));
+        destructors.push(templateProcessor(this, processor));
+
+        if (this.args.store_logs) {
+            destructors.push(logProcessor(this, processor));
+        }
 
         (async (): Promise<any> => {
-            // eslint-disable-next-line no-constant-condition
-            while (true) {
+            while (running) {
                 await new Promise(resolve => setTimeout(resolve, 30000));
 
                 try {
@@ -200,55 +239,19 @@ export default class AtomicAssetsHandler extends ContractHandler {
                     FROM new_mints
                     WHERE assets.asset_id = new_mints.asset_id AND assets.contract = new_mints.contract
                 `);
-                } catch (e) {
-                    if (e.code === '55P03') {
+                } catch (error) {
+                    if (error.code === '55P03') {
                         logger.warn('Unable to acquire locks for updating asset mints');
                     } else {
-                        throw e;
+                        logger.error('Error while updating mints', error);
                     }
                 }
             }
         })().then();
-    }
 
-    async deleteDB(client: PoolClient): Promise<void> {
-        const tables = [
-            'atomicassets_assets', 'atomicassets_assets_backed_tokens', 'atomicassets_mints',
-            'atomicassets_balances', 'atomicassets_collections', 'atomicassets_config',
-            'atomicassets_offers', 'atomicassets_offers_assets',
-            'atomicassets_templates', 'atomicassets_schemas',
-            'atomicassets_tokens', 'atomicassets_transfers', 'atomicassets_transfers_assets'
-        ];
-
-        for (const table of tables) {
-            await client.query(
-                'DELETE FROM ' + client.escapeIdentifier(table) + ' WHERE contract = $1',
-                [this.args.atomicassets_account]
-            );
-        }
-
-        const views = ['atomicassets_asset_mints'];
-
-        for (const view of views) {
-            await client.query('REFRESH MATERIALIZED VIEW ' + client.escapeIdentifier(view) + '');
-        }
-    }
-
-    async register(processor: DataProcessor, notifier: ApiNotificationSender): Promise<() => any> {
-        const destructors: Array<() => any> = [];
-
-        destructors.push(assetProcessor(this, processor, notifier));
-        destructors.push(balanceProcessor(this, processor));
-        destructors.push(collectionProcessor(this, processor));
-        destructors.push(configProcessor(this, processor));
-        destructors.push(offerProcessor(this, processor, notifier));
-        destructors.push(schemaProcessor(this, processor));
-        destructors.push(templateProcessor(this, processor));
-
-        if (this.args.store_logs) {
-            destructors.push(logProcessor(this, processor));
-        }
-
-        return (): any => destructors.map(fn => fn());
+        return (): any => {
+            destructors.map(fn => fn());
+            running = false;
+        };
     }
 }
