@@ -43,9 +43,9 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
         asset.mutable_data,
         asset.immutable_data,
 
-        COALESCE(mint.template_mint, 0) template_mint,
-        COALESCE(mint.schema_mint, 0) schema_mint,
-        COALESCE(mint.collection_mint, 0) collection_mint,
+        COALESCE(mint.template_mint, 0)::bigint template_mint,
+        0::bigint schema_mint,
+        0::bigint collection_mint,
 
         ARRAY(
             SELECT DISTINCT ON (inner_backed.contract, inner_backed.asset_id, inner_backed.token_symbol)

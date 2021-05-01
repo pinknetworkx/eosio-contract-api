@@ -52,9 +52,7 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 asset_id: trace.act.data.asset_id,
                 receiver: trace.act.data.new_asset_owner,
                 minter: trace.act.data.authorized_minter,
-                txid: Buffer.from(tx.id, 'hex'),
-                created_at_block: block.block_num,
-                created_at_time: eosioTimestampToDate(block.timestamp).getTime()
+                txid: Buffer.from(tx.id, 'hex')
             });
 
             notifier.sendActionTrace('assets', block, tx, trace);

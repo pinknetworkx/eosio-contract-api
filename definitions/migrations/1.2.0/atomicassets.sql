@@ -1,10 +1,9 @@
 DROP MATERIALIZED VIEW IF EXISTS atomicassets_asset_data;
 DROP FUNCTION IF EXISTS remove_long_jsonb_pairs;
 
--- TODO add to base tables
 ALTER TABLE atomicassets_assets ADD COLUMN IF NOT EXISTS template_mint INT;
 
-CREATE INDEX  IF NOT EXISTS atomicassets_assets_missing_mint ON atomicassets_assets(template_id, asset_id) WHERE template_id IS NOT NULL AND template_mint IS NULL;
+CREATE INDEX IF NOT EXISTS atomicassets_assets_missing_mint ON atomicassets_assets(template_id, asset_id) WHERE template_id IS NOT NULL AND template_mint IS NULL;
 
 DROP INDEX IF EXISTS atomicassets_assets_template_id;
 

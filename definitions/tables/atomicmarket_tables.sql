@@ -247,6 +247,7 @@ CREATE INDEX atomicmarket_auctions_assets_asset_id ON atomicmarket_auctions_asse
 
 CREATE INDEX atomicmarket_auctions_bids_account ON atomicmarket_auctions_bids USING btree (account);
 CREATE INDEX atomicmarket_auctions_bids_amount ON atomicmarket_auctions_bids USING btree (amount);
+CREATE INDEX atomicmarket_auctions_bids_created_at_time ON atomicmarket_auctions_bids USING btree (created_at_time);
 
 CREATE INDEX atomicmarket_balances_owner ON atomicmarket_balances USING btree (owner);
 

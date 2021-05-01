@@ -36,7 +36,7 @@ export function buyoffersEndpoints(core: AtomicMarketNamespace, server: HTTPServ
                     type: 'string',
                     values: [
                         'created', 'updated', 'ending', 'buyoffer_id', 'price',
-                        'template_mint', 'schema_mint', 'collection_mint'
+                        'template_mint'
                     ],
                     default: 'created'
                 },
@@ -85,9 +85,7 @@ export function buyoffersEndpoints(core: AtomicMarketNamespace, server: HTTPServ
                 created: 'listing.created_at_time',
                 updated: 'listing.updated_at_time',
                 price: 'listing.price',
-                template_mint: 'mint.min_template_mint',
-                schema_mint: 'mint.min_schema_mint',
-                collection_mint: 'mint.min_collection_mint'
+                template_mint: 'mint.min_template_mint'
             };
 
             // @ts-ignore
@@ -205,7 +203,7 @@ export function buyoffersEndpoints(core: AtomicMarketNamespace, server: HTTPServ
                                 type: 'string',
                                 enum: [
                                     'created', 'updated', 'buyoffer_id', 'price',
-                                    'template_mint', 'schema_mint', 'collection_mint'
+                                    'template_mint'
                                 ],
                                 default: 'created'
                             }

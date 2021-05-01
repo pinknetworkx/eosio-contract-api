@@ -39,7 +39,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                     type: 'string',
                     values: [
                         'created', 'updated', 'sale_id', 'price',
-                        'template_mint', 'schema_mint', 'collection_mint'
+                        'template_mint'
                     ],
                     default: 'created'
                 },
@@ -87,9 +87,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 created: {column: 'listing.created_at_time', nullable: false},
                 updated: {column: 'listing.updated_at_time', nullable: false},
                 price: {column: 'price.price', nullable: true},
-                template_mint: {column: 'mint.min_template_mint', nullable: true},
-                schema_mint: {column: 'mint.min_schema_mint', nullable: true},
-                collection_mint: {column: 'mint.min_collection_mint', nullable: true}
+                template_mint: {column: 'mint.min_template_mint', nullable: true}
             };
 
             queryString += 'ORDER BY ' + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.sale_id ASC ';
@@ -313,7 +311,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string',
                                 enum: [
                                     'created', 'updated', 'sale_id', 'price',
-                                    'template_mint', 'schema_mint', 'collection_mint'
+                                    'template_mint'
                                 ],
                                 default: 'created'
                             }

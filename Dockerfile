@@ -1,4 +1,4 @@
-FROM node:14.15-alpine
+FROM node:14-alpine
 
 RUN adduser --disabled-password application && \
   mkdir -p /home/application/app/ && \
@@ -8,9 +8,11 @@ USER application
 
 WORKDIR /home/application/app
 
-COPY . .
+COPY yarn.lock ./
 
 RUN yarn install
+
+COPY . .
 
 ENV NODE_ENV production
 EXPOSE 9000

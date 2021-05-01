@@ -168,33 +168,41 @@ export default class AtomicAssetsHandler extends ContractHandler {
         }
 
         this.filler.registerUpdateJob(async () => {
-            await this.connection.database.query(`
-                WITH assets_to_update AS MATERIALIZED (
-                    SELECT contract, asset_id, template_id
-                    FROM atomicassets_assets
-                    WHERE template_id IS NOT NULL AND template_mint IS NULL
-                    ORDER BY template_id, asset_id
-                    LIMIT 100000
-                ), last_mint AS (
-                    SELECT DISTINCT ON (template_id, contract) template_id, contract, template_mint
-                    FROM atomicassets_assets assets
-                    WHERE (template_id, contract) IN (SELECT DISTINCT template_id, contract FROM assets_to_update)
-                        AND template_mint IS NOT NULL
-                    ORDER BY template_id, contract, asset_id DESC
-                ), new_mints AS (
-                    SELECT assets.contract, assets.asset_id, COALESCE(last_mint.template_mint, 0) + ROW_NUMBER() OVER (PARTITION BY assets.template_id, assets.contract ORDER BY asset_id) AS template_mint
-                    FROM assets_to_update assets
-                        LEFT OUTER JOIN last_mint ON assets.template_id = last_mint.template_id
-                            AND  assets.contract = last_mint.contract
-                )
-                
-                UPDATE atomicassets_assets assets
+            try {
+                await this.connection.database.query(`
+                    WITH assets_to_update AS MATERIALIZED (
+                        SELECT contract, asset_id, template_id
+                        FROM atomicassets_assets
+                        WHERE template_id IS NOT NULL AND template_mint IS NULL
+                        ORDER BY template_id, asset_id
+                        FOR UPDATE NOWAIT
+                        LIMIT 100000
+                    ), last_mint AS (
+                        SELECT DISTINCT ON (template_id, contract) template_id, contract, template_mint
+                        FROM atomicassets_assets assets
+                        WHERE (template_id, contract) IN (SELECT DISTINCT template_id, contract FROM assets_to_update)
+                            AND template_mint IS NOT NULL
+                        ORDER BY template_id, contract, asset_id DESC
+                    ), new_mints AS (
+                        SELECT assets.contract, assets.asset_id, COALESCE(last_mint.template_mint, 0) + ROW_NUMBER() OVER (PARTITION BY assets.template_id, assets.contract ORDER BY asset_id) AS template_mint
+                        FROM assets_to_update assets
+                            LEFT OUTER JOIN last_mint ON (assets.template_id = last_mint.template_id AND assets.contract = last_mint.contract)
+                    )
+                    
+                    UPDATE atomicassets_assets assets
                     SET template_mint = new_mints.template_mint
-                FROM new_mints
-                WHERE assets.asset_id = new_mints.asset_id
-                    AND assets.contract = new_mints.contract
-                ;
-            `);
+                    FROM new_mints
+                    WHERE assets.asset_id = new_mints.asset_id AND assets.contract = new_mints.contract
+                `);
+            } catch (e) {
+                if (e.code === '55P03') {
+                    logger.warn('Unable to acquire locks for updating asset mints');
+
+                    return;
+                }
+
+                throw e;
+            }
         }, 30000, true);
 
         const materializedViews = ['atomicassets_asset_mints'];
