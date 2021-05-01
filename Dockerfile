@@ -8,6 +8,11 @@ USER application
 
 WORKDIR /home/application/app
 
+COPY yarn.lock .
+COPY package.json .
+
+RUN yarn install --ignore-scripts
+
 COPY . .
 
 RUN yarn install

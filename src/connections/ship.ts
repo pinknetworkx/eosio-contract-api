@@ -99,7 +99,7 @@ export default class StateHistoryBlockReader {
     onMessage(data: any): void {
         try {
             if (!this.abi) {
-                logger.info('Receiving ABI...');
+                logger.info('Receiving ABI from ship...');
 
                 this.abi = JSON.parse(data);
                 this.types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), this.abi);

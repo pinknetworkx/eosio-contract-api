@@ -8,7 +8,7 @@
   "scripts": {
     "clean": "rimraf ./build/* && rimraf ./logs/*",
     "lint": "eslint 'src/**/*.ts'",
-    "build": "yarn clean && yarn lint && tsc",
+    "build": "yarn clean && tsc",
     "test": "mocha -r ts-node/register test/**/*.test.ts",
     "postinstall": "yarn build",
 
