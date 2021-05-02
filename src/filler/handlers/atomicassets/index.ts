@@ -210,24 +210,25 @@ export default class AtomicAssetsHandler extends ContractHandler {
         }
 
         (async (): Promise<any> => {
+            let blocked = 0;
             while (running) {
                 await new Promise(resolve => setTimeout(resolve, 30000));
 
                 try {
                     await this.connection.database.query(`
-                    WITH assets_to_update AS MATERIALIZED (
+                    WITH assets_to_update AS (
                         SELECT contract, asset_id, template_id
                         FROM atomicassets_assets
                         WHERE template_id IS NOT NULL AND template_mint IS NULL
                         ORDER BY template_id, asset_id
                         FOR UPDATE NOWAIT
-                        LIMIT 100000
+                        LIMIT 50000
+                    ), templates AS (
+                        SELECT DISTINCT template_id, contract
+                        FROM assets_to_update
                     ), last_mint AS (
-                        SELECT DISTINCT ON (template_id, contract) template_id, contract, template_mint
-                        FROM atomicassets_assets assets
-                        WHERE (template_id, contract) IN (SELECT DISTINCT template_id, contract FROM assets_to_update)
-                            AND template_mint IS NOT NULL
-                        ORDER BY template_id, contract, asset_id DESC
+                        SELECT DISTINCT t.template_id, t.contract, (SELECT a.template_mint FROM atomicassets_assets a WHERE a.template_id = t.template_id AND a.contract = t.contract AND a.template_mint IS NOT NULL ORDER BY asset_id DESC LIMIT 1) template_mint
+                        FROM templates t
                     ), new_mints AS (
                         SELECT assets.contract, assets.asset_id, COALESCE(last_mint.template_mint, 0) + ROW_NUMBER() OVER (PARTITION BY assets.template_id, assets.contract ORDER BY asset_id) AS template_mint
                         FROM assets_to_update assets
@@ -239,9 +240,13 @@ export default class AtomicAssetsHandler extends ContractHandler {
                     FROM new_mints
                     WHERE assets.asset_id = new_mints.asset_id AND assets.contract = new_mints.contract
                 `);
+
+                    blocked = 0;
                 } catch (error) {
                     if (error.code === '55P03') {
-                        logger.warn('Unable to acquire locks for updating asset mints');
+                        if (blocked++ > 4) {
+                            logger.warn('Unable to acquire locks for updating asset mints');
+                        }
                     } else {
                         logger.error('Error while updating mints', error);
                     }
