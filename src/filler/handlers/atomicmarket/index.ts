@@ -113,6 +113,18 @@ export default class AtomicMarketHandler extends ContractHandler {
         return false;
     }
 
+    static async upgrade(client: PoolClient, version: string): Promise<void> {
+        if (version === '1.2.1') {
+            logger.info('Updating materialized view atomicmarket_sale_prices');
+
+            await client.query('DROP MATERIALIZED VIEW IF EXISTS atomicmarket_sale_prices;');
+
+            await client.query(fs.readFileSync('./definitions/materialized/atomicmarket_sale_prices.sql', {encoding: 'utf8'}));
+
+            await client.query('REFRESH MATERIALIZED VIEW atomicmarket_sale_prices;');
+        }
+    }
+
     constructor(filler: Filler, args: {[key: string]: any}) {
         super(filler, args);
 
