@@ -90,38 +90,13 @@ export default class AtomicAssetsHandler extends ContractHandler {
         return false;
     }
 
-    static async upgrade(client: PoolClient, version: string, lastIrreversibleBlock: number): Promise<void> {
+    static async upgrade(client: PoolClient, version: string): Promise<void> {
         if (version === '1.2.1') {
             await client.query(fs.readFileSync('./definitions/procedures/atomicassets_mints.sql', {encoding: 'utf8'}));
         }
 
         if (version === '1.2.2') {
             await client.query(fs.readFileSync('./definitions/procedures/atomicassets_mints.sql', {encoding: 'utf8'}));
-
-            logger.info('Upgrading asset mints...');
-
-            const contractsQuery = await client.query('SELECT * FROM atomicassets_config');
-
-            for (const row of contractsQuery.rows) {
-                let lastMintCount = -1;
-                let currentMintCount = 0;
-
-                while (lastMintCount < currentMintCount) {
-                    lastMintCount = currentMintCount;
-
-                    await client.query('CALL update_atomicassets_mints($1, $2)',
-                        [row.contract, lastIrreversibleBlock]);
-
-                    const countQuery = await client.query(
-                        'SELECT COUNT(*) "count" FROM atomicassets_assets WHERE template_mint IS NOT NULL AND contract = $1',
-                        [row.contract]
-                    );
-
-                    currentMintCount = countQuery.rows[0].count;
-
-                    logger.info('Calculated ' + (currentMintCount - lastMintCount) + ' mints of contract ' + row.contract);
-                }
-            }
         }
     }
 
@@ -197,6 +172,32 @@ export default class AtomicAssetsHandler extends ContractHandler {
                 version: configQuery.rows[0].version,
                 standard: 'atomicassets'
             };
+        }
+
+        logger.info('Updating atomicassets mints...');
+
+        const chainInfo = await this.connection.chain.rpc.get_info();
+        const contractsQuery = await this.connection.database.query('SELECT * FROM atomicassets_config');
+
+        for (const row of contractsQuery.rows) {
+            let lastMintCount = -1;
+            let currentMintCount = 0;
+
+            while (lastMintCount < currentMintCount) {
+                lastMintCount = currentMintCount;
+
+                await this.connection.database.query('CALL update_atomicassets_mints($1, $2)',
+                    [row.contract, chainInfo.last_irreversible_block_num]);
+
+                const countQuery = await this.connection.database.query(
+                    'SELECT COUNT(*) "count" FROM atomicassets_assets WHERE template_mint IS NOT NULL AND contract = $1',
+                    [row.contract]
+                );
+
+                currentMintCount = countQuery.rows[0].count;
+
+                logger.info('Calculated ' + (currentMintCount - lastMintCount) + ' mints of contract ' + row.contract);
+            }
         }
     }
 
