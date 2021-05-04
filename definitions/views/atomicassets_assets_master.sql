@@ -43,7 +43,7 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
         asset.mutable_data,
         asset.immutable_data,
 
-        COALESCE(mint.template_mint, 0)::bigint template_mint,
+        COALESCE(asset.template_mint, 0)::bigint template_mint,
 
         ARRAY(
             SELECT DISTINCT ON (inner_backed.contract, inner_backed.asset_id, inner_backed.token_symbol)
@@ -67,9 +67,6 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
         atomicassets_assets asset
         LEFT JOIN atomicassets_templates "template" ON (
             "template".contract = asset.contract AND "template".template_id = asset.template_id
-        )
-        LEFT JOIN atomicassets_asset_mints mint ON (
-            mint.contract = asset.contract AND mint.asset_id = asset.asset_id
         )
         JOIN atomicassets_collections collection ON (collection.contract = asset.contract AND collection.collection_name = asset.collection_name)
         JOIN atomicassets_schemas "schema" ON ("schema".contract = asset.contract AND "schema".collection_name = asset.collection_name AND "schema".schema_name = asset.schema_name)

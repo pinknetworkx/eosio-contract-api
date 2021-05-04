@@ -61,7 +61,6 @@ export default class AtomicAssetsHandler extends ContractHandler {
             ['public', 'atomicassets_config']
         );
 
-        const materializedViews = ['atomicassets_asset_mints'];
         const views = [
             'atomicassets_asset_mints_master', 'atomicassets_templates_master',
             'atomicassets_schemas_master', 'atomicassets_collections_master', 'atomicassets_offers_master',
@@ -77,10 +76,6 @@ export default class AtomicAssetsHandler extends ContractHandler {
 
             for (const view of views) {
                 await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
-            }
-
-            for (const view of materializedViews) {
-                await client.query(fs.readFileSync('./definitions/materialized/' + view + '.sql', {encoding: 'utf8'}));
             }
 
             await client.query(fs.readFileSync('./definitions/views/atomicassets_assets_master.sql', {encoding: 'utf8'}));

@@ -4,45 +4,9 @@
     {
       "table": {
         "schema": "public",
-        "name": "atomicassets_asset_mints"
-      },
-      "select_permissions": [
-        {
-          "role": "anonymous",
-          "permission": {
-            "columns": [
-              "contract",
-              "asset_id",
-              "template_mint"
-            ],
-            "filter": {},
-            "limit": 1000,
-            "allow_aggregations": true
-          }
-        }
-      ]
-    },
-    {
-      "table": {
-        "schema": "public",
         "name": "atomicassets_assets"
       },
       "object_relationships": [
-        {
-          "name": "atomicassets_asset_mints",
-          "using": {
-            "manual_configuration": {
-              "remote_table": {
-                "schema": "public",
-                "name": "atomicassets_asset_mints"
-              },
-              "column_mapping": {
-                "asset_id": "asset_id",
-                "contract": "contract"
-              }
-            }
-          }
-        },
         {
           "name": "atomicassets_collection",
           "using": {

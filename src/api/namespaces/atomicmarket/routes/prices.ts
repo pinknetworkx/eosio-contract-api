@@ -23,9 +23,9 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 symbol: {type: 'string', min: 1}
             });
 
-            let queryString = 'SELECT price.*, token.token_precision, token.token_contract, mint.template_mint ' +
-                'FROM atomicmarket_stats_prices price, atomicassets_asset_mints mint, atomicmarket_tokens token ' +
-                'WHERE price.assets_contract = mint.contract AND price.asset_id = mint.asset_id AND ' +
+            let queryString = 'SELECT price.*, token.token_precision, token.token_contract, asset.template_mint ' +
+                'FROM atomicmarket_stats_prices price, atomicassets_assets asset, atomicmarket_tokens token ' +
+                'WHERE price.assets_contract = asset.contract AND price.asset_id = asset.asset_id AND ' +
                 'price.market_contract = token.market_contract AND price.symbol = token.token_symbol AND ' +
                 'price.market_contract = $1 ';
             const queryValues = [core.args.atomicmarket_account];

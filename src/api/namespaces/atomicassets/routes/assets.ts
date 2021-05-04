@@ -25,7 +25,7 @@ import { NotificationData } from '../../../../filler/notifier';
 
 export function buildAssetQueryCondition(
     req: express.Request, varOffset: number,
-    options: {assetTable?: string, templateTable?: string, mintTable?: string} = {}
+    options: {assetTable?: string, templateTable?: string} = {}
 ): {values: any[], str: string} {
     const args = filterQueryArgs(req, {
         authorized_account: {type: 'string', min: 1, max: 12},
@@ -60,21 +60,19 @@ export function buildAssetQueryCondition(
 
     queryString += hideOfferAssets(req);
 
-    if (options.mintTable) {
-        if (args.template_mint) {
-            queryString += 'AND ' + options.mintTable + '.template_mint = $' + ++varCounter + ' ';
-            queryValues.push(args.template_mint);
-        }
+    if (args.template_mint) {
+        queryString += 'AND ' + options.assetTable + '.template_mint = $' + ++varCounter + ' ';
+        queryValues.push(args.template_mint);
+    }
 
-        if (args.min_template_mint) {
-            queryString += 'AND ' + options.mintTable + '.template_mint >= $' + ++varCounter + ' ';
-            queryValues.push(args.min_template_mint);
-        }
+    if (args.min_template_mint) {
+        queryString += 'AND ' + options.assetTable + '.template_mint >= $' + ++varCounter + ' ';
+        queryValues.push(args.min_template_mint);
+    }
 
-        if (args.max_template_mint) {
-            queryString += 'AND ' + options.mintTable + '.template_mint <= $' + ++varCounter + ' ';
-            queryValues.push(args.max_template_mint);
-        }
+    if (args.max_template_mint) {
+        queryString += 'AND ' + options.assetTable + '.template_mint <= $' + ++varCounter + ' ';
+        queryValues.push(args.max_template_mint);
     }
 
     const assetFilter = buildAssetFilter(req, varCounter, {assetTable: options.assetTable, templateTable: options.templateTable});
@@ -116,16 +114,13 @@ export class AssetApi {
                 let queryString = 'SELECT asset.asset_id FROM atomicassets_assets asset ' +
                     'LEFT JOIN atomicassets_templates "template" ON (' +
                         'asset.contract = template.contract AND asset.template_id = template.template_id' +
-                    ') ' +
-                    'LEFT JOIN atomicassets_asset_mints mint ON (' +
-                        'asset.contract = mint.contract AND asset.asset_id = mint.asset_id' +
                     ') ';
 
                 queryString += 'WHERE asset.contract = $1 ';
                 let queryValues: any[] = [this.core.args.atomicassets_account];
 
                 const filter = buildAssetQueryCondition(req, varCounter, {
-                    assetTable: '"asset"', templateTable: '"template"', mintTable: '"mint"'
+                    assetTable: '"asset"', templateTable: '"template"'
                 });
 
                 queryString += filter.str;
