@@ -29,8 +29,7 @@ export default class Filler {
     readonly reader: StateReceiver;
     readonly modules: ModuleLoader;
 
-    private readonly standardMaterializedViews: Array<{fn: () => any, interval: number, updated: number}>;
-    private readonly priorityMaterializedViews: Array<{fn: () => any, interval: number, updated: number}>;
+    private readonly jobs: Array<{fn: () => any, interval: number, updated: number, priority: boolean}>;
     private running: boolean;
 
     private readonly handlers: ContractHandler[];
@@ -40,8 +39,7 @@ export default class Filler {
         this.modules = new ModuleLoader(config.modules || []);
         this.reader = new StateReceiver(config, connection, this.handlers, this.modules);
 
-        this.standardMaterializedViews = [];
-        this.priorityMaterializedViews = [];
+        this.jobs = [];
         this.running = false;
 
         logger.info(this.handlers.length + ' contract handlers registered');
@@ -188,41 +186,61 @@ export default class Filler {
 
         this.running = true;
 
-        setTimeout(async () => {
+        (async (): Promise<void> => {
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
+            let counter = 0;
+
             while (this.running) {
-                for (const view of this.standardMaterializedViews) {
-                    if (view.updated + view.interval < Date.now()) {
-                        try {
-                            await view.fn();
-                        } catch (err){
-                            logger.error('Error while refreshing standard job', err);
-                        } finally {
-                            view.updated = Date.now();
-                        }
+                const jobs = this.jobs.filter(row => row.priority);
+
+                counter = counter >= jobs.length ? 0 : counter;
+
+                const job = jobs[counter];
+
+                if (job.updated + job.interval < Date.now()) {
+                    try {
+                        await job.fn();
+                    } catch (err){
+                        logger.error('Error while refreshing priority job', err);
+                    } finally {
+                        job.updated = Date.now();
                     }
                 }
 
+                counter += 1;
+
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
-        }, 5000);
+        })().then();
 
-        setTimeout(async () => {
+        (async (): Promise<void> => {
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
+            let counter = 0;
+
             while (this.running) {
-                for (const view of this.priorityMaterializedViews) {
-                    if (view.updated + view.interval < Date.now()) {
-                        try {
-                            await view.fn();
-                        } catch (err){
-                            logger.error('Error while processing priority update job', err);
-                        } finally {
-                            view.updated = Date.now();
-                        }
+                const jobs = this.jobs.filter(row => !row.priority);
+
+                counter = counter >= jobs.length ? 0 : counter;
+
+                const job = jobs[counter];
+
+                if (job.updated + job.interval < Date.now()) {
+                    try {
+                        await job.fn();
+                    } catch (err){
+                        logger.error('Error while refreshing standard job', err);
+                    } finally {
+                        job.updated = Date.now();
                     }
                 }
 
+                counter += 1;
+
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
-        }, 5000);
+        })().then();
     }
 
     async stopFiller(): Promise<void> {
@@ -231,17 +249,17 @@ export default class Filler {
         await this.reader.stopProcessing();
     }
 
-    registerMaterializedViewRefresh(name: string, interval: number, priority = false): void {
-        this.registerUpdateJob(async () => {
-            await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + name);
-        }, interval, priority);
-    }
+    registerUpdateJob(fn: () => any, interval: number, priority = false): () => void {
+        const element = {fn, interval, updated: Date.now(), priority};
 
-    registerUpdateJob(fn: () => any, interval: number, priority = false): void {
-        if (priority) {
-            this.priorityMaterializedViews.push({fn, interval, updated: Date.now()});
-        } else {
-            this.standardMaterializedViews.push({fn, interval, updated: Date.now()});
-        }
+        this.jobs.push(element);
+
+        return (): void => {
+            const index = this.jobs.indexOf(element);
+
+            if (index >= 0) {
+                this.jobs.splice(index, 1);
+            }
+        };
     }
 }

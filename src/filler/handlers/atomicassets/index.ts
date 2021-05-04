@@ -99,6 +99,22 @@ export default class AtomicAssetsHandler extends ContractHandler {
         if (version === '1.2.1') {
             await client.query(fs.readFileSync('./definitions/procedures/atomicassets_mints.sql', {encoding: 'utf8'}));
         }
+
+        if (version === '1.2.2') {
+            await client.query(fs.readFileSync('./definitions/procedures/atomicassets_mints.sql', {encoding: 'utf8'}));
+
+            if ((await client.query('SELECT * FROM pg_matviews WHERE matviewname = \'atomicassets_asset_mints\'; ')).rowCount > 0) {
+                logger.info('Upgrading asset mints...');
+
+                await client.query(`
+                    UPDATE atomicassets_assets asset
+                    SET template_mint = mint.template_mint
+                    FROM atomicassets_asset_mints mint 
+                    WHERE asset.contract = mint.contract AND asset.asset_id = mint.asset_id
+                        AND mint.template_mint IS NOT NULL
+                `);
+            }
+        }
     }
 
     constructor(filler: Filler, args: {[key: string]: any}) {
@@ -174,8 +190,6 @@ export default class AtomicAssetsHandler extends ContractHandler {
                 standard: 'atomicassets'
             };
         }
-
-        this.filler.registerMaterializedViewRefresh('atomicassets_asset_mints', 60000, true);
     }
 
     async deleteDB(client: PoolClient): Promise<void> {
@@ -202,7 +216,6 @@ export default class AtomicAssetsHandler extends ContractHandler {
     }
 
     async register(processor: DataProcessor, notifier: ApiNotificationSender): Promise<() => any> {
-        let running = true;
         const destructors: Array<() => any> = [];
 
         destructors.push(assetProcessor(this, processor, notifier));
@@ -217,21 +230,15 @@ export default class AtomicAssetsHandler extends ContractHandler {
             destructors.push(logProcessor(this, processor));
         }
 
-        (async (): Promise<any> => {
-            while (running) {
-                await new Promise(resolve => setTimeout(resolve, 30000));
+        destructors.push(this.filler.registerUpdateJob(async () => {
+            const info = await this.connection.chain.rpc.get_info();
 
-                try {
-                    await this.connection.database.query('CALL set_asset_mints()');
-                } catch (error) {
-                    logger.error('Error while updating mints', error);
-                }
-            }
-        })().then();
+            await this.connection.database.query(
+                'CALL update_atomicassets_mints($1, $2)',
+                [this.args.atomicassets_account, info.last_irreversible_block_num]
+            );
+        }, 30000, true));
 
-        return (): any => {
-            destructors.map(fn => fn());
-            running = false;
-        };
+        return (): any => destructors.map(fn => fn());
     }
 }

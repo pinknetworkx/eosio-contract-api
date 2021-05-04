@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE set_asset_mints()
+CREATE OR REPLACE PROCEDURE update_atomicassets_mints(selected_contract TEXT, last_irreversible_block BIGINT, max_assets_to_update INT = 50000)
 LANGUAGE plpgsql
 AS $$
 DECLARE
@@ -9,8 +9,10 @@ BEGIN
             SELECT contract, asset_id, template_id
             FROM atomicassets_assets
             WHERE template_id IS NOT NULL AND template_mint IS NULL
+                AND minted_at_block <= last_irreversible_block
+                AND contract = selected_contract
             ORDER BY template_id, asset_id
-            LIMIT 50000
+            LIMIT max_assets_to_update
         ), templates AS (
             SELECT DISTINCT template_id, contract
             FROM assets_to_update

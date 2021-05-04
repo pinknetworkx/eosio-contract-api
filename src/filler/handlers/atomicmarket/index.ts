@@ -84,9 +84,7 @@ export default class AtomicMarketHandler extends ContractHandler {
         ];
 
         const materializedViews = [
-            'atomicmarket_template_prices',
-            'atomicmarket_auction_mints', 'atomicmarket_buyoffer_mints',
-            'atomicmarket_sale_mints', 'atomicmarket_sale_prices',
+            'atomicmarket_template_prices', 'atomicmarket_sale_prices',
             'atomicmarket_stats_prices', 'atomicmarket_stats_markets'
         ];
 
@@ -115,13 +113,58 @@ export default class AtomicMarketHandler extends ContractHandler {
 
     static async upgrade(client: PoolClient, version: string): Promise<void> {
         if (version === '1.2.1') {
-            logger.info('Updating materialized view atomicmarket_sale_prices');
+            logger.info('Upgrading materialized view atomicmarket_sale_prices');
 
             await client.query('DROP MATERIALIZED VIEW IF EXISTS atomicmarket_sale_prices;');
 
             await client.query(fs.readFileSync('./definitions/materialized/atomicmarket_sale_prices.sql', {encoding: 'utf8'}));
 
             await client.query('REFRESH MATERIALIZED VIEW atomicmarket_sale_prices;');
+        }
+
+        if (version === '1.2.2') {
+            if ((await client.query('SELECT * FROM pg_matviews WHERE matviewname = \'atomicmarket_auction_mints\'; ')).rowCount > 0) {
+                logger.info('Migrating auction mints...');
+
+                await client.query(`
+                UPDATE atomicmarket_auctions listing
+                SET template_mint = int4range(mint.min_template_mint::int, mint.max_template_mint::int, '[]')
+                FROM atomicmarket_auction_mints mint 
+                WHERE listing.market_contract = mint.market_contract AND listing.auction_id = mint.auction_id
+                    AND mint.min_template_mint IS NOT NULL AND mint.max_template_mint IS NOT NULL
+            `);
+            }
+
+            if ((await client.query('SELECT * FROM pg_matviews WHERE matviewname = \'atomicmarket_sale_mints\'; ')).rowCount > 0) {
+                logger.info('Migrating sale mints...');
+
+                await client.query(`
+                UPDATE atomicmarket_sales listing
+                SET template_mint = int4range(mint.min_template_mint::int, mint.max_template_mint::int, '[]')
+                FROM atomicmarket_sale_mints mint 
+                WHERE listing.market_contract = mint.market_contract AND listing.sale_id = mint.sale_id
+                    AND mint.min_template_mint IS NOT NULL AND mint.max_template_mint IS NOT NULL
+            `);
+            }
+
+            if ((await client.query('SELECT * FROM pg_matviews WHERE matviewname = \'atomicmarket_buyoffer_mints\'; ')).rowCount > 0) {
+                logger.info('Migrating buyoffer mints...');
+
+                await client.query(`
+                UPDATE atomicmarket_buyoffers listing
+                SET template_mint = int4range(mint.min_template_mint::int, mint.max_template_mint::int, '[]')
+                FROM atomicmarket_buyoffer_mints mint 
+                WHERE listing.market_contract = mint.market_contract AND listing.buyoffer_id = mint.buyoffer_id
+                    AND mint.min_template_mint IS NOT NULL AND mint.max_template_mint IS NOT NULL
+            `);
+            }
+
+            // refactor views
+            await client.query('DROP VIEW IF EXISTS atomicmarket_assets_master');
+            await client.query('DROP VIEW IF EXISTS atomicassets_assets_master');
+
+            await client.query(fs.readFileSync('./definitions/views/atomicassets_assets_master.sql', {encoding: 'utf8'}));
+            await client.query(fs.readFileSync('./definitions/views/atomicmarket_assets_master.sql', {encoding: 'utf8'}));
         }
     }
 
@@ -214,30 +257,6 @@ export default class AtomicMarketHandler extends ContractHandler {
                 atomicassets_account: this.args.atomicassets_account
             };
         }
-
-        const materializedViews = [
-            'atomicmarket_template_prices',
-            'atomicmarket_auction_mints', 'atomicmarket_buyoffer_mints',
-            'atomicmarket_sale_mints', 'atomicmarket_sale_prices',
-            'atomicmarket_stats_prices', 'atomicmarket_stats_markets'
-        ];
-
-        const priorityViews = [
-            'atomicmarket_buyoffer_mints', 'atomicmarket_auction_mints',
-            'atomicmarket_sale_mints', 'atomicmarket_sale_prices'
-        ];
-
-        for (const view of materializedViews) {
-            if (priorityViews.indexOf(view) >= 0) {
-                continue;
-            }
-
-            this.filler.registerMaterializedViewRefresh(view, 60000);
-        }
-
-        for (const view of priorityViews) {
-            this.filler.registerMaterializedViewRefresh(view, 30000, true);
-        }
     }
 
     async deleteDB(client: PoolClient): Promise<void> {
@@ -256,10 +275,8 @@ export default class AtomicMarketHandler extends ContractHandler {
         }
 
         const materializedViews = [
-            'atomicmarket_auction_mints',
-            'atomicmarket_buyoffer_mints',
-            'atomicmarket_sale_mints', 'atomicmarket_sale_prices',
-            'atomicmarket_template_prices'
+            'atomicmarket_template_prices', 'atomicmarket_sale_prices',
+            'atomicmarket_stats_prices', 'atomicmarket_stats_markets'
         ];
 
         for (const view of materializedViews) {
@@ -281,6 +298,49 @@ export default class AtomicMarketHandler extends ContractHandler {
         if (this.args.store_logs) {
             destructors.push(logProcessor(this, processor));
         }
+
+        const materializedViews = [
+            'atomicmarket_template_prices',
+            'atomicmarket_stats_prices', 'atomicmarket_stats_markets'
+        ];
+
+        for (const view of materializedViews) {
+            destructors.push(this.filler.registerUpdateJob(async () => {
+                await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view + ';');
+            }, 60000, false));
+        }
+
+
+        destructors.push(this.filler.registerUpdateJob(async () => {
+            const info = await this.connection.chain.rpc.get_info();
+
+            await this.connection.database.query(
+                'CALL update_atomicmarket_sale_mints($1, $2)',
+                [this.args.atomicmarket_account, info.last_irreversible_block_num]
+            );
+        }, 30000, true));
+
+        destructors.push(this.filler.registerUpdateJob(async () => {
+            const info = await this.connection.chain.rpc.get_info();
+
+            await this.connection.database.query(
+                'CALL update_atomicmarket_buyoffer_mints($1, $2)',
+                [this.args.atomicmarket_account, info.last_irreversible_block_num]
+            );
+        }, 30000, true));
+
+        destructors.push(this.filler.registerUpdateJob(async () => {
+            const info = await this.connection.chain.rpc.get_info();
+
+            await this.connection.database.query(
+                'CALL update_atomicmarket_auction_mints($1, $2)',
+                [this.args.atomicmarket_account, info.last_irreversible_block_num]
+            );
+        }, 30000, true));
+
+        destructors.push(this.filler.registerUpdateJob(async () => {
+            await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY atomicmarket_sale_prices;');
+        }, 60000, true));
 
         return (): any => destructors.map(fn => fn());
     }

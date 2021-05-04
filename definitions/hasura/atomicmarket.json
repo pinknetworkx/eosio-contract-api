@@ -13,8 +13,6 @@
             "columns": [
               "contract",
               "asset_id",
-              "collection_mint",
-              "schema_mint",
               "template_mint"
             ],
             "filter": {},
@@ -616,32 +614,6 @@
     {
       "table": {
         "schema": "public",
-        "name": "atomicmarket_auction_mints"
-      },
-      "select_permissions": [
-        {
-          "role": "anonymous",
-          "permission": {
-            "columns": [
-              "market_contract",
-              "auction_id",
-              "max_template_mint",
-              "min_template_mint",
-              "max_schema_mint",
-              "min_schema_mint",
-              "max_collection_mint",
-              "min_collection_mint"
-            ],
-            "filter": {},
-            "limit": 1000,
-            "allow_aggregations": true
-          }
-        }
-      ]
-    },
-    {
-      "table": {
-        "schema": "public",
         "name": "atomicmarket_auctions"
       },
       "object_relationships": [
@@ -1118,32 +1090,6 @@
               "creator",
               "created_at_block",
               "created_at_time"
-            ],
-            "filter": {},
-            "limit": 1000,
-            "allow_aggregations": true
-          }
-        }
-      ]
-    },
-    {
-      "table": {
-        "schema": "public",
-        "name": "atomicmarket_sale_mints"
-      },
-      "select_permissions": [
-        {
-          "role": "anonymous",
-          "permission": {
-            "columns": [
-              "market_contract",
-              "sale_id",
-              "max_template_mint",
-              "min_template_mint",
-              "max_schema_mint",
-              "min_schema_mint",
-              "max_collection_mint",
-              "min_collection_mint"
             ],
             "filter": {},
             "limit": 1000,

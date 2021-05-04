@@ -48,7 +48,6 @@ export function buyoffersEndpoints(core: AtomicMarketNamespace, server: HTTPServ
             let queryString = 'SELECT listing.buyoffer_id ' +
                 'FROM atomicmarket_buyoffers listing ' +
                     'JOIN atomicmarket_tokens "token" ON (listing.market_contract = "token".market_contract AND listing.token_symbol = "token".token_symbol) ' +
-                    'LEFT JOIN atomicmarket_buyoffer_mints mint ON (mint.market_contract = listing.market_contract AND mint.buyoffer_id = listing.buyoffer_id) ' +
                 'WHERE listing.market_contract = $1 ' + buyofferFilter.str + ' AND ' +
                 'NOT EXISTS (' +
                     'SELECT * FROM atomicmarket_buyoffers_assets buyoffer_asset ' +
