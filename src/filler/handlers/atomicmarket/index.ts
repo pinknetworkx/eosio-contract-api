@@ -88,6 +88,8 @@ export default class AtomicMarketHandler extends ContractHandler {
             'atomicmarket_stats_prices', 'atomicmarket_stats_markets'
         ];
 
+        const procedures = ['atomicmarket_auction_mints', 'atomicmarket_buyoffer_mints', 'atomicmarket_sale_mints'];
+
         if (!existsQuery.rows[0].exists) {
             logger.info('Could not find AtomicMarket tables. Create them now...');
 
@@ -101,6 +103,10 @@ export default class AtomicMarketHandler extends ContractHandler {
 
             for (const view of materializedViews) {
                 await client.query(fs.readFileSync('./definitions/materialized/' + view + '.sql', {encoding: 'utf8'}));
+            }
+
+            for (const procedure of procedures) {
+                await client.query(fs.readFileSync('./definitions/procedures/' + procedure + '.sql', {encoding: 'utf8'}));
             }
 
             logger.info('AtomicMarket tables successfully created');
