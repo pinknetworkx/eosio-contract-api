@@ -94,7 +94,7 @@ export default class Filler {
 
             await this.connection.database.query(
                 'INSERT INTO contract_readers(name, block_num, block_time, live, updated) VALUES ($1, $2, $3, $4, $5)',
-                [this.config.name, 0, 0, false, Date.now()]
+                [this.config.name, 0, 0, false, 0]
             );
         }
 

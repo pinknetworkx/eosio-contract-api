@@ -90,7 +90,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
         return false;
     }
 
-    static async upgrade(client: PoolClient, version: string): Promise<void> {
+    static async upgrade(client: PoolClient, version: string, lastIrreversibleBlock: number): Promise<void> {
         if (version === '1.2.1') {
             await client.query(fs.readFileSync('./definitions/procedures/atomicassets_mints.sql', {encoding: 'utf8'}));
         }
@@ -98,16 +98,29 @@ export default class AtomicAssetsHandler extends ContractHandler {
         if (version === '1.2.2') {
             await client.query(fs.readFileSync('./definitions/procedures/atomicassets_mints.sql', {encoding: 'utf8'}));
 
-            if ((await client.query('SELECT * FROM pg_matviews WHERE matviewname = \'atomicassets_asset_mints\'; ')).rowCount > 0) {
-                logger.info('Upgrading asset mints...');
+            logger.info('Upgrading asset mints...');
 
-                await client.query(`
-                    UPDATE atomicassets_assets asset
-                    SET template_mint = mint.template_mint
-                    FROM atomicassets_asset_mints mint 
-                    WHERE asset.contract = mint.contract AND asset.asset_id = mint.asset_id
-                        AND mint.template_mint IS NOT NULL
-                `);
+            const contractsQuery = await client.query('SELECT * FROM atomicassets_config');
+
+            for (const row of contractsQuery.rows) {
+                let lastMintCount = -1;
+                let currentMintCount = 0;
+
+                while (lastMintCount < currentMintCount) {
+                    lastMintCount = currentMintCount;
+
+                    await client.query('CALL update_atomicassets_mints($1, $2)',
+                        [row.contract, lastIrreversibleBlock]);
+
+                    const countQuery = await client.query(
+                        'SELECT COUNT(*) "count" FROM atomicassets_assets WHERE template_mint IS NOT NULL AND contract = $1',
+                        [row.contract]
+                    );
+
+                    currentMintCount = countQuery.rows[0].count;
+
+                    logger.info('Calculated ' + (currentMintCount - lastMintCount) + ' mints of contract ' + row.contract);
+                }
             }
         }
     }
@@ -201,12 +214,6 @@ export default class AtomicAssetsHandler extends ContractHandler {
                 'DELETE FROM ' + client.escapeIdentifier(table) + ' WHERE contract = $1',
                 [this.args.atomicassets_account]
             );
-        }
-
-        const views = ['atomicassets_asset_mints'];
-
-        for (const view of views) {
-            await client.query('REFRESH MATERIALIZED VIEW ' + client.escapeIdentifier(view) + '');
         }
     }
 

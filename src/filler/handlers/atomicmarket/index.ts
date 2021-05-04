@@ -117,7 +117,7 @@ export default class AtomicMarketHandler extends ContractHandler {
         return false;
     }
 
-    static async upgrade(client: PoolClient, version: string): Promise<void> {
+    static async upgrade(client: PoolClient, version: string, lastIrreversibleBlock: number): Promise<void> {
         if (version === '1.2.1') {
             logger.info('Upgrading materialized view atomicmarket_sale_prices');
 
@@ -129,40 +129,69 @@ export default class AtomicMarketHandler extends ContractHandler {
         }
 
         if (version === '1.2.2') {
-            if ((await client.query('SELECT * FROM pg_matviews WHERE matviewname = \'atomicmarket_auction_mints\'; ')).rowCount > 0) {
-                logger.info('Migrating auction mints...');
+            const contractsQuery = await client.query('SELECT * FROM atomicmarket_config');
 
-                await client.query(`
-                UPDATE atomicmarket_auctions listing
-                SET template_mint = int4range(mint.min_template_mint::int, mint.max_template_mint::int, '[]')
-                FROM atomicmarket_auction_mints mint 
-                WHERE listing.market_contract = mint.market_contract AND listing.auction_id = mint.auction_id
-                    AND mint.min_template_mint IS NOT NULL AND mint.max_template_mint IS NOT NULL
-            `);
+            for (const row of contractsQuery.rows) {
+                let lastMintCount = -1;
+                let currentMintCount = 0;
+
+                while (lastMintCount < currentMintCount) {
+                    lastMintCount = currentMintCount;
+
+                    await client.query('CALL update_atomicmarket_auction_mints($1, $2)',
+                        [row.contract, lastIrreversibleBlock]);
+
+                    const countQuery = await client.query(
+                        'SELECT COUNT(*) "count" FROM atomicmarket_auctions WHERE template_mint IS NOT NULL AND market_contract = $1',
+                        [row.contract]
+                    );
+
+                    currentMintCount = countQuery.rows[0].count;
+
+                    logger.info('Calculated ' + (currentMintCount - lastMintCount) + ' auction mints of contract ' + row.market_contract);
+                }
             }
 
-            if ((await client.query('SELECT * FROM pg_matviews WHERE matviewname = \'atomicmarket_sale_mints\'; ')).rowCount > 0) {
-                logger.info('Migrating sale mints...');
+            for (const row of contractsQuery.rows) {
+                let lastMintCount = -1;
+                let currentMintCount = 0;
 
-                await client.query(`
-                UPDATE atomicmarket_sales listing
-                SET template_mint = int4range(mint.min_template_mint::int, mint.max_template_mint::int, '[]')
-                FROM atomicmarket_sale_mints mint 
-                WHERE listing.market_contract = mint.market_contract AND listing.sale_id = mint.sale_id
-                    AND mint.min_template_mint IS NOT NULL AND mint.max_template_mint IS NOT NULL
-            `);
+                while (lastMintCount < currentMintCount) {
+                    lastMintCount = currentMintCount;
+
+                    await client.query('CALL update_atomicmarket_buyoffer_mints($1, $2)',
+                        [row.contract, lastIrreversibleBlock]);
+
+                    const countQuery = await client.query(
+                        'SELECT COUNT(*) "count" FROM atomicmarket_buyoffers WHERE template_mint IS NOT NULL AND market_contract = $1',
+                        [row.contract]
+                    );
+
+                    currentMintCount = countQuery.rows[0].count;
+
+                    logger.info('Calculated ' + (currentMintCount - lastMintCount) + ' buyoffer mints of contract ' + row.market_contract);
+                }
             }
 
-            if ((await client.query('SELECT * FROM pg_matviews WHERE matviewname = \'atomicmarket_buyoffer_mints\'; ')).rowCount > 0) {
-                logger.info('Migrating buyoffer mints...');
+            for (const row of contractsQuery.rows) {
+                let lastMintCount = -1;
+                let currentMintCount = 0;
 
-                await client.query(`
-                UPDATE atomicmarket_buyoffers listing
-                SET template_mint = int4range(mint.min_template_mint::int, mint.max_template_mint::int, '[]')
-                FROM atomicmarket_buyoffer_mints mint 
-                WHERE listing.market_contract = mint.market_contract AND listing.buyoffer_id = mint.buyoffer_id
-                    AND mint.min_template_mint IS NOT NULL AND mint.max_template_mint IS NOT NULL
-            `);
+                while (lastMintCount < currentMintCount) {
+                    lastMintCount = currentMintCount;
+
+                    await client.query('CALL update_atomicmarket_sale_mints($1, $2)',
+                        [row.contract, lastIrreversibleBlock]);
+
+                    const countQuery = await client.query(
+                        'SELECT COUNT(*) "count" FROM atomicmarket_sales WHERE template_mint IS NOT NULL AND market_contract = $1',
+                        [row.contract]
+                    );
+
+                    currentMintCount = countQuery.rows[0].count;
+
+                    logger.info('Calculated ' + (currentMintCount - lastMintCount) + ' sale mints of contract ' + row.market_contract);
+                }
             }
 
             // refactor views

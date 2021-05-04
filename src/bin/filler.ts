@@ -38,6 +38,8 @@ if (cluster.isMaster) {
 
         logger.info('Checking for available upgrades...');
 
+        const chainInfo = await connection.chain.rpc.get_info();
+
         const client = await connection.database.begin();
         const versionQuery = await client.query('SELECT "value" FROM dbinfo WHERE name = \'version\'');
         const currentVersion = versionQuery.rows.length > 0 ? versionQuery.rows[0].value : '1.0.0';
@@ -71,7 +73,7 @@ if (cluster.isMaster) {
                         await client.query(fs.readFileSync(filename, {encoding: 'utf8'}));
                     }
 
-                    await handler.upgrade(client, version);
+                    await handler.upgrade(client, version, chainInfo.last_irreversible_block_num);
                 }
             }
         }
@@ -91,7 +93,7 @@ if (cluster.isMaster) {
                 // eslint-disable-next-line @typescript-eslint/no-var-requires
                 const migrateFn = require('../../definitions/migrations/' + version + '/script');
 
-                migrateFn(client);
+                migrateFn(client, chainInfo.last_irreversible_block_num);
 
                 for (const handlerName of availableContracts) {
                     const handler = availableHandlers.find(row => row.handlerName === handlerName);
@@ -102,7 +104,7 @@ if (cluster.isMaster) {
                         await client.query(fs.readFileSync(filename, {encoding: 'utf8'}));
                     }
 
-                    await handler.upgrade(client, version);
+                    await handler.upgrade(client, version, chainInfo.last_irreversible_block_num);
 
                     logger.info('Upgraded ' + handlerName + ' to ' + version);
                 }
