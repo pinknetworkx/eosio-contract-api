@@ -9,7 +9,7 @@ BEGIN
             SELECT assets_contract, sale_id, offer_id
             FROM atomicmarket_sales
             WHERE template_mint IS NULL
-                AND assets_contract = selected_contract
+                AND market_contract = selected_contract
                 AND created_at_block <= last_irreversible_block
             LIMIT max_sales_to_update
         ), new_mints AS MATERIALIZED (
