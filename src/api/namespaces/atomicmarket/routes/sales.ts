@@ -86,7 +86,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 created: {column: 'listing.created_at_time', nullable: false},
                 updated: {column: 'listing.updated_at_time', nullable: false},
                 price: {column: 'price.price', nullable: true},
-                template_mint: {column: 'mint.min_template_mint', nullable: true}
+                template_mint: {column: 'LOWER(listing.template_mint)', nullable: true}
             };
 
             queryString += 'ORDER BY ' + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.sale_id ASC ';

@@ -84,7 +84,7 @@ export function buyoffersEndpoints(core: AtomicMarketNamespace, server: HTTPServ
                 created: 'listing.created_at_time',
                 updated: 'listing.updated_at_time',
                 price: 'listing.price',
-                template_mint: 'mint.min_template_mint'
+                template_mint: 'LOWER(listing.template_mint)'
             };
 
             // @ts-ignore

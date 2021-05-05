@@ -231,71 +231,66 @@ export default class AtomicMarketHandler extends ContractHandler {
             };
         }
 
-        logger.info('Updating atomicmarket mints...');
-
         const chainInfo = await this.connection.chain.rpc.get_info();
         const contractsQuery = await client.query('SELECT * FROM atomicmarket_config');
 
         for (const row of contractsQuery.rows) {
-            let lastMintCount = -1;
-            let currentMintCount = 0;
+            let emptyMints = Infinity;
 
-            while (lastMintCount < currentMintCount) {
-                lastMintCount = currentMintCount;
-
+            while (emptyMints > 10000) {
                 await this.connection.database.query('CALL update_atomicmarket_auction_mints($1, $2)',
-                    [row.contract, chainInfo.last_irreversible_block_num]);
+                    [row.market_contract, chainInfo.last_irreversible_block_num]);
 
                 const countQuery = await this.connection.database.query(
-                    'SELECT COUNT(*) "count" FROM atomicmarket_auctions WHERE template_mint IS NOT NULL AND market_contract = $1',
-                    [row.contract]
+                    'SELECT COUNT(*) FROM atomicmarket_auctions WHERE template_mint IS NULL AND market_contract = $1 AND created_at_block <= $2',
+                    [row.market_contract, chainInfo.last_irreversible_block_num]
                 );
 
-                currentMintCount = countQuery.rows[0].count;
+                emptyMints = countQuery.rows[0].count;
 
-                logger.info('Calculated ' + (currentMintCount - lastMintCount) + ' auction mints of contract ' + row.market_contract);
+                if (emptyMints > 500) {
+                    logger.info(emptyMints + ' missing market auction mints for contract ' + row.market_contract);
+                }
             }
         }
 
         for (const row of contractsQuery.rows) {
-            let lastMintCount = -1;
-            let currentMintCount = 0;
+            let emptyMints = Infinity;
 
-            while (lastMintCount < currentMintCount) {
-                lastMintCount = currentMintCount;
-
+            while (emptyMints > 10000) {
                 await this.connection.database.query('CALL update_atomicmarket_buyoffer_mints($1, $2)',
-                    [row.contract, chainInfo.last_irreversible_block_num]);
+                    [row.market_contract, chainInfo.last_irreversible_block_num]);
 
                 const countQuery = await this.connection.database.query(
-                    'SELECT COUNT(*) "count" FROM atomicmarket_buyoffers WHERE template_mint IS NOT NULL AND market_contract = $1',
-                    [row.contract]
+                    'SELECT COUNT(*) FROM atomicmarket_buyoffers WHERE template_mint IS NULL AND market_contract = $1 AND created_at_block <= $2',
+                    [row.market_contract, chainInfo.last_irreversible_block_num]
                 );
 
-                currentMintCount = countQuery.rows[0].count;
+                emptyMints = countQuery.rows[0].count;
 
-                logger.info('Calculated ' + (currentMintCount - lastMintCount) + ' buyoffer mints of contract ' + row.market_contract);
+                if (emptyMints > 500) {
+                    logger.info(emptyMints + ' missing market buyoffer mints for contract ' + row.market_contract);
+                }
             }
         }
 
         for (const row of contractsQuery.rows) {
-            let lastMintCount = -1;
-            let currentMintCount = 0;
+            let emptyMints = Infinity;
 
-            while (lastMintCount < currentMintCount) {
-                lastMintCount = currentMintCount;
-
+            while (emptyMints > 10000) {
                 await this.connection.database.query('CALL update_atomicmarket_sale_mints($1, $2)',
-                    [row.contract, chainInfo.last_irreversible_block_num]);
+                    [row.market_contract, chainInfo.last_irreversible_block_num]);
 
                 const countQuery = await this.connection.database.query(
-                    'SELECT COUNT(*) "count" FROM atomicmarket_sales WHERE template_mint IS NOT NULL AND market_contract = $1',
-                    [row.contract]
+                    'SELECT COUNT(*) FROM atomicmarket_sales WHERE template_mint IS NULL AND market_contract = $1 AND created_at_block <= $2',
+                    [row.market_contract, chainInfo.last_irreversible_block_num]
                 );
 
-                currentMintCount = countQuery.rows[0].count;
+                emptyMints = countQuery.rows[0].count;
 
-                logger.info('Calculated ' + (currentMintCount - lastMintCount) + ' sale mints of contract ' + row.market_contract);
+                if (emptyMints > 500) {
+                    logger.info(emptyMints + ' missing market sale mints for contract ' + row.market_contract);
+                }
             }
         }
     }
