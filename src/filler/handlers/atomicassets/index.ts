@@ -241,7 +241,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
         destructors.push(this.filler.registerUpdateJob(async () => {
             await this.connection.database.query(
                 'CALL update_atomicassets_mints($1, $2)',
-                [this.args.atomicassets_account, this.reader.lastIrreversibleBlock]
+                [this.args.atomicassets_account, this.filler.reader.lastIrreversibleBlock]
             );
         }, 30000, true));
 
