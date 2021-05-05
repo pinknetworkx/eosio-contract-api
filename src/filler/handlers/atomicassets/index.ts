@@ -184,11 +184,17 @@ export default class AtomicAssetsHandler extends ContractHandler {
         const contractsQuery = await this.connection.database.query('SELECT * FROM atomicassets_config');
 
         for (const row of contractsQuery.rows) {
-            let emptyMints = Infinity;
+            let emptyMints;
 
-            while (emptyMints > 10000) {
-                await this.connection.database.query('CALL update_atomicassets_mints($1, $2)',
-                    [row.contract, chainInfo.last_irreversible_block_num]);
+            do {
+                if (emptyMints) {
+                    await this.connection.database.query(
+                        'CALL update_atomicassets_mints($1, $2)',
+                        [row.contract, chainInfo.last_irreversible_block_num]
+                    );
+
+                    logger.info(emptyMints + ' missing asset mints for contract ' + row.contract);
+                }
 
                 const countQuery = await this.connection.database.query(
                     'SELECT COUNT(*) "count" FROM atomicassets_assets WHERE template_id IS NOT NULL AND template_mint IS NULL AND contract = $1 AND minted_at_block <= $2',
@@ -196,11 +202,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
                 );
 
                 emptyMints = countQuery.rows[0].count;
-
-                if (emptyMints > 500) {
-                    logger.info(emptyMints + ' missing asset mints for contract ' + row.contract);
-                }
-            }
+            } while (emptyMints > 50000);
         }
     }
 

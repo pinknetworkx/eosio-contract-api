@@ -232,11 +232,17 @@ export default class AtomicMarketHandler extends ContractHandler {
         const contractsQuery = await client.query('SELECT * FROM atomicmarket_config');
 
         for (const row of contractsQuery.rows) {
-            let emptyMints = Infinity;
+            let emptyMints;
 
-            while (emptyMints > 10000) {
-                await this.connection.database.query('CALL update_atomicmarket_auction_mints($1, $2)',
-                    [row.market_contract, chainInfo.last_irreversible_block_num]);
+            do {
+                if (emptyMints) {
+                    await this.connection.database.query(
+                        'CALL update_atomicmarket_auction_mints($1, $2)',
+                        [row.market_contract, chainInfo.last_irreversible_block_num]
+                    );
+
+                    logger.info(emptyMints + ' missing market auction mints for contract ' + row.market_contract);
+                }
 
                 const countQuery = await this.connection.database.query(
                     'SELECT COUNT(*) FROM atomicmarket_auctions WHERE template_mint IS NULL AND market_contract = $1 AND created_at_block <= $2',
@@ -244,19 +250,21 @@ export default class AtomicMarketHandler extends ContractHandler {
                 );
 
                 emptyMints = countQuery.rows[0].count;
-
-                if (emptyMints > 500) {
-                    logger.info(emptyMints + ' missing market auction mints for contract ' + row.market_contract);
-                }
-            }
+            } while (emptyMints > 50000);
         }
 
         for (const row of contractsQuery.rows) {
-            let emptyMints = Infinity;
+            let emptyMints;
 
-            while (emptyMints > 10000) {
-                await this.connection.database.query('CALL update_atomicmarket_buyoffer_mints($1, $2)',
-                    [row.market_contract, chainInfo.last_irreversible_block_num]);
+            do {
+                if (emptyMints) {
+                    await this.connection.database.query(
+                        'CALL update_atomicmarket_buyoffer_mints($1, $2)',
+                        [row.market_contract, chainInfo.last_irreversible_block_num]
+                    );
+
+                    logger.info(emptyMints + ' missing market buyoffer mints for contract ' + row.market_contract);
+                }
 
                 const countQuery = await this.connection.database.query(
                     'SELECT COUNT(*) FROM atomicmarket_buyoffers WHERE template_mint IS NULL AND market_contract = $1 AND created_at_block <= $2',
@@ -264,19 +272,21 @@ export default class AtomicMarketHandler extends ContractHandler {
                 );
 
                 emptyMints = countQuery.rows[0].count;
-
-                if (emptyMints > 500) {
-                    logger.info(emptyMints + ' missing market buyoffer mints for contract ' + row.market_contract);
-                }
-            }
+            } while (emptyMints > 50000);
         }
 
         for (const row of contractsQuery.rows) {
-            let emptyMints = Infinity;
+            let emptyMints;
 
-            while (emptyMints > 10000) {
-                await this.connection.database.query('CALL update_atomicmarket_sale_mints($1, $2)',
-                    [row.market_contract, chainInfo.last_irreversible_block_num]);
+            do {
+                if (emptyMints) {
+                    await this.connection.database.query(
+                        'CALL update_atomicmarket_sale_mints($1, $2)',
+                        [row.market_contract, chainInfo.last_irreversible_block_num]
+                    );
+
+                    logger.info(emptyMints + ' missing market sale mints for contract ' + row.market_contract);
+                }
 
                 const countQuery = await this.connection.database.query(
                     'SELECT COUNT(*) FROM atomicmarket_sales WHERE template_mint IS NULL AND market_contract = $1 AND created_at_block <= $2',
@@ -284,11 +294,7 @@ export default class AtomicMarketHandler extends ContractHandler {
                 );
 
                 emptyMints = countQuery.rows[0].count;
-
-                if (emptyMints > 500) {
-                    logger.info(emptyMints + ' missing market sale mints for contract ' + row.market_contract);
-                }
-            }
+            } while (emptyMints > 50000);
         }
     }
 
