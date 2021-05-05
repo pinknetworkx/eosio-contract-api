@@ -181,6 +181,14 @@ export default class AtomicAssetsHandler extends ContractHandler {
         }
 
         const chainInfo = await this.connection.chain.rpc.get_info();
+        const irreversibleBlockQuery = await this.connection.database.query(
+            'SELECT MIN(block_num) "block" FROM reversible_blocks WHERE reader = $1',
+            [this.filler.reader.name]
+        );
+        const lastIrreversibleBlock = irreversibleBlockQuery.rows[0].block ? (irreversibleBlockQuery.rows[0].block - 1) : chainInfo.last_irreversible_block_num;
+
+        logger.info('Check for missing mint numbers of ' + this.args.atomicassets_account + '. Last irreversible block #' + lastIrreversibleBlock);
+
         const contractsQuery = await this.connection.database.query('SELECT * FROM atomicassets_config');
 
         for (const row of contractsQuery.rows) {
@@ -190,7 +198,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
                 if (emptyMints) {
                     await this.connection.database.query(
                         'CALL update_atomicassets_mints($1, $2)',
-                        [row.contract, chainInfo.last_irreversible_block_num]
+                        [row.contract, lastIrreversibleBlock]
                     );
 
                     logger.info(emptyMints + ' missing asset mints for contract ' + row.contract);
@@ -198,7 +206,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
 
                 const countQuery = await this.connection.database.query(
                     'SELECT COUNT(*) "count" FROM atomicassets_assets WHERE template_id IS NOT NULL AND template_mint IS NULL AND contract = $1 AND minted_at_block <= $2',
-                    [row.contract, chainInfo.last_irreversible_block_num]
+                    [row.contract, lastIrreversibleBlock]
                 );
 
                 emptyMints = countQuery.rows[0].count;
