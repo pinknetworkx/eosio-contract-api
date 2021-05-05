@@ -203,7 +203,7 @@ export default class Filler {
 
                 const job = jobs[counter];
 
-                if (job.updated + job.interval < Date.now()) {
+                if (job && job.updated + job.interval < Date.now()) {
                     try {
                         await job.fn();
                     } catch (err){
@@ -231,7 +231,7 @@ export default class Filler {
 
                 const job = jobs[counter];
 
-                if (job.updated + job.interval < Date.now()) {
+                if (job && job.updated + job.interval < Date.now()) {
                     try {
                         await job.fn();
                     } catch (err){
