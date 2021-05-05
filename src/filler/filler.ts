@@ -136,6 +136,8 @@ export default class Filler {
                 lastBlockSpeeds.shift();
             }
 
+            const queueState = '[DS:' + this.reader.dsQueue.size + '|SH:' + this.reader.ship.blocksQueue.size + ']';
+
             if (lastBlockNum === this.reader.currentBlock && lastBlockNum > 0) {
                 const staleTime = Date.now() - lastBlockTime;
 
@@ -147,7 +149,10 @@ export default class Filler {
                     process.exit(1);
                 }
 
-                logger.warn('Reader ' + this.config.name + ' - No blocks processed - Stopping in ' + Math.round((timeout - staleTime) / 1000) + ' seconds');
+                logger.warn(
+                    'Reader ' + this.config.name + ' - No blocks processed ' + queueState + ' - ' +
+                    'Stopping in ' + Math.round((timeout - staleTime) / 1000) + ' seconds'
+                );
             } else if (this.reader.blocksUntilHead > 60) {
                 lastBlockTime = Date.now();
                 timeout = 4 * 60 * 1000;
@@ -164,7 +169,7 @@ export default class Filler {
                     'Progress: ' + this.reader.currentBlock + ' / ' + (this.reader.currentBlock + this.reader.blocksUntilHead) + ' ' +
                     '(' + (100 * currentBlock / blockRange).toFixed(2) + '%) ' +
                     'Speed: ' + blockSpeed.toFixed(1) + ' B/s ' + dbSpeed.toFixed(0) + ' W/s ' +
-                    '[DS:' + this.reader.dsQueue.size + '|SH:' + this.reader.ship.blocksQueue.size + '] ' +
+                    queueState + ' ' +
                     '(Syncs ' + formatSecondsLeft(estimateSeconds(this.reader.blocksUntilHead, averageSpeed)) + ')'
                 );
             } else {
@@ -176,7 +181,7 @@ export default class Filler {
                     'Reader ' + this.config.name + ' - ' +
                     'Current Block: ' + this.reader.currentBlock + ' ' +
                     'Speed: ' + blockSpeed.toFixed(1) + ' B/s ' + dbSpeed.toFixed(0) + ' W/s ' +
-                    '[DS:' + this.reader.dsQueue.size + '|SH:' + this.reader.ship.blocksQueue.size + '] '
+                    queueState + ' '
                 );
             }
 
