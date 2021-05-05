@@ -351,29 +351,23 @@ export default class AtomicMarketHandler extends ContractHandler {
 
 
         destructors.push(this.filler.registerUpdateJob(async () => {
-            const info = await this.connection.chain.rpc.get_info();
-
             await this.connection.database.query(
                 'CALL update_atomicmarket_sale_mints($1, $2)',
-                [this.args.atomicmarket_account, info.last_irreversible_block_num]
+                [this.args.atomicmarket_account, this.reader.lastIrreversibleBlock]
             );
         }, 30000, true));
 
         destructors.push(this.filler.registerUpdateJob(async () => {
-            const info = await this.connection.chain.rpc.get_info();
-
             await this.connection.database.query(
                 'CALL update_atomicmarket_buyoffer_mints($1, $2)',
-                [this.args.atomicmarket_account, info.last_irreversible_block_num]
+                [this.args.atomicmarket_account, this.reader.lastIrreversibleBlock]
             );
         }, 30000, true));
 
         destructors.push(this.filler.registerUpdateJob(async () => {
-            const info = await this.connection.chain.rpc.get_info();
-
             await this.connection.database.query(
                 'CALL update_atomicmarket_auction_mints($1, $2)',
-                [this.args.atomicmarket_account, info.last_irreversible_block_num]
+                [this.args.atomicmarket_account, this.reader.lastIrreversibleBlock]
             );
         }, 30000, true));
 

@@ -239,11 +239,9 @@ export default class AtomicAssetsHandler extends ContractHandler {
         }
 
         destructors.push(this.filler.registerUpdateJob(async () => {
-            const info = await this.connection.chain.rpc.get_info();
-
             await this.connection.database.query(
                 'CALL update_atomicassets_mints($1, $2)',
-                [this.args.atomicassets_account, info.last_irreversible_block_num]
+                [this.args.atomicassets_account, this.reader.lastIrreversibleBlock]
             );
         }, 30000, true));
 
