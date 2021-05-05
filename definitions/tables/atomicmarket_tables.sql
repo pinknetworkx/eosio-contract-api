@@ -9,6 +9,7 @@ CREATE TABLE atomicmarket_auctions
     assets_contract character varying(12) NOT NULL,
     maker_marketplace character varying(12) NOT NULL,
     taker_marketplace character varying(12),
+    template_mint int4range,
     collection_name character varying(12),
     collection_fee double precision NOT NULL,
     claimed_by_buyer boolean,
@@ -129,6 +130,7 @@ CREATE TABLE atomicmarket_sales
     offer_id bigint,
     maker_marketplace character varying(12) NOT NULL,
     taker_marketplace character varying(12),
+    template_mint int4range,
     collection_name character varying(12),
     collection_fee double precision NOT NULL,
     state smallint NOT NULL,
@@ -150,6 +152,7 @@ CREATE TABLE atomicmarket_buyoffers
     assets_contract character varying(12) NOT NULL,
     maker_marketplace character varying(12) NOT NULL,
     taker_marketplace character varying(12),
+    template_mint int4range,
     collection_name character varying(12) NOT NULL,
     collection_fee double precision NOT NULL,
     state smallint NOT NULL,
@@ -273,3 +276,8 @@ CREATE INDEX atomicmarket_buyoffers_updated_at_time ON atomicmarket_buyoffers US
 CREATE INDEX atomicmarket_buyoffers_created_at_time ON atomicmarket_buyoffers USING btree (created_at_time);
 
 CREATE INDEX atomicmarket_buyoffers_assets_asset_id ON atomicmarket_buyoffers_assets USING btree (asset_id);
+
+
+CREATE INDEX atomicmarket_sales_missing_mint ON atomicmarket_sales(assets_contract, sale_id, offer_id) WHERE template_mint IS NULL;
+CREATE INDEX atomicmarket_buyoffers_missing_mint ON atomicmarket_buyoffers(assets_contract, buyoffer_id) WHERE template_mint IS NULL;
+CREATE INDEX atomicmarket_auctions_missing_mint ON atomicmarket_auctions(assets_contract, auction_id) WHERE template_mint IS NULL;
