@@ -56,7 +56,7 @@ export function buildDataConditions(
         if (args.match && typeof args.match === 'string' && args.match.length > 0) {
             conditions.push(
                 options.templateTable + '.immutable_data->>\'name\' IS NOT NULL AND ' +
-                options.templateTable + '.immutable_data->>\'name\' LIKE $' + ++varCounter + ' '
+                options.templateTable + '.immutable_data->>\'name\' ILIKE $' + ++varCounter + ' '
             );
             values.push('%' + args.match.replace('%', '\\%').replace('_', '\\_') + '%');
         }
