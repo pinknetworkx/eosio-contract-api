@@ -642,7 +642,7 @@ export class ContractDBTransaction {
             const chunks = arrayChunk(this.actionLogs, 100);
 
             for (const chunk of chunks) {
-                await this.insert('contract_traces', chunk, ['global_sequence']);
+                await this.insert('contract_traces', chunk, ['global_sequence', 'account']);
             }
 
             this.actionLogs = [];

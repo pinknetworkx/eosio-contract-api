@@ -329,7 +329,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                     tags: ['pricing'],
                     summary: 'Get template price stats',
                     parameters: [
-                        baseAssetFilterParameters,
+                        ...baseAssetFilterParameters,
                         {
                             name: 'symbol',
                             in: 'query',
@@ -368,15 +368,6 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                     summary: 'Gets price history for a template or schema',
                     parameters: [
                         ...assetFilterParameters,
-                        {
-                            name: 'only_duplicate_templates',
-                            in: 'query',
-                            description: 'Show only duplicate assets grouped by template',
-                            required: false,
-                            schema: {
-                                type: 'boolean'
-                            }
-                        },
                         {
                             name: 'authorized_account',
                             in: 'query',
