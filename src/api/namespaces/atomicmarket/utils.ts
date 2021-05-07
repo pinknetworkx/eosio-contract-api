@@ -84,10 +84,7 @@ export function buildListingFilter(
     }
 
     if (!args.show_seller_contracts) {
-        queryString += 'AND (' +
-            'NOT EXISTS(SELECT * FROM contract_codes code WHERE code.account = listing.seller) OR ' +
-            'listing.seller = ANY ($' + ++varCounter + ')' +
-            ') ';
+        queryString += 'AND NOT EXISTS(SELECT * FROM contract_codes code WHERE code.account = listing.seller AND code.account != ALL($' + ++varCounter + ')) ';
         queryValues.push(args.contract_whitelist.split(','));
     }
 

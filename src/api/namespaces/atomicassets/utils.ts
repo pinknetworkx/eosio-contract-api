@@ -3,6 +3,7 @@ import * as express from 'express';
 import { equalMany, filterQueryArgs, mergeRequestData } from '../utils';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 import { SaleState } from '../../../filler/handlers/atomicmarket';
+import ConnectionManager from '../../../connections/manager';
 
 export function buildDataConditions(
     args: any, varCounter: number = 0, options: {assetTable?: string, templateTable?: string}
@@ -55,9 +56,9 @@ export function buildDataConditions(
         if (args.match && typeof args.match === 'string' && args.match.length > 0) {
             conditions.push(
                 options.templateTable + '.immutable_data->>\'name\' IS NOT NULL AND ' +
-                'POSITION($' + ++varCounter + ' IN LOWER(' + options.templateTable + '.immutable_data->>\'name\')) > 0'
+                options.templateTable + '.immutable_data->>\'name\' LIKE $' + ++varCounter + ' '
             );
-            values.push(args.match.toLowerCase());
+            values.push('%' + args.match.replace('%', '\\%').replace('_', '\\_') + '%');
         }
     }
 
@@ -221,20 +222,20 @@ export function hideOfferAssets(req: express.Request): string {
         queryString += 'AND NOT EXISTS (' +
             'SELECT * FROM atomicassets_offers offer, atomicassets_offers_assets asset_o ' +
             'WHERE asset_o.contract = asset.contract AND asset_o.asset_id = asset.asset_id AND ' +
-            'offer.contract = asset_o.contract AND offer.offer_id = asset_o.offer_id AND ' +
-            'offer.state = ' + OfferState.PENDING.valueOf() + ' ' +
-            ') ';
+                'offer.contract = asset_o.contract AND offer.offer_id = asset_o.offer_id AND ' +
+                'offer.state = ' + OfferState.PENDING.valueOf() + ' ' +
+        ') ';
     }
 
     if (args.hide_sales) {
         queryString += 'AND NOT EXISTS (' +
             'SELECT * FROM atomicmarket_sales sale, atomicassets_offers offer, atomicassets_offers_assets asset_o ' +
             'WHERE asset_o.contract = asset.contract AND asset_o.asset_id = asset.asset_id AND ' +
-            'offer.contract = asset_o.contract AND offer.offer_id = asset_o.offer_id AND ' +
-            'offer.state = ' + OfferState.PENDING.valueOf() + ' AND ' +
-            'sale.assets_contract = offer.contract AND sale.offer_id = offer.offer_id AND ' +
-            'sale.state = ' + SaleState.LISTED.valueOf() + ' ' +
-            ') ';
+                'offer.contract = asset_o.contract AND offer.offer_id = asset_o.offer_id AND ' +
+                'offer.state = ' + OfferState.PENDING.valueOf() + ' AND ' +
+                'sale.assets_contract = offer.contract AND sale.offer_id = offer.offer_id AND ' +
+                'sale.state = ' + SaleState.LISTED.valueOf() + ' ' +
+        ') ';
     }
 
     return queryString;
