@@ -248,6 +248,24 @@ export default class AtomicAssetsHandler extends ContractHandler {
 
         destructors.push(this.filler.registerUpdateJob(async () => {
             await this.connection.database.query(
+                'WITH del AS ( ' +
+                    'DELETE FROM atomicassets_asset_counts ' +
+                    'WHERE (contract, template_id) IN ( ' +
+                        'SELECT contract, template_id FROM atomicassets_asset_counts WHERE dirty AND contract = $1 ' +
+                    ') ' +
+                    'RETURNING contract, template_id, assets, burned, owned ' +
+                ') ' +
+                'INSERT INTO atomicassets_asset_counts(contract, template_id, assets, burned, owned, dirty) ' +
+                    'SELECT contract, template_id, COALESCE(SUM(assets)::INT, 0), COALESCE(SUM(burned)::INT, 0), COALESCE(SUM(owned)::INT, 0), NULL ' +
+                    'FROM del ' +
+                    'GROUP BY contract, template_id ' +
+                    'HAVING COALESCE(SUM(assets)::INT, 0) != 0;',
+                [this.args.atomicassets_account]
+            );
+        }, 60 * 10 * 1000, false));
+
+        destructors.push(this.filler.registerUpdateJob(async () => {
+            await this.connection.database.query(
                 'CALL update_atomicassets_mints($1, $2)',
                 [this.args.atomicassets_account, this.filler.reader.lastIrreversibleBlock]
             );

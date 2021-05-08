@@ -3,7 +3,6 @@ import * as express from 'express';
 import { equalMany, filterQueryArgs, mergeRequestData } from '../utils';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 import { SaleState } from '../../../filler/handlers/atomicmarket';
-import ConnectionManager from '../../../connections/manager';
 
 export function buildDataConditions(
     args: any, varCounter: number = 0, options: {assetTable?: string, templateTable?: string}
