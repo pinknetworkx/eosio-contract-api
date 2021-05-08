@@ -1,1 +1,1 @@
-DROP MATERIALIZED VIEW IF EXISTS atomicassets_asset_mints;
+DROP MATERIALIZED VIEW IF EXISTS atomicassets_asset_mints CASCADE;
