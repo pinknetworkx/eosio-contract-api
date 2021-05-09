@@ -193,9 +193,9 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
     router.all('/v1/templates/:collection_name/:template_id/stats', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
             const query = await server.query(
-                'SELECT COUNT(*) assets, COUNT(*) FILTER (WHERE owner IS NULL) burned ' +
-                'FROM atomicassets_assets ' +
-                'WHERE contract = $1 AND template_id = $2 ',
+                `SELECT SUM(assets) AS assets, SUM(burned) AS burned
+                FROM atomicassets_asset_counts
+                WHERE contract = $1 AND template_id = $2`,
                 [core.args.atomicassets_account, req.params.template_id]
             );
 
