@@ -194,7 +194,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
         try {
             const query = await server.query(
                 `SELECT SUM(assets) AS assets, SUM(burned) AS burned
-                FROM atomicassets_asset_counts
+                FROM atomicassets_template_counts
                 WHERE contract = $1 AND template_id = $2`,
                 [core.args.atomicassets_account, req.params.template_id]
             );
