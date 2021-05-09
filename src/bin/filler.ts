@@ -76,6 +76,8 @@ if (cluster.isMaster) {
             }
         }
 
+        await client.query('COMMIT');
+
         const upgradeVersions = availableVersions.filter(version => compareVersionString(version, currentVersion) > 0);
 
         if (upgradeVersions.length > 0) {
@@ -83,6 +85,8 @@ if (cluster.isMaster) {
 
             for (const version of upgradeVersions) {
                 logger.info('Upgrade to ' + version + ' ...');
+
+                await client.query('BEGIN');
 
                 await client.query(fs.readFileSync('./definitions/migrations/' + version + '/database.sql', {
                     encoding: 'utf8'
@@ -108,10 +112,10 @@ if (cluster.isMaster) {
                 }
 
                 logger.info('Successfully upgraded to ' + version);
+
+                await client.query('COMMIT');
             }
         }
-
-        await client.query('COMMIT');
 
         client.release();
 
