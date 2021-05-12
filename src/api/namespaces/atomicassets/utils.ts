@@ -211,8 +211,7 @@ export function buildGreylistFilter(
 
 export function hideOfferAssets(req: express.Request): string {
     const args = filterQueryArgs(req, {
-        hide_offers: {type: 'bool', default: false},
-        hide_sales: {type: 'bool', default: false}
+        hide_offers: {type: 'bool', default: false}
     });
 
     let queryString = '';
@@ -223,17 +222,6 @@ export function hideOfferAssets(req: express.Request): string {
             'WHERE asset_o.contract = asset.contract AND asset_o.asset_id = asset.asset_id AND ' +
                 'offer.contract = asset_o.contract AND offer.offer_id = asset_o.offer_id AND ' +
                 'offer.state = ' + OfferState.PENDING.valueOf() + ' ' +
-        ') ';
-    }
-
-    if (args.hide_sales) {
-        queryString += 'AND NOT EXISTS (' +
-            'SELECT * FROM atomicmarket_sales sale, atomicassets_offers offer, atomicassets_offers_assets asset_o ' +
-            'WHERE asset_o.contract = asset.contract AND asset_o.asset_id = asset.asset_id AND ' +
-                'offer.contract = asset_o.contract AND offer.offer_id = asset_o.offer_id AND ' +
-                'offer.state = ' + OfferState.PENDING.valueOf() + ' AND ' +
-                'sale.assets_contract = offer.contract AND sale.offer_id = offer.offer_id AND ' +
-                'sale.state = ' + SaleState.LISTED.valueOf() + ' ' +
         ') ';
     }
 

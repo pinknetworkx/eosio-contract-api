@@ -52,6 +52,7 @@ export const atomicassetsComponents = {
             name: {type: 'string'},
             is_transferable: {type: 'boolean'},
             is_burnable: {type: 'boolean'},
+            template_mint: {type: 'string'},
             collection: {
                 type: 'object',
                 properties: {
@@ -343,18 +344,12 @@ export const hideOffersParameters = [
         description: 'Hide assets which are used in an offer',
         required: false,
         schema: {type: 'boolean'}
-    },
-    {
-        name: 'hide_sales',
-        in: 'query',
-        description: 'Hide assets which are listed on a atomicmarket contract which is connected to the API',
-        required: false,
-        schema: {type: 'boolean'}
     }
 ];
 
 export const atomicDataFilter =
     'You can filter the result by specific asset / template data fields.' +
-    'You can add for example &data.rarity=common to only receive results which have an attribute "rarity" with the value "common". ' +
+    'You can add for example &template_data.rarity=common to only receive results which have an attribute "rarity" with the value "common". ' +
+    'You can query specific asset data by using &immutable_data.rarity=common or &mutable_data.rarity=common .' +
     'If you want to query a non text type you need to specify it explicitly (defaults to text type) like data:bool.foil=true or data:number.id=4 or data:text.rarity=common. ' +
     'Integers which are defined greater than 32 bit (eg 64 bit) in the schema need to be queried as text.';
