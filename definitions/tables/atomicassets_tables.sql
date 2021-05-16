@@ -204,7 +204,6 @@ CREATE INDEX atomicassets_mints_minter ON atomicassets_mints USING btree (minter
 CREATE INDEX atomicassets_mints_receiver ON atomicassets_mints USING btree (receiver);
 
 CREATE INDEX atomicassets_balances_owner_btree ON atomicassets_balances USING btree (owner);
-CREATE INDEX atomicassets_balances_token_symbol ON atomicassets_balances USING btree (token_symbol);
 CREATE INDEX atomicassets_balances_updated_at_time ON atomicassets_balances USING btree (updated_at_time);
 
 CREATE INDEX atomicassets_collections_collection_name ON atomicassets_collections USING btree (collection_name);

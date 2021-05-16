@@ -249,7 +249,6 @@ CREATE INDEX atomicmarket_auctions_end_time ON atomicmarket_auctions USING btree
 CREATE INDEX atomicmarket_auctions_assets_asset_id ON atomicmarket_auctions_assets USING btree (asset_id);
 
 CREATE INDEX atomicmarket_auctions_bids_account ON atomicmarket_auctions_bids USING btree (account);
-CREATE INDEX atomicmarket_auctions_bids_amount ON atomicmarket_auctions_bids USING btree (amount);
 CREATE INDEX atomicmarket_auctions_bids_created_at_time ON atomicmarket_auctions_bids USING btree (created_at_time);
 
 CREATE INDEX atomicmarket_balances_owner ON atomicmarket_balances USING btree (owner);
@@ -257,8 +256,6 @@ CREATE INDEX atomicmarket_balances_owner ON atomicmarket_balances USING btree (o
 CREATE INDEX atomicmarket_sales_sale_id ON atomicmarket_sales USING btree (sale_id);
 CREATE INDEX atomicmarket_sales_seller ON atomicmarket_sales USING hash (seller);
 CREATE INDEX atomicmarket_sales_buyer ON atomicmarket_sales USING hash (buyer);
-CREATE INDEX atomicmarket_sales_listing_price ON atomicmarket_sales USING btree (listing_price);
-CREATE INDEX atomicmarket_sales_final_price ON atomicmarket_sales USING btree (final_price);
 CREATE INDEX atomicmarket_sales_collection_name ON atomicmarket_sales USING btree (collection_name);
 CREATE INDEX atomicmarket_sales_state ON atomicmarket_sales USING btree (state);
 CREATE INDEX atomicmarket_sales_updated_at_time ON atomicmarket_sales USING btree (updated_at_time);
