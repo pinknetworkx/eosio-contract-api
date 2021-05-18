@@ -4,7 +4,7 @@ export type CreateLogActionData = {
     owner: string;
     idata: string;
     mdata: string;
-    asseetid: string;
+    assetid: string;
     requireclaim: boolean;
 }
 

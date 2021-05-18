@@ -88,7 +88,7 @@ export default class SimpleAssetsHandler extends ContractHandler {
 
             if (tokenconfigsTable.rows.length > 0) {
                 await client.query(
-                    'INSERT INTO simpleassets_config (contract, version) VALUES ($1, $2, $3)',
+                    'INSERT INTO simpleassets_config (contract, version) VALUES ($1, $2)',
                     [this.args.simpleassets_account, tokenconfigsTable.rows[0].version]
                 );
             } else {

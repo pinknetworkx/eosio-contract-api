@@ -136,7 +136,7 @@ CREATE TABLE atomicassets_transfers (
     txid bytea NOT NULL,
     created_at_block bigint NOT NULL,
     created_at_time bigint NOT NULL,
-    CONSTRAINT atomicassets_transfers_pkey PRIMARY KEY (transfer_id)
+    CONSTRAINT atomicassets_transfers_pkey PRIMARY KEY (contract, transfer_id)
 );
 
 CREATE TABLE atomicassets_transfers_assets (
@@ -179,7 +179,7 @@ ALTER TABLE ONLY atomicassets_schemas
     ADD CONSTRAINT atomicassets_schemas_collection_fkey FOREIGN KEY (collection_name, contract) REFERENCES atomicassets_collections(collection_name, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_transfers_assets
-    ADD CONSTRAINT atomicassets_transfers_assets_transfers_fkey FOREIGN KEY (transfer_id) REFERENCES atomicassets_transfers(transfer_id) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT atomicassets_transfers_assets_transfers_fkey FOREIGN KEY (contract, transfer_id) REFERENCES atomicassets_transfers(contract, transfer_id) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 -- INDEXES --
 CREATE INDEX atomicassets_assets_asset_id ON atomicassets_assets USING btree (asset_id);
