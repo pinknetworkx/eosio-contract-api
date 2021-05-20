@@ -60,6 +60,18 @@ export function buildDataConditions(
         }
     }
 
+    if (args.full_match && options.assetTable && options.templateTable) {
+        const varNum = ++varCounter;
+        conditions.push(
+            [
+                '(' + options.templateTable + '.immutable_data->>\'name\' IS NOT NULL AND ' + options.templateTable + '.immutable_data->>\'name\' ILIKE $' + varNum + ') ',
+                '(' + options.assetTable + '.immutable_data->>\'name\' IS NOT NULL AND ' + options.assetTable + '.immutable_data->>\'name\' ILIKE $' + varNum + ') ',
+                '(' + options.assetTable + '.mutable_data->>\'name\' IS NOT NULL AND ' + options.assetTable + '.mutable_data->>\'name\' ILIKE $' + varNum + ') '
+            ].join(' OR ')
+        );
+        values.push('%' + args.full_match.replace('%', '\\%').replace('_', '\\_') + '%');
+    }
+
     if (conditions.length > 0) {
         return {
             str: 'AND ' + conditions.join(' AND ') + ' ', values
