@@ -22,7 +22,7 @@ function hasDataFilters(req: express.Request): boolean {
     const keys = Object.keys(mergeRequestData(req));
 
     for (const key of keys) {
-        if (['match'].indexOf(key) >= 0) {
+        if (['match', 'full_match'].indexOf(key) >= 0) {
             return true;
         }
 
