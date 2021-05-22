@@ -154,7 +154,8 @@ export class AssetApi {
                         updated: {column: 'asset.updated_at_time', nullable: false},
                         transferred: {column: 'asset.transferred_at_time', nullable: false},
                         minted: {column: 'asset.minted_at_time', nullable: false},
-                        template_mint: {column: 'asset.template_mint', nullable: true}
+                        template_mint: {column: 'asset.template_mint', nullable: true},
+                        name: {column: '"template".immutable_data->>\'name\'', nullable: true}
                     };
 
                     sorting = sortColumnMapping[args.sort];
