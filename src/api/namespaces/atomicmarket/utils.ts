@@ -109,7 +109,7 @@ export function buildListingFilter(
     }
 
     if (args.min_template_mint || args.max_template_mint) {
-        queryString += 'AND listing.template_mint <@ int4range($' + ++varCounter + ', $' + ++varCounter + ', \'[]\') ';
+        queryString += 'AND listing.template_mint != \'empty\' AND listing.template_mint <@ int4range($' + ++varCounter + ', $' + ++varCounter + ', \'[]\') ';
         queryValues.push(args.min_template_mint ?? null);
         queryValues.push(args.max_template_mint ?? null);
     }
