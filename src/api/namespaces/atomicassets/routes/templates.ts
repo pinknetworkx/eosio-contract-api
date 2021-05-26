@@ -199,7 +199,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                 [core.args.atomicassets_account, req.params.template_id]
             );
 
-            return res.json({success: true, data: query.rows[0]});
+            return res.json({success: true, data: {assets: query.rows[0].assets || '0', burned: query.rows[0].burned || '0'}});
         } catch (e) {
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
