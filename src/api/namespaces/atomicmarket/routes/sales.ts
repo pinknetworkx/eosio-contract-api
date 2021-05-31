@@ -152,10 +152,11 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                     sale.market_contract, sale.sale_id, asset.contract assets_contract, asset.template_id, price.price
                 FROM 
                     atomicmarket_sales sale, atomicassets_offers offer, atomicassets_offers_assets offer_asset, 
-                    atomicassets_assets asset, atomicmarket_sale_prices price
+                    atomicassets_assets asset, atomicmarket_sale_prices price, atomicassets_templates "template"
                 WHERE sale.assets_contract = offer.contract AND sale.offer_id = offer.offer_id AND
                     offer.contract = offer_asset.contract AND offer.offer_id = offer_asset.offer_id AND
                     offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND
+                    asset.contract = "template".contract" AND asset.template_id = "template".template_id AND
                     sale.market_contract = price.market_contract AND sale.sale_id = price.sale_id AND 
                     asset.template_id IS NOT NULL AND offer_asset.index = 1 AND
                     offer.state = ${OfferState.PENDING.valueOf()} AND sale.state = ${SaleState.LISTED.valueOf()} AND 
@@ -169,7 +170,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             varCounter += blacklistFilter.values.length;
             queryString += blacklistFilter.str;
 
-            const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"'});
+            const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', templateTable: '"template"'});
             queryValues.push(...filter.values);
             varCounter += filter.values.length;
             queryString += filter.str;

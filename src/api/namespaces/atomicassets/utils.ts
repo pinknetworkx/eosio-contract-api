@@ -33,6 +33,10 @@ export function buildDataConditions(
     const mutableCondition = buildConditionObject('mutable_data');
     const immutableCondition = buildConditionObject('immutable_data');
 
+    if (!options.templateTable) {
+        Object.assign(immutableCondition, buildConditionObject('data'), immutableCondition);
+    }
+
     if (options.assetTable) {
         if (Object.keys(mutableCondition).length > 0) {
             conditions.push(' ' + options.assetTable + '.mutable_data @> $' + ++varCounter + '::jsonb ');
