@@ -156,9 +156,9 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 WHERE sale.assets_contract = offer.contract AND sale.offer_id = offer.offer_id AND
                     offer.contract = offer_asset.contract AND offer.offer_id = offer_asset.offer_id AND
                     offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND
-                    asset.contract = "template".contract" AND asset.template_id = "template".template_id AND
+                    asset.contract = "template".contract AND asset.template_id = "template".template_id AND 
                     sale.market_contract = price.market_contract AND sale.sale_id = price.sale_id AND 
-                    asset.template_id IS NOT NULL AND offer_asset.index = 1 AND
+                    asset.template_id IS NOT NULL AND offer_asset.index = 1 AND 
                     offer.state = ${OfferState.PENDING.valueOf()} AND sale.state = ${SaleState.LISTED.valueOf()} AND 
                     sale.market_contract = $1 AND sale.settlement_symbol = $2
                 `;
