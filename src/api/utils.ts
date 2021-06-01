@@ -9,7 +9,7 @@ export async function getContractActionLogs(
     const queryStr = 'SELECT global_sequence log_id, name, metadata "data", encode(txid::bytea, \'hex\') txid, created_at_block, created_at_time ' +
         'FROM contract_traces ' +
         'WHERE account = $1 AND name = ANY($2) AND metadata @> $3::jsonb ' +
-        'ORDER BY global_sequence ' + (order === 'asc' ? 'ASC' : 'DESC') + ' LIMIT $4 OFFSET $5 ';
+        'ORDER BY global_sequence + 1 ' + (order === 'asc' ? 'ASC' : 'DESC') + ' LIMIT $4 OFFSET $5 ';
 
     const query = await server.query(queryStr, [contract, actions, JSON.stringify(condition), limit, offset]);
     const emptyCondition = Object.keys(condition).reduce((prev, curr) => ({...prev, [curr]: undefined}), {});
