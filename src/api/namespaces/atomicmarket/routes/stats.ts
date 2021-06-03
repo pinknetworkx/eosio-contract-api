@@ -149,17 +149,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         `;
     }
 
-    function buildGraphStatsQuery(after?: number, before?: number): string {
-        return `
-        SELECT div("time", 24 * 3600 * 1000) "time_block", COUNT(*) sales, SUM(price) volume 
-        FROM atomicmarket_stats_markets
-        WHERE market_contract = $1 AND symbol = $2
-            ${buildRangeCondition('"time"', after, before)}
-            ${getGreylistCondition('collection_name', 3, 4)}
-        GROUP BY "time_block" ORDER BY "time_block" ASC
-        `;
-    }
-
     async function fetchSymbol(symbol: string): Promise<{token_symbol: string, token_contract: string, token_precision: number}> {
         if (!symbol) {
             return null;
@@ -459,6 +448,9 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 collection_whitelist: {type: 'string', min: 1, default: ''},
                 collection_blacklist: {type: 'string', min: 1, default: ''},
 
+                taker_marketplace: {type: 'string'},
+                maker_marketplace: {type: 'string'},
+
                 symbol: {type: 'string', min: 1},
                 before: {type: 'int', min: 1},
                 after: {type: 'int', min: 1}
@@ -470,12 +462,30 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
-            const queryString = buildGraphStatsQuery(args.after, args.before);
+            let queryString = ` SELECT div("time", 24 * 3600 * 1000) "time_block", COUNT(*) sales, SUM(price) volume 
+                FROM atomicmarket_stats_markets
+                WHERE market_contract = $1 AND symbol = $2
+                    ${buildRangeCondition('"time"', args.after, args.before)}
+                    ${getGreylistCondition('collection_name', 3, 4)}
+               `;
             const queryValues = [
                 core.args.atomicmarket_account, args.symbol,
                 args.collection_whitelist.split(',').filter((x: string) => !!x),
                 args.collection_blacklist.split(',').filter((x: string) => !!x),
             ];
+            let varCounter = queryValues.length;
+
+            if (typeof args.taker_marketplace === 'string') {
+                queryString += 'AND taker_marketplace = $' + ++varCounter + ' ';
+                queryValues.push(args.taker_marketplace);
+            }
+
+            if (typeof args.maker_marketplace === 'string') {
+                queryString += 'AND maker_marketplace = $' + ++varCounter + ' ';
+                queryValues.push(args.maker_marketplace);
+            }
+
+            queryString += 'GROUP BY "time_block" ORDER BY "time_block" ASC';
 
             const query = await server.query(queryString, queryValues);
 
