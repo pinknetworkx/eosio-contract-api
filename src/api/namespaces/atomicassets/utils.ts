@@ -135,7 +135,7 @@ export function buildAssetFilter(
     options = Object.assign({allowDataFilter: true}, options);
 
     const args = filterQueryArgs(req, {
-        asset_id: {type: 'string', min: 1, max: 12},
+        asset_id: {type: 'string', min: 1},
         owner: {type: 'string', min: 1, max: 12},
         burned: {type: 'bool'},
         template_id: {type: 'string', min: 1},
