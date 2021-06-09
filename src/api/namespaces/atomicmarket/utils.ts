@@ -1,50 +1,10 @@
 import * as express from 'express';
 
-import { equalMany, filterQueryArgs, mergeRequestData } from '../utils';
-import { buildAssetFilter } from '../atomicassets/utils';
+import { equalMany, filterQueryArgs } from '../utils';
+import { buildAssetFilter, hasAssetFilter, hasDataFilters } from '../atomicassets/utils';
 import { AuctionApiState, BuyofferApiState, SaleApiState } from './index';
 import { AuctionState, BuyofferState, SaleState } from '../../../filler/handlers/atomicmarket';
 import { OfferState } from '../../../filler/handlers/atomicassets';
-
-function hasAssetFilter(req: express.Request): boolean {
-    const keys = Object.keys(mergeRequestData(req));
-
-    for (const key of keys) {
-        if (['template_id', 'schema_name', 'owner', 'is_transferable', 'is_burnable'].indexOf(key) >= 0) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-function hasDataFilters(req: express.Request): boolean {
-    const keys = Object.keys(mergeRequestData(req));
-
-    for (const key of keys) {
-        if (['match', 'full_match'].indexOf(key) >= 0) {
-            return true;
-        }
-
-        if (key.startsWith('data.') || key.startsWith('data:')) {
-            return true;
-        }
-
-        if (key.startsWith('template_data.') || key.startsWith('template_data:')) {
-            return true;
-        }
-
-        if (key.startsWith('immutable_data.') || key.startsWith('immutable_data:')) {
-            return true;
-        }
-
-        if (key.startsWith('mutable_data.') || key.startsWith('mutable_data:')) {
-            return true;
-        }
-    }
-
-    return false;
-}
 
 export function buildListingFilter(
     req: express.Request, varOffset: number
@@ -126,7 +86,6 @@ export function buildSaleFilter(
 ): {str: string, values: any[], counter: number} {
     const args = filterQueryArgs(req, {
         state: {type: 'string', min: 0},
-        asset_id: {type: 'int', min: 1},
 
         max_assets: {type: 'int', min: 1},
         min_assets: {type: 'int', min: 1},
@@ -146,7 +105,7 @@ export function buildSaleFilter(
     queryValues.push(...listingFilter.values);
     varCounter += listingFilter.values.length;
 
-    if (hasAssetFilter(req) || hasDataFilters(req)) {
+    if (hasAssetFilter(req, ['collection_name']) || hasDataFilters(req)) {
         const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', templateTable: '"template"', allowDataFilter: true});
 
         queryString += 'AND EXISTS(' +
@@ -178,16 +137,6 @@ export function buildSaleFilter(
                 WHERE asset.contract = listing.assets_contract AND asset.offer_id = listing.offer_id LIMIT ${args.min_assets}
             ) ct        
         ) >= ${args.min_assets} `;
-    }
-
-    if (args.asset_id) {
-        queryString += 'AND EXISTS(' +
-            'SELECT * FROM atomicassets_offers_assets asset ' +
-            'WHERE asset.contract = listing.assets_contract AND ' +
-            'asset.offer_id = listing.offer_id AND ' +
-            'asset.asset_id = $' + ++varCounter + ' ' +
-            ') ';
-        queryValues.push(args.asset_id);
     }
 
     if (args.symbol) {
@@ -243,7 +192,6 @@ export function buildAuctionFilter(
 ): {str: string, values: any[], counter: number} {
     const args = filterQueryArgs(req, {
         state: {type: 'string', min: 0},
-        asset_id: {type: 'int', min: 1},
 
         min_assets: {type: 'int', min: 1},
         max_assets: {type: 'int', min: 1},
@@ -265,7 +213,7 @@ export function buildAuctionFilter(
     queryValues.push(...listingFilter.values);
     varCounter += listingFilter.values.length;
 
-    if (hasAssetFilter(req) || hasDataFilters(req)) {
+    if (hasAssetFilter(req, ['collection_name']) || hasDataFilters(req)) {
         const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', templateTable: '"template"', allowDataFilter: true});
 
         queryString += 'AND EXISTS(' +
@@ -310,16 +258,6 @@ export function buildAuctionFilter(
             SELECT COUNT(*) FROM atomicmarket_auctions_assets asset 
             WHERE asset.market_contract = listing.market_contract AND asset.auction_id = listing.auction_id
         ) >= ${args.min_assets} `;
-    }
-
-    if (args.asset_id) {
-        queryString += 'AND EXISTS(' +
-            'SELECT * FROM atomicmarket_auctions_assets asset ' +
-            'WHERE asset.market_contract = listing.market_contract AND ' +
-            'listing.auction_id = listing.auction_id AND ' +
-            'asset.asset_id = $' + ++varCounter + ' ' +
-            ') ';
-        queryValues.push(args.asset_id);
     }
 
     if (args.symbol) {
@@ -375,7 +313,6 @@ export function buildBuyofferFilter(
 ): {str: string, values: any[], counter: number} {
     const args = filterQueryArgs(req, {
         state: {type: 'string', min: 0},
-        asset_id: {type: 'int', min: 1},
 
         min_assets: {type: 'int', min: 1},
         max_assets: {type: 'int', min: 1},
@@ -395,7 +332,7 @@ export function buildBuyofferFilter(
     queryValues.push(...listingFilter.values);
     varCounter += listingFilter.values.length;
 
-    if (hasAssetFilter(req) || hasDataFilters(req)) {
+    if (hasAssetFilter(req, ['collection_name']) || hasDataFilters(req)) {
         const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', templateTable: '"template"', allowDataFilter: true});
 
         queryString += 'AND EXISTS(' +
@@ -424,16 +361,6 @@ export function buildBuyofferFilter(
             SELECT COUNT(*) FROM atomicmarket_buyoffers_assets asset 
             WHERE asset.market_contract = listing.market_contract AND asset.buyoffer_id = listing.buyoffer_id
         ) >= ${args.min_assets} `;
-    }
-
-    if (args.asset_id) {
-        queryString += 'AND EXISTS(' +
-            'SELECT * FROM atomicmarket_buyoffers_assets asset ' +
-            'WHERE asset.market_contract = listing.market_contract AND ' +
-            'listing.buyoffer_id = listing.buyoffer_id AND ' +
-            'asset.asset_id = $' + ++varCounter + ' ' +
-            ') ';
-        queryValues.push(args.asset_id);
     }
 
     if (args.symbol) {

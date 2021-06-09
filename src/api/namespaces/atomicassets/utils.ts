@@ -3,6 +3,50 @@ import * as express from 'express';
 import { equalMany, filterQueryArgs, mergeRequestData } from '../utils';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 
+export function hasAssetFilter(req: express.Request, blacklist: string[] = []): boolean {
+    const keys = Object.keys(mergeRequestData(req));
+
+    for (const key of keys) {
+        if ([
+                'asset_id', 'collection_name', 'template_id', 'schema_name',
+                'owner', 'is_transferable', 'is_burnable'
+            ].indexOf(key) >= 0 && blacklist.indexOf(key) === -1
+        ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+export function hasDataFilters(req: express.Request): boolean {
+    const keys = Object.keys(mergeRequestData(req));
+
+    for (const key of keys) {
+        if (['match', 'full_match'].indexOf(key) >= 0) {
+            return true;
+        }
+
+        if (key.startsWith('data.') || key.startsWith('data:')) {
+            return true;
+        }
+
+        if (key.startsWith('template_data.') || key.startsWith('template_data:')) {
+            return true;
+        }
+
+        if (key.startsWith('immutable_data.') || key.startsWith('immutable_data:')) {
+            return true;
+        }
+
+        if (key.startsWith('mutable_data.') || key.startsWith('mutable_data:')) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 export function buildDataConditions(
     args: any, varCounter: number = 0, options: {assetTable?: string, templateTable?: string}
 ): {str: string, values: any[]} | null {
@@ -92,6 +136,7 @@ export function buildAssetFilter(
     options = Object.assign({allowDataFilter: true}, options);
 
     const args = filterQueryArgs(req, {
+        asset_id: {type: 'string', min: 1, max: 12},
         owner: {type: 'string', min: 1, max: 12},
         burned: {type: 'bool'},
         template_id: {type: 'string', min: 1},
@@ -116,6 +161,10 @@ export function buildAssetFilter(
             varCounter += dataConditions.values.length;
             queryString += dataConditions.str;
         }
+    }
+
+    if (args.asset_id) {
+        queryString += 'AND ' + equalMany(options.assetTable + '.asset_id', args.asset_id, queryValues, ++varCounter);
     }
 
     if (args.owner) {

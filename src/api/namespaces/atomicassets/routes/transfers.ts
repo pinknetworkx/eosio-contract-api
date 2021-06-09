@@ -9,6 +9,7 @@ import { greylistFilterParameters } from '../openapi';
 import ApiNotificationReceiver from '../../../notification';
 import { createSocketApiNamespace } from '../../../utils';
 import { NotificationData } from '../../../../filler/notifier';
+import { buildAssetFilter, hasAssetFilter, hasDataFilters } from '../utils';
 
 export class TransferApi {
     constructor(
@@ -31,10 +32,6 @@ export class TransferApi {
                     sort: {type: 'string', values: ['created'], default: 'created'},
                     order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
-                    asset_id: {type: 'string', min: 1},
-                    collection_name: {type: 'string', min: 1},
-                    template_id: {type: 'string', min: 1},
-                    schema_name: {type: 'string', min: 1},
                     collection_blacklist: {type: 'string', min: 1},
                     collection_whitelist: {type: 'string', min: 1},
 
@@ -63,42 +60,20 @@ export class TransferApi {
                     queryValues.push(args.recipient.split(','));
                 }
 
-                if (['collection_name', 'template_id', 'schema_name'].find(key => args[key])) {
-                    const conditions: string[] = [];
-
-                    if (args.asset_id) {
-                        conditions.push('transfer_asset.asset_id = ANY ($' + ++varCounter + ')');
-                        queryValues.push(args.asset_id.split(','));
-                    }
-
-                    if (args.collection_name) {
-                        conditions.push('asset.collection_name = ANY ($' + ++varCounter + ')');
-                        queryValues.push(args.collection_name.split(','));
-                    }
-
-                    if (args.template_id) {
-                        conditions.push('asset.template_id = ANY ($' + ++varCounter + ')');
-                        queryValues.push(args.template_id.split(','));
-                    }
-
-                    if (args.schema_name) {
-                        conditions.push('asset.schema_name = ANY ($' + ++varCounter + ')');
-                        queryValues.push(args.schema_name.split(','));
-                    }
+                if (hasAssetFilter(req) || hasDataFilters(req)) {
+                    const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', templateTable: '"template"', allowDataFilter: true});
 
                     queryString += 'AND EXISTS(' +
-                        'SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset ' +
-                        'WHERE transfer_asset.contract = transfer.contract AND transfer_asset.transfer_id = transfer.transfer_id AND ' +
-                        'transfer_asset.contract = asset.contract AND transfer_asset.asset_id = asset.asset_id AND (' + conditions.join(' OR ') + ')) ';
-                }
-
-                if (args.asset_id) {
-                    queryString += 'AND EXISTS(' +
-                        'SELECT * FROM atomicassets_transfers_assets asset ' +
-                        'WHERE transfer.contract = asset.contract AND transfer.transfer_id = asset.transfer_id AND ' +
-                        'asset_id = ANY ($' + ++varCounter + ')' +
+                        'SELECT * ' +
+                        'FROM atomicassets_transfers_assets transfer_asset, ' +
+                        'atomicassets_assets asset LEFT JOIN atomicassets_templates "template" ON ("asset".contract = "template".contract AND "asset".template_id = "template".template_id) ' +
+                        'WHERE ' +
+                        'asset.contract = transfer_asset.contract AND asset.asset_id = transfer_asset.asset_id AND ' +
+                        'transfer_asset.transfer_id = transfer.transfer_id AND transfer_asset.contract = transfer.contract ' + filter.str + ' ' +
                         ') ';
-                    queryValues.push(args.asset_id.split(','));
+
+                    queryValues.push(...filter.values);
+                    varCounter += filter.values.length;
                 }
 
                 if (args.collection_blacklist) {
