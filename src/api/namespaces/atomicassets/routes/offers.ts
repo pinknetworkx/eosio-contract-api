@@ -16,7 +16,7 @@ import {
 } from '../../../utils';
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
-import { buildAssetFilter, hasAssetFilter, hasDataFilters } from '../utils';
+import { buildAssetFilter, hasAssetFilter } from '../utils';
 
 export class OfferApi {
     constructor(
@@ -45,9 +45,6 @@ export class OfferApi {
                     state: {type: 'string', min: 1},
 
                     asset_id: {type: 'string', min: 1},
-                    collection_name: {type: 'string', min: 1},
-                    template_id: {type: 'string', min: 1},
-                    schema_name: {type: 'string', min: 1},
 
                     recipient_asset_blacklist: {type: 'string', min: 1},
                     recipient_asset_whitelist: {type: 'string', min: 1},
@@ -92,13 +89,12 @@ export class OfferApi {
                     queryString += 'AND NOT EXISTS(SELECT * FROM contract_codes WHERE account = offer.recipient) ';
                 }
 
-                if (hasAssetFilter(req) || hasDataFilters(req)) {
-                    const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', templateTable: '"template"', allowDataFilter: true});
+                if (hasAssetFilter(req, ['asset_id'])) {
+                    const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', allowDataFilter: false});
 
                     queryString += 'AND EXISTS(' +
                         'SELECT * ' +
-                        'FROM atomicassets_offers_assets offer_asset, ' +
-                        'atomicassets_assets asset LEFT JOIN atomicassets_templates "template" ON ("asset".contract = "template".contract AND "asset".template_id = "template".template_id) ' +
+                        'FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
                         'WHERE ' +
                         'asset.contract = offer_asset.contract AND asset.asset_id = offer_asset.asset_id AND ' +
                         'offer_asset.offer_id = offer.offer_id AND offer_asset.contract = offer.contract ' + filter.str + ' ' +
@@ -106,6 +102,15 @@ export class OfferApi {
 
                     queryValues.push(...filter.values);
                     varCounter += filter.values.length;
+                }
+
+                if (args.asset_id) {
+                    queryString += 'AND EXISTS(' +
+                        'SELECT * FROM atomicassets_offers_assets asset ' +
+                        'WHERE offer.contract = asset.contract AND offer.offer_id = asset.offer_id AND ' +
+                        'asset_id = ANY ($' + ++varCounter + ')' +
+                        ') ';
+                    queryValues.push(args.asset_id.split(','));
                 }
 
                 if (args.collection_blacklist) {

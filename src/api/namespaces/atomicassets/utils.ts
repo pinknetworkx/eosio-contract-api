@@ -7,10 +7,9 @@ export function hasAssetFilter(req: express.Request, blacklist: string[] = []): 
     const keys = Object.keys(mergeRequestData(req));
 
     for (const key of keys) {
-        if ([
-                'asset_id', 'collection_name', 'template_id', 'schema_name',
-                'owner', 'is_transferable', 'is_burnable'
-            ].indexOf(key) >= 0 && blacklist.indexOf(key) === -1
+        if (
+            ['asset_id', 'collection_name', 'template_id', 'schema_name','owner', 'is_transferable', 'is_burnable'].indexOf(key) >= 0 &&
+            blacklist.indexOf(key) === -1
         ) {
             return true;
         }

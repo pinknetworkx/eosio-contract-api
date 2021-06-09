@@ -32,6 +32,8 @@ export class TransferApi {
                     sort: {type: 'string', values: ['created'], default: 'created'},
                     order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
+                    asset_id: {type: 'string', min: 1},
+
                     collection_blacklist: {type: 'string', min: 1},
                     collection_whitelist: {type: 'string', min: 1},
 
@@ -60,13 +62,12 @@ export class TransferApi {
                     queryValues.push(args.recipient.split(','));
                 }
 
-                if (hasAssetFilter(req) || hasDataFilters(req)) {
-                    const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', templateTable: '"template"', allowDataFilter: true});
+                if (hasAssetFilter(req, ['asset_id'])) {
+                    const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', allowDataFilter: false});
 
                     queryString += 'AND EXISTS(' +
                         'SELECT * ' +
-                        'FROM atomicassets_transfers_assets transfer_asset, ' +
-                        'atomicassets_assets asset LEFT JOIN atomicassets_templates "template" ON ("asset".contract = "template".contract AND "asset".template_id = "template".template_id) ' +
+                        'FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset ' +
                         'WHERE ' +
                         'asset.contract = transfer_asset.contract AND asset.asset_id = transfer_asset.asset_id AND ' +
                         'transfer_asset.transfer_id = transfer.transfer_id AND transfer_asset.contract = transfer.contract ' + filter.str + ' ' +
@@ -74,6 +75,15 @@ export class TransferApi {
 
                     queryValues.push(...filter.values);
                     varCounter += filter.values.length;
+                }
+
+                if (args.asset_id) {
+                    queryString += 'AND EXISTS(' +
+                        'SELECT * FROM atomicassets_transfers_assets asset ' +
+                        'WHERE transfer.contract = asset.contract AND transfer.transfer_id = asset.transfer_id AND ' +
+                        'asset_id = ANY ($' + ++varCounter + ')' +
+                        ') ';
+                    queryValues.push(args.asset_id.split(','));
                 }
 
                 if (args.collection_blacklist) {
