@@ -64,7 +64,7 @@ export function filterQueryArgs(req: express.Request, filter: FilterDefinition, 
             }
 
             if (typeof filter[key].min === 'number' && n < filter[key].min) {
-                result[key] = filter[key].default;
+                result[key] = filter[key].min;
 
                 continue;
             }
