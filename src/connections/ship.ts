@@ -80,6 +80,10 @@ export default class StateHistoryBlockReader {
     }
 
     reconnect(): void {
+        if (this.stopped) {
+            return;
+        }
+
         logger.info('Reconnecting to Ship...');
 
         setTimeout(() => {
