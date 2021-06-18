@@ -29,7 +29,7 @@ export default class StateHistoryBlockReader {
     private connecting: boolean;
     private stopped: boolean;
 
-    private deserializeWorkers: StaticPool<Array<{type: string, data: Uint8Array, abi?: any}>, any>;
+    private deserializeWorkers: StaticPool<(x: Array<{type: string, data: Uint8Array, abi?: any}>) => any>;
 
     private unconfirmed: number;
     private consumer: BlockConsumer;
