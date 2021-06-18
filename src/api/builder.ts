@@ -86,6 +86,7 @@ export default class QueryBuilder {
 
     setVars(vars: any[]): QueryBuilder {
         this.values = vars;
+        this.varCounter = vars.length;
 
         return this;
     }

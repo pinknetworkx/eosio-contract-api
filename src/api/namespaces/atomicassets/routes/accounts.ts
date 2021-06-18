@@ -70,7 +70,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
         try {
             // collection query
             const collectionQuery = new QueryBuilder(
-                'SELECT collection_name, template_id, COUNT(*) as assets ' +
+                'SELECT collection_name, COUNT(*) as assets ' +
                 'FROM atomicassets_assets asset'
             );
             collectionQuery.equal('contract', core.args.atomicassets_account);
