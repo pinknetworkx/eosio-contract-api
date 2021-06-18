@@ -95,7 +95,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             buildGreylistFilter(req, templateQuery, {collectionName: 'asset.collection_name'});
             buildHideOffersFilter(req, templateQuery, 'asset');
 
-            templateQuery.group(['contract', 'template_id']);
+            templateQuery.group(['contract', 'collection_name', 'template_id']);
             templateQuery.append('ORDER BY assets DESC');
 
             const templateResult = await server.query(templateQuery.buildString(), templateQuery.buildValues());
