@@ -43,7 +43,7 @@ export class TransferApi {
                     recipient: {type: 'string', min: 1}
                 });
 
-                const query = new QueryBuilder('SELECT * FROM ' + this.transferView + ' transfer WHERE contract = $1 ');
+                const query = new QueryBuilder('SELECT * FROM ' + this.transferView + ' transfer');
                 query.equal('contract', this.core.args.atomicassets_account);
 
                 if (args.account) {
