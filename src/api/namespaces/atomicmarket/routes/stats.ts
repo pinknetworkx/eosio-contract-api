@@ -8,6 +8,7 @@ import { SaleState } from '../../../../filler/handlers/atomicmarket';
 import { atomicassetsComponents, greylistFilterParameters } from '../../atomicassets/openapi';
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import { buildGreylistFilter } from '../../atomicassets/utils';
+import QueryBuilder from '../../../builder';
 
 export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     function getSaleSubCondition (state: SaleApiState, table: string, after?: number, before?: number, filterState: boolean = true): string {
@@ -502,9 +503,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
     router.all('/v1/stats/sales', server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
-                collection_whitelist: {type: 'string', min: 1, default: ''},
-                collection_blacklist: {type: 'string', min: 1, default: ''},
-
                 symbol: {type: 'string', min: 1}
             });
 
@@ -514,22 +512,19 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
-            let queryString = `
-                SELECT SUM(final_price) volume, COUNT(*) sales FROM atomicmarket_sales 
-                WHERE market_contract = $1 and settlement_symbol = $2 AND state = ${SaleState.SOLD.valueOf()} 
-            `;
-            let queryValues = [core.args.atomicmarket_account, args.symbol];
+            const query = new QueryBuilder('SELECT SUM(final_price) volume, COUNT(*) sales FROM atomicmarket_sales');
 
-            const greylistFilter = buildGreylistFilter(req, queryValues.length, 'collection_name');
+            query.equal('market_contract', core.args.atomicmarket_account);
+            query.equal('settlement_symbol', args.symbol);
+            query.equal('state', SaleState.SOLD.valueOf());
 
-            queryValues = queryValues.concat(greylistFilter.values);
-            queryString += greylistFilter.str;
+            buildGreylistFilter(req, query, {collectionName: 'collection_name'});
 
-            const query = await server.query(queryString, queryValues);
+            const result = await server.query(query.buildString(), query.buildValues());
 
             res.json({
                 success: true,
-                data: {symbol, result: query.rows[0]},
+                data: {symbol, result: result.rows[0]},
                 query_time: Date.now()
             });
         } catch (e) {

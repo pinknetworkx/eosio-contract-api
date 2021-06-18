@@ -17,6 +17,7 @@ import {
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
 import { buildAssetFilter, hasAssetFilter } from '../utils';
+import QueryBuilder from '../../../builder';
 
 export class OfferApi {
     constructor(
@@ -58,166 +59,158 @@ export class OfferApi {
                     is_recipient_contract: {type: 'bool'}
                 });
 
-                let varCounter = 1;
-                let queryString = 'SELECT contract, offer_id FROM atomicassets_offers offer WHERE contract = $1 ';
+                const query = new QueryBuilder('SELECT contract, offer_id FROM atomicassets_offers offer');
 
-                const queryValues: any[] = [this.core.args.atomicassets_account];
+                query.equal('contract', this.core.args.atomicassets_account);
 
                 if (args.account) {
-                    queryString += 'AND (sender = ANY ($' + ++varCounter + ') OR recipient = ANY ($' + varCounter + ')) ';
-                    queryValues.push(args.account.split(','));
+                    const varName = query.addVariable(args.account.split(','));
+                    query.addCondition('(sender = ANY (' + varName + ') OR recipient = ANY (' + varName + '))');
                 }
 
                 if (args.sender) {
-                    queryString += 'AND sender = ANY ($' + ++varCounter + ') ';
-                    queryValues.push(args.sender.split(','));
+                    query.equalMany('sender', args.sender.split(','));
                 }
 
                 if (args.recipient) {
-                    queryString += 'AND recipient = ANY ($' + ++varCounter + ') ';
-                    queryValues.push(args.recipient.split(','));
+                    query.equalMany('recipient', args.recipient.split(','));
                 }
 
                 if (args.state) {
-                    queryString += 'AND state = ANY ($' + ++varCounter + ') ';
-                    queryValues.push(args.state.split(','));
+                    query.equalMany('state', args.state.split(','));
                 }
 
                 if (args.is_recipient_contract === true) {
-                    queryString += 'AND EXISTS(SELECT * FROM contract_codes WHERE account = offer.recipient) ';
+                    query.addCondition('EXISTS(SELECT * FROM contract_codes WHERE account = offer.recipient)');
                 } else if (args.is_recipient_contract === false) {
-                    queryString += 'AND NOT EXISTS(SELECT * FROM contract_codes WHERE account = offer.recipient) ';
+                    query.addCondition('NOT EXISTS(SELECT * FROM contract_codes WHERE account = offer.recipient)');
                 }
 
                 if (hasAssetFilter(req, ['asset_id'])) {
-                    const filter = buildAssetFilter(req, varCounter, {assetTable: '"asset"', allowDataFilter: false});
+                    const assetQuery = new QueryBuilder('SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset', query.buildValues());
 
-                    queryString += 'AND EXISTS(' +
-                        'SELECT * ' +
-                        'FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
-                        'WHERE ' +
-                        'asset.contract = offer_asset.contract AND asset.asset_id = offer_asset.asset_id AND ' +
-                        'offer_asset.offer_id = offer.offer_id AND offer_asset.contract = offer.contract ' + filter.str + ' ' +
-                        ') ';
+                    assetQuery.join('asset', 'offer_asset', ['contract', 'asset_id']);
+                    assetQuery.join('offer_asset', 'offer', ['contract', 'offer_id']);
 
-                    queryValues.push(...filter.values);
-                    varCounter += filter.values.length;
+                    buildAssetFilter(req, assetQuery, {assetTable: '"asset"', allowDataFilter: false});
+
+                    query.addCondition('EXISTS(' + assetQuery.buildString() + ')');
+                    query.setVars(assetQuery.buildValues());
                 }
 
                 if (args.asset_id) {
-                    queryString += 'AND EXISTS(' +
+                    query.addCondition(
+                        'EXISTS(' +
                         'SELECT * FROM atomicassets_offers_assets asset ' +
                         'WHERE offer.contract = asset.contract AND offer.offer_id = asset.offer_id AND ' +
-                        'asset_id = ANY ($' + ++varCounter + ')' +
-                        ') ';
-                    queryValues.push(args.asset_id.split(','));
+                        'asset_id = ANY (' + query.addVariable(args.asset_id.split(',')) + ')' +
+                        ')'
+                    );
                 }
 
                 if (args.collection_blacklist) {
-                    queryString += 'AND NOT EXISTS(' +
+                    query.addCondition(
+                        'NOT EXISTS(' +
                         'SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
                         'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
                         'offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND ' +
-                        'asset.collection_name = ANY ($' + ++varCounter + ')' +
-                        ') ';
-                    queryValues.push(args.collection_blacklist.split(','));
+                        'asset.collection_name = ANY (' + query.addVariable(args.collection_blacklist.split(',')) + ')' +
+                        ')'
+                    );
                 }
 
                 if (args.collection_whitelist) {
-                    queryString += 'AND NOT EXISTS(' +
+                    query.addCondition(
+                        'NOT EXISTS(' +
                         'SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
                         'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
                         'offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND ' +
-                        'NOT (asset.collection_name = ANY ($' + ++varCounter + '))' +
-                        ') ';
-                    queryValues.push(args.collection_whitelist.split(','));
+                        'NOT (asset.collection_name = ANY (' + query.addVariable(args.collection_whitelist.split(',')) + '))' +
+                        ')'
+                    );
                 }
 
                 if (args.account_blacklist) {
-                    const varNumber = ++varCounter;
-                    queryString += 'AND NOT (offer.sender = ANY($' + varNumber + ') OR offer.recipient = ANY($' + varNumber + ')) ';
-                    queryValues.push(args.account_blacklist.split(','));
+                    const varName = query.addVariable(args.account_blacklist.split(','));
+                    query.addCondition('NOT (offer.sender = ANY(' + varName + ') OR offer.recipient = ANY(' + varName + '))');
                 }
 
                 if (args.account_whitelist) {
-                    const varNumber = ++varCounter;
-                    queryString += 'AND (offer.sender = ANY($' + varNumber + ') OR offer.recipient = ANY($' + varNumber + ')) ';
-                    queryValues.push(args.account_whitelist.split(','));
+                    const varName = query.addVariable(args.account_whitelist.split(','));
+                    query.addCondition('(offer.sender = ANY(' + varName + ') OR offer.recipient = ANY(' + varName + '))');
                 }
 
                 if (args.recipient_asset_blacklist) {
-                    queryString += 'AND NOT EXISTS(' +
+                    query.addCondition(
+                        'NOT EXISTS(' +
                         'SELECT * FROM atomicassets_offers_assets offer_asset ' +
                         'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
-                        'offer_asset.owner = offer.recipient AND offer_asset.asset_id = ANY ($' + ++varCounter + ')' +
-                        ') ';
-                    queryValues.push(args.recipient_asset_blacklist.split(','));
+                        'offer_asset.owner = offer.recipient AND offer_asset.asset_id = ANY (' + query.addVariable(args.recipient_asset_blacklist.split(',')) + ')' +
+                        ')'
+                    );
                 }
 
                 if (args.recipient_asset_whitelist) {
-                    queryString += 'AND NOT EXISTS(' +
+                    query.addCondition(
+                        'NOT EXISTS(' +
                         'SELECT * FROM atomicassets_offers_assets offer_asset ' +
                         'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
-                        'offer_asset.owner = offer.recipient AND NOT (offer_asset.asset_id = ANY ($' + ++varCounter + '))' +
-                        ') ';
-                    queryValues.push(args.recipient_asset_whitelist.split(','));
+                        'offer_asset.owner = offer.recipient AND NOT (offer_asset.asset_id = ANY (' + query.addVariable(args.recipient_asset_whitelist.split(',')) + '))' +
+                        ')'
+                    );
                 }
 
                 if (args.sender_asset_blacklist) {
-                    queryString += 'AND NOT EXISTS(' +
+                    query.addCondition(
+                        'NOT EXISTS(' +
                         'SELECT * FROM atomicassets_offers_assets offer_asset ' +
                         'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
-                        'offer_asset.owner = offer.sender AND offer_asset.asset_id = ANY ($' + ++varCounter + ')' +
-                        ') ';
-                    queryValues.push(args.sender_asset_blacklist.split(','));
+                        'offer_asset.owner = offer.sender AND offer_asset.asset_id = ANY (' + query.addVariable(args.sender_asset_blacklist.split(',')) + ')' +
+                        ')'
+                    );
                 }
 
                 if (args.sender_asset_whitelist) {
-                    queryString += 'AND NOT EXISTS(' +
+                    query.addCondition(
+                        'NOT EXISTS(' +
                         'SELECT * FROM atomicassets_offers_assets offer_asset ' +
                         'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
-                        'offer_asset.owner = offer.sender AND NOT (offer_asset.asset_id = ANY ($' + ++varCounter + '))' +
-                        ') ';
-                    queryValues.push(args.sender_asset_whitelist.split(','));
+                        'offer_asset.owner = offer.sender AND NOT (offer_asset.asset_id = ANY (' + query.addVariable(args.sender_asset_whitelist.split(',')) + '))' +
+                        ')'
+                    );
                 }
 
-                const boundaryFilter = buildBoundaryFilter(
-                    req, varCounter, 'offer_id', 'int',
+                buildBoundaryFilter(
+                    req, query, 'offer_id', 'int',
                     args.sort === 'updated' ? 'updated_at_time' : 'created_at_time'
                 );
-                queryValues.push(...boundaryFilter.values);
-                varCounter += boundaryFilter.values.length;
-                queryString += boundaryFilter.str;
 
-                const sortColumnMapping = {
+                const sortColumnMapping: {[key: string]: string} = {
                     created: 'created_at_time',
                     updated: 'updated_at_time'
                 };
 
                 if (req.originalUrl.search('/_count') >= 0) {
                     const countQuery = await this.server.query(
-                        'SELECT COUNT(*) counter FROM (' + queryString + ') x',
-                        queryValues
+                        'SELECT COUNT(*) counter FROM (' + query.buildString() + ') x',
+                        query.buildValues()
                     );
 
                     return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
                 }
 
-                // @ts-ignore
-                queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', offer_id ASC ';
-                queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
-                queryValues.push(args.limit);
-                queryValues.push((args.page - 1) * args.limit);
+                query.append('ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', offer_id ASC');
+                query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
-                const offerQuery = await this.server.query(queryString, queryValues);
+                const offerResult = await this.server.query(query.buildString(), query.buildValues());
 
                 const offerLookup: {[key: string]: any} = {};
-                const query = await this.server.query(
+                const result = await this.server.query(
                     'SELECT * FROM ' + this.offerView + ' WHERE contract = $1 AND offer_id = ANY ($2)',
-                    [this.core.args.atomicassets_account, offerQuery.rows.map(row => row.offer_id)]
+                    [this.core.args.atomicassets_account, offerResult.rows.map(row => row.offer_id)]
                 );
 
-                query.rows.reduce((prev, current) => {
+                result.rows.reduce((prev, current) => {
                     prev[String(current.offer_id)] = current;
 
                     return prev;
@@ -225,7 +218,7 @@ export class OfferApi {
 
                 const offers = await fillOffers(
                     this.server, this.core.args.atomicassets_account,
-                    offerQuery.rows.map((row) => this.offerFormatter(offerLookup[row.offer_id])),
+                    offerResult.rows.map((row) => this.offerFormatter(offerLookup[row.offer_id])),
                     this.assetFormatter, this.assetView, this.fillerHook
                 );
 

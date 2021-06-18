@@ -1,4 +1,5 @@
 import * as express from 'express';
+import QueryBuilder from '../builder';
 
 export type FilterDefinition = {
     [key: string]: {
@@ -107,10 +108,10 @@ export function filterQueryArgs(req: express.Request, filter: FilterDefinition, 
 }
 
 export function buildBoundaryFilter(
-    req: express.Request, varOffset: number,
+    req: express.Request, query: QueryBuilder,
     primaryColumn: string, primaryType: 'string' | 'int',
     dateColumn: string | null
-): {values: any[], str: string} {
+): void {
     const args = filterQueryArgs(req, {
         lower_bound: {type: primaryType, min: 1},
         upper_bound: {type: primaryType, min: 1},
@@ -119,51 +120,23 @@ export function buildBoundaryFilter(
         ids: {type: 'string', min: 1}
     });
 
-    let queryString = '';
-    const queryValues: any[] = [];
-    let varCounter = varOffset;
-
     if (primaryColumn && args.ids) {
-        queryString += 'AND ' + primaryColumn + ' = ANY ($' + ++varCounter + ') ';
-        queryValues.push(args.ids.split(','));
+        query.equalMany(primaryColumn, args.ids.split(','));
     }
 
     if (primaryColumn && args.lower_bound) {
-        queryString += 'AND ' + primaryColumn + ' >= $' + ++varCounter + ' ';
-        queryValues.push(args.lower_bound);
+        query.addCondition(primaryColumn + ' >= ' + query.addVariable(args.lower_bound));
     }
 
     if (primaryColumn && args.upper_bound) {
-        queryString += 'AND ' + primaryColumn + ' < $' + ++varCounter + ' ';
-        queryValues.push(args.upper_bound);
+        query.addCondition(primaryColumn + ' < ' + query.addVariable(args.upper_bound));
     }
 
     if (dateColumn && args.before) {
-        queryString += 'AND ' + dateColumn + ' < $' + ++varCounter + '::BIGINT ';
-        queryValues.push(args.before);
+        query.addCondition(dateColumn + ' < ' + query.addVariable(args.before) + '::BIGINT');
     }
 
     if (dateColumn && args.after) {
-        queryString += 'AND ' + dateColumn + ' > $' + ++varCounter + '::BIGINT ';
-        queryValues.push(args.after);
-    }
-
-    return {
-        values: queryValues,
-        str: queryString
-    };
-}
-
-export function equalMany(column: string, value: string, queryValues: any[], varNum: number, separator = ','): string {
-    const values = value.split(separator);
-
-    if (values.length === 1) {
-        queryValues.push(values[0]);
-
-        return ' ' + column + ' = $' + varNum + ' ';
-    } else {
-        queryValues.push(values);
-
-        return ' ' + column + ' = ANY($' + varNum + ') ';
+        query.addCondition(dateColumn + ' > ' + query.addVariable(args.after) + '::BIGINT');
     }
 }

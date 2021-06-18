@@ -11,6 +11,7 @@ import {
     greylistFilterParameters,
     hideOffersParameters
 } from '../../atomicassets/openapi';
+import QueryBuilder from '../../../builder';
 
 export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/prices/sales', '/v1/prices'], server.web.caching(), async (req, res) => {
@@ -23,46 +24,44 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 symbol: {type: 'string', min: 1}
             });
 
-            let queryString = 'SELECT price.*, token.token_precision, token.token_contract, asset.template_mint ' +
-                'FROM atomicmarket_stats_prices price, atomicassets_assets asset, atomicmarket_tokens token ' +
-                'WHERE price.assets_contract = asset.contract AND price.asset_id = asset.asset_id AND ' +
-                'price.market_contract = token.market_contract AND price.symbol = token.token_symbol AND ' +
-                'price.market_contract = $1 ';
-            const queryValues = [core.args.atomicmarket_account];
-            let varCounter = queryValues.length;
+            const query = new QueryBuilder(
+                'SELECT price.*, token.token_precision, token.token_contract, asset.template_mint ' +
+                'FROM atomicmarket_stats_prices price, atomicassets_assets asset, atomicmarket_tokens token '
+            );
+
+            query.equal('price.market_contract', core.args.atomicmarket_account);
+            query.addCondition(
+                'price.assets_contract = asset.contract AND price.asset_id = asset.asset_id AND ' +
+                'price.market_contract = token.market_contract AND price.symbol = token.token_symbol'
+            );
 
             if (args.collection_name) {
-                queryString += 'AND price.collection_name = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.collection_name.split(','));
+                query.equalMany('price.collection_name', args.collection_name.split(','));
             }
 
             if (args.schema_name) {
-                queryString += 'AND price.schema_name = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.schema_name.split(','));
+                query.equalMany('price.schema_name', args.schema_name.split(','));
             }
 
             if (args.template_id) {
-                queryString += 'AND price.template_id = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.template_id.split(','));
+                query.equalMany('price.template_id', args.template_id.split(','));
             }
 
             if (args.asset_id) {
-                queryString += 'AND price.asset_id = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.asset_id.split(','));
+                query.equalMany('price.asset_id', args.asset_id.split(','));
             }
 
             if (args.symbol) {
-                queryString += 'AND price.symbol = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.symbol.split(','));
+                query.equalMany('price.symbol', args.symbol.split(','));
             }
 
-            queryString += 'ORDER BY price."time" DESC LIMIT 500';
+            query.append('ORDER BY price."time" DESC LIMIT 500');
 
-            const prices = await server.query(queryString, queryValues);
+            const result = await server.query(query.buildString(), query.buildValues());
 
             res.json({
                 success: true,
-                data: prices.rows.map(row => ({
+                data: result.rows.map(row => ({
                     sale_id: row.listing_type === 'sale' ? row.listing_id : null,
                     auction_id: row.listing_type === 'auction' ? row.listing_id : null,
                     buyoffer_id: row.listing_type === 'buyoffer' ? row.listing_id : null,
@@ -90,49 +89,42 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 symbol: {type: 'string', min: 1}
             });
 
-            let queryString = `
-            SELECT 
-                (PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY price.price))::bigint median, 
-                AVG(price.price)::bigint average,
-                COUNT(*) sales, token.token_symbol, token.token_precision, token.token_contract,
-                (price.time / (3600 * 24 * 1000)) daytime
-            FROM atomicmarket_stats_prices price, atomicmarket_tokens token 
-            WHERE price.market_contract = token.market_contract AND price.symbol = token.token_symbol AND 
-                price.market_contract = $1
-            `;
+            const query = new QueryBuilder(`
+                SELECT 
+                    (PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY price.price))::bigint median, 
+                    AVG(price.price)::bigint average,
+                    COUNT(*) sales, token.token_symbol, token.token_precision, token.token_contract,
+                    (price.time / (3600 * 24 * 1000)) daytime
+                FROM atomicmarket_stats_prices price, atomicmarket_tokens token 
+            `);
 
-            const queryValues = [core.args.atomicmarket_account];
-            let varCounter = queryValues.length;
+            query.equal('price.market_contract', core.args.atomicmarket_account);
+            query.addCondition('price.market_contract = token.market_contract AND price.symbol = token.token_symbol');
 
             if (args.collection_name) {
-                queryString += 'AND price.collection_name = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.collection_name.split(','));
+                query.equalMany('price.collection_name', args.collection_name.split(','));
             }
 
             if (args.schema_name) {
-                queryString += 'AND price.schema_name = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.schema_name.split(','));
+                query.equalMany('price.schema_name', args.schema_name.split(','));
             }
 
             if (args.template_id) {
-                queryString += 'AND price.template_id = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.template_id.split(','));
+                query.equalMany('price.template_id', args.template_id.split(','));
             }
 
             if (args.asset_id) {
-                queryString += 'AND price.asset_id = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.asset_id.split(','));
+                query.equalMany('price.asset_id', args.asset_id.split(','));
             }
 
             if (args.symbol) {
-                queryString += 'AND price.symbol = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.symbol.split(','));
+                query.equalMany('price.symbol', args.symbol.split(','));
             }
 
-            queryString += 'GROUP BY token.market_contract, token.token_symbol, daytime ';
-            queryString += 'ORDER BY daytime ASC ';
+            query.group(['token.market_contract', 'token.token_symbol', 'daytime']);
+            query.append('ORDER BY daytime ASC');
 
-            const prices = await server.query(queryString, queryValues);
+            const prices = await server.query(query.buildString(), query.buildValues());
 
             res.json({
                 success: true,
@@ -164,48 +156,46 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 limit: {type: 'int', min: 1, max: 1000, default: 100},
             });
 
-            let queryString = 'SELECT price.market_contract, price.assets_contract, ' +
-                    'price.collection_name, price.template_id, ' +
-                    'token.token_symbol, token.token_contract, token.token_precision, ' +
-                    'price."median", price."average", price."min", price."max", price.sales, ' +
-                    'price.suggested_median, price.suggested_average ' +
-                'FROM atomicassets_templates "template", atomicmarket_template_prices "price", atomicmarket_tokens "token" ' +
-                'WHERE "template".contract = "price".assets_contract AND "template".collection_name = "price".collection_name AND "template".template_id = "price".template_id AND ' +
-                    '"price".market_contract = "token".market_contract AND "price".symbol = "token".token_symbol AND ' +
-                    '"price".market_contract = $1 AND "price".assets_contract = $2 ';
-            const queryValues: any[] = [core.args.atomicmarket_account, core.args.atomicassets_account];
-            let varCounter = queryValues.length;
+            const query = new QueryBuilder(
+                'SELECT price.market_contract, price.assets_contract, ' +
+                'price.collection_name, price.template_id, ' +
+                'token.token_symbol, token.token_contract, token.token_precision, ' +
+                'price."median", price."average", price."min", price."max", price.sales, ' +
+                'price.suggested_median, price.suggested_average ' +
+                'FROM atomicassets_templates "template", atomicmarket_template_prices "price", atomicmarket_tokens "token" '
+            );
+
+            query.equal('"price".market_contract', core.args.atomicmarket_account);
+            query.equal('"price".assets_contract', core.args.atomicassets_account);
+            query.addCondition(
+                '"template".contract = "price".assets_contract AND "template".collection_name = "price".collection_name AND "template".template_id = "price".template_id AND ' +
+                '"price".market_contract = "token".market_contract AND "price".symbol = "token".token_symbol'
+            );
 
             if (args.collection_name) {
-                queryString += 'AND "price".collection_name = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.collection_name.split(','));
-            }
-
-            if (args.template_id) {
-                queryString += 'AND "price".template_id = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.template_id.split(','));
+                query.equalMany('price.collection_name', args.collection_name.split(','));
             }
 
             if (args.schema_name) {
-                queryString += 'AND "template".schema_name = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.schema_name.split(','));
+                query.equalMany('price.schema_name', args.schema_name.split(','));
+            }
+
+            if (args.template_id) {
+                query.equalMany('price.template_id', args.template_id.split(','));
             }
 
             if (args.symbol) {
-                queryString += 'AND "price".symbol = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.symbol.split(','));
+                query.equalMany('price.symbol', args.symbol.split(','));
             }
 
-            queryString += 'ORDER BY "price".template_id ASC, "price".symbol ASC ';
-            queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
-            queryValues.push(args.limit);
-            queryValues.push((args.page - 1) * args.limit);
+            query.append('ORDER BY "price".template_id ASC, "price".symbol ASC');
+            query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit) + ' ');
 
-            const prices = await server.query(queryString, queryValues);
+            const result = await server.query(query.buildString(), query.buildValues());
 
             res.json({
                 success: true,
-                data: prices.rows,
+                data: result.rows,
                 query_time: Date.now()
             });
         } catch (e) {
@@ -215,39 +205,31 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
 
     router.all('/v1/prices/assets', server.web.caching(), async (req, res) => {
         try {
-            let queryString = 'SELECT token.token_symbol, token.token_precision, token.token_contract, ' +
-                    'SUM(price."median") "median", SUM(price."average") "average", SUM(price."min") "min", SUM(price."max") "max", ' +
-                    'SUM(price.suggested_median) suggested_median, SUM(price.suggested_average) suggested_average ' +
-                'FROM atomicassets_assets asset, atomicassets_templates "template", atomicmarket_template_prices "price", atomicmarket_tokens token ' +
-                'WHERE asset.contract = template.contract AND asset.template_id = template.template_id AND ' +
-                    'template.contract = price.assets_contract AND template.template_id = price.template_id AND ' +
-                    'token.market_contract = price.market_contract AND token.token_symbol = price.symbol AND ' +
-                    'price.assets_contract = $1 AND price.market_contract = $2 ';
-            let queryValues: any[] = [core.args.atomicassets_account, core.args.atomicmarket_account];
-            let varCounter = queryValues.length;
-
-            const assetFilter = buildAssetQueryCondition(req, varCounter, {
-                assetTable: '"asset"', templateTable: '"template"'
-            });
-
-            queryString += assetFilter.str;
-            varCounter += assetFilter.values.length;
-            queryValues = queryValues.concat(assetFilter.values);
-
-            const boundaryFilter = buildBoundaryFilter(
-                req, varCounter, 'asset.asset_id', 'int', null
+            const query = new QueryBuilder(
+                'SELECT token.token_symbol, token.token_precision, token.token_contract, ' +
+                'SUM(price."median") "median", SUM(price."average") "average", SUM(price."min") "min", SUM(price."max") "max", ' +
+                'SUM(price.suggested_median) suggested_median, SUM(price.suggested_average) suggested_average ' +
+                'FROM atomicassets_assets asset, atomicassets_templates "template", atomicmarket_template_prices "price", atomicmarket_tokens token'
             );
 
-            queryValues = queryValues.concat(boundaryFilter.values);
-            queryString += boundaryFilter.str;
+            query.equal('price.assets_contract', core.args.atomicassets_account);
+            query.equal('price.market_contract', core.args.atomicmarket_account);
+            query.addCondition(
+                'asset.contract = template.contract AND asset.template_id = template.template_id AND ' +
+                'template.contract = price.assets_contract AND template.template_id = price.template_id AND ' +
+                'token.market_contract = price.market_contract AND token.token_symbol = price.symbol'
+            );
 
-            queryString += 'GROUP BY token.token_symbol, token.token_precision, token.token_contract';
+            buildAssetQueryCondition(req, query, {assetTable: '"asset"', templateTable: '"template"'});
+            buildBoundaryFilter(req, query, 'asset.asset_id', 'int', null);
 
-            const prices = await server.query(queryString, queryValues);
+            query.append('GROUP BY token.token_symbol, token.token_precision, token.token_contract');
+
+            const result = await server.query(query.buildString(), query.buildValues());
 
             res.json({
                 success: true,
-                data: prices.rows,
+                data: result.rows,
                 query_time: Date.now()
             });
         } catch (e) {

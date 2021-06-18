@@ -17,6 +17,7 @@ import { LinkState } from '../../../../filler/handlers/atomictools';
 import { greylistFilterParameters } from '../../atomicassets/openapi';
 import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
 import logger from '../../../../utils/winston';
+import QueryBuilder from '../../../builder';
 
 export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/links', '/v1/links/_count'], server.web.caching(), async (req, res) => {
@@ -36,85 +37,77 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
             });
 
-            let queryString = 'SELECT * FROM atomictools_links_master link WHERE tools_contract = $1 ';
-            const queryValues: any[] = [core.args.atomictools_account];
-            let varCounter = queryValues.length;
+            const query = new QueryBuilder('SELECT * FROM atomictools_links_master link');
+
+            query.equal('tools_contract', core.args.atomictools_account);
 
             if (args.creator) {
-                queryString += 'AND creator = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.creator.split(','));
+                query.equalMany('creator', args.creator.split(','));
             }
 
             if (args.claimer) {
-                queryString += 'AND claimer = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.claimer.split(','));
+                query.equalMany('claimer', args.claimer.split(','));
             }
 
             if (args.public_key) {
                 const key = Numeric.stringToPublicKey(args.public_key);
 
-                queryString += 'AND key_type = $' + ++varCounter + ' AND key_data = $' + ++varCounter + ' ';
-                queryValues.push(key.type.valueOf());
-                queryValues.push(key.data);
+                query.equal('key_type', key.type.valueOf());
+                query.equal('key_data', key.data);
             }
 
             if (args.state) {
-                queryString += 'AND state = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.state.split(','));
+                query.equalMany('state', args.state.split(','));
             }
 
             if (args.collection_blacklist) {
-                queryString += 'AND NOT EXISTS(' +
-                        'SELECT * FROM atomictools_links_assets asset_l, atomicassets_assets asset_a ' +
-                        'WHERE asset_l.tools_contract = link.tools_contract AND asset_l.link_id = link.link_id AND ' +
-                            'asset_l.assets_contract = asset_a.contract AND asset_l.asset_id = asset_a.asset_id AND ' +
-                            'asset_a.collection_name = ANY ($' + ++varCounter + ')' +
-                    ') ';
-                queryValues.push(args.collection_blacklist.split(','));
+                query.addCondition(
+                    'NOT EXISTS(' +
+                    'SELECT * FROM atomictools_links_assets asset_l, atomicassets_assets asset_a ' +
+                    'WHERE asset_l.tools_contract = link.tools_contract AND asset_l.link_id = link.link_id AND ' +
+                    'asset_l.assets_contract = asset_a.contract AND asset_l.asset_id = asset_a.asset_id AND ' +
+                    'asset_a.collection_name = ANY (' + query.addVariable(args.collection_blacklist.split(',')) + ')' +
+                    ')'
+                );
             }
 
             if (args.collection_whitelist) {
-                queryString += 'AND NOT EXISTS(' +
-                        'SELECT * FROM atomictools_links_assets asset_l, atomicassets_assets asset_a ' +
-                        'WHERE asset_l.tools_contract = link.tools_contract AND asset_l.link_id = link.link_id AND ' +
-                            'asset_l.assets_contract = asset_a.contract AND asset_l.asset_id = asset_a.asset_id AND ' +
-                            'NOT (asset_a.collection_name = ANY ($' + ++varCounter + '))' +
-                    ') ';
-                queryValues.push(args.collection_whitelist.split(','));
+                query.addCondition(
+                    'NOT EXISTS(' +
+                    'SELECT * FROM atomictools_links_assets asset_l, atomicassets_assets asset_a ' +
+                    'WHERE asset_l.tools_contract = link.tools_contract AND asset_l.link_id = link.link_id AND ' +
+                    'asset_l.assets_contract = asset_a.contract AND asset_l.asset_id = asset_a.asset_id AND ' +
+                    'NOT (asset_a.collection_name = ANY (' + query.addVariable(args.collection_whitelist.split(',')) + '))' +
+                    ') '
+                );
             }
 
-            const boundaryFilter = buildBoundaryFilter(
-                req, varCounter, 'link_id', 'int',
+            buildBoundaryFilter(
+                req, query, 'link_id', 'int',
                 args.sort === 'updated' ? 'updated_at_time' : 'created_at_time'
             );
-            queryValues.push(...boundaryFilter.values);
-            varCounter += boundaryFilter.values.length;
-            queryString += boundaryFilter.str;
 
             if (req.originalUrl.search('/_count') >= 0) {
                 const countQuery = await this.server.query(
-                    'SELECT COUNT(*) counter FROM (' + queryString + ') x',
-                    queryValues
+                    'SELECT COUNT(*) counter FROM (' + query.buildString() + ') x',
+                    query.buildValues()
                 );
 
                 return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
             }
 
-            const sortColumnMapping = {
+            const sortColumnMapping: {[key: string]: string} = {
                 created: 'link_id',
                 updated: 'updated_at_time'
             };
 
-            // @ts-ignore
-            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', link_id ASC ';
-            queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
-            queryValues.push(args.limit);
-            queryValues.push((args.page - 1) * args.limit);
+            query.append('ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', link_id ASC');
+            query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
-            const query = await server.query(queryString, queryValues);
+            const result = await server.query(query.buildString(), query.buildValues());
 
             const links = await fillLinks(
-                server, core.args.atomicassets_account, query.rows.map((row) => formatLink(row))
+                server, core.args.atomicassets_account, result.rows.map((row) => formatLink(row))
             );
 
             res.json({success: true, data: links, query_time: Date.now()});

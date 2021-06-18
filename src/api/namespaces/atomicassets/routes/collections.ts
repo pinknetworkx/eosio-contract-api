@@ -14,6 +14,7 @@ import {
 } from '../../../docs';
 import { greylistFilterParameters } from '../openapi';
 import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
+import QueryBuilder from '../../../builder';
 
 export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/collections', '/v1/collections/_count'], server.web.caching(), (async (req, res) => {
@@ -31,67 +32,47 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
                 match: {type: 'string', min: 1}
             });
 
-            let varCounter = 1;
-            let queryString = 'SELECT * FROM atomicassets_collections_master WHERE contract = $1 ';
-
-            const queryValues: any[] = [core.args.atomicassets_account];
+            const query = new QueryBuilder('SELECT * FROM atomicassets_collections_master');
 
             if (args.author) {
-                queryString += 'AND author = $' + ++varCounter + ' ';
-                queryValues.push(args.author);
+                query.equalMany('author', args.author.split(','));
             }
 
             if (args.authorized_account) {
-                queryString += 'AND $' + ++varCounter + ' = ANY(authorized_accounts) ';
-                queryValues.push(args.authorized_account);
+                query.addCondition(query.addVariable(args.authorized_account) + ' = ANY(authorized_accounts)');
             }
 
             if (args.notify_account) {
-                queryString += 'AND $' + ++varCounter + ' = ANY(notify_accounts) ';
-                queryValues.push(args.notify_account);
+                query.addCondition(query.addVariable(args.notify_account) + ' = ANY(notify_accounts)');
             }
 
             if (args.match) {
-                queryString += 'AND POSITION($' + ++varCounter + ' IN collection_name) > 0 ';
-                queryValues.push(args.match.toLowerCase());
+                query.addCondition('POSITION(' + query.addVariable(args.match.toLowerCase()) + ' IN collection_name) > 0');
             }
 
-            const boundaryFilter = buildBoundaryFilter(
-                req, varCounter, 'collection_name', 'string',
-                'created_at_time'
-            );
-            queryValues.push(...boundaryFilter.values);
-            varCounter += boundaryFilter.values.length;
-            queryString += boundaryFilter.str;
-
-            const blacklistFilter = buildGreylistFilter(req, varCounter, 'collection_name');
-            queryValues.push(...blacklistFilter.values);
-            varCounter += blacklistFilter.values.length;
-            queryString += blacklistFilter.str;
+            buildBoundaryFilter(req, query, 'collection_name', 'string', 'created_at_time');
+            buildGreylistFilter(req, query, {collectionName: 'collection_name'});
 
             if (req.originalUrl.search('/_count') >= 0) {
                 const countQuery = await server.query(
-                    'SELECT COUNT(*) counter FROM (' + queryString + ') x',
-                    queryValues
+                    'SELECT COUNT(*) counter FROM (' + query.buildString() + ') x',
+                    query.buildValues()
                 );
 
                 return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
             }
 
-            const sortColumnMapping = {
+            const sortColumnMapping: {[key: string]: string} = {
                 created: 'created_at_time',
                 collection_name: 'collection_name'
             };
 
-            // @ts-ignore
-            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', collection_name ASC ';
-            queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
-            queryValues.push(args.limit);
-            queryValues.push((args.page - 1) * args.limit);
+            query.append('ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', collection_name ASC');
+            query.append('LIMIT $' + query.addVariable(args.limit) + ' OFFSET $' + query.addVariable((args.page - 1) * args.limit));
 
-            const query = await server.query(queryString, queryValues);
+            const result = await server.query(query.buildString(), query.buildValues());
 
-            return res.json({success: true, data: query.rows.map((row) => formatCollection(row)), query_time: Date.now()});
+            return res.json({success: true, data: result.rows.map((row) => formatCollection(row)), query_time: Date.now()});
         } catch (e) {
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }

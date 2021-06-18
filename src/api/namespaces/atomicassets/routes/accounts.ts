@@ -6,7 +6,8 @@ import { formatCollection } from '../format';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { greylistFilterParameters, hideOffersParameters } from '../openapi';
-import { hideOfferAssets } from '../utils';
+import { buildGreylistFilter, buildHideOffersFilter } from '../utils';
+import QueryBuilder from '../../../builder';
 
 export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/accounts', '/v1/accounts/_count'], server.web.caching(), (async (req, res) => {
@@ -19,73 +20,47 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                 schema_name: {type: 'string', min: 1},
                 template_id: {type: 'string', min: 1},
 
-                collection_whitelist: {type: 'string', min: 1},
-                collection_blacklist: {type: 'string', min: 1},
-
                 match: {type: 'string', min: 1}
             });
 
-            let varCounter = 1;
-            let queryString = 'SELECT owner account, COUNT(*) as assets FROM atomicassets_assets asset WHERE contract = $1 AND owner IS NOT NULL ';
-            const queryValues: any[] = [core.args.atomicassets_account];
+            const query = new QueryBuilder('SELECT owner account, COUNT(*) as assets FROM atomicassets_assets asset');
+
+            query.equal('contract', core.args.atomicassets_account).notNull('owner');
 
             if (args.match) {
-                queryString += 'AND POSITION($' + ++varCounter + ' IN owner) > 0 ';
-                queryValues.push(args.match.toLowerCase());
+                query.addCondition('POSITION(' + query.addVariable(args.match.toLowerCase()) + ' IN owner) > 0');
             }
 
-            if (args.collection_whitelist) {
-                queryString += 'AND asset.collection_name = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.collection_whitelist.split(','));
-            }
-
-            if (args.collection_blacklist) {
-                queryString += 'AND NOT (asset.collection_name = ANY ($' + ++varCounter + ')) ';
-                queryValues.push(args.collection_blacklist.split(','));
-            }
+            buildGreylistFilter(req, query, {collectionName: 'asset.collection_name'});
 
             if (args.collection_name) {
-                queryString += 'AND asset.collection_name = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.collection_name.split(','));
+                query.equalMany('asset.collection_name', args.collection_name.split(','));
             }
 
             if (args.schema_name) {
-                queryString += 'AND asset.schema_name = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.schema_name.split(','));
+                query.equalMany('asset.schema_name', args.schema_name.split(','));
             }
 
             if (args.template_id) {
-                queryString += 'AND asset.template_id = ANY ($' + ++varCounter + ') ';
-                queryValues.push(args.template_id.split(','));
+                query.equalMany('asset.template_id', args.template_id.split(','));
             }
 
-            queryString += hideOfferAssets(req);
+            buildHideOffersFilter(req, query, 'asset');
+            buildBoundaryFilter(req, query, 'owner', 'string', null);
 
-            const boundaryFilter = buildBoundaryFilter(
-                req, varCounter, 'owner', 'string', null
-            );
-            queryValues.push(...boundaryFilter.values);
-            varCounter += boundaryFilter.values.length;
-            queryString += boundaryFilter.str;
-
-            queryString += 'GROUP BY owner ';
+            query.group(['owner']);
 
             if (req.originalUrl.search('/_count') >= 0) {
-                const countQuery = await server.query(
-                    'SELECT COUNT(*) counter FROM (' + queryString + ') x',
-                    queryValues
-                );
+                const countQuery = await server.query('SELECT COUNT(*) counter FROM (' + query.buildString() + ') x', query.buildValues());
 
                 return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
             }
 
-            queryString += 'ORDER BY assets DESC, account ASC LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
-            queryValues.push(args.limit);
-            queryValues.push((args.page - 1) * args.limit);
+            query.append('ORDER BY assets DESC, account ASC LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
-            const query = await server.query(queryString, queryValues);
+            const result = await server.query(query.buildString(), query.buildValues());
 
-            return res.json({success: true, data: query.rows});
+            return res.json({success: true, data: result.rows});
         } catch (e) {
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
@@ -93,50 +68,41 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
 
     router.all('/v1/accounts/:account', server.web.caching(), (async (req, res) => {
         try {
-            const args = filterQueryArgs(req, {
-                collection_whitelist: {type: 'string', min: 1},
-                collection_blacklist: {type: 'string', min: 1}
-            });
+            // collection query
+            const collectionQuery = new QueryBuilder(
+                'SELECT collection_name, template_id, COUNT(*) as assets ' +
+                'FROM atomicassets_assets asset'
+            );
+            collectionQuery.equal('contract', core.args.atomicassets_account);
+            collectionQuery.equal('owner', req.params.account);
 
-            let varCounter = 2;
-            let collectionQueryString = 'SELECT collection_name, COUNT(*) as assets ' +
-                'FROM atomicassets_assets asset ' +
-                'WHERE contract = $1 AND owner = $2 ';
-            let templateQueryString = 'SELECT collection_name, template_id, COUNT(*) as assets ' +
-                'FROM atomicassets_assets asset ' +
-                'WHERE contract = $1 AND owner = $2 ';
-            const queryValues: any[] = [core.args.atomicassets_account, req.params.account];
+            buildGreylistFilter(req, collectionQuery, {collectionName: 'asset.collection_name'});
+            buildHideOffersFilter(req, collectionQuery, 'asset');
 
-            if (args.collection_whitelist) {
-                const condition = 'AND asset.collection_name = ANY ($' + ++varCounter + ') ';
+            collectionQuery.group(['contract', 'collection_name']);
+            collectionQuery.append('ORDER BY assets DESC');
 
-                collectionQueryString += condition;
-                templateQueryString += condition;
+            const collectionResult = await server.query(collectionQuery.buildString(), collectionQuery.buildValues());
 
-                queryValues.push(args.collection_whitelist.split(','));
-            }
+            // template query
+            const templateQuery = new QueryBuilder(
+                'SELECT collection_name, template_id, COUNT(*) as assets ' +
+                'FROM atomicassets_assets asset'
+            );
+            templateQuery.equal('contract', core.args.atomicassets_account);
+            templateQuery.equal('owner', req.params.account);
 
-            if (args.collection_blacklist) {
-                const condition = 'AND NOT (asset.collection_name = ANY ($' + ++varCounter + ')) ';
+            buildGreylistFilter(req, templateQuery, {collectionName: 'asset.collection_name'});
+            buildHideOffersFilter(req, templateQuery, 'asset');
 
-                collectionQueryString += condition;
-                templateQueryString += condition;
+            templateQuery.group(['contract', 'template_id']);
+            templateQuery.append('ORDER BY assets DESC');
 
-                queryValues.push(args.collection_blacklist.split(','));
-            }
-
-            collectionQueryString += hideOfferAssets(req);
-            collectionQueryString += 'GROUP BY contract, collection_name ORDER BY assets DESC';
-
-            templateQueryString += hideOfferAssets(req);
-            templateQueryString += 'GROUP BY contract, collection_name, template_id ORDER BY assets DESC';
-
-            const collectionQuery = await server.query(collectionQueryString, queryValues);
-            const templateQuery = await server.query(templateQueryString, queryValues);
+            const templateResult = await server.query(templateQuery.buildString(), templateQuery.buildValues());
 
             const collections = await server.query(
                 'SELECT * FROM atomicassets_collections_master WHERE contract = $1 AND collection_name = ANY ($2)',
-                [core.args.atomicassets_account, collectionQuery.rows.map(row => row.collection_name)]
+                [core.args.atomicassets_account, collectionResult.rows.map(row => row.collection_name)]
             );
 
             const lookupCollections = collections.rows.reduce(
@@ -146,12 +112,12 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             return res.json({
                 success: true,
                 data: {
-                    collections: collectionQuery.rows.map(row => ({
+                    collections: collectionResult.rows.map(row => ({
                         collection: lookupCollections[row.collection_name],
                         assets: row.assets
                     })),
-                    templates: templateQuery.rows,
-                    assets: collectionQuery.rows.reduce((prev, current) => prev + parseInt(current.assets, 10), 0)
+                    templates: templateResult.rows,
+                    assets: collectionResult.rows.reduce((prev, current) => prev + parseInt(current.assets, 10), 0)
                 }
             });
         } catch (e) {

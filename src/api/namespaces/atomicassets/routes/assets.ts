@@ -2,7 +2,7 @@ import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { buildAssetFilter, buildGreylistFilter, hideOfferAssets } from '../utils';
+import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter } from '../utils';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import logger from '../../../../utils/winston';
 import {
@@ -22,11 +22,12 @@ import {
 } from '../../../utils';
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
+import QueryBuilder from '../../../builder';
 
 export function buildAssetQueryCondition(
-    req: express.Request, varOffset: number,
-    options: {assetTable?: string, templateTable?: string} = {}
-): {values: any[], str: string} {
+    req: express.Request, query: QueryBuilder,
+    options: {assetTable: string, templateTable?: string}
+): void {
     const args = filterQueryArgs(req, {
         authorized_account: {type: 'string', min: 1, max: 12},
         only_duplicate_templates: {type: 'bool'},
@@ -37,57 +38,42 @@ export function buildAssetQueryCondition(
         max_template_mint: {type: 'int', min: 1}
     });
 
-    let queryString = ' ';
-    let queryValues: any[] = [];
-    let varCounter = varOffset;
-
     if (args.authorized_account) {
-        queryString += 'AND EXISTS(' +
+        query.addCondition(
+            'EXISTS(' +
             'SELECT * FROM atomicassets_collections collection ' +
             'WHERE collection.collection_name = ' + options.assetTable + '.collection_name AND collection.contract = ' + options.assetTable + '.contract ' +
-            'AND $' + ++varCounter + ' = ANY(collection.authorized_accounts)' +
-            ') ';
-        queryValues.push(args.authorized_account);
+            'AND ' + query.addVariable(args.authorized_account) + ' = ANY(collection.authorized_accounts)' +
+            ')'
+        );
     }
 
     if (args.only_duplicate_templates) {
-        queryString += 'AND EXISTS (' +
+        query.addCondition(
+            'EXISTS (' +
             'SELECT * FROM atomicassets_assets inner_asset ' +
             'WHERE inner_asset.contract = asset.contract AND inner_asset.template_id = ' + options.assetTable + '.template_id ' +
             'AND inner_asset.asset_id < ' + options.assetTable + '.asset_id AND inner_asset.owner = ' + options.assetTable + '.owner' +
-            ') AND ' + options.assetTable + '.template_id IS NOT NULL ';
+            ') AND ' + options.assetTable + '.template_id IS NOT NULL'
+        );
     }
 
-    queryString += hideOfferAssets(req);
+    buildHideOffersFilter(req, query, options.assetTable);
 
     if (args.template_mint) {
-        queryString += 'AND ' + options.assetTable + '.template_mint = $' + ++varCounter + ' ';
-        queryValues.push(args.template_mint);
+        query.equal(options.assetTable + '.template_mint', args.template_mint);
     }
 
     if (args.min_template_mint) {
-        queryString += 'AND ' + options.assetTable + '.template_mint >= $' + ++varCounter + ' ';
-        queryValues.push(args.min_template_mint);
+        query.addCondition(options.assetTable + '.template_mint >= $' + query.addVariable(args.min_template_mint));
     }
 
     if (args.max_template_mint) {
-        queryString += 'AND ' + options.assetTable + '.template_mint <= $' + ++varCounter + ' ';
-        queryValues.push(args.max_template_mint);
+        query.addCondition(options.assetTable + '.template_mint <= $' + query.addVariable(args.max_template_mint));
     }
 
-    const assetFilter = buildAssetFilter(req, varCounter, {assetTable: options.assetTable, templateTable: options.templateTable});
-    queryValues = queryValues.concat(assetFilter.values);
-    varCounter += assetFilter.values.length;
-    queryString += assetFilter.str;
-
-    const blacklistFilter = buildGreylistFilter(req, varCounter, options.assetTable + '.collection_name');
-    queryValues.push(...blacklistFilter.values);
-    queryString += blacklistFilter.str;
-
-    return {
-        values: queryValues,
-        str: queryString
-    };
+    buildAssetFilter(req, query, {assetTable: options.assetTable, templateTable: options.templateTable});
+    buildGreylistFilter(req, query, {collectionName: options.assetTable + '.collection_name'});
 }
 
 export class AssetApi {
@@ -110,37 +96,25 @@ export class AssetApi {
                     order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
                 });
 
-                let varCounter = 1;
-                let queryString = 'SELECT asset.asset_id FROM atomicassets_assets asset ' +
+                const query = new QueryBuilder(
+                    'SELECT asset.asset_id FROM atomicassets_assets asset ' +
                     'LEFT JOIN atomicassets_templates "template" ON (' +
-                        'asset.contract = template.contract AND asset.template_id = template.template_id' +
-                    ') ';
+                    'asset.contract = template.contract AND asset.template_id = template.template_id' +
+                    ') '
+                );
 
-                queryString += 'WHERE asset.contract = $1 ';
-                let queryValues: any[] = [this.core.args.atomicassets_account];
+                query.equal('asset.contract', this.core.args.atomicassets_account);
 
-                const filter = buildAssetQueryCondition(req, varCounter, {
-                    assetTable: '"asset"', templateTable: '"template"'
-                });
-
-                queryString += filter.str;
-                varCounter += filter.values.length;
-                queryValues = queryValues.concat(filter.values);
-
-                const boundaryFilter = buildBoundaryFilter(
-                    req, varCounter,
-                    'asset.asset_id', 'int',
+                buildAssetQueryCondition(req, query, {assetTable: '"asset"', templateTable: '"template"'});
+                buildBoundaryFilter(
+                    req, query, 'asset.asset_id', 'int',
                     args.sort === 'updated' ? 'asset.updated_at_time' : 'asset.minted_at_time'
                 );
 
-                queryValues = queryValues.concat(boundaryFilter.values);
-                varCounter += boundaryFilter.values.length;
-                queryString += boundaryFilter.str;
-
                 if (req.originalUrl.search('/_count') >= 0) {
                     const countQuery = await this.server.query(
-                        'SELECT COUNT(*) counter FROM (' + queryString + ') x',
-                        queryValues
+                        'SELECT COUNT(*) counter FROM (' + query.buildString() + ') x',
+                        query.buildValues()
                     );
 
                     return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
@@ -165,17 +139,14 @@ export class AssetApi {
                     sorting = {column: 'asset.asset_id', nullable: false};
                 }
 
-                // @ts-ignore
-                queryString += 'ORDER BY ' + sorting.column + ' ' + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC ';
-                queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
-                queryValues.push(args.limit);
-                queryValues.push((args.page - 1) * args.limit);
+                query.append('ORDER BY ' + sorting.column + ' ' + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC');
+                query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
-                const query = await this.server.query(queryString, queryValues);
+                const result = await this.server.query(query.buildString(), query.buildValues());
 
                 const assets = await fillAssets(
                     this.server, this.core.args.atomicassets_account,
-                    query.rows.map(row => row.asset_id),
+                    result.rows.map(row => row.asset_id),
                     this.assetFormatter, this.assetView, this.fillerHook
                 );
 

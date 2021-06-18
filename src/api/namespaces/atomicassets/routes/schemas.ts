@@ -14,6 +14,7 @@ import {
 } from '../../../docs';
 import { greylistFilterParameters } from '../openapi';
 import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
+import QueryBuilder from '../../../builder';
 
 export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/schemas', '/v1/schemas/_count'], server.web.caching(), (async (req, res) => {
@@ -25,77 +26,54 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
                 authorized_account: {type: 'string', min: 1, max: 12},
-                collection_name: {type: 'string', min: 1, max: 12},
-                schema_name: {type: 'string', min: 1, max: 12},
+                collection_name: {type: 'string', min: 1},
+                schema_name: {type: 'string', min: 1},
 
                 match: {type: 'string', min: 1, max: 12}
             });
 
-            if (typeof req.params.collection_name === 'string' && req.params.collection_name.length > 0) {
-                args.collection_name = req.params.collection_name;
-            }
-
-            let varCounter = 1;
-            let queryString = 'SELECT * FROM atomicassets_schemas_master WHERE contract = $1 ';
-
-            const queryValues: any[] = [core.args.atomicassets_account];
+            const query = new QueryBuilder('SELECT * FROM atomicassets_schemas_master WHERE contract = $1 ');
+            query.equal('contract', core.args.atomicassets_account);
 
             if (args.collection_name) {
-                queryString += 'AND collection_name = $' + ++varCounter + ' ';
-                queryValues.push(args.collection_name);
+                query.equalMany('collection_name', args.collection_name.split(','));
             }
 
             if (args.schema_name) {
-                queryString += 'AND schema_name = $' + ++varCounter + ' ';
-                queryValues.push(args.schema_name);
+                query.equalMany('schema_name', args.schema_name.split(','));
             }
 
             if (args.authorized_account) {
-                queryString += 'AND $' + ++varCounter + ' = ANY(authorized_accounts) ';
-                queryValues.push(args.authorized_account);
+                query.addCondition(query.addVariable(args.authorized_account) + ' = ANY(authorized_accounts)');
             }
 
             if (args.match) {
-                queryString += 'AND POSITION($' + ++varCounter + ' IN schema_name) > 0 ';
-                queryValues.push(args.match.toLowerCase());
+                query.addCondition('POSITION(' + query.addVariable(args.match.toLowerCase()) + ' IN schema_name) > 0');
             }
 
-            const boundaryFilter = buildBoundaryFilter(
-                req, varCounter, 'schema_name', 'string',
-                'created_at_time'
-            );
-            queryValues.push(...boundaryFilter.values);
-            varCounter += boundaryFilter.values.length;
-            queryString += boundaryFilter.str;
-
-            const blacklistFilter = buildGreylistFilter(req, varCounter, 'collection_name');
-            queryValues.push(...blacklistFilter.values);
-            varCounter += blacklistFilter.values.length;
-            queryString += blacklistFilter.str;
+            buildBoundaryFilter(req, query, 'schema_name', 'string', 'created_at_time');
+            buildGreylistFilter(req, query, {collectionName: 'collection_name'});
 
             if (req.originalUrl.search('/_count') >= 0) {
                 const countQuery = await server.query(
-                    'SELECT COUNT(*) counter FROM (' + queryString + ') x',
-                    queryValues
+                    'SELECT COUNT(*) counter FROM (' + query.buildString() + ') x',
+                    query.buildValues()
                 );
 
                 return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
             }
 
-            const sortColumnMapping = {
+            const sortColumnMapping: {[key: string]: string} = {
                 created: 'created_at_time',
                 schema_name: 'schema_name'
             };
 
-            // @ts-ignore
-            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', schema_name ASC ';
-            queryString += 'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter + ' ';
-            queryValues.push(args.limit);
-            queryValues.push((args.page - 1) * args.limit);
+            query.append('ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', schema_name ASC');
+            query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit) + ' ');
 
-            const query = await server.query(queryString, queryValues);
+            const result = await server.query(query.buildString(), query.buildValues());
 
-            return res.json({success: true, data: query.rows.map((row) => formatSchema(row)), query_time: Date.now()});
+            return res.json({success: true, data: result.rows.map((row) => formatSchema(row)), query_time: Date.now()});
         } catch (e) {
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
