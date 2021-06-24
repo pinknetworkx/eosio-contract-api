@@ -117,6 +117,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             }
 
             const sortColumnMapping: {[key: string]: string} = {
+                name: 'immutable_data->>\'name\'',
                 created: 'template_id'
             };
 
@@ -301,7 +302,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                             required: false,
                             schema: {
                                 type: 'string',
-                                enum: ['created'],
+                                enum: ['name', 'created'],
                                 default: 'created'
                             }
                         }
