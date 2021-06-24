@@ -119,7 +119,7 @@ export class TransferApi {
                 };
 
                 query.append('ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order);
-                query.append('LIMIT $' + query.addVariable(args.limit) + ' OFFSET $' + query.addVariable((args.page - 1) * args.limit) + ' ');
+                query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit) + ' ');
 
                 const result = await this.server.query(query.buildString(), query.buildValues());
                 const transfers = await fillTransfers(

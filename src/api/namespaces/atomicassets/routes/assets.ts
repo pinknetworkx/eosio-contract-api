@@ -65,11 +65,23 @@ export function buildAssetQueryCondition(
     }
 
     if (args.min_template_mint) {
-        query.addCondition(options.assetTable + '.template_mint >= $' + query.addVariable(args.min_template_mint));
+        let condition = options.assetTable + '.template_mint >= ' + query.addVariable(args.min_template_mint);
+
+        if (args.min_template_mint <= 1) {
+            condition += ' OR ' + options.assetTable + '.template_id IS NULL';
+        }
+
+        query.addCondition('(' + condition + ')');
     }
 
     if (args.max_template_mint) {
-        query.addCondition(options.assetTable + '.template_mint <= $' + query.addVariable(args.max_template_mint));
+        let condition = options.assetTable + '.template_mint <= ' + query.addVariable(args.max_template_mint);
+
+        if (args.max_template_mint >= 1) {
+            condition += ' OR ' + options.assetTable + '.template_id IS NULL';
+        }
+
+        query.addCondition('(' + condition + ')');
     }
 
     buildAssetFilter(req, query, {assetTable: options.assetTable, templateTable: options.templateTable});

@@ -68,7 +68,7 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
             };
 
             query.append('ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', collection_name ASC');
-            query.append('LIMIT $' + query.addVariable(args.limit) + ' OFFSET $' + query.addVariable((args.page - 1) * args.limit));
+            query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
             const result = await server.query(query.buildString(), query.buildValues());
 

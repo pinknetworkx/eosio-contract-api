@@ -32,7 +32,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                 match: {type: 'string', min: 1, max: 12}
             });
 
-            const query = new QueryBuilder('SELECT * FROM atomicassets_schemas_master WHERE contract = $1 ');
+            const query = new QueryBuilder('SELECT * FROM atomicassets_schemas_master');
             query.equal('contract', core.args.atomicassets_account);
 
             if (args.collection_name) {

@@ -65,7 +65,10 @@ export function buildListingFilter(req: express.Request, query: QueryBuilder): v
     }
 
     if (args.min_template_mint || args.max_template_mint) {
-        query.addCondition('listing.template_mint != \'empty\'');
+        if ((args.min_template_mint && args.min_template_mint > 1) || (args.max_template_mint && args.max_template_mint < 1)) {
+            query.addCondition('listing.template_mint != \'empty\'');
+        }
+
         query.addCondition(
             'listing.template_mint <@ int4range(' +
             query.addVariable(args.min_template_mint ?? null) + ', ' +
