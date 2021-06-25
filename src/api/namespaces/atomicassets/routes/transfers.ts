@@ -4,7 +4,7 @@ import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { FillerHook, fillTransfers } from '../filler';
-import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
+import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { greylistFilterParameters } from '../openapi';
 import ApiNotificationReceiver from '../../../notification';
 import { createSocketApiNamespace } from '../../../utils';
@@ -194,6 +194,8 @@ export class TransferApi {
                                 required: false,
                                 schema: {type: 'string'}
                             },
+                            ...primaryBoundaryParameters,
+                            ...dateBoundaryParameters,
                             ...greylistFilterParameters,
                             ...paginationParameters,
                             {

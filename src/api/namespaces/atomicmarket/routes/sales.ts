@@ -154,9 +154,11 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 asset.contract = "template".contract AND asset.template_id = "template".template_id AND 
                 sale.market_contract = price.market_contract AND sale.sale_id = price.sale_id AND 
                 asset.template_id IS NOT NULL AND offer_asset.index = 1 AND 
-                offer.state = ${OfferState.PENDING.valueOf()} AND sale.state = ${SaleState.LISTED.valueOf()} AND 
-                sale.market_contract = $1 AND sale.settlement_symbol = $2
+                offer.state = ${OfferState.PENDING.valueOf()} AND sale.state = ${SaleState.LISTED.valueOf()}
             `);
+
+            query.equal('sale.market_contract', core.args.atomicmarket_account);
+            query.equal('sale.settlement_symbol', args.symbol);
 
             if (!args.collection_name) {
                 buildGreylistFilter(req, query, {collectionName: 'sale.collection_name'});

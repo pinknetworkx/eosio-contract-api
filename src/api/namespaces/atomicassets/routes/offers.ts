@@ -5,7 +5,13 @@ import { HTTPServer } from '../../../server';
 import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { FillerHook, fillOffers } from '../filler';
-import { actionGreylistParameters, getOpenAPI3Responses, paginationParameters } from '../../../docs';
+import {
+    actionGreylistParameters,
+    dateBoundaryParameters,
+    getOpenAPI3Responses,
+    paginationParameters,
+    primaryBoundaryParameters
+} from '../../../docs';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { greylistFilterParameters } from '../openapi';
 import {
@@ -398,6 +404,8 @@ export class OfferApi {
                                 required: false,
                                 schema: {type: 'string'}
                             },
+                            ...primaryBoundaryParameters,
+                            ...dateBoundaryParameters,
                             ...greylistFilterParameters,
                             ...paginationParameters,
                             {
