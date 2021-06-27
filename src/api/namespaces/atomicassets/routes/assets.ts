@@ -279,7 +279,7 @@ export class AssetApi {
                                 required: false,
                                 schema: {
                                     type: 'string',
-                                    enum: ['asset_id', 'minted', 'updated', 'transferred', 'template_mint'],
+                                    enum: ['asset_id', 'minted', 'updated', 'transferred', 'template_mint', 'name'],
                                     default: 'asset_id'
                                 }
                             }
