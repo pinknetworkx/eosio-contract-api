@@ -35,7 +35,10 @@ export function buildAssetQueryCondition(
         template_mint: {type: 'int', min: 1},
 
         min_template_mint: {type: 'int', min: 1},
-        max_template_mint: {type: 'int', min: 1}
+        max_template_mint: {type: 'int', min: 1},
+
+        template_blacklist: {type: 'string', min: 1},
+        template_whitelist: {type: 'string', min: 1}
     });
 
     if (args.authorized_account) {
@@ -86,6 +89,14 @@ export function buildAssetQueryCondition(
 
     buildAssetFilter(req, query, {assetTable: options.assetTable, templateTable: options.templateTable});
     buildGreylistFilter(req, query, {collectionName: options.assetTable + '.collection_name'});
+
+    if (args.template_blacklist) {
+        query.notMany(options.assetTable + '.template_id', args.template_blacklist.split(','));
+    }
+
+    if (args.template_whitelist) {
+        query.equalMany(options.assetTable + '.template_id', args.template_whitelist.split(','));
+    }
 }
 
 export class AssetApi {
@@ -262,6 +273,24 @@ export class AssetApi {
                                 name: 'authorized_account',
                                 in: 'query',
                                 description: 'Filter for assets the provided account can edit. ',
+                                required: false,
+                                schema: {
+                                    type: 'string'
+                                }
+                            },
+                            {
+                                name: 'template_whitelist',
+                                in: 'query',
+                                description: 'Filter for multiple template ids split by ","',
+                                required: false,
+                                schema: {
+                                    type: 'string'
+                                }
+                            },
+                            {
+                                name: 'template_blacklist',
+                                in: 'query',
+                                description: 'Dont include specific template ids split by ","',
                                 required: false,
                                 schema: {
                                     type: 'string'

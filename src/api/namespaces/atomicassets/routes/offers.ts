@@ -62,7 +62,8 @@ export class OfferApi {
                     collection_blacklist: {type: 'string', min: 1},
                     collection_whitelist: {type: 'string', min: 1},
 
-                    is_recipient_contract: {type: 'bool'}
+                    is_recipient_contract: {type: 'bool'},
+                    hide_contracts: {type: 'bool'}
                 });
 
                 const query = new QueryBuilder('SELECT contract, offer_id FROM atomicassets_offers offer');
@@ -90,6 +91,15 @@ export class OfferApi {
                     query.addCondition('EXISTS(SELECT * FROM contract_codes WHERE account = offer.recipient)');
                 } else if (args.is_recipient_contract === false) {
                     query.addCondition('NOT EXISTS(SELECT * FROM contract_codes WHERE account = offer.recipient)');
+                }
+
+                if (args.hide_contracts) {
+                    query.addCondition(
+                        'NOT EXISTS(SELECT * FROM contract_codes ' +
+                        'WHERE (account = offer.recipient OR account = offer.sender) AND NOT (account = ANY(' +
+                        query.addVariable([args.account, args.sender, args.recipient].filter(row => !!row)) +
+                        ')))'
+                    );
                 }
 
                 if (hasAssetFilter(req, ['asset_id'])) {
