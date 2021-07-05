@@ -90,17 +90,9 @@ export function filterQueryArgs(req: express.Request, filter: FilterDefinition, 
 
             if (data === 'true' || data === '1') {
                 result[key] = true;
-
-                continue;
-            }
-
-            if (data === 'false' || data === '0') {
+            } else if (data === 'false' || data === '0') {
                 result[key] = false;
-
-                continue;
             }
-
-            result[key] = !!data;
         }
     }
 
