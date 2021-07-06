@@ -142,32 +142,38 @@ export function buildAssetFillerHook(
             templateData[row.template.template_id] = {prices: []};
         }
 
-        for (const row of queries[0].rows) {
-            assetData[row.asset_id].sales.push({market_contract: row.market_contract, sale_id: row.sale_id});
+        if (queries[0]) {
+            for (const row of queries[0].rows) {
+                assetData[row.asset_id].sales.push({market_contract: row.market_contract, sale_id: row.sale_id});
+            }
         }
 
-        for (const row of queries[1].rows) {
-            assetData[row.asset_id].auctions.push({market_contract: row.market_contract, auction_id: row.auction_id});
+        if (queries[1]) {
+            for (const row of queries[1].rows) {
+                assetData[row.asset_id].auctions.push({market_contract: row.market_contract, auction_id: row.auction_id});
+            }
         }
 
-        for (const row of queries[2].rows) {
-            templateData[row.template_id].prices.push({
-                market_contract: row.market_contract,
-                token: {
-                    token_symbol: row.token_symbol,
-                    token_precision: row.token_precision,
-                    token_contract: row.token_contract,
-                },
-                median: row.median,
-                average: row.average,
-                suggested_median: row.suggested_median,
-                suggested_average: row.suggested_average,
-                min: row.min,
-                max: row.max,
-                sales: row.sales,
-            });
+        if (queries[2]) {
+            for (const row of queries[2].rows) {
+                templateData[row.template_id].prices.push({
+                    market_contract: row.market_contract,
+                    token: {
+                        token_symbol: row.token_symbol,
+                        token_precision: row.token_precision,
+                        token_contract: row.token_contract,
+                    },
+                    median: row.median,
+                    average: row.average,
+                    suggested_median: row.suggested_median,
+                    suggested_average: row.suggested_average,
+                    min: row.min,
+                    max: row.max,
+                    sales: row.sales,
+                });
+            }
         }
-
+        
         return rows.map(row => {
             const data = row.template ? templateData[row.template_id] : {};
 
