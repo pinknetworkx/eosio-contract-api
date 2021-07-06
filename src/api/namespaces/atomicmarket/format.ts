@@ -3,6 +3,7 @@ import { AuctionState, BuyofferState, SaleState } from '../../../filler/handlers
 import { AuctionApiState, BuyofferApiState, SaleApiState } from './index';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 import { HTTPServer } from '../../server';
+import { FillerHook } from '../atomicassets/filler';
 
 export function formatAuction(row: any): any {
     const data = {...row};
@@ -88,85 +89,89 @@ export function formatListingAsset(row: any): any {
     return formatAsset(row);
 }
 
-export async function hookAssetFiller(server: HTTPServer, contract: string, rows: any[]): Promise<any[]> {
-    const assetIDs = rows.map(asset => asset.asset_id);
+export function buildAssetFillerHook(
+    options: {fetchAuctions?: boolean, fetchSales?: boolean, fetchPrices?: boolean}
+): FillerHook {
+    return async (server: HTTPServer, contract: string, rows: any[]): Promise<any[]> => {
+        const assetIDs = rows.map(asset => asset.asset_id);
 
-    const queries = await Promise.all([
-        server.query(
-            'SELECT sale.market_contract, sale.sale_id, offer_asset.asset_id ' +
-            'FROM atomicmarket_sales sale, atomicassets_offers offer, atomicassets_offers_assets offer_asset ' +
-            'WHERE sale.assets_contract = offer.contract AND sale.offer_id = offer.offer_id AND ' +
-            'offer.contract = offer_asset.contract AND offer.offer_id = offer_asset.offer_id AND ' +
-            'offer_asset.contract = $1 AND offer_asset.asset_id = ANY($2) AND ' +
-            'sale.state = ' + SaleState.LISTED.valueOf() + ' AND offer.state = ' + OfferState.PENDING.valueOf(),
-            [contract, assetIDs]
-        ),
-        server.query(
-            'SELECT auction.market_contract, auction.auction_id, auction_asset.asset_id ' +
-            'FROM atomicmarket_auctions auction, atomicmarket_auctions_assets auction_asset ' +
-            'WHERE auction.market_contract = auction_asset.market_contract AND auction.auction_id = auction_asset.auction_id AND ' +
-            'auction_asset.assets_contract = $1 AND auction_asset.asset_id = ANY($2) AND ' +
-            'auction.state = ' + AuctionState.LISTED.valueOf() + ' AND auction.end_time > ' + (Date.now() / 1000) + '::BIGINT ',
-            [contract, assetIDs]
-        ),
-        server.query(
-            'SELECT DISTINCT ON (price.market_contract, price.collection_name, price.template_id, price.symbol) ' +
+        const queries = await Promise.all([
+            options.fetchSales && server.query(
+                'SELECT sale.market_contract, sale.sale_id, offer_asset.asset_id ' +
+                'FROM atomicmarket_sales sale, atomicassets_offers offer, atomicassets_offers_assets offer_asset ' +
+                'WHERE sale.assets_contract = offer.contract AND sale.offer_id = offer.offer_id AND ' +
+                'offer.contract = offer_asset.contract AND offer.offer_id = offer_asset.offer_id AND ' +
+                'offer_asset.contract = $1 AND offer_asset.asset_id = ANY($2) AND ' +
+                'sale.state = ' + SaleState.LISTED.valueOf() + ' AND offer.state = ' + OfferState.PENDING.valueOf(),
+                [contract, assetIDs]
+            ),
+            options.fetchAuctions && server.query(
+                'SELECT auction.market_contract, auction.auction_id, auction_asset.asset_id ' +
+                'FROM atomicmarket_auctions auction, atomicmarket_auctions_assets auction_asset ' +
+                'WHERE auction.market_contract = auction_asset.market_contract AND auction.auction_id = auction_asset.auction_id AND ' +
+                'auction_asset.assets_contract = $1 AND auction_asset.asset_id = ANY($2) AND ' +
+                'auction.state = ' + AuctionState.LISTED.valueOf() + ' AND auction.end_time > ' + (Date.now() / 1000) + '::BIGINT ',
+                [contract, assetIDs]
+            ),
+            options.fetchPrices && server.query(
+                'SELECT DISTINCT ON (price.market_contract, price.collection_name, price.template_id, price.symbol) ' +
                 'price.market_contract, asset.collection_name, asset.template_id, ' +
                 'token.token_symbol, token.token_precision, token.token_contract, ' +
                 'price.median, price.average, price.suggested_median, price.suggested_average, price.min, price.max, price.sales ' +
-            'FROM atomicassets_assets asset, atomicmarket_template_prices price, atomicmarket_tokens token ' +
-            'WHERE asset.contract = price.assets_contract AND asset.collection_name = price.collection_name AND ' +
+                'FROM atomicassets_assets asset, atomicmarket_template_prices price, atomicmarket_tokens token ' +
+                'WHERE asset.contract = price.assets_contract AND asset.collection_name = price.collection_name AND ' +
                 'asset.template_id = price.template_id AND asset.template_id IS NOT NULL AND ' +
                 'price.market_contract = token.market_contract AND price.symbol = token.token_symbol AND ' +
                 'asset.contract = $1 AND asset.asset_id = ANY($2)',
-            [contract, assetIDs]
-        )
-    ]);
+                [contract, assetIDs]
+            )
+        ]);
 
-    const assetData: {[key: string]: {sales: any[], auctions: any[]}} = {};
-    const templateData: {[key: string]: {prices: any[]}} = {};
+        const assetData: {[key: string]: {sales: any[], auctions: any[]}} = {};
+        const templateData: {[key: string]: {prices: any[]}} = {};
 
-    for (const row of rows) {
-        assetData[row.asset_id] = {sales: [], auctions: []};
-    }
-
-    for (const row of rows) {
-        if (!row.template) {
-            continue;
+        for (const row of rows) {
+            assetData[row.asset_id] = {sales: [], auctions: []};
         }
 
-        templateData[row.collection.collection_name + ':' + row.template.template_id] = {prices: []};
-    }
+        for (const row of rows) {
+            if (!row.template) {
+                continue;
+            }
 
-    for (const row of queries[0].rows) {
-        assetData[row.asset_id].sales.push({market_contract: row.market_contract, sale_id: row.sale_id});
-    }
+            templateData[row.template.template_id] = {prices: []};
+        }
 
-    for (const row of queries[1].rows) {
-        assetData[row.asset_id].auctions.push({market_contract: row.market_contract, auction_id: row.auction_id});
-    }
+        for (const row of queries[0].rows) {
+            assetData[row.asset_id].sales.push({market_contract: row.market_contract, sale_id: row.sale_id});
+        }
 
-    for (const row of queries[2].rows) {
-        templateData[row.collection_name + ':' + row.template_id].prices.push({
-            market_contract: row.market_contract,
-            token: {
-                token_symbol: row.token_symbol,
-                token_precision: row.token_precision,
-                token_contract: row.token_contract,
-            },
-            median: row.median,
-            average: row.average,
-            suggested_median: row.suggested_median,
-            suggested_average: row.suggested_average,
-            min: row.min,
-            max: row.max,
-            sales: row.sales,
+        for (const row of queries[1].rows) {
+            assetData[row.asset_id].auctions.push({market_contract: row.market_contract, auction_id: row.auction_id});
+        }
+
+        for (const row of queries[2].rows) {
+            templateData[row.template_id].prices.push({
+                market_contract: row.market_contract,
+                token: {
+                    token_symbol: row.token_symbol,
+                    token_precision: row.token_precision,
+                    token_contract: row.token_contract,
+                },
+                median: row.median,
+                average: row.average,
+                suggested_median: row.suggested_median,
+                suggested_average: row.suggested_average,
+                min: row.min,
+                max: row.max,
+                sales: row.sales,
+            });
+        }
+
+        return rows.map(row => {
+            const data = row.template ? templateData[row.template_id] : {};
+
+            return {...row, ...assetData[row.asset_id], ...data};
         });
-    }
-
-    return rows.map(row => {
-        const data = row.template ? templateData[row.collection_name + ':' + row.template_id] : {};
-
-        return {...row, ...assetData[row.asset_id], ...data};
-    });
+    };
 }
