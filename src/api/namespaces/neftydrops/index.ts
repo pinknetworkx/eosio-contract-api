@@ -8,6 +8,7 @@ import { neftyDropsComponents} from './openapi';
 import { configEndpoints } from './routes/config';
 import * as swagger from 'swagger-ui-express';
 import {statsEndpoints} from './routes/stats';
+import {dropsEndpoints} from './routes/drops';
 
 export type NeftyDropsNamespaceArgs = {
     neftydrops_account: string,
@@ -15,8 +16,10 @@ export type NeftyDropsNamespaceArgs = {
 };
 
 export enum DropApiState {
-    ACTIVE = 0,
-    DELETED = 1
+    CREATED = 0,
+    ACTIVE = 1,
+    SOLD_OUT = 2,
+    ENDED = 3,
 }
 
 export class NeftyDropsNamespace extends ApiNamespace {
@@ -70,6 +73,7 @@ export class NeftyDropsNamespace extends ApiNamespace {
 
         const docs = [
             configEndpoints(this, server, router),
+            dropsEndpoints(this, server, router),
             statsEndpoints(this, server, router)
         ];
 

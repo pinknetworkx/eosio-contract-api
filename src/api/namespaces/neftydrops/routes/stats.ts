@@ -31,7 +31,7 @@ export function statsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
 
     function buildCollectionStatsQuery(after?: number, before?: number): string {
         return `
-        SELECT collection.*, t1.volume, 0 listings, t1.sales
+        SELECT collection.*, t1.volume, t1.sales
         FROM
             atomicassets_collections_master collection
             INNER JOIN (
@@ -89,7 +89,8 @@ export function statsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                 collection_whitelist: {type: 'string', min: 1},
                 collection_blacklist: {type: 'string', min: 1},
 
-                sort: {type: 'string', values: ['volume', 'listings', 'sales'], default: 'volume'},
+                sort: {type: 'string', values: ['volume', 'sales'], default: 'volume'},
+                order: {type: 'string', values: ['desc', 'asc'], default: 'desc'},
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100}
             });
@@ -101,7 +102,7 @@ export function statsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
             }
 
             let queryString = 'SELECT * FROM (' + buildCollectionStatsQuery(args.after, args.before) + ') x ' +
-                'WHERE (volume IS NOT NULL OR listings IS NOT NULL) ';
+                'WHERE (volume IS NOT NULL) ';
 
             const queryValues = [core.args.atomicassets_account, args.symbol];
             let varCounter = queryValues.length;
@@ -121,19 +122,26 @@ export function statsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                 queryValues.push(args.collection_blacklist.split(','));
             }
 
-            const sortColumnMapping = {
+            const sortColumnMapping: { [key: string]: string } = {
                 volume: 'volume',
-                listings: 'listings'
+                sales: 'sales'
             };
 
+            const sortOrderMapping: { [key: string]: string } = {
+                desc: 'DESC',
+                asc: 'ASC'
+            };
+
+            const order = sortOrderMapping[args.order] || 'DESC';
+            const column = sortColumnMapping[args.sort];
+            const sortSuffix = column !== 'sales' ? `,sales ${order} NULLS LAST ` : '';
+
             // @ts-ignore
-            queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' DESC NULLS LAST ' +
-                'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter;
+            queryString += `ORDER BY ${column} ${order} NULLS LAST ${sortSuffix} LIMIT $${++varCounter} OFFSET $${++varCounter}`;
             queryValues.push(args.limit);
             queryValues.push((args.page - 1) * args.limit);
 
             const query = await server.query(queryString, queryValues);
-
             res.json({
                 success: true,
                 data: {symbol, results: query.rows.map(row => formatCollection(row))},
@@ -250,7 +258,7 @@ export function statsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
             const query = await server.query(queryString, queryValues);
 
             if (query.rowCount === 0) {
-                return res.status(416).json({success: false, message: 'Account does not have any ended listings'});
+                return res.status(416).json({success: false, message: 'Account does not have any sold drops'});
             }
 
             res.json({
@@ -351,7 +359,6 @@ export function statsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
         type: 'object',
         properties: {
             ...atomicassetsComponents.Collection,
-            listings: {type: 'string'},
             volume: {type: 'string'},
             sales: {type: 'string'}
         }
@@ -396,7 +403,7 @@ export function statsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
             '/v1/stats/collections': {
                 get: {
                     tags: ['stats'],
-                    summary: 'Get market collections sorted by volume or listings',
+                    summary: 'Get market collections sorted by volume or sales',
                     parameters: [
                         {
                             name: 'symbol',
@@ -417,7 +424,7 @@ export function statsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             required: false,
                             schema: {
                                 type: 'string',
-                                enum: ['volume', 'listings'],
+                                enum: ['volume', 'sales'],
                                 default: 'volume'
                             }
                         }
@@ -434,7 +441,7 @@ export function statsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
             '/v1/stats/collections/{collection_name}': {
                 get: {
                     tags: ['stats'],
-                    summary: 'Get market collections sorted by volume or listings',
+                    summary: 'Get market collections sorted by volume or sales',
                     parameters: [
                         {
                             name: 'collection_name',
@@ -467,7 +474,7 @@ export function statsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
             '/v1/stats/accounts': {
                 get: {
                     tags: ['stats'],
-                    summary: 'Get market collections sorted by volume or listings',
+                    summary: 'Get market collections sorted by volume or sales',
                     parameters: [
                         {
                             name: 'symbol',

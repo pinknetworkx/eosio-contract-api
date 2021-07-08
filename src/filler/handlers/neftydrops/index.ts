@@ -33,6 +33,10 @@ export enum NeftyDropsUpdatePriority {
     ACTION_CLAIM_DROP = NEFTYDROPS_BASE_PRIORITY + 40,
 }
 
+const views = ['neftydrops_stats_master', 'neftydrops_drop_prices_master', 'neftydrops_drops_master'];
+const materializedViews = ['neftydrops_stats', 'neftydrops_drop_prices'];
+const procedures: string[] = [];
+
 export default class NeftyDropsHandler extends ContractHandler {
     static handlerName = 'neftydrops';
 
@@ -45,12 +49,6 @@ export default class NeftyDropsHandler extends ContractHandler {
             'SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2)',
             ['public', 'neftydrops_config']
         );
-
-        const views = ['neftydrops_stats_master'];
-
-        const materializedViews = ['neftydrops_stats'];
-
-        const procedures: string[] = [];
 
         if (!existsQuery.rows[0].exists) {
             logger.info('Could not find NeftyDrops tables. Create them now...');
@@ -179,8 +177,6 @@ export default class NeftyDropsHandler extends ContractHandler {
             );
         }
 
-        const materializedViews: string[] = [];
-
         for (const view of materializedViews) {
             await client.query('REFRESH MATERIALIZED VIEW ' + client.escapeIdentifier(view) + '');
         }
@@ -192,8 +188,6 @@ export default class NeftyDropsHandler extends ContractHandler {
         destructors.push(configProcessor(this, processor));
         destructors.push(balanceProcessor(this, processor));
         destructors.push(dropsProcessor(this, processor));
-
-        const materializedViews = ['neftydrops_stats'];
 
         for (const view of materializedViews) {
             destructors.push(this.filler.registerUpdateJob(async () => {
