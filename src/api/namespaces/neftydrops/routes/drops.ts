@@ -77,12 +77,12 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
 
             const dropQuery = await server.query(query.buildString(), query.buildValues());
 
-            const dropLookup: {[key: string]: any} = {};
             const result = await server.query(
                 'SELECT * FROM neftydrops_drops_master WHERE drops_contract = $1 AND drop_id = ANY ($2)',
                 [core.args.neftydrops_account, dropQuery.rows.map(row => row.drop_id)]
             );
 
+            const dropLookup: {[key: string]: any} = {};
             result.rows.reduce((prev, current) => {
                 prev[String(current.drop_id)] = current;
 
@@ -120,7 +120,7 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
         }
     });
 
-    router.all('/v1/drops/:drop_id/claims', server.web.caching(), async (req, res) => {
+    router.all(['/v1/drops/:drop_id/claims', '/v1/drops/:drop_id/claims/_count'], server.web.caching(), async (req, res) => {
         const args = filterQueryArgs(req, {
             page: {type: 'int', min: 1, default: 1},
             limit: {type: 'int', min: 1, max: 100, default: 100},
@@ -137,9 +137,18 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
 
         try {
             const query = new QueryBuilder(
-                'SELECT * FROM neftydrops_claims WHERE drops_contract = $1 AND drop_id = $2',
+                'SELECT claim_id FROM neftydrops_claims WHERE drops_contract = $1 AND drop_id = $2',
                 [core.args.neftydrops_account, req.params.drop_id]
             );
+
+            if (req.originalUrl.search('/_count') >= 0) {
+                const countQuery = await server.query(
+                    'SELECT COUNT(*) counter FROM (' + query.buildString() + ') x',
+                    query.buildValues()
+                );
+
+                return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
+            }
 
             const sortMapping: {[key: string]: {column: string, nullable: boolean}}  = {
                 claim_time: {column: 'created_at_time', nullable: false},
@@ -152,11 +161,22 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
             query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
             const claimsQuery = await server.query(query.buildString(), query.buildValues());
-            const claims = claimsQuery.rows.map((row) => formatClaim(row));
+            const result = await server.query(
+                'SELECT * FROM neftydrops_claims_master WHERE drops_contract = $1 AND claim_id = ANY ($2)',
+                [core.args.neftydrops_account, claimsQuery.rows.map(row => row.claim_id)]
+            );
+
+            const claimLookup: {[key: string]: any} = {};
+            result.rows.reduce((prev, current) => {
+                prev[String(current.claim_id)] = current;
+
+                return prev;
+            }, claimLookup);
+
+            const claims = claimsQuery.rows.map((row) => formatClaim(claimLookup[row.claim_id]));
             res.json({success: true, data: claims, query_time: Date.now()});
         } catch (e) {
             logger.error(e);
-
             return res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     });

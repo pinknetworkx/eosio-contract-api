@@ -151,7 +151,23 @@ INDEX neftydrops_drops_updated_at_time ON neftydrops_drops USING btree (updated_
 CREATE
 INDEX neftydrops_claims_drop_id ON neftydrops_claims USING btree (drop_id);
 CREATE
+INDEX neftydrops_claims_amount ON neftydrops_claims USING btree (amount);
+CREATE
+INDEX neftydrops_claims_final_price ON neftydrops_claims USING btree (final_price);
+CREATE
+INDEX neftydrops_claims_total_price ON neftydrops_claims USING btree (total_price);
+CREATE
+INDEX neftydrops_claims_listing_symbol ON neftydrops_claims USING hash (listing_symbol);
+CREATE
+INDEX neftydrops_claims_settlement_symbol ON neftydrops_claims USING hash (settlement_symbol);
+CREATE
+INDEX neftydrops_claims_referrer ON neftydrops_claims USING hash (referrer);
+CREATE
+INDEX neftydrops_claims_country ON neftydrops_claims USING hash (country);
+CREATE
 INDEX neftydrops_claims_claimer ON neftydrops_claims USING hash (claimer);
+CREATE
+INDEX neftydrops_claims_created_at_time ON neftydrops_claims USING btree (created_at_time);
 
 CREATE
 INDEX neftydrops_balances_owner ON neftydrops_balances USING btree (owner);

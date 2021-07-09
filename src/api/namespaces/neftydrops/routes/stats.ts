@@ -34,7 +34,7 @@ export function statsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
         SELECT collection.*, t1.volume, t1.sales
         FROM
             atomicassets_collections_master collection
-            INNER JOIN (
+            LEFT JOIN (
                 SELECT assets_contract contract, collection_name, SUM(price) volume, COUNT(*) sales FROM neftydrops_stats
                 WHERE symbol = $2 ${buildRangeCondition('"time"', after, before)}
                 GROUP BY assets_contract, collection_name

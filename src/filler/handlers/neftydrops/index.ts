@@ -33,7 +33,7 @@ export enum NeftyDropsUpdatePriority {
     ACTION_CLAIM_DROP = NEFTYDROPS_BASE_PRIORITY + 40,
 }
 
-const views = ['neftydrops_stats_master', 'neftydrops_drop_prices_master', 'neftydrops_drops_master'];
+const views = ['neftydrops_stats_master', 'neftydrops_drop_prices_master', 'neftydrops_drops_master', 'neftydrops_claims_master'];
 const materializedViews = ['neftydrops_stats', 'neftydrops_drop_prices'];
 const procedures: string[] = [];
 

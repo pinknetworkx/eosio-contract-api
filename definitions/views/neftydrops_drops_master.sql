@@ -34,8 +34,8 @@ ON (drops_contract, drop_id)
     ELSE token.token_symbol
     END),
     'token_precision', (CASE
-    WHEN ndrop.settlement_symbol = 'NULL' THEN 'NULL':: VARCHAR (12)
-    ELSE token.token_symbol
+    WHEN ndrop.settlement_symbol = 'NULL' THEN 0
+    ELSE token.token_precision
     END),
     'median', delphi.median
     ) price,
