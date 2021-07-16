@@ -190,7 +190,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
       collection_name: collectionName,
     } = drop.rows[0];
 
-    if (parseInt(trace.act.data.intended_delphi_median, 10) === 0) {
+    if (parseInt(trace.act.data.intended_delphi_median, 10) === 0 || settlementSymbol === 'NULL') {
       finalPrice = drop.rows[0].listing_price;
     } else {
       const query = await db.query(
