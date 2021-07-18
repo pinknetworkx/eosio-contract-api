@@ -11,7 +11,9 @@ export function buildListingFilter(req: express.Request, query: QueryBuilder): v
     const args = filterQueryArgs(req, {
         show_seller_contracts: {type: 'bool', default: true},
         contract_whitelist: {type: 'string', min: 1, default: ''},
+
         seller_blacklist: {type: 'string', min: 1},
+        buyer_blacklist: {type: 'string', min: 1},
 
         maker_marketplace: {type: 'string', min: 1, max: 12},
         taker_marketplace: {type: 'string', min: 1, max: 12},
@@ -48,7 +50,11 @@ export function buildListingFilter(req: express.Request, query: QueryBuilder): v
     }
 
     if (args.seller_blacklist) {
-        query.addCondition('NOT (listing.seller = ANY (' + query.addVariable(args.seller_blacklist.split(',')) + '))');
+        query.notMany('listing.seller', args.seller_blacklist.split(','));
+    }
+
+    if (args.buyer_blacklist) {
+        query.notMany('listing.buyer', args.buyer_blacklist.split(','));
     }
 
     if (args.marketplace) {
@@ -180,7 +186,8 @@ export function buildAuctionFilter(req: express.Request, query: QueryBuilder): v
         min_price: {type: 'float', min: 0},
         max_price: {type: 'float', min: 0},
 
-        participant: {type: 'string', min: 0}
+        participant: {type: 'string', min: 1},
+        bidder: {type: 'string', min: 1},
     });
 
     buildListingFilter(req, query);
@@ -232,6 +239,12 @@ export function buildAuctionFilter(req: express.Request, query: QueryBuilder): v
                 WHERE asset.market_contract = listing.market_contract AND asset.auction_id = listing.auction_id
             ) >= ${args.min_assets} `
         );
+    }
+
+    if (args.bidder) {
+        query.addCondition('EXISTS(SELECT * FROM atomicmarket_auctions_bids bid ' +
+            'WHERE bid.market_contract = listing.market_contract AND bid.auction_id = listing.auction_id AND ' +
+            'bid.account = ANY(' + query.addVariable(args.bidder.split(',')) + ') )');
     }
 
     if (args.symbol) {

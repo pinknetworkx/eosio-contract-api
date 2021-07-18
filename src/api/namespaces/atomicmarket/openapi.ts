@@ -220,6 +220,13 @@ export const listingFilterParameters = [
         schema: {type: 'boolean'}
     },
     {
+        name: 'buyer_blacklist',
+        in: 'query',
+        description: 'Dont show listings from these buyers (Split multiple with ",")',
+        required: false,
+        schema: {type: 'boolean'}
+    },
+    {
         name: 'asset_id',
         in: 'query',
         description: 'Asset id in the offer',

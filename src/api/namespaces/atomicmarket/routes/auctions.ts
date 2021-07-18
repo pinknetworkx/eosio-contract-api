@@ -184,6 +184,20 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                             required: false,
                             schema: {type: 'string'}
                         },
+                        {
+                            name: 'bidder',
+                            in: 'query',
+                            description: 'Filter by auctions with this bidder',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'participant',
+                            in: 'query',
+                            description: 'Filter by auctions where this account participated and can still claim / bid',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
                         ...listingFilterParameters,
                         ...assetFilterParameters,
                         ...primaryBoundaryParameters,
