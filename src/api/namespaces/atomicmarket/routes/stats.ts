@@ -728,7 +728,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
-                        greylistFilterParameters
+                        ...greylistFilterParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'object',
@@ -799,7 +799,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
-                        greylistFilterParameters
+                        ...greylistFilterParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'object',
@@ -834,7 +834,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
-                        greylistFilterParameters
+                        ...greylistFilterParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'object',
