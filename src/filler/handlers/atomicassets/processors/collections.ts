@@ -6,6 +6,7 @@ import { ShipBlock } from '../../../../types/ship';
 import { eosioTimestampToDate } from '../../../../utils/eosio';
 import { CollectionsTableRow } from '../types/tables';
 import { deserialize, ObjectSchema } from 'atomicassets';
+import { encodeDatabaseJson } from '../../../utils';
 
 export function collectionProcessor(core: AtomicAssetsHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
@@ -35,7 +36,7 @@ export function collectionProcessor(core: AtomicAssetsHandler, processor: DataPr
                 authorized_accounts: delta.value.authorized_accounts,
                 notify_accounts: delta.value.notify_accounts,
                 market_fee: delta.value.market_fee,
-                data: JSON.stringify(deserializedData),
+                data: encodeDatabaseJson(deserializedData),
                 created_at_block: block.block_num,
                 created_at_time: eosioTimestampToDate(block.timestamp).getTime()
             }, ['contract', 'collection_name'], ['created_at_block', 'created_at_time']);

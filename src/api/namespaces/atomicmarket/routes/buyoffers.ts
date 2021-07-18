@@ -83,7 +83,7 @@ export function buyoffersEndpoints(core: AtomicMarketNamespace, server: HTTPServ
                 template_mint: {column: 'LOWER(listing.template_mint)', nullable: true}
             };
 
-            query.append('ORDER BY ' + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.auction_id ASC');
+            query.append('ORDER BY ' + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.buyoffer_id ASC');
             query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit) + ' ');
 
             const buyofferResult = await server.query(query.buildString(), query.buildValues());

@@ -173,7 +173,7 @@ export function buildAssetFillerHook(
                 });
             }
         }
-        
+
         return rows.map(row => {
             const data = row.template ? templateData[row.template_id] : {};
 

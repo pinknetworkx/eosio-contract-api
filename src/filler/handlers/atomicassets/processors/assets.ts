@@ -14,6 +14,7 @@ import { eosioTimestampToDate, splitEosioToken } from '../../../../utils/eosio';
 import { convertAttributeMapToObject } from '../utils';
 import ApiNotificationSender from '../../../notifier';
 import { arrayChunk } from '../../../../utils';
+import { encodeDatabaseJson } from '../../../utils';
 
 export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcessor, notifier: ApiNotificationSender): () => any {
     const destructors: Array<() => any> = [];
@@ -34,8 +35,8 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 schema_name: trace.act.data.schema_name,
                 template_id: trace.act.data.template_id === -1 ? null : trace.act.data.template_id,
                 owner: trace.act.data.new_asset_owner,
-                mutable_data: JSON.stringify(convertAttributeMapToObject(trace.act.data.mutable_data)),
-                immutable_data: JSON.stringify(convertAttributeMapToObject(trace.act.data.immutable_data)),
+                mutable_data: encodeDatabaseJson(convertAttributeMapToObject(trace.act.data.mutable_data)),
+                immutable_data: encodeDatabaseJson(convertAttributeMapToObject(trace.act.data.immutable_data)),
                 burned_by_account: null,
                 burned_at_block: null,
                 burned_at_time: null,
