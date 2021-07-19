@@ -129,6 +129,47 @@ export const atomicmarketComponents = {
             created_at_time: {type: 'string'}
         }
     },
+    Buyoffer: {
+        type: 'object',
+        properties: {
+            market_contract: {type: 'string'},
+            assets_contract: {type: 'string'},
+            buyoffer_id: {type: 'string'},
+
+            seller: {type: 'string'},
+            buyer: {type: 'string'},
+
+            price: {
+                type: 'object',
+                properties: {
+                    amount: {type: 'string'},
+                    token_precision: {type: 'integer'},
+                    token_contract: {type: 'string'},
+                    token_symbol: {type: 'string'}
+                }
+            },
+
+            assets: {
+                type: 'array',
+                items: {'$ref': '#/components/schemas/Asset'}
+            },
+
+            maker_marketplace: {type: 'string', nullable: true},
+            taker_marketplace: {type: 'string', nullable: true},
+
+            collection: atomicassetsComponents.Asset.properties.collection,
+
+            state: {type: 'integer'},
+
+            memo: {type: 'string'},
+            decline_memo: {type: 'string'},
+
+            updated_at_block: {type: 'string'},
+            updated_at_time: {type: 'string'},
+            created_at_block: {type: 'string'},
+            created_at_time: {type: 'string'}
+        }
+    },
     Marketplace: {
         type: 'object',
         properties: {
@@ -158,13 +199,6 @@ export const listingFilterParameters = [
         schema: {type: 'integer'}
     },
     {
-        name: 'max_assets',
-        in: 'query',
-        description: 'Max assets per listing',
-        required: false,
-        schema: {type: 'integer'}
-    },
-    {
         name: 'show_seller_contracts',
         in: 'query',
         description: 'If false no seller contracts are shown except if they are in the contract whitelist',
@@ -182,6 +216,13 @@ export const listingFilterParameters = [
         name: 'seller_blacklist',
         in: 'query',
         description: 'Dont show listings from these sellers (Split multiple with ",")',
+        required: false,
+        schema: {type: 'boolean'}
+    },
+    {
+        name: 'buyer_blacklist',
+        in: 'query',
+        description: 'Dont show listings from these buyers (Split multiple with ",")',
         required: false,
         schema: {type: 'boolean'}
     },

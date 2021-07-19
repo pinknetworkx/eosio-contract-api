@@ -14,6 +14,7 @@ import {
     UpdateActionData
 } from '../types/actions';
 import { parseJsonObject } from '../../../../utils/binary';
+import { encodeDatabaseJson } from '../../../utils';
 
 export function assetProcessor(core: SimpleAssetsHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
@@ -32,8 +33,8 @@ export function assetProcessor(core: SimpleAssetsHandler, processor: DataProcess
                 author: trace.act.data.author,
                 category: trace.act.data.category,
                 owner: trace.act.data.owner,
-                mutable_data: JSON.stringify(parseJsonObject(trace.act.data.mdata)),
-                immutable_data: JSON.stringify(parseJsonObject(trace.act.data.idata)),
+                mutable_data: encodeDatabaseJson(parseJsonObject(trace.act.data.mdata)),
+                immutable_data: encodeDatabaseJson(parseJsonObject(trace.act.data.idata)),
                 burned_by_account: null,
                 burned_at_block: null,
                 burned_at_time: null,
@@ -84,7 +85,7 @@ export function assetProcessor(core: SimpleAssetsHandler, processor: DataProcess
         contract, 'update',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<UpdateActionData>): Promise<void> => {
             await db.update('simpleassets_assets', {
-                mutable_data: JSON.stringify(parseJsonObject(trace.act.data.mdata)),
+                mutable_data: encodeDatabaseJson(parseJsonObject(trace.act.data.mdata)),
                 updated_at_block: block.block_num,
                 updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
             }, {

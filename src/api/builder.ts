@@ -1,22 +1,21 @@
 export default class QueryBuilder {
-    private select: string;
-    private where: string[];
-    private orderBy: string;
-    private groupBy: string[];
-    private extra: string;
+    private  readonly baseQuery: string;
+
+    private conditions: string[];
+    private aggregations: string[];
+    private ending: string;
 
     private values: any[];
     private varCounter: number;
 
-    constructor(select: string, values: any[] = []) {
+    constructor(query: string, values: any[] = []) {
         this.values = values;
         this.varCounter = this.values.length;
 
-        this.select = select;
-        this.where = [];
-        this.groupBy = [];
-        this.orderBy = '';
-        this.extra = '';
+        this.baseQuery = query;
+        this.conditions = [];
+        this.aggregations = [];
+        this.ending = '';
 
     }
 
@@ -28,14 +27,20 @@ export default class QueryBuilder {
 
     join(tableA: string, tableB: string, columns: string[]): QueryBuilder {
         for (const column of columns) {
-            this.where.push(tableA + '.' + column + ' = ' + tableB + '.' + column);
+            this.conditions.push(tableA + '.' + column + ' = ' + tableB + '.' + column);
         }
 
         return this;
     }
 
     equal(column: string, value: any): QueryBuilder {
-        this.where.push(column + ' = ' + this.addVariable(value));
+        this.conditions.push(column + ' = ' + this.addVariable(value));
+
+        return this;
+    }
+
+    unequal(column: string, value: any): QueryBuilder {
+        this.conditions.push(column + ' != ' + this.addVariable(value));
 
         return this;
     }
@@ -49,37 +54,51 @@ export default class QueryBuilder {
             return this.equal(column, values[0]);
         }
 
-        this.where.push(column + ' = ANY(' + this.addVariable(values) + ')');
+        this.conditions.push(column + ' = ANY(' + this.addVariable(values) + ')');
+
+        return this;
+    }
+
+    notMany(column: string, values: any[]): QueryBuilder {
+        if (!Array.isArray(values)) {
+            throw new Error('notMany only accept arrays as value');
+        }
+
+        if (values.length === 1) {
+            return this.unequal(column, values[0]);
+        }
+
+        this.conditions.push('NOT (' + column + ' = ANY(' + this.addVariable(values) + '))');
 
         return this;
     }
 
     notNull(column: string): QueryBuilder {
-        this.where.push(column + ' IS NOT NULL');
+        this.conditions.push(column + ' IS NOT NULL');
 
         return this;
     }
 
     isNull(column: string): QueryBuilder {
-        this.where.push(column + ' IS NULL');
+        this.conditions.push(column + ' IS NULL');
 
         return this;
     }
 
     addCondition(text: string): QueryBuilder {
-        this.where.push(text);
+        this.conditions.push(text);
 
         return this;
     }
 
     group(columns: string[]): QueryBuilder {
-        this.groupBy = [...this.groupBy, ...columns];
+        this.aggregations = [...this.aggregations, ...columns];
 
         return this;
     }
 
     append(text: string): QueryBuilder {
-        this.extra += text + ' ';
+        this.ending += text + ' ';
 
         return this;
     }
@@ -92,22 +111,18 @@ export default class QueryBuilder {
     }
 
     buildString(): string {
-        let queryString = this.select + ' ';
+        let queryString = this.baseQuery + ' ';
 
-        if (this.where.length > 0) {
-            queryString += 'WHERE ' + this.where.join(' AND ') + ' ';
+        if (this.conditions.length > 0) {
+            queryString += 'WHERE ' + this.conditions.join(' AND ') + ' ';
         }
 
-        if (this.groupBy.length > 0) {
-            queryString += 'GROUP BY ' + this.groupBy.join(', ') + ' ';
+        if (this.aggregations.length > 0) {
+            queryString += 'GROUP BY ' + this.aggregations.join(', ') + ' ';
         }
 
-        if (this.orderBy) {
-            queryString += 'ORDER BY ' + this.orderBy;
-        }
-
-        if (this.extra) {
-            queryString += this.extra + ' ';
+        if (this.ending) {
+            queryString += this.ending + ' ';
         }
 
         return queryString;

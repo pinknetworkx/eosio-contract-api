@@ -6,6 +6,7 @@ import { ShipBlock } from '../../../../types/ship';
 import { eosioTimestampToDate } from '../../../../utils/eosio';
 import { TemplatesTableRow } from '../types/tables';
 import { deserialize, ObjectSchema } from 'atomicassets';
+import { encodeDatabaseJson } from '../../../utils';
 
 export function templateProcessor(core: AtomicAssetsHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
@@ -61,7 +62,7 @@ export function templateProcessor(core: AtomicAssetsHandler, processor: DataProc
                     burnable: delta.value.burnable,
                     max_supply: delta.value.max_supply,
                     issued_supply: delta.value.issued_supply,
-                    immutable_data: JSON.stringify(immutableData),
+                    immutable_data: encodeDatabaseJson(immutableData),
                     created_at_block: block.block_num,
                     created_at_time: eosioTimestampToDate(block.timestamp).getTime()
                 }, ['contract', 'template_id']);

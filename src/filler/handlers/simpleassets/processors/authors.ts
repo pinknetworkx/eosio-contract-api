@@ -6,6 +6,7 @@ import { ShipBlock } from '../../../../types/ship';
 import { eosioTimestampToDate } from '../../../../utils/eosio';
 import { AuthorsTableRow } from '../types/tables';
 import { parseJsonObject } from '../../../../utils/binary';
+import { encodeDatabaseJson } from '../../../utils';
 
 export function authorProcessor(core: SimpleAssetsHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
@@ -23,9 +24,9 @@ export function authorProcessor(core: SimpleAssetsHandler, processor: DataProces
                 await db.replace('simpleassets_authors', {
                     contract: contract,
                     author: delta.value.author,
-                    dappinfo: JSON.stringify(parseJsonObject(delta.value.dappinfo)),
-                    fieldtypes: JSON.stringify(parseJsonObject(delta.value.fieldtypes)),
-                    priorityimg: JSON.stringify(parseJsonObject(delta.value.priorityimg)),
+                    dappinfo: encodeDatabaseJson(parseJsonObject(delta.value.dappinfo)),
+                    fieldtypes: encodeDatabaseJson(parseJsonObject(delta.value.fieldtypes)),
+                    priorityimg: encodeDatabaseJson(parseJsonObject(delta.value.priorityimg)),
                     created_at_block: block.block_num,
                     created_at_time: eosioTimestampToDate(block.timestamp).getTime()
                 }, ['contract', 'author'], ['created_at_block', 'created_at_time']);
