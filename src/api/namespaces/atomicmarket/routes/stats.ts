@@ -6,7 +6,7 @@ import { filterQueryArgs, mergeRequestData } from '../../utils';
 import { formatCollection } from '../../atomicassets/format';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
 import { atomicassetsComponents, greylistFilterParameters } from '../../atomicassets/openapi';
-import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
+import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { buildGreylistFilter } from '../../atomicassets/utils';
 import QueryBuilder from '../../../builder';
 
@@ -544,7 +544,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
     const CollectionResult = {
         type: 'object',
         properties: {
-            ...atomicassetsComponents.Collection,
+            ...atomicassetsComponents.Collection.properties,
             listings: {type: 'string'},
             volume: {type: 'string'},
             sales: {type: 'string'}
@@ -569,27 +569,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     };
 
-    const boundaryParams = [
-        {
-            name: 'after',
-            in: 'query',
-            description: 'Only sales after this time',
-            required: false,
-            schema: {
-                type: 'integer'
-            }
-        },
-        {
-            name: 'before',
-            in: 'query',
-            description: 'Only sales before this time',
-            required: false,
-            schema: {
-                type: 'integer'
-            }
-        }
-    ];
-
     return {
         tag: {
             name: 'stats',
@@ -610,7 +589,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
-                        ...boundaryParams,
+                        ...primaryBoundaryParameters,
+                        ...dateBoundaryParameters,
                         ...paginationParameters,
                         ...greylistFilterParameters,
                         {
@@ -662,7 +642,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                         type: 'object',
                         properties: {
                             symbol: SymbolResult,
-                            result: {type: 'array', items: CollectionResult}
+                            results: {type: 'array', items: CollectionResult}
                         }
                     })
                 }
@@ -681,7 +661,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
-                        ...boundaryParams,
+                        ...primaryBoundaryParameters,
+                        ...dateBoundaryParameters,
                         ...greylistFilterParameters,
                         ...paginationParameters,
                         {
@@ -762,7 +743,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
-                        ...boundaryParams,
+                        ...primaryBoundaryParameters,
+                        ...dateBoundaryParameters,
                         ...paginationParameters,
                         {
                             name: 'sort',
