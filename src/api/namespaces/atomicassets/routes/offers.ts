@@ -414,6 +414,13 @@ export class OfferApi {
                                 required: false,
                                 schema: {type: 'string'}
                             },
+                            {
+                                name: 'hide_contracts',
+                                in: 'query',
+                                description: 'dont show offers from or to accounts that have code deployed',
+                                required: false,
+                                schema: {type: 'boolean'}
+                            },
                             ...primaryBoundaryParameters,
                             ...dateBoundaryParameters,
                             ...greylistFilterParameters,

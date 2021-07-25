@@ -40,7 +40,9 @@ export class TransferApi {
 
                     account: {type: 'string', min: 1},
                     sender: {type: 'string', min: 1},
-                    recipient: {type: 'string', min: 1}
+                    recipient: {type: 'string', min: 1},
+
+                    hide_contracts: {type: 'bool'}
                 });
 
                 const query = new QueryBuilder('SELECT * FROM ' + this.transferView + ' transfer');
@@ -100,6 +102,15 @@ export class TransferApi {
                         'transfer_asset.contract = asset.contract AND transfer_asset.asset_id = asset.asset_id AND ' +
                         'NOT (asset.collection_name = ANY (' + query.addVariable(args.collection_whitelist.split(',')) + '))' +
                         ')'
+                    );
+                }
+
+                if (args.hide_contracts) {
+                    query.addCondition(
+                        'NOT EXISTS(SELECT * FROM contract_codes ' +
+                        'WHERE (account = transfer.recipient_name OR account = transfer.sender_name) AND NOT (account = ANY(' +
+                        query.addVariable([args.account, args.sender, args.recipient].filter(row => !!row)) +
+                        ')))'
                     );
                 }
 
@@ -193,6 +204,13 @@ export class TransferApi {
                                 description: 'only transfers which contain assets of this collection - separate multiple with ","',
                                 required: false,
                                 schema: {type: 'string'}
+                            },
+                            {
+                                name: 'hide_contracts',
+                                in: 'query',
+                                description: 'dont show transfers from or to accounts that have code deployed',
+                                required: false,
+                                schema: {type: 'boolean'}
                             },
                             ...primaryBoundaryParameters,
                             ...dateBoundaryParameters,
