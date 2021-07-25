@@ -28,7 +28,7 @@ export function burnEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, r
             query.equal('contract', core.args.atomicassets_account).notNull('burned_by_account');
 
             if (args.match) {
-                query.addCondition('POSITION(' + query.addVariable(args.match.toLowerCase()) + ' IN owner) > 0');
+                query.addCondition('POSITION(' + query.addVariable(args.match.toLowerCase()) + ' IN burned_by_account) > 0');
             }
 
             buildGreylistFilter(req, query, {collectionName: 'asset.collection_name'});
@@ -46,9 +46,9 @@ export function burnEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, r
             }
 
             buildHideOffersFilter(req, query, 'asset');
-            buildBoundaryFilter(req, query, 'owner', 'string', null);
+            buildBoundaryFilter(req, query, 'burned_by_account', 'string', null);
 
-            query.group(['owner']);
+            query.group(['burned_by_account']);
 
             if (req.originalUrl.search('/_count') >= 0) {
                 const countQuery = await server.query('SELECT COUNT(*) counter FROM (' + query.buildString() + ') x', query.buildValues());
