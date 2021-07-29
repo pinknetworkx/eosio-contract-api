@@ -127,7 +127,7 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
             sort: {
                 type: 'string',
                 values: [
-                    'claim_time', 'price',
+                    'claim_time', 'price', 'total_price',
                     'amount', 'claimer',
                 ],
                 default: 'claim_time'
@@ -153,6 +153,7 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
             const sortMapping: {[key: string]: {column: string, nullable: boolean}}  = {
                 claim_time: {column: 'created_at_time', nullable: false},
                 price: {column: 'final_price', nullable: false},
+                total_price: {column: 'total_price', nullable: false},
                 amount: {column: 'amount', nullable: false},
                 claimer: {column: 'claimer', nullable: false},
             };
