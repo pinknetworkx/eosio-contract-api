@@ -7,8 +7,8 @@ Per block transactions guarantee that the database is consistent at any time.
 
 ## Requirements
 
-* NodeJS >= 14.0
-* PostgreSQL >= 12.4
+* NodeJS >= 16.0
+* PostgreSQL >= 13.0
 * Redis >= 5.0
 * Nodeos >= 1.8.0 (only tested with 2.0) The state history plugin needs to be enabled and the options: 
 `trace-history = true`, `chain-state-history = true`
