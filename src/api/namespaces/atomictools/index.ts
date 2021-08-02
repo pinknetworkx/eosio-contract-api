@@ -17,7 +17,7 @@ export type AtomicToolsNamespaceArgs = {
 export class AtomicToolsNamespace extends ApiNamespace {
     static namespaceName = 'atomictools';
 
-    args: AtomicToolsNamespaceArgs;
+    declare args: AtomicToolsNamespaceArgs;
 
     async init(): Promise<void> {
         if (typeof this.args.atomictools_account !== 'string') {

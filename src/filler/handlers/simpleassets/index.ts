@@ -28,7 +28,7 @@ export type SimpleAssetsReaderArgs = {
 export default class SimpleAssetsHandler extends ContractHandler {
     static handlerName = 'simpleassets';
 
-    readonly args: SimpleAssetsReaderArgs;
+    declare readonly args: SimpleAssetsReaderArgs;
 
     tokenconfigs: TokenConfigsTableRow;
 

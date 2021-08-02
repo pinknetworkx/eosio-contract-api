@@ -36,7 +36,7 @@ export enum LinkState {
 export default class AtomicToolsHandler extends ContractHandler {
     static handlerName = 'atomictools';
 
-    readonly args: AtomicToolsArgs;
+    declare readonly args: AtomicToolsArgs;
 
     config: ConfigTableRow;
 

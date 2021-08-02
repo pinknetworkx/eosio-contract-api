@@ -61,7 +61,7 @@ export enum BuyofferApiState {
 export class AtomicMarketNamespace extends ApiNamespace {
     static namespaceName = 'atomicmarket';
 
-    args: AtomicMarketNamespaceArgs;
+    declare args: AtomicMarketNamespaceArgs;
 
     async init(): Promise<void> {
         if (typeof this.args.atomicmarket_account !== 'string') {

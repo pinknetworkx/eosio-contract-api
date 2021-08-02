@@ -66,7 +66,7 @@ export enum AtomicMarketUpdatePriority {
 export default class AtomicMarketHandler extends ContractHandler {
     static handlerName = 'atomicmarket';
 
-    readonly args: AtomicMarketArgs;
+    declare readonly args: AtomicMarketArgs;
 
     config: ConfigTableRow;
 

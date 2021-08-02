@@ -30,7 +30,7 @@ export type AtomicAssetsNamespaceArgs = {
 export class AtomicAssetsNamespace extends ApiNamespace {
     static namespaceName = 'atomicassets';
 
-    args: AtomicAssetsNamespaceArgs;
+    declare args: AtomicAssetsNamespaceArgs;
 
     async init(): Promise<void> {
         if (typeof this.args.atomicassets_account !== 'string') {

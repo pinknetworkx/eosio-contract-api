@@ -1,4 +1,4 @@
-import cluster from 'cluster';
+import * as cluster from 'cluster';
 import * as fs from 'fs';
 
 import Filler from '../filler/filler';
@@ -13,7 +13,7 @@ const readerConfigs: IReaderConfig[] = require('../../config/readers.config.json
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const connectionConfig: IConnectionsConfig = require('../../config/connections.config.json');
 
-if (cluster.isPrimary) {
+if (cluster.isMaster) {
     logger.info('Starting workers...');
 
     // init global tables if missing
