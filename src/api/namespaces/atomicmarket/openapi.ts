@@ -1,5 +1,4 @@
 import { atomicassetsComponents, generateOfferSchema, generateTransferSchema } from '../atomicassets/openapi';
-import { LogSchema } from '../../docs';
 
 export const atomicmarketComponents = {
     ListingAsset: {
@@ -30,7 +29,6 @@ export const atomicmarketComponents = {
     },
     ListingOffer: generateOfferSchema('ListingAsset'),
     ListingTransfer: generateTransferSchema('ListingAsset'),
-    Asset: atomicassetsComponents.Asset,
     Sale: {
         type: 'object',
         properties: {
@@ -178,9 +176,7 @@ export const atomicmarketComponents = {
             created_at_block: {type: 'string'},
             created_at_time: {type: 'string'}
         }
-    },
-    Collection: atomicassetsComponents.Collection,
-    Log: LogSchema
+    }
 };
 
 export const listingFilterParameters = [

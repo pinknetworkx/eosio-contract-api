@@ -1,6 +1,3 @@
-import { atomicassetsComponents } from '../atomicassets/openapi';
-import { LogSchema } from '../../docs';
-
 export const atomictoolsComponents = {
     Link: {
         type: 'object',
@@ -21,7 +18,5 @@ export const atomictoolsComponents = {
             created_at_block: {type: 'string'},
             created_at_time: {type: 'string'}
         }
-    },
-    Asset: atomicassetsComponents.Asset,
-    Log: LogSchema
+    }
 };

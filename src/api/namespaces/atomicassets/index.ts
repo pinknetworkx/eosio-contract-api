@@ -1,6 +1,4 @@
 import * as express from 'express';
-import * as swagger from 'swagger-ui-express';
-import * as path from 'path';
 
 import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
@@ -9,9 +7,7 @@ import { collectionsEndpoints } from './routes/collections';
 import { configEndpoints } from './routes/config';
 import { schemasEndpoints } from './routes/schemas';
 import { templatesEndpoints } from './routes/templates';
-import logger from '../../../utils/winston';
 import { atomicassetsComponents } from './openapi';
-import { getOpenApiDescription } from '../../docs';
 import { formatAsset, formatOffer, formatTransfer } from './format';
 import { TransferApi } from './routes/transfers';
 import { OfferApi } from './routes/offers';
@@ -47,23 +43,7 @@ export class AtomicAssetsNamespace extends ApiNamespace {
     async router(server: HTTPServer): Promise<express.Router> {
         const router = express.Router();
 
-        const documentation: any = {
-            openapi: '3.0.0',
-            info: {
-                description: getOpenApiDescription(server),
-                version: '1.0.0',
-                title: 'AtomicAssets API'
-            },
-            servers: [
-                {url: 'https://' + server.config.server_name + this.path},
-                {url: 'http://' + server.config.server_name + this.path}
-            ],
-            tags: [],
-            paths: {},
-            components: {
-                schemas: atomicassetsComponents
-            }
-        };
+        server.docs.addSchemas(atomicassetsComponents);
 
         if (server.web.limiter) {
             server.web.express.use(this.path + '/v1', server.web.limiter);
@@ -99,22 +79,21 @@ export class AtomicAssetsNamespace extends ApiNamespace {
 
         for (const doc of endpointsDocs) {
             if (doc.tag) {
-                documentation.tags.push(doc.tag);
+                server.docs.addTags([doc.tag]);
             }
 
-            Object.assign(documentation.paths, doc.paths);
+            if (doc.paths) {
+                const paths: any = {};
+
+                for (const path of Object.keys(doc.paths)) {
+                    paths[this.path + path] = doc.paths[path];
+                }
+
+                server.docs.addPaths(paths);
+            }
         }
 
-        logger.info('atomicassets docs on ' + this.path + '/docs');
-        logger.debug('atomicassets swagger docs', documentation);
-
-        router.use('/docs', express.static(path.resolve(__dirname, '../../../../docs/atomicassets')));
-
-        router.use('/docs/swagger', swagger.serve);
-        router.get('/docs/swagger', swagger.setup(documentation, {
-            customCss: '.topbar { display: none; }',
-            customCssUrl: 'https://cdn.jsdelivr.net/npm/swagger-ui-themes@3.0.0/themes/3.x/theme-flattop.min.css'
-        }));
+        router.all(['/docs', '/docs/swagger'], (req, res) => res.redirect('/docs'));
 
         return router;
     }
