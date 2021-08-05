@@ -274,7 +274,7 @@ export class DocumentationServer {
             openapi: '3.0.0',
             info: {
                 description: getOpenApiDescription(server),
-                version: '1.0.0',
+                version: packageJson.version,
                 title: 'EOSIO Contract API'
             },
             servers: [
