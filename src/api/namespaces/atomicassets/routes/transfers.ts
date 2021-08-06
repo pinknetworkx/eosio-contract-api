@@ -7,7 +7,7 @@ import { FillerHook, fillTransfers } from '../filler';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { greylistFilterParameters } from '../openapi';
 import ApiNotificationReceiver from '../../../notification';
-import { createSocketApiNamespace } from '../../../utils';
+import { createSocketApiNamespace, respondApiError } from '../../../utils';
 import { NotificationData } from '../../../../filler/notifier';
 import { buildAssetFilter, hasAssetFilter } from '../utils';
 import QueryBuilder from '../../../builder';
@@ -140,8 +140,8 @@ export class TransferApi {
                 );
 
                 return res.json({success: true, data: transfers, query_time: Date.now()});
-            } catch (e) {
-                res.status(500).json({success: false, message: 'Internal Server Error'});
+            } catch (error) {
+                return respondApiError(res, error);
             }
         }));
 

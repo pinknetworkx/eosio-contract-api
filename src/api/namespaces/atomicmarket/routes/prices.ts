@@ -12,6 +12,7 @@ import {
     hideOffersParameters
 } from '../../atomicassets/openapi';
 import QueryBuilder from '../../../builder';
+import { respondApiError } from '../../../utils';
 
 export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/prices/sales', '/v1/prices'], server.web.caching(), async (req, res) => {
@@ -74,8 +75,8 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 })).reverse(),
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -139,8 +140,8 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 })).reverse(),
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -198,8 +199,8 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 data: result.rows,
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -232,8 +233,8 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 data: result.rows,
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 

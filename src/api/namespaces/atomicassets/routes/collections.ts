@@ -13,7 +13,7 @@ import {
     primaryBoundaryParameters
 } from '../../../docs';
 import { greylistFilterParameters } from '../openapi';
-import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
+import { applyActionGreylistFilters, getContractActionLogs, respondApiError } from '../../../utils';
 import QueryBuilder from '../../../builder';
 
 export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
@@ -73,8 +73,8 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
             const result = await server.query(query.buildString(), query.buildValues());
 
             return res.json({success: true, data: result.rows.map((row) => formatCollection(row)), query_time: Date.now()});
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     }));
 
@@ -90,8 +90,8 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
             }
 
             return res.json({success: true, data: formatCollection(query.rows[0]), query_time: Date.now()});
-        } catch (e) {
-            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     }));
 
@@ -117,8 +117,8 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
             );
 
             return res.json({success: true, data: query.rows[0]});
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     }));
 
@@ -135,8 +135,8 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
             );
 
             return res.json({success: true, data: query.rows});
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     }));
 
@@ -157,8 +157,8 @@ export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPSe
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });
-        } catch (e) {
-            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     }));
 

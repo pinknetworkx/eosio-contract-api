@@ -8,6 +8,7 @@ import { HTTPServer } from '../../../server';
 import { greylistFilterParameters, hideOffersParameters } from '../openapi';
 import { buildGreylistFilter, buildHideOffersFilter } from '../utils';
 import QueryBuilder from '../../../builder';
+import { respondApiError } from '../../../utils';
 
 export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/accounts', '/v1/accounts/_count'], server.web.caching(), (async (req, res) => {
@@ -61,8 +62,8 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             const result = await server.query(query.buildString(), query.buildValues());
 
             return res.json({success: true, data: result.rows});
-        } catch (e) {
-            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     }));
 
@@ -120,8 +121,8 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                     assets: collectionResult.rows.reduce((prev, current) => prev + parseInt(current.assets, 10), 0)
                 }
             });
-        } catch (e) {
-            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     }));
 
@@ -150,8 +151,8 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                     templates: templateQuery.rows
                 }
             });
-        } catch (e) {
-            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     }));
 

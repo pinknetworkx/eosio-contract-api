@@ -13,7 +13,7 @@ import {
     primaryBoundaryParameters
 } from '../../../docs';
 import { atomicDataFilter, greylistFilterParameters } from '../openapi';
-import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
+import { applyActionGreylistFilters, getContractActionLogs, respondApiError } from '../../../utils';
 import QueryBuilder from '../../../builder';
 
 export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
@@ -143,8 +143,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                 data: templateQuery.rows.map((row: any) => formatTemplate(templateLookup[String(row.template_id)])),
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     }));
 
@@ -160,8 +160,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             }
 
             return res.json({success: true, data: formatTemplate(query.rows[0]), query_time: Date.now()});
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     }));
 
@@ -175,8 +175,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             );
 
             return res.json({success: true, data: {assets: query.rows[0].assets || '0', burned: query.rows[0].burned || '0'}});
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     }));
 
@@ -197,8 +197,8 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });
-        } catch (e) {
-            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     }));
 

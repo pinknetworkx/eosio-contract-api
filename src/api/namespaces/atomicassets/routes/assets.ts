@@ -18,7 +18,7 @@ import {
     applyActionGreylistFilters,
     createSocketApiNamespace,
     extractNotificationIdentifiers,
-    getContractActionLogs
+    getContractActionLogs, respondApiError
 } from '../../../utils';
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
@@ -150,7 +150,7 @@ export class AssetApi {
                         asset_id: {column: 'asset.asset_id', nullable: false},
                         updated: {column: 'asset.updated_at_time', nullable: false},
                         transferred: {column: 'asset.transferred_at_time', nullable: false},
-                        minted: {column: 'asset.minted_at_time', nullable: false},
+                        minted: {column: 'asset.asset_id', nullable: false},
                         template_mint: {column: 'asset.template_mint', nullable: true},
                         name: {column: '"template".immutable_data->>\'name\'', nullable: true}
                     };
@@ -174,8 +174,8 @@ export class AssetApi {
                 );
 
                 return res.json({success: true, data: assets, query_time: Date.now()});
-            } catch (e) {
-                return res.status(500).json({success: false, message: 'Internal Server Error'});
+            } catch (error) {
+                return respondApiError(res, error);
             }
         }));
 
@@ -192,8 +192,8 @@ export class AssetApi {
                 }
 
                 return res.json({success: true, data: assets[0], query_time: Date.now()});
-            } catch (e) {
-                return res.status(500).json({success: false, message: 'Internal Server Error'});
+            } catch (error) {
+                return respondApiError(res, error);
             }
         }));
 
@@ -216,8 +216,8 @@ export class AssetApi {
                 );
 
                 return res.json({success: true, data: query.rows[0]});
-            } catch (e) {
-                res.status(500).json({success: false, message: 'Internal Server Error'});
+            } catch (error) {
+                return respondApiError(res, error);
             }
         }));
 
@@ -240,10 +240,8 @@ export class AssetApi {
                         (args.page - 1) * args.limit, args.limit, args.order
                     ), query_time: Date.now()
                 });
-            } catch (e) {
-                logger.error(e);
-
-                return res.status(500).json({success: false, message: 'Internal Server Error'});
+            } catch (error) {
+                return respondApiError(res, error);
             }
         }));
 

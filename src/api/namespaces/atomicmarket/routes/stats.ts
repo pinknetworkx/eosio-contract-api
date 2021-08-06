@@ -9,6 +9,7 @@ import { atomicassetsComponents, greylistFilterParameters } from '../../atomicas
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { buildGreylistFilter } from '../../atomicassets/utils';
 import QueryBuilder from '../../../builder';
+import { respondApiError } from '../../../utils';
 
 export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     function getSaleSubCondition (state: SaleApiState, table: string, after?: number, before?: number, filterState: boolean = true): string {
@@ -229,8 +230,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 data: {symbol, results: query.rows.map(row => formatCollection(row))},
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -257,8 +258,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 data: {symbol, result: formatCollection(query.rows[0])},
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -310,8 +311,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 data: {symbol, results: query.rows},
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -349,8 +350,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 data: {symbol, result: query.rows[0]},
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -396,8 +397,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 data: {symbol, results: query.rows},
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -438,8 +439,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 },
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -495,8 +496,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 data: {symbol, results: query.rows.map(row => ({sales: row.sales, volume: row.volume, time: String(row.time_block * 3600 * 24 * 1000)}))},
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -527,8 +528,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 data: {symbol, result: result.rows[0]},
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 

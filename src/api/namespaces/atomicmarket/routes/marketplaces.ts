@@ -3,6 +3,7 @@ import * as express from 'express';
 import { AtomicMarketNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { getOpenAPI3Responses } from '../../../docs';
+import { respondApiError } from '../../../utils';
 
 export function marketplacesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.all('/v1/marketplaces', server.web.caching(), async (_, res) => {
@@ -13,8 +14,8 @@ export function marketplacesEndpoints(core: AtomicMarketNamespace, server: HTTPS
             );
 
             res.json({success: true, data: query.rows, query_time: Date.now()});
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -30,8 +31,8 @@ export function marketplacesEndpoints(core: AtomicMarketNamespace, server: HTTPS
             } else {
                 res.json({success: true, data: query.rows[0], query_time: Date.now()});
             }
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
 
     });
