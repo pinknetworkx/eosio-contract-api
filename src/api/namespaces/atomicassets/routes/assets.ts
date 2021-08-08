@@ -4,7 +4,6 @@ import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter } from '../utils';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
-import logger from '../../../../utils/winston';
 import {
     primaryBoundaryParameters,
     getOpenAPI3Responses,
@@ -31,6 +30,7 @@ export function buildAssetQueryCondition(
     const args = filterQueryArgs(req, {
         authorized_account: {type: 'string', min: 1, max: 12},
         only_duplicate_templates: {type: 'bool'},
+        has_backed_tokens: {type: 'bool'},
 
         template_mint: {type: 'int', min: 1},
 
@@ -59,6 +59,20 @@ export function buildAssetQueryCondition(
             'AND inner_asset.asset_id < ' + options.assetTable + '.asset_id AND inner_asset.owner = ' + options.assetTable + '.owner' +
             ') AND ' + options.assetTable + '.template_id IS NOT NULL'
         );
+    }
+
+    if (typeof args.has_backed_tokens === 'boolean') {
+        if (args.has_backed_tokens) {
+            query.addCondition('EXISTS (' +
+                'SELECT * FROM atomicassets_assets_backed_tokens token ' +
+                'WHERE ' + options.assetTable + '.contract = token.contract AND ' + options.assetTable + '.asset_id = token.asset_id' +
+                ')');
+        } else {
+            query.addCondition('NOT EXISTS (' +
+                'SELECT * FROM atomicassets_assets_backed_tokens token ' +
+                'WHERE ' + options.assetTable + '.contract = token.contract AND ' + options.assetTable + '.asset_id = token.asset_id' +
+                ')');
+        }
     }
 
     buildHideOffersFilter(req, query, options.assetTable);
@@ -262,6 +276,15 @@ export class AssetApi {
                                 name: 'only_duplicate_templates',
                                 in: 'query',
                                 description: 'Show only duplicate assets grouped by template',
+                                required: false,
+                                schema: {
+                                    type: 'boolean'
+                                }
+                            },
+                            {
+                                name: 'has_backed_tokens',
+                                in: 'query',
+                                description: 'Show only assets that are backed by a token',
                                 required: false,
                                 schema: {
                                     type: 'boolean'
