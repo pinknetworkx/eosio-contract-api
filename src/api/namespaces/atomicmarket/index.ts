@@ -1,14 +1,10 @@
 import * as express from 'express';
-import * as path from 'path';
-import * as swagger from 'swagger-ui-express';
 
 import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
-import { getOpenApiDescription } from '../../docs';
 import { AssetApi } from '../atomicassets/routes/assets';
 import { OfferApi } from '../atomicassets/routes/offers';
 import { TransferApi } from '../atomicassets/routes/transfers';
-import logger from '../../../utils/winston';
 import { auctionsEndpoints, auctionSockets } from './routes/auctions';
 import { salesEndpoints, salesSockets } from './routes/sales';
 import { atomicmarketComponents } from './openapi';
@@ -61,7 +57,7 @@ export enum BuyofferApiState {
 export class AtomicMarketNamespace extends ApiNamespace {
     static namespaceName = 'atomicmarket';
 
-    args: AtomicMarketNamespaceArgs;
+    declare args: AtomicMarketNamespaceArgs;
 
     async init(): Promise<void> {
         if (typeof this.args.atomicmarket_account !== 'string') {
@@ -92,37 +88,22 @@ export class AtomicMarketNamespace extends ApiNamespace {
     async router(server: HTTPServer): Promise<express.Router> {
         const router = express.Router();
 
-        const documentation: any = {
-            openapi: '3.0.0',
-            info: {
-                description: getOpenApiDescription(server),
-                version: '1.0.0',
-                title: 'AtomicMarket API'
-            },
-            servers: [
-                {url: 'https://' + server.config.server_name + this.path},
-                {url: 'http://' + server.config.server_name + this.path}
-            ],
-            tags: [],
-            paths: {},
-            components: {
-                schemas: atomicmarketComponents
-            }
-        };
+        server.docs.addSchemas(atomicmarketComponents);
+
 
         if (this.path + '/v1', server.web.limiter) {
             server.web.express.use(this.path + '/v1', server.web.limiter);
         }
 
-        const docs = [];
+        const endpointsDocs = [];
 
-        docs.push(salesEndpoints(this, server, router));
-        docs.push(auctionsEndpoints(this, server, router));
-        docs.push(buyoffersEndpoints(this, server, router));
-        docs.push(marketplacesEndpoints(this, server, router));
-        docs.push(pricesEndpoints(this, server, router));
-        docs.push(statsEndpoints(this, server, router));
-        docs.push(configEndpoints(this, server, router));
+        endpointsDocs.push(salesEndpoints(this, server, router));
+        endpointsDocs.push(auctionsEndpoints(this, server, router));
+        endpointsDocs.push(buyoffersEndpoints(this, server, router));
+        endpointsDocs.push(marketplacesEndpoints(this, server, router));
+        endpointsDocs.push(pricesEndpoints(this, server, router));
+        endpointsDocs.push(statsEndpoints(this, server, router));
+        endpointsDocs.push(configEndpoints(this, server, router));
 
         const assetApi = new AssetApi(
             this, server, 'ListingAsset',
@@ -142,28 +123,27 @@ export class AtomicMarketNamespace extends ApiNamespace {
             formatListingAsset, buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true})
         );
 
-        docs.push(assetApi.endpoints(router));
-        docs.push(transferApi.endpoints(router));
-        docs.push(offerApi.endpoints(router));
+        endpointsDocs.push(assetApi.endpoints(router));
+        endpointsDocs.push(transferApi.endpoints(router));
+        endpointsDocs.push(offerApi.endpoints(router));
 
-        for (const doc of docs) {
-            Object.assign(documentation.paths, doc.paths);
-
+        for (const doc of endpointsDocs) {
             if (doc.tag) {
-                documentation.tags.push(doc.tag);
+                server.docs.addTags([doc.tag]);
+            }
+
+            if (doc.paths) {
+                const paths: any = {};
+
+                for (const path of Object.keys(doc.paths)) {
+                    paths[this.path + path] = doc.paths[path];
+                }
+
+                server.docs.addPaths(paths);
             }
         }
 
-        logger.info('atomicmarket docs on ' + this.path + '/docs');
-        logger.debug('atomicmarket swagger docs', documentation);
-
-        router.use('/docs', express.static(path.resolve(__dirname, '../../../../docs/atomicmarket')));
-
-        router.use('/docs/swagger', swagger.serve);
-        router.get('/docs/swagger', swagger.setup(documentation, {
-            customCss: '.topbar { display: none; }',
-            customCssUrl: 'https://cdn.jsdelivr.net/npm/swagger-ui-themes@3.0.0/themes/3.x/theme-flattop.min.css'
-        }));
+        router.all(['/docs', '/docs/swagger'], (req, res) => res.redirect('/docs'));
 
         return router;
     }

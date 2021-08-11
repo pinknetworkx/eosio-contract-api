@@ -45,7 +45,7 @@ type DatapointsTableRow = {
 export default class DelphiOracleHandler extends ContractHandler {
     static handlerName = 'delphioracle';
 
-    readonly args: DelphiOracleArgs;
+    declare readonly args: DelphiOracleArgs;
 
     config: {
         version: string

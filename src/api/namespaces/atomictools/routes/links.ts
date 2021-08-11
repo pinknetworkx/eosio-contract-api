@@ -15,8 +15,7 @@ import { formatLink } from '../format';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { LinkState } from '../../../../filler/handlers/atomictools';
 import { greylistFilterParameters } from '../../atomicassets/openapi';
-import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
-import logger from '../../../../utils/winston';
+import { applyActionGreylistFilters, getContractActionLogs, respondApiError } from '../../../utils';
 import QueryBuilder from '../../../builder';
 
 export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, router: express.Router): any {
@@ -111,8 +110,8 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
             );
 
             res.json({success: true, data: links, query_time: Date.now()});
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -132,8 +131,8 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
 
                 res.json({success: true, data: links[0], query_time: Date.now()});
             }
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -154,10 +153,8 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });
-        } catch (e) {
-            logger.error(e);
-
-            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     }));
 

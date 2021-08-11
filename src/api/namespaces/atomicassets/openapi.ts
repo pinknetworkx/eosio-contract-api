@@ -1,5 +1,3 @@
-import { LogSchema } from '../../docs';
-
 export function generateOfferSchema(assetSchema: string): any {
     return {
         type: 'object',
@@ -231,8 +229,7 @@ export const atomicassetsComponents = {
         }
     },
     'Offer': generateOfferSchema('Asset'),
-    'Transfer': generateTransferSchema('Asset'),
-    'Log': LogSchema
+    'Transfer': generateTransferSchema('Asset')
 };
 
 export const greylistFilterParameters = [

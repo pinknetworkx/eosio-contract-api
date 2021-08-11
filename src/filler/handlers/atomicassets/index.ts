@@ -50,7 +50,7 @@ export type AtomicAssetsReaderArgs = {
 export default class AtomicAssetsHandler extends ContractHandler {
     static handlerName = 'atomicassets';
 
-    readonly args: AtomicAssetsReaderArgs;
+    declare readonly args: AtomicAssetsReaderArgs;
 
     config: ConfigTableRow;
     tokenconfigs: TokenConfigsTableRow;

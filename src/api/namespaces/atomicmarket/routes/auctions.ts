@@ -13,7 +13,6 @@ import {
     primaryBoundaryParameters
 } from '../../../docs';
 import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/openapi';
-import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
 import { buildGreylistFilter } from '../../atomicassets/utils';
@@ -21,7 +20,7 @@ import {
     applyActionGreylistFilters,
     createSocketApiNamespace,
     extractNotificationIdentifiers,
-    getContractActionLogs
+    getContractActionLogs, respondApiError
 } from '../../../utils';
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
@@ -109,8 +108,8 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             );
 
             res.json({success: true, data: auctions, query_time: Date.now()});
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -130,8 +129,8 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
 
                 res.json({success: true, data: auctions[0], query_time: Date.now()});
             }
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -152,10 +151,8 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                     (args.page - 1) * args.limit, args.limit, args.order
                 ), query_time: Date.now()
             });
-        } catch (e) {
-            logger.error(e);
-
-            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     }));
 

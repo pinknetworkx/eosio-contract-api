@@ -4,7 +4,6 @@ import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter } from '../utils';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
-import logger from '../../../../utils/winston';
 import {
     primaryBoundaryParameters,
     getOpenAPI3Responses,
@@ -18,7 +17,7 @@ import {
     applyActionGreylistFilters,
     createSocketApiNamespace,
     extractNotificationIdentifiers,
-    getContractActionLogs
+    getContractActionLogs, respondApiError
 } from '../../../utils';
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
@@ -31,6 +30,7 @@ export function buildAssetQueryCondition(
     const args = filterQueryArgs(req, {
         authorized_account: {type: 'string', min: 1, max: 12},
         only_duplicate_templates: {type: 'bool'},
+        has_backed_tokens: {type: 'bool'},
 
         template_mint: {type: 'int', min: 1},
 
@@ -59,6 +59,20 @@ export function buildAssetQueryCondition(
             'AND inner_asset.asset_id < ' + options.assetTable + '.asset_id AND inner_asset.owner = ' + options.assetTable + '.owner' +
             ') AND ' + options.assetTable + '.template_id IS NOT NULL'
         );
+    }
+
+    if (typeof args.has_backed_tokens === 'boolean') {
+        if (args.has_backed_tokens) {
+            query.addCondition('EXISTS (' +
+                'SELECT * FROM atomicassets_assets_backed_tokens token ' +
+                'WHERE ' + options.assetTable + '.contract = token.contract AND ' + options.assetTable + '.asset_id = token.asset_id' +
+                ')');
+        } else {
+            query.addCondition('NOT EXISTS (' +
+                'SELECT * FROM atomicassets_assets_backed_tokens token ' +
+                'WHERE ' + options.assetTable + '.contract = token.contract AND ' + options.assetTable + '.asset_id = token.asset_id' +
+                ')');
+        }
     }
 
     buildHideOffersFilter(req, query, options.assetTable);
@@ -150,7 +164,7 @@ export class AssetApi {
                         asset_id: {column: 'asset.asset_id', nullable: false},
                         updated: {column: 'asset.updated_at_time', nullable: false},
                         transferred: {column: 'asset.transferred_at_time', nullable: false},
-                        minted: {column: 'asset.minted_at_time', nullable: false},
+                        minted: {column: 'asset.asset_id', nullable: false},
                         template_mint: {column: 'asset.template_mint', nullable: true},
                         name: {column: '"template".immutable_data->>\'name\'', nullable: true}
                     };
@@ -174,8 +188,8 @@ export class AssetApi {
                 );
 
                 return res.json({success: true, data: assets, query_time: Date.now()});
-            } catch (e) {
-                return res.status(500).json({success: false, message: 'Internal Server Error'});
+            } catch (error) {
+                return respondApiError(res, error);
             }
         }));
 
@@ -192,8 +206,8 @@ export class AssetApi {
                 }
 
                 return res.json({success: true, data: assets[0], query_time: Date.now()});
-            } catch (e) {
-                return res.status(500).json({success: false, message: 'Internal Server Error'});
+            } catch (error) {
+                return respondApiError(res, error);
             }
         }));
 
@@ -216,8 +230,8 @@ export class AssetApi {
                 );
 
                 return res.json({success: true, data: query.rows[0]});
-            } catch (e) {
-                res.status(500).json({success: false, message: 'Internal Server Error'});
+            } catch (error) {
+                return respondApiError(res, error);
             }
         }));
 
@@ -240,10 +254,8 @@ export class AssetApi {
                         (args.page - 1) * args.limit, args.limit, args.order
                     ), query_time: Date.now()
                 });
-            } catch (e) {
-                logger.error(e);
-
-                return res.status(500).json({success: false, message: 'Internal Server Error'});
+            } catch (error) {
+                return respondApiError(res, error);
             }
         }));
 
@@ -264,6 +276,15 @@ export class AssetApi {
                                 name: 'only_duplicate_templates',
                                 in: 'query',
                                 description: 'Show only duplicate assets grouped by template',
+                                required: false,
+                                schema: {
+                                    type: 'boolean'
+                                }
+                            },
+                            {
+                                name: 'has_backed_tokens',
+                                in: 'query',
+                                description: 'Show only assets that are backed by a token',
                                 required: false,
                                 schema: {
                                     type: 'boolean'

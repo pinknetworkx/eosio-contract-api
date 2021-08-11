@@ -6,9 +6,10 @@ import { filterQueryArgs, mergeRequestData } from '../../utils';
 import { formatCollection } from '../../atomicassets/format';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
 import { atomicassetsComponents, greylistFilterParameters } from '../../atomicassets/openapi';
-import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
+import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { buildGreylistFilter } from '../../atomicassets/utils';
 import QueryBuilder from '../../../builder';
+import { respondApiError } from '../../../utils';
 
 export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     function getSaleSubCondition (state: SaleApiState, table: string, after?: number, before?: number, filterState: boolean = true): string {
@@ -229,8 +230,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 data: {symbol, results: query.rows.map(row => formatCollection(row))},
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -257,8 +258,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 data: {symbol, result: formatCollection(query.rows[0])},
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -310,8 +311,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 data: {symbol, results: query.rows},
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -349,8 +350,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 data: {symbol, result: query.rows[0]},
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -396,8 +397,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 data: {symbol, results: query.rows},
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -438,8 +439,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 },
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -495,8 +496,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 data: {symbol, results: query.rows.map(row => ({sales: row.sales, volume: row.volume, time: String(row.time_block * 3600 * 24 * 1000)}))},
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -527,8 +528,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 data: {symbol, result: result.rows[0]},
                 query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 
@@ -544,7 +545,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
     const CollectionResult = {
         type: 'object',
         properties: {
-            ...atomicassetsComponents.Collection,
+            ...atomicassetsComponents.Collection.properties,
             listings: {type: 'string'},
             volume: {type: 'string'},
             sales: {type: 'string'}
@@ -569,27 +570,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     };
 
-    const boundaryParams = [
-        {
-            name: 'after',
-            in: 'query',
-            description: 'Only sales after this time',
-            required: false,
-            schema: {
-                type: 'integer'
-            }
-        },
-        {
-            name: 'before',
-            in: 'query',
-            description: 'Only sales before this time',
-            required: false,
-            schema: {
-                type: 'integer'
-            }
-        }
-    ];
-
     return {
         tag: {
             name: 'stats',
@@ -610,7 +590,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
-                        ...boundaryParams,
+                        ...primaryBoundaryParameters,
+                        ...dateBoundaryParameters,
                         ...paginationParameters,
                         ...greylistFilterParameters,
                         {
@@ -662,7 +643,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                         type: 'object',
                         properties: {
                             symbol: SymbolResult,
-                            result: {type: 'array', items: CollectionResult}
+                            results: {type: 'array', items: CollectionResult}
                         }
                     })
                 }
@@ -681,7 +662,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
-                        ...boundaryParams,
+                        ...primaryBoundaryParameters,
+                        ...dateBoundaryParameters,
                         ...greylistFilterParameters,
                         ...paginationParameters,
                         {
@@ -762,7 +744,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
-                        ...boundaryParams,
+                        ...primaryBoundaryParameters,
+                        ...dateBoundaryParameters,
                         ...paginationParameters,
                         {
                             name: 'sort',

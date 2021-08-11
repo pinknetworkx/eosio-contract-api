@@ -3,6 +3,7 @@ import * as express from 'express';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { getOpenAPI3Responses } from '../../../docs';
+import { respondApiError } from '../../../utils';
 
 export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/config', server.web.caching({ignoreQueryString: true}), (async (_, res) => {
@@ -33,8 +34,8 @@ export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer,
                     supported_tokens: tokensQuery.rows
                 }, query_time: Date.now()
             });
-        } catch (e) {
-            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     }));
 

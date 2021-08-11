@@ -3,6 +3,7 @@ import * as express from 'express';
 import { AtomicMarketNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { getOpenAPI3Responses } from '../../../docs';
+import { respondApiError } from '../../../utils';
 
 export function configEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.get('/v1/config', server.web.caching(), async (_, res) => {
@@ -49,8 +50,8 @@ export function configEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                     supported_pairs: pairsQuery.rows
                 }, query_time: Date.now()
             });
-        } catch (e) {
-            res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     });
 

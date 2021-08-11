@@ -2,7 +2,7 @@
   "compilerOptions": {
     "module": "commonjs",
     "noImplicitAny": true,
-    "target": "es2020",
+    "target": "esnext",
     "outDir": "./build",
     "sourceMap": true,
     "allowJs": true

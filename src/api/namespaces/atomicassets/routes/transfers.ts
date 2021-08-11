@@ -7,7 +7,7 @@ import { FillerHook, fillTransfers } from '../filler';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { greylistFilterParameters } from '../openapi';
 import ApiNotificationReceiver from '../../../notification';
-import { createSocketApiNamespace } from '../../../utils';
+import { createSocketApiNamespace, respondApiError } from '../../../utils';
 import { NotificationData } from '../../../../filler/notifier';
 import { buildAssetFilter, hasAssetFilter } from '../utils';
 import QueryBuilder from '../../../builder';
@@ -40,7 +40,9 @@ export class TransferApi {
 
                     account: {type: 'string', min: 1},
                     sender: {type: 'string', min: 1},
-                    recipient: {type: 'string', min: 1}
+                    recipient: {type: 'string', min: 1},
+
+                    hide_contracts: {type: 'bool'}
                 });
 
                 const query = new QueryBuilder('SELECT * FROM ' + this.transferView + ' transfer');
@@ -103,6 +105,15 @@ export class TransferApi {
                     );
                 }
 
+                if (args.hide_contracts) {
+                    query.addCondition(
+                        'NOT EXISTS(SELECT * FROM contract_codes ' +
+                        'WHERE (account = transfer.recipient_name OR account = transfer.sender_name) AND NOT (account = ANY(' +
+                        query.addVariable([args.account, args.sender, args.recipient].filter(row => !!row)) +
+                        ')))'
+                    );
+                }
+
                 buildBoundaryFilter(req, query, 'transfer_id', 'int', 'created_at_time');
 
                 if (req.originalUrl.search('/_count') >= 0) {
@@ -129,8 +140,8 @@ export class TransferApi {
                 );
 
                 return res.json({success: true, data: transfers, query_time: Date.now()});
-            } catch (e) {
-                res.status(500).json({success: false, message: 'Internal Server Error'});
+            } catch (error) {
+                return respondApiError(res, error);
             }
         }));
 
@@ -193,6 +204,13 @@ export class TransferApi {
                                 description: 'only transfers which contain assets of this collection - separate multiple with ","',
                                 required: false,
                                 schema: {type: 'string'}
+                            },
+                            {
+                                name: 'hide_contracts',
+                                in: 'query',
+                                description: 'dont show transfers from or to accounts that have code deployed',
+                                required: false,
+                                schema: {type: 'boolean'}
                             },
                             ...primaryBoundaryParameters,
                             ...dateBoundaryParameters,

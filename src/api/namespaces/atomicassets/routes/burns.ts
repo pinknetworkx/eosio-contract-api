@@ -8,6 +8,7 @@ import { greylistFilterParameters, hideOffersParameters } from '../openapi';
 import { buildGreylistFilter, buildHideOffersFilter } from '../utils';
 import QueryBuilder from '../../../builder';
 import { formatCollection } from '../format';
+import { respondApiError } from '../../../utils';
 
 export function burnEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/burns'], server.web.caching(), (async (req, res) => {
@@ -28,7 +29,7 @@ export function burnEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, r
             query.equal('contract', core.args.atomicassets_account).notNull('burned_by_account');
 
             if (args.match) {
-                query.addCondition('POSITION(' + query.addVariable(args.match.toLowerCase()) + ' IN owner) > 0');
+                query.addCondition('POSITION(' + query.addVariable(args.match.toLowerCase()) + ' IN burned_by_account) > 0');
             }
 
             buildGreylistFilter(req, query, {collectionName: 'asset.collection_name'});
@@ -46,9 +47,9 @@ export function burnEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, r
             }
 
             buildHideOffersFilter(req, query, 'asset');
-            buildBoundaryFilter(req, query, 'owner', 'string', null);
+            buildBoundaryFilter(req, query, 'burned_by_account', 'string', null);
 
-            query.group(['owner']);
+            query.group(['burned_by_account']);
 
             if (req.originalUrl.search('/_count') >= 0) {
                 const countQuery = await server.query('SELECT COUNT(*) counter FROM (' + query.buildString() + ') x', query.buildValues());
@@ -61,8 +62,8 @@ export function burnEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, r
             const result = await server.query(query.buildString(), query.buildValues());
 
             return res.json({success: true, data: result.rows});
-        } catch (e) {
-            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     }));
 
@@ -120,8 +121,8 @@ export function burnEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, r
                     assets: collectionResult.rows.reduce((prev, current) => prev + parseInt(current.assets, 10), 0)
                 }
             });
-        } catch (e) {
-            return res.status(500).json({success: false, message: 'Internal Server Error'});
+        } catch (error) {
+            return respondApiError(res, error);
         }
     }));
 
