@@ -12,21 +12,20 @@ services:
       - ./test-config:/home/application/app/config
     networks:
       - eosio-contract-api
-#  eosio-contract-api-server:
-#    container_name: eosio-contract-api-server
-#    build: .
-#    command: yarn run start:server
-#    restart: on-failure
-#    ports:
-#      - "9000:9000"
-#    depends_on:
-#      - postgres
-#      - redis
-#    volumes:
-#      - ./config:/home/application/app/config
-#    networks:
-#      - eosio-contract-api
-
+  eosio-contract-api-server:
+    container_name: eosio-contract-api-server
+    build: .
+    command: yarn run start:server
+    restart: on-failure
+    ports:
+      - "9000:9000"
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./config:/home/application/app/config
+    networks:
+      - eosio-contract-api
   redis:
     container_name: eosio-contract-api-redis
     image: redis:5-alpine
@@ -37,7 +36,6 @@ services:
       - ./docker/redis/data:/data
     networks:
       - eosio-contract-api
-
   postgres:
     container_name: eosio-contract-api-postgres
     image: postgres:12
@@ -54,38 +52,6 @@ services:
       - ./docker/postgres/dump:/var/lib/postgresql/dump
     networks:
       - eosio-contract-api
-
-  node-http:
-    image: kroniak/ssh-client
-    volumes:
-      - ~/.ssh:/root/.ssh:ro
-    ports:
-    - 18888:18888
-    command:
-      - ssh
-      - -v
-      - -o
-      - StrictHostKeyChecking=no
-      - neftyblocks1.itmlabs.io
-      - -N
-      - -L
-      - 0.0.0.0:18888:127.0.0.1:18888
-
-  node-ship:
-    image: kroniak/ssh-client
-    volumes:
-      - ~/.ssh:/root/.ssh:ro
-    ports:
-      - 18080:8080
-    command:
-      - ssh
-      - -v
-      - -o
-      - StrictHostKeyChecking=no
-      - neftyblocks1.itmlabs.io
-      - -N
-      - -L
-      - 0.0.0.0:8080:172.19.0.3:8080
 
 networks:
   eosio-contract-api:
