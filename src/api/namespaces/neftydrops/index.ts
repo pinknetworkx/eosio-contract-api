@@ -25,7 +25,7 @@ export enum DropApiState {
 export class NeftyDropsNamespace extends ApiNamespace {
     static namespaceName = 'neftydrops';
 
-    args: NeftyDropsNamespaceArgs;
+    declare args: NeftyDropsNamespaceArgs;
 
     async init(): Promise<void> {
         if (typeof this.args.neftydrops_account !== 'string') {

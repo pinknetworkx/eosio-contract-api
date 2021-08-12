@@ -40,7 +40,7 @@ const procedures: string[] = [];
 export default class NeftyDropsHandler extends ContractHandler {
     static handlerName = 'neftydrops';
 
-    readonly args: NeftyDropsArgs;
+    declare readonly args: NeftyDropsArgs;
 
     config: ConfigTableRow;
 
