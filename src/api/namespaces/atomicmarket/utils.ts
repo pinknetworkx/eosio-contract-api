@@ -6,6 +6,7 @@ import { AuctionApiState, BuyofferApiState, SaleApiState } from './index';
 import { AuctionState, BuyofferState, SaleState } from '../../../filler/handlers/atomicmarket';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 import QueryBuilder from '../../builder';
+import { ApiError } from '../../error';
 
 export function buildListingFilter(req: express.Request, query: QueryBuilder): void {
     const args = filterQueryArgs(req, {
@@ -146,6 +147,8 @@ export function buildSaleFilter(req: express.Request, query: QueryBuilder): void
         if (args.max_price) {
             query.addCondition('price.price <= 1.0 * ' + query.addVariable(args.max_price) + ' * POWER(10, price.settlement_precision)');
         }
+    } else if (args.min_price || args.max_price) {
+        throw new ApiError('Price range filters require the "symbol" filter');
     }
 
     if (args.state) {
@@ -257,6 +260,8 @@ export function buildAuctionFilter(req: express.Request, query: QueryBuilder): v
         if (args.max_price) {
             query.addCondition('listing.price <= 1.0 * ' + query.addVariable(args.max_price) + ' * POWER(10, "token".token_precision)');
         }
+    } else if (args.min_price || args.max_price) {
+        throw new ApiError('Price range filters require the "symbol" filter');
     }
 
     if (args.state) {
@@ -344,6 +349,8 @@ export function buildBuyofferFilter(req: express.Request, query: QueryBuilder): 
         if (args.max_price) {
             query.addCondition('listing.price <= 1.0 * ' + query.addVariable(args.max_price) + ' * POWER(10, "token".token_precision)');
         }
+    } else if (args.min_price || args.max_price) {
+        throw new ApiError('Price range filters require the "symbol" filter');
     }
 
     if (args.state) {
