@@ -20,6 +20,7 @@ export function buildListingFilter(req: express.Request, query: QueryBuilder): v
         taker_marketplace: {type: 'string', min: 1, max: 12},
         marketplace: {type: 'string', min: 1, max: 12},
 
+        account: {type: 'string', min: 1},
         seller: {type: 'string', min: 1},
         buyer: {type: 'string', min: 1},
 
@@ -28,6 +29,12 @@ export function buildListingFilter(req: express.Request, query: QueryBuilder): v
         min_template_mint: {type: 'int', min: 1},
         max_template_mint: {type: 'int', min: 1}
     });
+
+    if (args.account) {
+        const varName = query.addVariable(args.account.split(','));
+
+        query.addCondition('(listing.buyer = ANY (' + varName + ') OR listing.seller = ANY (' + varName + '))');
+    }
 
     if (args.seller) {
         query.equalMany('listing.seller', args.seller.split(','));
