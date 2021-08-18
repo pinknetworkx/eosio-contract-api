@@ -360,12 +360,12 @@ export function buildBuyofferFilter(req: express.Request, query: QueryBuilder): 
             stateConditions.push(
                 `(listing.state = ${BuyofferState.PENDING.valueOf()} AND 
                     NOT EXISTS(
-                        SELECT * FROM atomicmarket_buyoffer_assets buyoffer_asset, atomicassets_assets asset) 
+                        SELECT * FROM atomicmarket_buyoffer_assets buyoffer_asset, atomicassets_assets asset
                         WHERE asset.contract = buyoffer_asset.assets_contract AND asset.asset_id = buyoffer_asset.asset_id AND
                             buyoffer_asset.market_contract = listing.market_contract AND buyoffer_asset.buyoffer_id = listing.buyoffer_id AND
                             asset.owner != listing.seller
                     )
-                `);
+                )`);
         }
 
         if (args.state.split(',').indexOf(String(BuyofferApiState.DECLINED.valueOf())) >= 0) {
@@ -384,12 +384,12 @@ export function buildBuyofferFilter(req: express.Request, query: QueryBuilder): 
             stateConditions.push(
                 `(listing.state = ${BuyofferState.PENDING.valueOf()} AND 
                     EXISTS(
-                        SELECT * FROM atomicmarket_buyoffer_assets buyoffer_asset, atomicassets_assets asset) 
+                        SELECT * FROM atomicmarket_buyoffer_assets buyoffer_asset, atomicassets_assets asset
                         WHERE asset.contract = buyoffer_asset.assets_contract AND asset.asset_id = buyoffer_asset.asset_id AND
                             buyoffer_asset.market_contract = listing.market_contract AND buyoffer_asset.buyoffer_id = listing.buyoffer_id AND
                             asset.owner != listing.seller
                     )
-                `);
+                )`);
         }
 
         query.addCondition('(' + stateConditions.join(' OR ') + ')');

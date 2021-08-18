@@ -187,7 +187,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             const symbol = await fetchSymbol(args.symbol);
 
-            if (symbol === null) {
+            if (!symbol) {
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
@@ -240,7 +240,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             const data = mergeRequestData(req);
             const symbol = await fetchSymbol(String(data.symbol));
 
-            if (symbol === null) {
+            if (!symbol) {
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
@@ -281,7 +281,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             const symbol = await fetchSymbol(args.symbol);
 
-            if (symbol === null) {
+            if (!symbol) {
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
@@ -327,7 +327,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             const symbol = await fetchSymbol(args.symbol);
 
-            if (symbol === null) {
+            if (!symbol) {
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
@@ -369,7 +369,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             const symbol = await fetchSymbol(args.symbol);
 
-            if (symbol === null) {
+            if (!symbol) {
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
@@ -415,7 +415,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             const symbol = await fetchSymbol(args.symbol);
 
-            if (symbol === null) {
+            if (!symbol) {
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
@@ -460,7 +460,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             const symbol = await fetchSymbol(args.symbol);
 
-            if (symbol === null) {
+            if (!symbol) {
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
@@ -509,7 +509,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             const symbol = await fetchSymbol(args.symbol);
 
-            if (symbol === null) {
+            if (!symbol) {
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
