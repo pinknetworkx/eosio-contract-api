@@ -92,8 +92,6 @@ export class WebServer {
     readonly limiter: expressRateLimit.RateLimit;
     readonly caching: ExpressRedisCacheHandler;
 
-    public documentation: any;
-
     constructor(readonly server: HTTPServer) {
         this.express = express();
 
@@ -144,8 +142,8 @@ export class WebServer {
     }
 
     private middleware(): void {
-        this.express.use(bodyParser.json());
-        this.express.use(bodyParser.urlencoded({ extended: false }));
+        this.express.use(bodyParser.json({limit: '10MB'}));
+        this.express.use(bodyParser.urlencoded({ extended: false, limit: '10MB' }));
         this.express.use(cookieParser());
         this.express.use(cors());
 
