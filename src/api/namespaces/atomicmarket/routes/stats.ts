@@ -439,7 +439,12 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             const statsQuery = await server.query<{schema_name: string, volume: string, sales: string}>(query.buildString(), query.buildValues());
             const schemasQuery = await server.query<{schema_name: string}>(
-                'SELECT schema_name FROM atomicassets_schemas WHERE contract = $1 AND collection_name = $2',
+                'SELECT schema_name ' +
+                'FROM atomicassets_schemas "schema" WHERE contract = $1 AND collection_name = $2 AND EXISTS (' +
+                    'SELECT * FROM atomicassets_assets asset' +
+                    'WHERE asset.contract = "schema".contract AND asset.collection_name = "schema".collection_name AND ' +
+                    'asset.schema_name = "schema".schema_name AND "owner" IS NOT NULL' +
+                ') ',
                 [core.args.atomicassets_account, req.params.collection_name]
             );
 
