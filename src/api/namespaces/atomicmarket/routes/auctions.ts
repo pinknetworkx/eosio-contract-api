@@ -12,7 +12,7 @@ import {
     paginationParameters,
     primaryBoundaryParameters
 } from '../../../docs';
-import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/openapi';
+import { extendedAssetFilterParameters, atomicDataFilter, baseAssetFilterParameters } from '../../atomicassets/openapi';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
 import { buildGreylistFilter } from '../../atomicassets/utils';
@@ -196,7 +196,8 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                             schema: {type: 'string'}
                         },
                         ...listingFilterParameters,
-                        ...assetFilterParameters,
+                        ...baseAssetFilterParameters,
+                        ...extendedAssetFilterParameters,
                         ...primaryBoundaryParameters,
                         ...dateBoundaryParameters,
                         ...paginationParameters,

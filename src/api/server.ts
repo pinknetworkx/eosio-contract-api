@@ -60,7 +60,7 @@ export class HTTPServer {
         this.httpServer.listen(this.config.server_port, this.config.server_addr);
     }
 
-    async query(queryText: string, values?: any[]): Promise<QueryResult> {
+    async query<T = any>(queryText: string, values?: any[]): Promise<QueryResult<T>> {
         const startTime = Date.now();
 
         logger.debug(queryText, values);

@@ -402,6 +402,71 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     });
 
+    router.all('/v2/stats/schemas/:collection_name', server.web.caching(), async (req, res) => {
+        try {
+            const args = filterQueryArgs(req, {
+                symbol: {type: 'string', min: 1},
+
+                before: {type: 'int', min: 1},
+                after: {type: 'int', min: 1}
+            });
+
+            const symbol = await fetchSymbol(args.symbol);
+
+            if (!symbol) {
+                return res.status(500).json({success: false, message: 'Symbol not found'});
+            }
+
+            const query = new QueryBuilder(
+                'SELECT template.schema_name, SUM(price.price) volume, COUNT(*) sales ' +
+                'FROM atomicmarket_stats_prices price, atomicassets_templates "template" ' +
+                'WHERE price.assets_contract = template.contract AND price.template_id = template.template_id'
+            );
+
+            query.equal('price.market_contract', core.args.atomicmarket_account);
+            query.equal('price.symbol', args.symbol);
+            query.equal('price.collection_name', req.params.collection_name);
+
+            if (args.after) {
+                query.addCondition('price.time > ' + query.addVariable(args.after) + '::BIGINT');
+            }
+
+            if (args.before) {
+                query.addCondition('price.time < ' + query.addVariable(args.before) + '::BIGINT');
+            }
+
+            query.group(['template.contract', 'template.collection_name', 'template.schema_name']);
+
+            const statsQuery = await server.query<{schema_name: string, volume: string, sales: string}>(query.buildString(), query.buildValues());
+            const schemasQuery = await server.query<{schema_name: string}>(
+                'SELECT schema_name FROM atomicassets_schemas WHERE contract = $1 AND collection_name = $2',
+                [core.args.atomicassets_account, req.params.collection_name]
+            );
+
+            const result = schemasQuery.rows.map(row => {
+                const stats = statsQuery.rows.find(row2 => row.schema_name === row2.schema_name);
+
+                if (stats) {
+                    return stats;
+                }
+
+                return {
+                    schema_name: row.schema_name,
+                    volume: '0',
+                    sales: '0'
+                };
+            });
+
+            res.json({
+                success: true,
+                data: {symbol, results: result},
+                query_time: Date.now()
+            });
+        } catch (error) {
+            return respondApiError(res, error);
+        }
+    });
+
     router.all('/v1/stats/markets', server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {

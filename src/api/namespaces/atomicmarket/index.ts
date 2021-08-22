@@ -16,6 +16,7 @@ import { pricesEndpoints } from './routes/prices';
 import { statsEndpoints } from './routes/stats';
 import ApiNotificationReceiver from '../../notification';
 import { buyoffersEndpoints, buyofferSockets } from './routes/buyoffers';
+import { assetsEndpoints } from './routes/assets';
 
 export type AtomicMarketNamespaceArgs = {
     atomicmarket_account: string
@@ -123,7 +124,8 @@ export class AtomicMarketNamespace extends ApiNamespace {
             formatListingAsset, buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true})
         );
 
-        endpointsDocs.push(assetApi.endpoints(router));
+        endpointsDocs.push(assetsEndpoints(this, server, router));
+        endpointsDocs.push(assetApi.singleAssetEndpoints(router));
         endpointsDocs.push(transferApi.endpoints(router));
         endpointsDocs.push(offerApi.endpoints(router));
 

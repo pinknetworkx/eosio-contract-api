@@ -11,7 +11,13 @@ import {
     dateBoundaryParameters,
     actionGreylistParameters
 } from '../../../docs';
-import { assetFilterParameters, atomicDataFilter, greylistFilterParameters, hideOffersParameters } from '../openapi';
+import {
+    extendedAssetFilterParameters,
+    atomicDataFilter,
+    greylistFilterParameters,
+    hideOffersParameters,
+    baseAssetFilterParameters, completeAssetFilterParameters
+} from '../openapi';
 import { fillAssets, FillerHook } from '../filler';
 import {
     applyActionGreylistFilters,
@@ -29,6 +35,8 @@ export function buildAssetQueryCondition(
 ): void {
     const args = filterQueryArgs(req, {
         authorized_account: {type: 'string', min: 1, max: 12},
+        hide_templates_by_accounts: {type: 'string', min: 1, max: 12},
+
         only_duplicate_templates: {type: 'bool'},
         has_backed_tokens: {type: 'bool'},
 
@@ -47,6 +55,16 @@ export function buildAssetQueryCondition(
             'SELECT * FROM atomicassets_collections collection ' +
             'WHERE collection.collection_name = ' + options.assetTable + '.collection_name AND collection.contract = ' + options.assetTable + '.contract ' +
             'AND ' + query.addVariable(args.authorized_account) + ' = ANY(collection.authorized_accounts)' +
+            ')'
+        );
+    }
+
+    if (args.hide_templates_by_accounts) {
+        query.addCondition(
+            'NOT EXISTS(' +
+            'SELECT * FROM atomicassets_assets asset2 ' +
+            'WHERE asset2.template_id = ' + options.assetTable + '.template_id AND asset2.contract = ' + options.assetTable + '.contract ' +
+            'AND asset2.owner = ANY(' + query.addVariable(args.hide_templates_by_accounts.split(',')) + ')' +
             ')'
         );
     }
@@ -123,7 +141,7 @@ export class AssetApi {
         readonly fillerHook?: FillerHook
     ) { }
 
-    endpoints(router: express.Router): any {
+    multipleAssetEndpoints(router: express.Router): any {
         router.all(['/v1/assets', '/v1/assets/_count'], this.server.web.caching(), (async (req, res) => {
             try {
                 const args = filterQueryArgs(req, {
@@ -193,6 +211,46 @@ export class AssetApi {
             }
         }));
 
+        return {
+            tag: {
+                name: 'assets',
+                description: 'Assets'
+            },
+            paths: {
+                '/v1/assets': {
+                    get: {
+                        tags: ['assets'],
+                        summary: 'Fetch assets.',
+                        description: atomicDataFilter,
+                        parameters: [
+                            ...baseAssetFilterParameters,
+                            ...extendedAssetFilterParameters,
+                            ...completeAssetFilterParameters,
+                            ...hideOffersParameters,
+                            ...greylistFilterParameters,
+                            ...primaryBoundaryParameters,
+                            ...dateBoundaryParameters,
+                            ...paginationParameters,
+                            {
+                                name: 'sort',
+                                in: 'query',
+                                description: 'Column to sort',
+                                required: false,
+                                schema: {
+                                    type: 'string',
+                                    enum: ['asset_id', 'minted', 'updated', 'transferred', 'template_mint', 'name'],
+                                    default: 'asset_id'
+                                }
+                            }
+                        ],
+                        responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/' + this.schema}})
+                    }
+                }
+            }
+        };
+    }
+
+    singleAssetEndpoints(router: express.Router): any {
         router.all('/v1/assets/:asset_id', this.server.web.caching({ignoreQueryString: true}), (async (req, res) => {
             try {
                 const assets = await fillAssets(
@@ -265,78 +323,6 @@ export class AssetApi {
                 description: 'Assets'
             },
             paths: {
-                '/v1/assets': {
-                    get: {
-                        tags: ['assets'],
-                        summary: 'Fetch assets.',
-                        description: atomicDataFilter,
-                        parameters: [
-                            ...assetFilterParameters,
-                            {
-                                name: 'only_duplicate_templates',
-                                in: 'query',
-                                description: 'Show only duplicate assets grouped by template',
-                                required: false,
-                                schema: {
-                                    type: 'boolean'
-                                }
-                            },
-                            {
-                                name: 'has_backed_tokens',
-                                in: 'query',
-                                description: 'Show only assets that are backed by a token',
-                                required: false,
-                                schema: {
-                                    type: 'boolean'
-                                }
-                            },
-                            {
-                                name: 'authorized_account',
-                                in: 'query',
-                                description: 'Filter for assets the provided account can edit. ',
-                                required: false,
-                                schema: {
-                                    type: 'string'
-                                }
-                            },
-                            {
-                                name: 'template_whitelist',
-                                in: 'query',
-                                description: 'Filter for multiple template ids split by ","',
-                                required: false,
-                                schema: {
-                                    type: 'string'
-                                }
-                            },
-                            {
-                                name: 'template_blacklist',
-                                in: 'query',
-                                description: 'Dont include specific template ids split by ","',
-                                required: false,
-                                schema: {
-                                    type: 'string'
-                                }
-                            },
-                            ...hideOffersParameters,
-                            ...greylistFilterParameters,
-                            ...primaryBoundaryParameters,
-                            ...dateBoundaryParameters,
-                            ...paginationParameters,
-                            {
-                                name: 'sort',
-                                in: 'query',
-                                description: 'Column to sort',
-                                required: false,
-                                schema: {
-                                    type: 'string',
-                                    enum: ['asset_id', 'minted', 'updated', 'transferred', 'template_mint', 'name'],
-                                    default: 'asset_id'
-                                }
-                            }
-                        ],
-                        responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/' + this.schema}})
-                    }
-                },
                 '/v1/assets/{asset_id}': {
                     get: {
                         tags: ['assets'],

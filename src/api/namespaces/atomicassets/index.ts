@@ -66,7 +66,8 @@ export class AtomicAssetsNamespace extends ApiNamespace {
             'atomicassets_assets_master', formatAsset
         );
 
-        endpointsDocs.push(assetApi.endpoints(router));
+        endpointsDocs.push(assetApi.multipleAssetEndpoints(router));
+        endpointsDocs.push(assetApi.singleAssetEndpoints(router));
         endpointsDocs.push(collectionsEndpoints(this, server, router));
         endpointsDocs.push(schemasEndpoints(this, server, router));
         endpointsDocs.push(templatesEndpoints(this, server, router));

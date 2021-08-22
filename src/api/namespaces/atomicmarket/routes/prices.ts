@@ -6,7 +6,7 @@ import { getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters }
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { buildAssetQueryCondition } from '../../atomicassets/routes/assets';
 import {
-    assetFilterParameters,
+    extendedAssetFilterParameters,
     baseAssetFilterParameters,
     greylistFilterParameters,
     hideOffersParameters
@@ -350,7 +350,8 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                     tags: ['pricing'],
                     summary: 'Gets price history for a template or schema',
                     parameters: [
-                        ...assetFilterParameters,
+                        ...baseAssetFilterParameters,
+                        ...extendedAssetFilterParameters,
                         {
                             name: 'authorized_account',
                             in: 'query',
