@@ -131,8 +131,8 @@ export function assetsEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                                 type: 'string',
                                 enum: [
                                     'asset_id', 'minted', 'updated', 'transferred',
-                                    'template_mint', 'name', 'suggested_median',
-                                    'suggested_average', 'median', 'average'
+                                    'template_mint', 'name', 'suggested_median_price',
+                                    'suggested_average_price', 'median_price', 'average_price'
                                 ],
                                 default: 'asset_id'
                             }
