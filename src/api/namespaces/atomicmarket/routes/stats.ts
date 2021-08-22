@@ -419,9 +419,10 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             const query = new QueryBuilder(
                 'SELECT template.schema_name, SUM(price.price) volume, COUNT(*) sales ' +
-                'FROM atomicmarket_stats_prices price, atomicassets_templates "template" ' +
-                'WHERE price.assets_contract = template.contract AND price.template_id = template.template_id'
+                'FROM atomicmarket_stats_prices price, atomicassets_templates "template" '
             );
+
+            query.addCondition('price.assets_contract = template.contract AND price.template_id = template.template_id');
 
             query.equal('price.market_contract', core.args.atomicmarket_account);
             query.equal('price.symbol', args.symbol);
@@ -461,6 +462,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                     sales: '0'
                 };
             });
+
+            result.sort((a, b) => parseInt(b.volume, 10) - parseInt(a.volume, 10));
 
             res.json({
                 success: true,
