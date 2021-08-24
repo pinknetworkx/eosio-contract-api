@@ -258,6 +258,13 @@ export const listingFilterParameters = [
         schema: {type: 'string'}
     },
     {
+        name: 'account',
+        in: 'query',
+        description: 'Filter accounts that are either seller or buyer',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
         name: 'seller',
         in: 'query',
         description: 'Filter by seller - separate multiple with ","',

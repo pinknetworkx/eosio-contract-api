@@ -6,6 +6,7 @@ import { AuctionApiState, BuyofferApiState, SaleApiState } from './index';
 import { AuctionState, BuyofferState, SaleState } from '../../../filler/handlers/atomicmarket';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 import QueryBuilder from '../../builder';
+import { ApiError } from '../../error';
 
 export function buildListingFilter(req: express.Request, query: QueryBuilder): void {
     const args = filterQueryArgs(req, {
@@ -19,6 +20,7 @@ export function buildListingFilter(req: express.Request, query: QueryBuilder): v
         taker_marketplace: {type: 'string', min: 1, max: 12},
         marketplace: {type: 'string', min: 1, max: 12},
 
+        account: {type: 'string', min: 1},
         seller: {type: 'string', min: 1},
         buyer: {type: 'string', min: 1},
 
@@ -27,6 +29,12 @@ export function buildListingFilter(req: express.Request, query: QueryBuilder): v
         min_template_mint: {type: 'int', min: 1},
         max_template_mint: {type: 'int', min: 1}
     });
+
+    if (args.account) {
+        const varName = query.addVariable(args.account.split(','));
+
+        query.addCondition('(listing.buyer = ANY (' + varName + ') OR listing.seller = ANY (' + varName + '))');
+    }
 
     if (args.seller) {
         query.equalMany('listing.seller', args.seller.split(','));
@@ -146,6 +154,8 @@ export function buildSaleFilter(req: express.Request, query: QueryBuilder): void
         if (args.max_price) {
             query.addCondition('price.price <= 1.0 * ' + query.addVariable(args.max_price) + ' * POWER(10, price.settlement_precision)');
         }
+    } else if (args.min_price || args.max_price) {
+        throw new ApiError('Price range filters require the "symbol" filter');
     }
 
     if (args.state) {
@@ -257,6 +267,8 @@ export function buildAuctionFilter(req: express.Request, query: QueryBuilder): v
         if (args.max_price) {
             query.addCondition('listing.price <= 1.0 * ' + query.addVariable(args.max_price) + ' * POWER(10, "token".token_precision)');
         }
+    } else if (args.min_price || args.max_price) {
+        throw new ApiError('Price range filters require the "symbol" filter');
     }
 
     if (args.state) {
@@ -344,6 +356,8 @@ export function buildBuyofferFilter(req: express.Request, query: QueryBuilder): 
         if (args.max_price) {
             query.addCondition('listing.price <= 1.0 * ' + query.addVariable(args.max_price) + ' * POWER(10, "token".token_precision)');
         }
+    } else if (args.min_price || args.max_price) {
+        throw new ApiError('Price range filters require the "symbol" filter');
     }
 
     if (args.state) {
@@ -353,12 +367,12 @@ export function buildBuyofferFilter(req: express.Request, query: QueryBuilder): 
             stateConditions.push(
                 `(listing.state = ${BuyofferState.PENDING.valueOf()} AND 
                     NOT EXISTS(
-                        SELECT * FROM atomicmarket_buyoffer_assets buyoffer_asset, atomicassets_assets asset) 
+                        SELECT * FROM atomicmarket_buyoffers_assets buyoffer_asset, atomicassets_assets asset
                         WHERE asset.contract = buyoffer_asset.assets_contract AND asset.asset_id = buyoffer_asset.asset_id AND
                             buyoffer_asset.market_contract = listing.market_contract AND buyoffer_asset.buyoffer_id = listing.buyoffer_id AND
                             asset.owner != listing.seller
                     )
-                `);
+                )`);
         }
 
         if (args.state.split(',').indexOf(String(BuyofferApiState.DECLINED.valueOf())) >= 0) {
@@ -377,12 +391,12 @@ export function buildBuyofferFilter(req: express.Request, query: QueryBuilder): 
             stateConditions.push(
                 `(listing.state = ${BuyofferState.PENDING.valueOf()} AND 
                     EXISTS(
-                        SELECT * FROM atomicmarket_buyoffer_assets buyoffer_asset, atomicassets_assets asset) 
+                        SELECT * FROM atomicmarket_buyoffers_assets buyoffer_asset, atomicassets_assets asset
                         WHERE asset.contract = buyoffer_asset.assets_contract AND asset.asset_id = buyoffer_asset.asset_id AND
                             buyoffer_asset.market_contract = listing.market_contract AND buyoffer_asset.buyoffer_id = listing.buyoffer_id AND
                             asset.owner != listing.seller
                     )
-                `);
+                )`);
         }
 
         query.addCondition('(' + stateConditions.join(' OR ') + ')');

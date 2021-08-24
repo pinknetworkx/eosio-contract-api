@@ -294,7 +294,7 @@ export const baseAssetFilterParameters = [
     },
 ];
 
-export const assetFilterParameters = [
+export const extendedAssetFilterParameters = [
     {
         name: 'owner',
         in: 'query',
@@ -309,7 +309,6 @@ export const assetFilterParameters = [
         required: false,
         schema: {type: 'boolean'}
     },
-    ...baseAssetFilterParameters,
     {
         name: 'match',
         in: 'query',
@@ -332,6 +331,63 @@ export const assetFilterParameters = [
         schema: {type: 'boolean'}
     },
     ...greylistFilterParameters
+];
+
+export const completeAssetFilterParameters = [
+    {
+        name: 'only_duplicate_templates',
+        in: 'query',
+        description: 'Show only duplicate assets grouped by template',
+        required: false,
+        schema: {
+            type: 'boolean'
+        }
+    },
+    {
+        name: 'has_backed_tokens',
+        in: 'query',
+        description: 'Show only assets that are backed by a token',
+        required: false,
+        schema: {
+            type: 'boolean'
+        }
+    },
+    {
+        name: 'authorized_account',
+        in: 'query',
+        description: 'Filter for assets the provided account can edit. ',
+        required: false,
+        schema: {
+            type: 'string'
+        }
+    },
+    {
+        name: 'template_whitelist',
+        in: 'query',
+        description: 'Filter for multiple template ids split by ","',
+        required: false,
+        schema: {
+            type: 'string'
+        }
+    },
+    {
+        name: 'template_blacklist',
+        in: 'query',
+        description: 'Dont include specific template ids split by ","',
+        required: false,
+        schema: {
+            type: 'string'
+        }
+    },
+    {
+        name: 'hide_templates_by_accounts',
+        in: 'query',
+        description: 'Dont templates that are owned by an account',
+        required: false,
+        schema: {
+            type: 'string'
+        }
+    },
 ];
 
 export const hideOffersParameters = [

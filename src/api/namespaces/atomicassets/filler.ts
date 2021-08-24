@@ -25,7 +25,7 @@ export class AssetFiller {
     }
 
     query(): void {
-        if (this.assets !== null) {
+        if (this.assets) {
             return;
         }
 

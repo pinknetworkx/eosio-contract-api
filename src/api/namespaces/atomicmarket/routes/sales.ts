@@ -5,7 +5,7 @@ import { HTTPServer } from '../../../server';
 import { buildSaleFilter } from '../utils';
 import { fillSales } from '../filler';
 import { formatSale } from '../format';
-import { assetFilterParameters, atomicDataFilter } from '../../atomicassets/openapi';
+import { extendedAssetFilterParameters, atomicDataFilter, baseAssetFilterParameters } from '../../atomicassets/openapi';
 import {
     actionGreylistParameters,
     dateBoundaryParameters,
@@ -281,7 +281,8 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             schema: {type: 'string'}
                         },
                         ...listingFilterParameters,
-                        ...assetFilterParameters,
+                        ...baseAssetFilterParameters,
+                        ...extendedAssetFilterParameters,
                         ...primaryBoundaryParameters,
                         ...dateBoundaryParameters,
                         ...paginationParameters,
@@ -333,7 +334,8 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             required: false,
                             schema: {type: 'number'}
                         },
-                        ...assetFilterParameters,
+                        ...baseAssetFilterParameters,
+                        ...extendedAssetFilterParameters,
                         ...primaryBoundaryParameters,
                         ...paginationParameters,
                         {
