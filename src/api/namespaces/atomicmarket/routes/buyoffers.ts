@@ -101,10 +101,10 @@ export function buyoffersEndpoints(core: AtomicMarketNamespace, server: HTTPServ
 
             const buyoffers = await fillBuyoffers(
                 server, core.args.atomicassets_account,
-                buyofferResult.rows.map((row) => formatBuyoffer(buyofferLookup[String(row.buyoffer_id)]))
+                buyofferResult.rows.map((row) => buyofferLookup[String(row.buyoffer_id)])
             );
 
-            res.json({success: true, data: buyoffers, query_time: Date.now()});
+            res.json({success: true, data: buyoffers.map(row => formatBuyoffer(row)), query_time: Date.now()});
         } catch (error) {
             return respondApiError(res, error);
         }
@@ -121,10 +121,10 @@ export function buyoffersEndpoints(core: AtomicMarketNamespace, server: HTTPServ
                 res.status(416).json({success: false, message: 'Buyoffer not found'});
             } else {
                 const buyoffers = await fillBuyoffers(
-                    server, core.args.atomicassets_account, query.rows.map((row) => formatBuyoffer(row))
+                    server, core.args.atomicassets_account, query.rows
                 );
 
-                res.json({success: true, data: buyoffers[0], query_time: Date.now()});
+                res.json({success: true, data: formatBuyoffer(buyoffers[0]), query_time: Date.now()});
             }
         } catch (error) {
             return respondApiError(res, error);
@@ -253,7 +253,7 @@ export function buyofferSockets(core: AtomicMarketNamespace, server: HTTPServer,
             [core.args.atomicmarket_account, buyofferIDs]
         );
 
-        const buyoffers = await fillBuyoffers(server, core.args.atomicassets_account, query.rows.map((row: any) => formatBuyoffer(row)));
+        const buyoffers = await fillBuyoffers(server, core.args.atomicassets_account, query.rows);
 
         for (const notification of notifications) {
             if (notification.type === 'trace' && notification.data.trace) {
@@ -272,7 +272,7 @@ export function buyofferSockets(core: AtomicMarketNamespace, server: HTTPServer,
                         block: notification.data.block,
                         trace: notification.data.trace,
                         buyoffer_id: buyofferID,
-                        buyoffer: buyoffer
+                        buyoffer: formatBuyoffer(buyoffer)
                     });
                 }
             } else if (notification.type === 'fork') {
