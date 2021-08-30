@@ -11,9 +11,13 @@ SELECT claim.drops_contract,
        claim.collection_name collection_name,
        CASE
            WHEN claim.settlement_symbol = 'NULL' THEN 'WAX':: VARCHAR(12)
+           WHEN claim.core_symbol IS NOT NULL THEN claim.core_symbol
            ELSE claim.settlement_symbol
            END               symbol,
-       claim.total_price     price,
+        CASE
+           WHEN claim.core_symbol IS NOT NULL THEN claim.core_amount
+           ELSE claim.total_price
+           END               price,
        claim.created_at_time "time"
 FROM neftydrops_claims claim
 WHERE claim.final_price IS NOT NULL

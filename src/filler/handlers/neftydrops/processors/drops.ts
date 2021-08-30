@@ -6,7 +6,7 @@ import {eosioTimestampToDate} from '../../../../utils/eosio';
 import NeftyDropsHandler, {DropState, NeftyDropsUpdatePriority} from '../index';
 import {
   ClaimDropActionData,
-  EraseDropActionData,
+  EraseDropActionData, LogClaimActionData,
   LogCreateDropActionData,
   SetDropAuthActionData,
   SetDropDataActionData,
@@ -169,6 +169,27 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           logger.warn('NeftyDrops: Unable to delete drop because it does not exist');
         }
       }, NeftyDropsUpdatePriority.ACTION_UPDATE_DROP.valueOf()
+  ));
+
+  destructors.push(processor.onActionTrace(
+      contract, 'logclaim',
+      async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogClaimActionData>): Promise<void> => {
+        const claimAction = tx.traces.find(trace => trace.act.account === core.args.neftydrops_account && trace.act.name.startsWith('claim'));
+        const claimId = claimAction.global_sequence;
+
+        const [amountSpent, spentSymbol] = trace.act.data.amount_paid.split(' ');
+        const [coreAmount, coreSymbol] = trace.act.data.core_symbol_amount.split(' ');
+
+        await db.update('neftydrops_claims', {
+          amount_spent: preventInt64Overflow(amountSpent.replace('.', '')),
+          spent_symbol: spentSymbol,
+          core_amount: preventInt64Overflow(coreAmount.replace('.', '')),
+          core_symbol: coreSymbol,
+        }, {
+          str: 'drops_contract = $1 AND claim_id = $2',
+          values: [core.args.neftydrops_account, claimId]
+        }, ['drops_contract', 'claim_id']);
+      }, NeftyDropsUpdatePriority.ACTION_LOG_CLAIM.valueOf()
   ));
 
   const registerDropClaim = async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<ClaimDropActionData>): Promise<void> => {

@@ -71,3 +71,11 @@ export type ClaimDropActionData = {
     referrer: string,
     country: string
 };
+
+export type LogClaimActionData = {
+    drop_id: number,
+    claimer: string,
+    quantity: number,
+    amount_paid: string,
+    core_symbol_amount: string,
+};
