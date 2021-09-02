@@ -276,6 +276,7 @@ export default class AtomicMarketHandler extends ContractHandler {
         for (const view of materializedViews) {
             destructors.push(this.filler.registerUpdateJob(async () => {
                 await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view + ';');
+                await this.connection.database.query('VACUUM ANALYZE ' + view + ';');
             }, 60000, false));
         }
 
