@@ -85,7 +85,7 @@ export function filterQueryArgs(req: express.Request, filter: FilterDefinition, 
             result[key] = n;
         } else if (filter[key].type === 'bool') {
             if (typeof data === 'undefined') {
-                result[key] = filter[key].default || false;
+                result[key] = filter[key].default;
             }
 
             if (data === 'true' || data === '1') {

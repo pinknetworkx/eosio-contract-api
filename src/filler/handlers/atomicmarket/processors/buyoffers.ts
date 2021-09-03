@@ -68,7 +68,7 @@ export function buyofferProcessor(core: AtomicMarketHandler, processor: DataProc
         contract, 'acceptbuyo',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<AcceptBuyofferActionData>): Promise<void> => {
             await db.update('atomicmarket_buyoffers', {
-                state: BuyofferState.CANCELED.valueOf(),
+                state: BuyofferState.ACCEPTED.valueOf(),
                 taker_marketplace: trace.act.data.taker_marketplace,
                 updated_at_block: block.block_num,
                 updated_at_time: eosioTimestampToDate(block.timestamp).getTime()

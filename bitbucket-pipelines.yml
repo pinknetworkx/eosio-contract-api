@@ -1,0 +1,24 @@
+image: alpine:latest
+pipelines:
+  branches:
+    master:
+      - step:
+          name: "Build docker container"
+          script:
+            - apk add --no-cache jq
+            - export DOCKER_REPOSITORY=eosio-contract-api
+            - export TAG1="${DOCKER_ORGANIZATION}/${DOCKER_REPOSITORY}:${BITBUCKET_BRANCH}-${BITBUCKET_BUILD_NUMBER}"
+            - export TAG2="${DOCKER_ORGANIZATION}/${DOCKER_REPOSITORY}:${BITBUCKET_COMMIT::7}"
+            - export TAG3="${DOCKER_ORGANIZATION}/${DOCKER_REPOSITORY}:$(jq -r .version package.json)"
+            - export TAG4="${DOCKER_ORGANIZATION}/${DOCKER_REPOSITORY}:latest"
+            - docker build --tag "${TAG1}" --tag "${TAG2}" --tag "${TAG3}" --tag "${TAG4}" .
+            - echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
+            - docker push "${TAG1}"
+            - docker push "${TAG2}"
+            - docker push "${TAG3}"
+            - docker push "${TAG4}"
+            - echo -e "Image names:\n${TAG1}\n${TAG2}\n${TAG3}\n${TAG4}"
+          services:
+            - docker
+          caches:
+            - docker
