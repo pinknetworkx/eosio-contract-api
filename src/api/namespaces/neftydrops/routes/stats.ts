@@ -8,25 +8,12 @@ import { atomicassetsComponents, greylistFilterParameters } from '../../atomicas
 import { getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import QueryBuilder from '../../../builder';
 import {buildGreylistFilter} from '../../atomicassets/utils';
+import {buildRangeCondition} from '../../neftydrops/utils';
 
 export function statsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, router: express.Router): any {
     function getGreylistCondition (column: string, whitelistVar: number, blacklistVar: number): string {
         return 'AND (' + column + ' = ANY ($' + whitelistVar + ') OR CARDINALITY($' + whitelistVar + ') = 0) AND ' +
             '(NOT (' + column + '  = ANY ($' + blacklistVar + ')) OR CARDINALITY($' + blacklistVar + ') = 0) ';
-    }
-
-    function buildRangeCondition(column: string, after?: number, before?: number): string {
-        let queryStr = '';
-
-        if (typeof after === 'number') {
-            queryStr += 'AND ' + column + ' > ' + after + ' ';
-        }
-
-        if (typeof before === 'number') {
-            queryStr += 'AND ' + column + ' < ' + before + ' ';
-        }
-
-        return queryStr;
     }
 
     function buildCollectionStatsQuery(after?: number, before?: number): string {
