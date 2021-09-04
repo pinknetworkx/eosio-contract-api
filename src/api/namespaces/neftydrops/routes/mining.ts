@@ -53,7 +53,7 @@ export function miningEndpoints(core: NeftyDropsNamespace, server: HTTPServer, r
       
       let queryString = `SELECT collection_name, 
       SUM(CASE settlement_symbol WHEN 'WAX' THEN final_price ELSE 0 END) AS sold_wax, 
-      SUM(CASE settlement_symbol WHEN 'NEFTY' THEN final_price ELSE 0 END) AS sold_nefty `
+      SUM(CASE settlement_symbol WHEN 'NEFTY' THEN core_amount ELSE 0 END) AS sold_nefty `
         + buildClaimsQuery(args.after, args.before)
         + buildGroupQuery('collection_name', args.sort, args.order, args.limit);
       const query = new QueryBuilder(queryString, [core.args.neftydrops_account]);
