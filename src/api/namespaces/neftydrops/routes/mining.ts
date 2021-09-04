@@ -46,16 +46,32 @@ export function miningEndpoints(core: NeftyDropsNamespace, server: HTTPServer, r
              ORDER BY ${sort} ${order}
              LIMIT ${limit}`;
   }
+  function buildCountQuery(group_by: string, 
+      after?: number, before?: number): string {
+    return `SELECT COUNT(*) count FROM (`
+          + `SELECT ${group_by} `
+          + buildClaimsQuery(after, before)
+          + ` GROUP BY ${group_by}) AS grouped_claims`;
+  }
 
-  router.get('/v1/mining/collections', server.web.caching(), async (req, res) => {
+  router.get(['/v1/mining/collections', '/v1/mining/collections/_count'], server.web.caching(), async (req, res) => {
     try {
       const args = filterQueryArgs(req, miningFilterQueryArgs(sort_collection));
-      
-      let queryString = `SELECT collection_name, 
+      const group_by = 'collection_name';
+
+      if (req.originalUrl.search('/_count') >= 0) {
+        const countQuery = await server.query(
+            buildCountQuery(group_by, args.after, args.before),
+            [core.args.neftydrops_account]
+        );
+        return res.json({success: true, data: countQuery.rows[0].count, query_time: Date.now()});
+      }
+
+      let queryString = `SELECT ${group_by}, 
       SUM(CASE settlement_symbol WHEN 'WAX' THEN final_price ELSE 0 END) AS sold_wax, 
       SUM(CASE settlement_symbol WHEN 'NEFTY' THEN core_amount ELSE 0 END) AS sold_nefty `
         + buildClaimsQuery(args.after, args.before)
-        + buildGroupQuery('collection_name', args.sort, args.order, args.limit);
+        + buildGroupQuery(group_by, args.sort, args.order, args.limit);
       const query = new QueryBuilder(queryString, [core.args.neftydrops_account]);
       const collectionSales = await server.query(query.buildString(), query.buildValues());
       
@@ -65,16 +81,26 @@ export function miningEndpoints(core: NeftyDropsNamespace, server: HTTPServer, r
     }
   });
 
-  router.get('/v1/mining/claimers', server.web.caching(), async (req, res) => {
+  router.get(['/v1/mining/claimers', '/v1/mining/claimers/_count'], server.web.caching(), async (req, res) => {
     try {
       const args = filterQueryArgs(req, miningFilterQueryArgs(sort_claimer));
-      let queryString = `SELECT claimer, 
+      const group_by = 'claimer';
+
+      if (req.originalUrl.search('/_count') >= 0) {
+        const countQuery = await server.query(
+            buildCountQuery(group_by, args.after, args.before),
+            [core.args.neftydrops_account]
+        );
+        return res.json({success: true, data: countQuery.rows[0].count, query_time: Date.now()});
+      }
+
+      let queryString = `SELECT ${group_by}, 
       SUM(CASE COALESCE(spent_symbol, 'NULL') WHEN 'NULL' 
           THEN (CASE settlement_symbol WHEN 'WAX' THEN final_price ELSE 0 END)
           ELSE 0 END) AS spent_wax, 
       SUM(CASE spent_symbol WHEN 'NEFTY' THEN core_amount ELSE 0 END) AS spent_nefty `
         + buildClaimsQuery(args.after, args.before)
-        + buildGroupQuery('claimer', args.sort, args.order, args.limit);
+        + buildGroupQuery(group_by, args.sort, args.order, args.limit);
       const query = new QueryBuilder(queryString, [core.args.neftydrops_account]);
       const userPurchases = await server.query(query.buildString(), query.buildValues());
       
