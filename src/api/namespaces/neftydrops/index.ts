@@ -6,6 +6,7 @@ import { neftyDropsComponents} from './openapi';
 import { configEndpoints } from './routes/config';
 import {statsEndpoints} from './routes/stats';
 import {dropsEndpoints} from './routes/drops';
+import {miningEndpoints} from './routes/mining';
 
 export type NeftyDropsNamespaceArgs = {
     neftydrops_account: string,
@@ -57,6 +58,7 @@ export class NeftyDropsNamespace extends ApiNamespace {
         endpointsDocs.push(configEndpoints(this, server, router));
         endpointsDocs.push(dropsEndpoints(this, server, router));
         endpointsDocs.push(statsEndpoints(this, server, router));
+        endpointsDocs.push(miningEndpoints(this, server, router));
 
         for (const doc of endpointsDocs) {
             if (doc.tag) {

@@ -4,6 +4,12 @@ export const neftyDropsComponents = {
   },
   Claim: {
 
+  },
+  Collections: {
+
+  },
+  Claimers: {
+
   }
 };
 

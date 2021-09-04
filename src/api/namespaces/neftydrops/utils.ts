@@ -159,3 +159,17 @@ export function buildDropFilter(req: express.Request, query: QueryBuilder): void
     }
 }
 
+export function buildRangeCondition(column: string, after?: number, before?: number): string {
+    let queryStr = '';
+
+    if (typeof after === 'number' && after > 0) {
+        queryStr += 'AND ' + column + ' > ' + after + ' ';
+    }
+
+    if (typeof before === 'number' && before > 0) {
+        queryStr += 'AND ' + column + ' < ' + before + ' ';
+    }
+
+    return queryStr;
+}
+
