@@ -2,7 +2,7 @@ import * as express from 'express';
 
 import { NeftyDropsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import {FilterDefinition, filterQueryArgs, mergeRequestData} from '../../utils';
+import {FilterDefinition, filterQueryArgs} from '../../utils';
 import {buildRangeCondition} from '../../neftydrops/utils';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters } from '../../../docs';
 import QueryBuilder from '../../../builder';
@@ -41,10 +41,12 @@ export function miningEndpoints(core: NeftyDropsNamespace, server: HTTPServer, r
                   ${buildRangeCondition('"created_at_time"', after, before)}`;
   }
   function buildGroupQuery(group_by: string, 
-      sort: string, order: string, limit: number): string {
+      sort: string, order: string, limit: number, page: number): string {
+    const offset = (page - 1) * limit;
     return ` GROUP BY ${group_by}
              ORDER BY ${sort} ${order}
-             LIMIT ${limit}`;
+             LIMIT ${limit}
+             OFFSET ${offset}`;
   }
   function buildCountQuery(group_by: string, 
       after?: number, before?: number): string {
@@ -71,7 +73,7 @@ export function miningEndpoints(core: NeftyDropsNamespace, server: HTTPServer, r
       SUM(CASE settlement_symbol WHEN 'WAX' THEN final_price ELSE 0 END) AS sold_wax, 
       SUM(CASE settlement_symbol WHEN 'NEFTY' THEN core_amount ELSE 0 END) AS sold_nefty `
         + buildClaimsQuery(args.after, args.before)
-        + buildGroupQuery(group_by, args.sort, args.order, args.limit);
+        + buildGroupQuery(group_by, args.sort, args.order, args.limit, args.page);
       const query = new QueryBuilder(queryString, [core.args.neftydrops_account]);
       const collectionSales = await server.query(query.buildString(), query.buildValues());
       
@@ -100,7 +102,7 @@ export function miningEndpoints(core: NeftyDropsNamespace, server: HTTPServer, r
           ELSE 0 END) AS spent_wax, 
       SUM(CASE spent_symbol WHEN 'NEFTY' THEN core_amount ELSE 0 END) AS spent_nefty `
         + buildClaimsQuery(args.after, args.before)
-        + buildGroupQuery(group_by, args.sort, args.order, args.limit);
+        + buildGroupQuery(group_by, args.sort, args.order, args.limit, args.page);
       const query = new QueryBuilder(queryString, [core.args.neftydrops_account]);
       const userPurchases = await server.query(query.buildString(), query.buildValues());
       
