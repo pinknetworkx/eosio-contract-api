@@ -12,3 +12,5 @@ modules/enabled/*.js
 config/connections.config.json
 config/readers.config.json
 config/server.config.json
+
+*.override.yml

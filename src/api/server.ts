@@ -160,7 +160,11 @@ export class WebServer {
         let infoRequest = this.server.connection.chain.rpc.get_info();
 
         setInterval(() => {
-            infoRequest = this.server.connection.chain.rpc.get_info();
+            try {
+                infoRequest = this.server.connection.chain.rpc.get_info();
+            } catch (error) {
+                console.error(error);
+            }
         }, 500);
 
         const server = this.server;
@@ -182,7 +186,6 @@ export class WebServer {
 
             try {
                 const info = await infoRequest;
-
                 if (Date.now() - 20 * 1000 < new Date(info.head_block_time + '+0000').getTime()) {
                     chainHealth = {
                         status: 'OK',
