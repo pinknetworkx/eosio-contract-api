@@ -225,7 +225,7 @@ export default class StateHistoryBlockReader {
                         }
 
                         if (response.this_block) {
-                            this.currentArgs.start_block_num = response.this_block.block_num;
+                            this.currentArgs.start_block_num = response.this_block.block_num + 1;
                         } else {
                             this.currentArgs.start_block_num += 1;
                         }
@@ -256,12 +256,12 @@ export default class StateHistoryBlockReader {
         this.connected = false;
         this.connecting = false;
 
+        this.blocksQueue.clear();
+
         if (this.deserializeWorkers) {
             await this.deserializeWorkers.destroy();
             this.deserializeWorkers = null;
         }
-
-        this.blocksQueue.clear();
 
         this.reconnect();
     }
