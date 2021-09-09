@@ -85,6 +85,22 @@ export function buildDataConditions(req: express.Request, query: QueryBuilder, o
         if (Object.keys(immutableCondition).length > 0) {
             query.addCondition(options.assetTable + '.immutable_data @> ' + query.addVariable(JSON.stringify(immutableCondition)) + '::jsonb');
         }
+
+        if (args.match_immutable_name && typeof args.match_immutable_name === 'string' && args.match_immutable_name.length > 0) {
+            query.addCondition(
+                options.assetTable + '.immutable_data->>\'name\' IS NOT NULL AND ' +
+                options.assetTable + '.immutable_data->>\'name\' ILIKE ' +
+                query.addVariable('%' + args.match_immutable_name.replace('%', '\\%').replace('_', '\\_') + '%')
+            );
+        }
+
+        if (args.match_mutable_name && typeof args.match_mutable_name === 'string' && args.match_mutable_name.length > 0) {
+            query.addCondition(
+                options.assetTable + '.mutable_data->>\'name\' IS NOT NULL AND ' +
+                options.assetTable + '.mutable_data->>\'name\' ILIKE ' +
+                query.addVariable('%' + args.match_mutable_name.replace('%', '\\%').replace('_', '\\_') + '%')
+            );
+        }
     }
 
     if (options.templateTable) {
