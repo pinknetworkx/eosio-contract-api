@@ -312,7 +312,21 @@ export const extendedAssetFilterParameters = [
     {
         name: 'match',
         in: 'query',
-        description: 'Search for input in asset name',
+        description: 'Search for input in asset name on template data',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'match_immutable_name',
+        in: 'query',
+        description: 'Search for input in asset name on asset immutable data',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'match_mutable_name',
+        in: 'query',
+        description: 'Search for input in asset name on asset mutable data',
         required: false,
         schema: {type: 'string'}
     },
