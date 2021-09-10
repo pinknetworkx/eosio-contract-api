@@ -96,8 +96,8 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                     (
                         SELECT 
                             listing.market_contract, listing.sale_id, (NULL)::bigint auction_id, (NULL)::bigint buyoffer_id,
-                            listing.settlement_symbol symbol, "token".token_precision, "token".token_contract,
-                            listing.final_price price, listing.seller, listing.buyer, listing.updated_at_time ts
+                            listing.settlement_symbol token_symbol, "token".token_precision, "token".token_contract,
+                            listing.final_price price, listing.seller, listing.buyer, listing.updated_at_time block_time
                         FROM atomicmarket_sales listing, atomicassets_offers offer, atomicassets_offers_assets asset, atomicmarket_tokens "token"
                         WHERE listing.assets_contract = offer.contract AND listing.offer_id = offer.offer_id
                             AND offer.contract = asset.contract AND offer.offer_id = asset.offer_id
@@ -106,8 +106,8 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                     ) UNION ALL (
                         SELECT 
                             listing.market_contract, (NULL)::bigint sale_id, listing.auction_id, (NULL)::bigint buyoffer_id,
-                            listing.token_symbol symbol, "token".token_precision, "token".token_contract,
-                            listing.price, listing.seller, listing.buyer, listing.end_time ts
+                            listing.token_symbol, "token".token_precision, "token".token_contract,
+                            listing.price, listing.seller, listing.buyer, listing.end_time block_time
                         FROM atomicmarket_auctions listing, atomicmarket_auctions_assets asset, atomicmarket_tokens "token"
                         WHERE listing.market_contract = asset.market_contract AND listing.auction_id = asset.auction_id
                             AND listing.market_contract = "token".market_contract AND listing.token_symbol = "token".token_symbol
@@ -115,8 +115,8 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                     ) UNION ALL (
                         SELECT 
                             listing.market_contract, (NULL)::bigint sale_id, (NULL)::bigint auction_id, listing.buyoffer_id,
-                            listing.token_symbol symbol, "token".token_precision, "token".token_contract,
-                            listing.price, listing.seller, listing.buyer, listing.updated_at_time ts
+                            listing.token_symbol, "token".token_precision, "token".token_contract,
+                            listing.price, listing.seller, listing.buyer, listing.updated_at_time block_time
                         FROM atomicmarket_buyoffers listing, atomicmarket_buyoffers_assets asset, atomicmarket_tokens "token"
                         WHERE listing.market_contract = asset.market_contract AND listing.buyoffer_id = asset.buyoffer_id
                             AND listing.market_contract = "token".market_contract AND listing.token_symbol = "token".token_symbol
@@ -128,7 +128,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
             query.equal('t1.market_contract', core.args.atomicmarket_account);
 
             if (args.symbol) {
-                query.equalMany('t1.symbol', args.symbol.split(','));
+                query.equalMany('t1.token_symbol', args.symbol.split(','));
             }
 
             if (args.seller) {
@@ -139,7 +139,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 query.equalMany('t1.buyer', args.buyer.split(','));
             }
 
-            query.append(`ORDER BY t1.ts ${args.order === 'asc' ? 'ASC' : 'DESC'} LIMIT 500`);
+            query.append(`ORDER BY t1.block_time ${args.order === 'asc' ? 'ASC' : 'DESC'} LIMIT 500`);
 
             const result = await server.query(query.buildString(), query.buildValues());
 
@@ -366,11 +366,12 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                                 sale_id: {type: 'string'},
                                 auction_id: {type: 'string'},
                                 buyoffer_id: {type: 'string'},
-                                template_mint: {type: 'string'},
                                 price: {type: 'string'},
                                 token_symbol: {type: 'string'},
                                 token_precision: {type: 'integer'},
                                 token_contract: {type: 'string'},
+                                seller: {type: 'string'},
+                                buyer: {type: 'string'},
                                 block_time: {type: 'string'}
                             }
                         }
