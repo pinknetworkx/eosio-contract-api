@@ -40,7 +40,7 @@ export function miningEndpoints(core: NeftyDropsNamespace, server: HTTPServer, r
                   AND drops_contract = $1
                   ${buildRangeCondition('"created_at_time"', after, before)}`;
   }
-  function buildGroupQuery(group_by: string, 
+  function buildGroupQuery(group_by: string,
       sort: string, order: string, limit: number, page: number): string {
     const offset = (page - 1) * limit;
     return ` GROUP BY ${group_by}
@@ -48,9 +48,9 @@ export function miningEndpoints(core: NeftyDropsNamespace, server: HTTPServer, r
              LIMIT ${limit}
              OFFSET ${offset}`;
   }
-  function buildCountQuery(group_by: string, 
+  function buildCountQuery(group_by: string,
       after?: number, before?: number): string {
-    return `SELECT COUNT(*) count FROM (`
+    return 'SELECT COUNT(*) count FROM ('
           + `SELECT ${group_by} `
           + buildClaimsQuery(after, before)
           + ` GROUP BY ${group_by}) AS grouped_claims`;
@@ -69,14 +69,14 @@ export function miningEndpoints(core: NeftyDropsNamespace, server: HTTPServer, r
         return res.json({success: true, data: countQuery.rows[0].count, query_time: Date.now()});
       }
 
-      let queryString = `SELECT ${group_by}, 
+      const queryString = `SELECT ${group_by}, 
       SUM(CASE settlement_symbol WHEN 'WAX' THEN final_price ELSE 0 END) AS sold_wax, 
       SUM(CASE settlement_symbol WHEN 'NEFTY' THEN core_amount ELSE 0 END) AS sold_nefty `
         + buildClaimsQuery(args.after, args.before)
         + buildGroupQuery(group_by, args.sort, args.order, args.limit, args.page);
       const query = new QueryBuilder(queryString, [core.args.neftydrops_account]);
       const collectionSales = await server.query(query.buildString(), query.buildValues());
-      
+
       res.json({success: true, data: collectionSales.rows, query_time: Date.now()});
     } catch (e) {
       res.status(500).json({success: false, message: 'Internal Server Error'});
@@ -96,7 +96,7 @@ export function miningEndpoints(core: NeftyDropsNamespace, server: HTTPServer, r
         return res.json({success: true, data: countQuery.rows[0].count, query_time: Date.now()});
       }
 
-      let queryString = `SELECT ${group_by}, 
+      const queryString = `SELECT ${group_by}, 
       SUM(CASE COALESCE(spent_symbol, 'NULL') WHEN 'NULL' 
           THEN (CASE settlement_symbol WHEN 'WAX' THEN final_price ELSE 0 END)
           ELSE 0 END) AS spent_wax, 
@@ -105,7 +105,7 @@ export function miningEndpoints(core: NeftyDropsNamespace, server: HTTPServer, r
         + buildGroupQuery(group_by, args.sort, args.order, args.limit, args.page);
       const query = new QueryBuilder(queryString, [core.args.neftydrops_account]);
       const userPurchases = await server.query(query.buildString(), query.buildValues());
-      
+
       res.json({success: true, data: userPurchases.rows, query_time: Date.now()});
     } catch (e) {
       res.status(500).json({success: false, message: 'Internal Server Error'});
