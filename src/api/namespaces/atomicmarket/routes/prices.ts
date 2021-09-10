@@ -320,7 +320,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
             '/v1/assets/{asset_id}/sales': {
                 get: {
                     tags: ['assets'],
-                    summary: 'Gets price history for a template or schema',
+                    summary: 'Gets price history for a specific asset',
                     parameters: [
                         {
                             in: 'path',
