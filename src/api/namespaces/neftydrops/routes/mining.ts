@@ -70,8 +70,16 @@ export function miningEndpoints(core: NeftyDropsNamespace, server: HTTPServer, r
       }
 
       const queryString = `SELECT ${group_by}, 
-      SUM(CASE settlement_symbol WHEN 'WAX' THEN final_price ELSE 0 END) AS sold_wax, 
-      SUM(CASE settlement_symbol WHEN 'NEFTY' THEN core_amount ELSE 0 END) AS sold_nefty `
+      SUM(
+          CASE settlement_symbol 
+            WHEN 'WAX' THEN final_price 
+            ELSE 0 END
+      ) AS sold_wax, 
+      SUM(
+          CASE settlement_symbol 
+            WHEN 'NEFTY' THEN core_amount 
+            ELSE 0 END
+      ) AS sold_nefty `
         + buildClaimsQuery(args.after, args.before)
         + buildGroupQuery(group_by, args.sort, args.order, args.limit, args.page);
       const query = new QueryBuilder(queryString, [core.args.neftydrops_account]);
@@ -97,10 +105,15 @@ export function miningEndpoints(core: NeftyDropsNamespace, server: HTTPServer, r
       }
 
       const queryString = `SELECT ${group_by}, 
-      SUM(CASE COALESCE(spent_symbol, 'NULL') WHEN 'NULL' 
-          THEN (CASE settlement_symbol WHEN 'WAX' THEN final_price ELSE 0 END)
-          ELSE 0 END) AS spent_wax, 
-      SUM(CASE spent_symbol WHEN 'NEFTY' THEN core_amount ELSE 0 END) AS spent_nefty `
+      SUM( 
+          CASE COALESCE(spent_symbol, 'NULL') 
+            WHEN 'NULL' THEN (CASE settlement_symbol WHEN 'WAX' THEN final_price ELSE 0 END)
+            WHEN 'WAX' THEN core_amount
+            ELSE 0 END
+      ) AS spent_wax, 
+      SUM(
+        CASE spent_symbol WHEN 'NEFTY' THEN core_amount ELSE 0 END
+      ) AS spent_nefty `
         + buildClaimsQuery(args.after, args.before)
         + buildGroupQuery(group_by, args.sort, args.order, args.limit, args.page);
       const query = new QueryBuilder(queryString, [core.args.neftydrops_account]);
