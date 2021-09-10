@@ -67,6 +67,7 @@ export default class StateHistoryBlockReader {
     connect(): void {
         if (!this.connected && !this.connecting && !this.stopped) {
             logger.info(`Connecting to ship endpoint ${this.endpoint}`);
+            logger.info(`Ship start block set to ${this.currentArgs.start_block_num}`);
 
             this.connecting = true;
 
