@@ -176,6 +176,11 @@ export default class StateReceiver {
         actionTraces: Array<{trace: EosioActionTrace<ContractDataEstimation>, tx: EosioTransaction<ContractDataEstimation>}>,
         contractRows: Array<EosioContractRow<ContractDataEstimation>>
     ): Promise<void> {
+        logger.info('debug', {
+            expected: this.currentBlock + 1,
+            processed: resp.this_block.block_num
+        });
+
         if (resp.this_block.block_num > this.currentBlock + 1) {
             throw new Error('Skipped a block ' + JSON.stringify({
                 expected: this.currentBlock + 1,

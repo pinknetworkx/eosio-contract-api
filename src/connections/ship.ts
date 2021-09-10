@@ -85,9 +85,9 @@ export default class StateHistoryBlockReader {
             return;
         }
 
-        logger.info('Reconnecting to Ship...');
-
         setTimeout(() => {
+            logger.info('Reconnecting to Ship...');
+
             this.connect();
         }, 5000);
     }
