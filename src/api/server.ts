@@ -144,10 +144,11 @@ export class WebServer {
     private middleware(): void {
         this.express.use(bodyParser.json({limit: '10MB'}));
         this.express.use(bodyParser.urlencoded({ extended: false, limit: '10MB' }));
-        this.express.use(cookieParser());
         this.express.use(cors({allowedHeaders: '*'}));
 
-        this.express.use((req, _, next) => {
+        this.express.use((req, res, next) => {
+            res.setHeader('Access-Control-Allow-Headers', '*');
+
             logger.debug(req.ip + ': ' + req.method + ' ' + req.originalUrl, req.body);
 
             next();
