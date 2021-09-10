@@ -67,7 +67,7 @@ export default class StateHistoryBlockReader {
     connect(): void {
         if (!this.connected && !this.connecting && !this.stopped) {
             logger.info(`Connecting to ship endpoint ${this.endpoint}`);
-            logger.info(`Ship connect options ${JSON.stringify(this.currentArgs)}`);
+            logger.info(`Ship connect options ${JSON.stringify({...this.currentArgs, have_positions: 'removed'})}`);
 
             this.connecting = true;
 
