@@ -269,14 +269,24 @@ export default class AtomicMarketHandler extends ContractHandler {
             destructors.push(logProcessor(this, processor));
         }
 
-        const materializedViews = [
+        const standardMaterializedViews = [
             'atomicmarket_template_prices', 'atomicmarket_stats_prices', 'atomicmarket_stats_markets'
         ];
 
-        for (const view of materializedViews) {
+        for (const view of standardMaterializedViews) {
+            let lastVacuum = Date.now();
+
             destructors.push(this.filler.registerUpdateJob(async () => {
                 await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view + ';');
-                await this.connection.database.query('VACUUM ANALYZE ' + view + ';');
+
+                if (lastVacuum + 3600 * 24 * 1000 < Date.now()) {
+                    await this.connection.database.query('VACUUM ANALYZE ' + view + ';');
+
+                    logger.info('Successfully ran vacuum on ' + view);
+
+                    lastVacuum = Date.now();
+                }
+
             }, 60000, false));
         }
 
@@ -301,6 +311,24 @@ export default class AtomicMarketHandler extends ContractHandler {
                 [this.args.atomicmarket_account, this.filler.reader.lastIrreversibleBlock]
             );
         }, 30000, true));
+
+        const priorityMaterializedViews = ['atomicmarket_sale_prices'];
+
+        for (const view of priorityMaterializedViews) {
+            let lastVacuum = Date.now();
+
+            destructors.push(this.filler.registerUpdateJob(async () => {
+                await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view + ';');
+
+                if (lastVacuum + 3600 * 24 * 1000 < Date.now()) {
+                    await this.connection.database.query('VACUUM ANALYZE ' + view + ';');
+
+                    logger.info('Successfully ran vacuum on ' + view);
+
+                    lastVacuum = Date.now();
+                }
+            }, 60000, true));
+        }
 
         destructors.push(this.filler.registerUpdateJob(async () => {
             await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY atomicmarket_sale_prices;');

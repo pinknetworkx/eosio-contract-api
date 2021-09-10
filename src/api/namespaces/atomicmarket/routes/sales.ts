@@ -35,6 +35,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100},
                 collection_name: {type: 'string', min: 1},
+                state: {type: 'string', min: 1},
                 sort: {
                     type: 'string',
                     values: [
@@ -79,7 +80,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 sale_id: {column: 'listing.sale_id', nullable: false},
                 created: {column: 'listing.created_at_time', nullable: false},
                 updated: {column: 'listing.updated_at_time', nullable: false},
-                price: {column: 'price.price', nullable: true},
+                price: {column: args.state === '3' ? 'listing.final_price' : 'price.price', nullable: true},
                 template_mint: {column: 'LOWER(listing.template_mint)', nullable: true}
             };
 
