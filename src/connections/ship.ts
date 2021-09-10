@@ -67,7 +67,7 @@ export default class StateHistoryBlockReader {
     connect(): void {
         if (!this.connected && !this.connecting && !this.stopped) {
             logger.info(`Connecting to ship endpoint ${this.endpoint}`);
-            logger.info(`Ship start block set to ${this.currentArgs.start_block_num}`);
+            logger.info(`Ship connect options ${JSON.stringify(this.currentArgs)}`);
 
             this.connecting = true;
 
@@ -229,6 +229,11 @@ export default class StateHistoryBlockReader {
                             this.currentArgs.start_block_num = response.this_block.block_num + 1;
                         } else {
                             this.currentArgs.start_block_num += 1;
+                        }
+
+                        if (response.this_block && response.last_irreversible && response.this_block.block_num > response.last_irreversible.block_num) {
+                            this.currentArgs.have_positions = this.currentArgs.have_positions.filter(row => row.block_num > response.last_irreversible.block_num);
+                            this.currentArgs.have_positions.push(response.this_block);
                         }
                     }).then();
                 } else {
