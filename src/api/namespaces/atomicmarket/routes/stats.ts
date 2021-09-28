@@ -541,7 +541,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
-            let queryString = `SELECT div("time", 24 * 3600 * 1000) "time_block", COUNT(*) sales, SUM(price) volume 
+            let queryString = `SELECT div("time", 24 * 3600 * 1000) "time_block", COUNT(*) sales, SUM(price) volume, MAX(price) "max" 
                 FROM atomicmarket_stats_markets
                 WHERE market_contract = $1 AND symbol = $2
                     ${buildRangeCondition('"time"', args.after, args.before)}
@@ -872,7 +872,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                     properties: {
                                         time: {type: 'string'},
                                         volume: {type: 'string'},
-                                        sales: {type: 'string'}
+                                        sales: {type: 'string'},
+                                        max: {type: 'string'}
                                     }
                                 }
                             }
