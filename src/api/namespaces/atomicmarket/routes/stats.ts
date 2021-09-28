@@ -342,10 +342,14 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             const query = await server.query(queryString, queryValues);
 
             if (query.rowCount === 0) {
-                return res.status(416).json({success: false, message: 'Account does not have any ended listings'});
+                return res.json({
+                    success: true,
+                    data: {symbol, result: {account: req.params.account, sell_volume: '0', buy_volume: '0'}},
+                    query_time: Date.now()
+                });
             }
 
-            res.json({
+            return res.json({
                 success: true,
                 data: {symbol, result: query.rows[0]},
                 query_time: Date.now()
