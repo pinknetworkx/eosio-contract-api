@@ -4,11 +4,12 @@
       "name": "eosio-contract-api-filler",
       "script": "build/bin/filler.js",
 
-      "autorestart": false,
-      "kill_timeout": 3600,
+      "instances": 1,
+
+      "autorestart": true,
+      "kill_timeout": 60000,
 
       "watch": false,
-      "time": false,
 
       "env": {
         "NODE_ENV": "production"
@@ -18,11 +19,12 @@
       "name": "eosio-contract-api-server",
       "script": "build/bin/server.js",
 
+      "instances": 1,
+
       "autorestart": true,
       "exp_backoff_restart_delay": 100,
 
-      "watch": true,
-      "time": false,
+      "watch": false,
 
       "env": {
         "NODE_ENV": "production"
