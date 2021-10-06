@@ -69,11 +69,12 @@ export function miningEndpoints(core: NeftyDropsNamespace, server: HTTPServer, r
         return res.json({success: true, data: countQuery.rows[0].count, query_time: Date.now()});
       }
 
-      const queryString = `SELECT ${group_by}, 
-      SUM(
-          CASE settlement_symbol 
-            WHEN 'WAX' THEN final_price 
-            ELSE 0 END
+      const queryString = `SELECT ${group_by},
+      SUM( 
+          CASE COALESCE(spent_symbol, 'NULL') 
+            WHEN 'NULL' THEN (CASE settlement_symbol WHEN 'WAX' THEN final_price ELSE 0 END)
+            WHEN 'NEFTY' THEN 0
+            ELSE core_amount END
       ) AS sold_wax, 
       SUM(
           CASE settlement_symbol 
@@ -108,8 +109,8 @@ export function miningEndpoints(core: NeftyDropsNamespace, server: HTTPServer, r
       SUM( 
           CASE COALESCE(spent_symbol, 'NULL') 
             WHEN 'NULL' THEN (CASE settlement_symbol WHEN 'WAX' THEN final_price ELSE 0 END)
-            WHEN 'WAX' THEN core_amount
-            ELSE 0 END
+            WHEN 'NEFTY' THEN 0
+            ELSE core_amount END
       ) AS spent_wax, 
       SUM(
         CASE spent_symbol WHEN 'NEFTY' THEN core_amount ELSE 0 END
