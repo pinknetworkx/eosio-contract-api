@@ -15,13 +15,37 @@ export const atomicmarketComponents = {
                     }
                 }
             },
-            auction: {
+            auctions: {
                 type: 'array',
                 items: {
                     type: 'object',
                     properties: {
                         market_contract: {type: 'string'},
                         auction_id: {type: 'string'}
+                    }
+                }
+            },
+            prices: {
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        average: {type: 'string'},
+                        market_contract: {type: 'string'},
+                        max: {type: 'string'},
+                        median: {type: 'string'},
+                        min: {type: 'string'},
+                        sales: {type: 'string'},
+                        suggested_average: {type: 'string'},
+                        suggested_median: {type: 'string'},
+                        token: {
+                            type: 'object',
+                            properties: {
+                                token_contract: {type: 'string'},
+                                token_precision: {type: 'integer'},
+                                token_symbol: {type: 'string'}
+                            }
+                        }
                     }
                 }
             }

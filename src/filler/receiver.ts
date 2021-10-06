@@ -176,6 +176,13 @@ export default class StateReceiver {
         actionTraces: Array<{trace: EosioActionTrace<ContractDataEstimation>, tx: EosioTransaction<ContractDataEstimation>}>,
         contractRows: Array<EosioContractRow<ContractDataEstimation>>
     ): Promise<void> {
+        if (resp.this_block.block_num > this.currentBlock + 1) {
+            throw new Error('Skipped a block ' + JSON.stringify({
+                expected: this.currentBlock + 1,
+                processed: resp.this_block.block_num
+            }));
+        }
+
         const dbGroupBlocks = this.config.db_group_blocks || 12;
 
         const blocksUntilHead = (this.config.irreversible_only ? resp.last_irreversible.block_num : resp.head.block_num) - resp.this_block.block_num;

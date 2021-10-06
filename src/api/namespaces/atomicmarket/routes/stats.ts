@@ -342,10 +342,14 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             const query = await server.query(queryString, queryValues);
 
             if (query.rowCount === 0) {
-                return res.status(416).json({success: false, message: 'Account does not have any ended listings'});
+                return res.json({
+                    success: true,
+                    data: {symbol, result: {account: req.params.account, sell_volume: '0', buy_volume: '0'}},
+                    query_time: Date.now()
+                });
             }
 
-            res.json({
+            return res.json({
                 success: true,
                 data: {symbol, result: query.rows[0]},
                 query_time: Date.now()
@@ -537,7 +541,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 return res.status(500).json({success: false, message: 'Symbol not found'});
             }
 
-            let queryString = `SELECT div("time", 24 * 3600 * 1000) "time_block", COUNT(*) sales, SUM(price) volume 
+            let queryString = `SELECT div("time", 24 * 3600 * 1000) "time_block", COUNT(*) sales, SUM(price) volume, MAX(price) "max" 
                 FROM atomicmarket_stats_markets
                 WHERE market_contract = $1 AND symbol = $2
                     ${buildRangeCondition('"time"', args.after, args.before)}
@@ -566,7 +570,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 
             res.json({
                 success: true,
-                data: {symbol, results: query.rows.map(row => ({sales: row.sales, volume: row.volume, time: String(row.time_block * 3600 * 24 * 1000)}))},
+                data: {symbol, results: query.rows.map(row => ({sales: row.sales, volume: row.volume, max: row.max, time: String(row.time_block * 3600 * 24 * 1000)}))},
                 query_time: Date.now()
             });
         } catch (error) {
@@ -868,7 +872,8 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                     properties: {
                                         time: {type: 'string'},
                                         volume: {type: 'string'},
-                                        sales: {type: 'string'}
+                                        sales: {type: 'string'},
+                                        max: {type: 'string'}
                                     }
                                 }
                             }

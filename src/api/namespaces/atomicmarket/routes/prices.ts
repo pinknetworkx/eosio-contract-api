@@ -80,6 +80,79 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
         }
     });
 
+    router.all(['/v1/assets/:asset_id/sales'], server.web.caching(), async (req, res) => {
+        try {
+            const args = filterQueryArgs(req, {
+                seller: {type: 'string', min: 1},
+                buyer: {type: 'string', min: 1},
+                symbol: {type: 'string', min: 1},
+                limit: {type: 'int', min: 1, default: 100},
+                order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+                bundles: {type: 'bool'}
+            });
+
+            const query = new QueryBuilder(`
+                SELECT * FROM (
+                    (
+                        SELECT 
+                            listing.market_contract, listing.sale_id, (NULL)::bigint auction_id, (NULL)::bigint buyoffer_id,
+                            listing.settlement_symbol token_symbol, "token".token_precision, "token".token_contract,
+                            listing.final_price price, listing.seller, listing.buyer, listing.updated_at_time block_time
+                        FROM atomicmarket_sales listing, atomicassets_offers offer, atomicassets_offers_assets asset, atomicmarket_tokens "token"
+                        WHERE listing.assets_contract = offer.contract AND listing.offer_id = offer.offer_id
+                            AND offer.contract = asset.contract AND offer.offer_id = asset.offer_id
+                            AND listing.market_contract = "token".market_contract AND listing.settlement_symbol = "token".token_symbol
+                            AND listing."state" = 3 AND asset.asset_id = $1
+                    ) UNION ALL (
+                        SELECT 
+                            listing.market_contract, (NULL)::bigint sale_id, listing.auction_id, (NULL)::bigint buyoffer_id,
+                            listing.token_symbol, "token".token_precision, "token".token_contract,
+                            listing.price, listing.seller, listing.buyer, listing.end_time block_time
+                        FROM atomicmarket_auctions listing, atomicmarket_auctions_assets asset, atomicmarket_tokens "token"
+                        WHERE listing.market_contract = asset.market_contract AND listing.auction_id = asset.auction_id
+                            AND listing.market_contract = "token".market_contract AND listing.token_symbol = "token".token_symbol
+                            AND listing."state" = 1 AND listing.end_time <= extract(epoch from now())::bigint * 1000 AND asset.asset_id = $1
+                    ) UNION ALL (
+                        SELECT 
+                            listing.market_contract, (NULL)::bigint sale_id, (NULL)::bigint auction_id, listing.buyoffer_id,
+                            listing.token_symbol, "token".token_precision, "token".token_contract,
+                            listing.price, listing.seller, listing.buyer, listing.updated_at_time block_time
+                        FROM atomicmarket_buyoffers listing, atomicmarket_buyoffers_assets asset, atomicmarket_tokens "token"
+                        WHERE listing.market_contract = asset.market_contract AND listing.buyoffer_id = asset.buyoffer_id
+                            AND listing.market_contract = "token".market_contract AND listing.token_symbol = "token".token_symbol
+                            AND listing."state" = 3 AND asset.asset_id = $1
+                    )
+                ) t1
+            `, [req.params.asset_id]);
+
+            query.equal('t1.market_contract', core.args.atomicmarket_account);
+
+            if (args.symbol) {
+                query.equalMany('t1.token_symbol', args.symbol.split(','));
+            }
+
+            if (args.seller) {
+                query.equalMany('t1.seller', args.seller.split(','));
+            }
+
+            if (args.buyer) {
+                query.equalMany('t1.buyer', args.buyer.split(','));
+            }
+
+            query.append(`ORDER BY t1.block_time ${args.order === 'asc' ? 'ASC' : 'DESC'} LIMIT 500`);
+
+            const result = await server.query(query.buildString(), query.buildValues());
+
+            res.json({
+                success: true,
+                data: result.rows,
+                query_time: Date.now()
+            });
+        } catch (error) {
+            return respondApiError(res, error);
+        }
+    });
+
     router.all(['/v1/prices/sales/days'], server.web.caching(), async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
@@ -244,6 +317,67 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
             description: 'Pricing'
         },
         paths: {
+            '/v1/assets/{asset_id}/sales': {
+                get: {
+                    tags: ['assets'],
+                    summary: 'Gets price history for a specific asset',
+                    parameters: [
+                        {
+                            in: 'path',
+                            name: 'asset_id',
+                            description: 'Asset Id',
+                            required: true,
+                            schema: {type: 'integer'}
+                        },
+                        {
+                            name: 'buyer',
+                            in: 'query',
+                            description: 'Buyer',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'seller',
+                            in: 'query',
+                            description: 'Seller',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'symbol',
+                            in: 'query',
+                            description: 'Token symbol',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'order',
+                            in: 'query',
+                            description: 'Order by time',
+                            required: false,
+                            schema: {type: 'string', enum: ['asc', 'desc'], default: 'asc'}
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([500, 200], {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                sale_id: {type: 'string'},
+                                auction_id: {type: 'string'},
+                                buyoffer_id: {type: 'string'},
+                                price: {type: 'string'},
+                                token_symbol: {type: 'string'},
+                                token_precision: {type: 'integer'},
+                                token_contract: {type: 'string'},
+                                seller: {type: 'string'},
+                                buyer: {type: 'string'},
+                                block_time: {type: 'string'}
+                            }
+                        }
+                    })
+                }
+            },
             '/v1/prices/sales': {
                 get: {
                     tags: ['pricing'],
