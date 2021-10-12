@@ -4,12 +4,15 @@
       "name": "eosio-contract-api-filler",
       "script": "build/bin/filler.js",
 
+      "exec_mode": "fork",
       "instances": 1,
 
       "autorestart": true,
       "kill_timeout": 60000,
 
       "watch": false,
+
+      "node_args": ["--max-old-space-size=4096"],
 
       "env": {
         "NODE_ENV": "production"
@@ -19,12 +22,15 @@
       "name": "eosio-contract-api-server",
       "script": "build/bin/server.js",
 
+      "exec_mode": "fork",
       "instances": 1,
 
       "autorestart": true,
       "exp_backoff_restart_delay": 100,
 
       "watch": false,
+
+      "node_args": ["max-old-space-size=4096"],
 
       "env": {
         "NODE_ENV": "production"

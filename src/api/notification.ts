@@ -6,7 +6,7 @@ export type NotificationListener = (notifications: NotificationData[]) => Promis
 
 export default class ApiNotificationReceiver {
     private readonly channelName: string;
-    private readonly listeners: Array<{channel: string, callback: NotificationListener}>
+    private readonly listeners: Array<{channel: string, callback: NotificationListener}>;
 
     constructor(readonly connection: ConnectionManager, readonly readerName: string) {
         this.channelName = ['eosio-contract-api', this.connection.chain.name, this.readerName, 'api'].join(':');

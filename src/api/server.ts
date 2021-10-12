@@ -7,7 +7,6 @@ import * as expressRedisStore from 'rate-limit-redis';
 
 import * as bodyParser from 'body-parser';
 import * as cors from 'cors';
-import * as cookieParser from 'cookie-parser';
 import { Pool, QueryResult } from 'pg';
 
 import ConnectionManager from '../connections/manager';

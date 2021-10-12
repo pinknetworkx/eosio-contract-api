@@ -13,7 +13,8 @@ const readerConfigs: IReaderConfig[] = require('../../config/readers.config.json
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const connectionConfig: IConnectionsConfig = require('../../config/connections.config.json');
 
-if (cluster.isMaster) {
+// @ts-ignore
+if (cluster.isPrimary || cluster.isMaster) {
     logger.info('Starting workers...');
 
     // init global tables if missing
@@ -120,9 +121,10 @@ if (cluster.isMaster) {
         client.release();
 
         for (let i = 0; i < readerConfigs.length; i++) {
+            // @ts-ignore
             const worker = cluster.fork({config_index: i});
 
-            worker.on('message', data => {
+            worker.on('message', (data: any) => {
                 if (data.msg === 'failure') {
                     process.exit(-1);
                 }
