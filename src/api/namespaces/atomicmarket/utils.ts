@@ -198,6 +198,8 @@ export function buildAuctionFilter(req: express.Request, query: QueryBuilder): v
 
         participant: {type: 'string', min: 1},
         bidder: {type: 'string', min: 1},
+
+        hide_empty_auctions: {type: 'bool'},
     });
 
     buildListingFilter(req, query);
@@ -231,6 +233,11 @@ export function buildAuctionFilter(req: express.Request, query: QueryBuilder): v
                 ))
             )`
         );
+    }
+
+    if (args.hide_empty_auctions) {
+        query.addCondition('EXISTS(SELECT * FROM atomicmarket_auctions_bids bid ' +
+            'WHERE bid.market_contract = listing.market_contract AND bid.auction_id = listing.auction_id)');
     }
 
     if (args.max_assets) {

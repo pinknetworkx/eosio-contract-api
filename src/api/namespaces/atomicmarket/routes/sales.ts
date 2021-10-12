@@ -15,7 +15,7 @@ import {
 } from '../../../docs';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
-import { buildAssetFilter, buildGreylistFilter } from '../../atomicassets/utils';
+import { buildAssetFilter, buildGreylistFilter, hasAssetFilter } from '../../atomicassets/utils';
 import {
     applyActionGreylistFilters,
     createSocketApiNamespace,
@@ -135,8 +135,8 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 return res.json({success: false, message: 'symbol parameter is required'});
             }
 
-            if (!args.collection_name && !args.collection_whitelist) {
-                return res.json({success: false, message: 'You need to specify a collection name'});
+            if (!hasAssetFilter(req) && !args.collection_whitelist) {
+                return res.json({success: false, message: 'You need to specify an asset filter!'});
             }
 
             const query = new QueryBuilder(`

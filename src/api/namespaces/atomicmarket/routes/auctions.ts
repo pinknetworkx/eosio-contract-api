@@ -195,6 +195,13 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                             required: false,
                             schema: {type: 'string'}
                         },
+                        {
+                            name: 'hide_empty_auctions',
+                            in: 'query',
+                            description: 'Hide auctions with no bids',
+                            required: false,
+                            schema: {type: 'boolean'}
+                        },
                         ...listingFilterParameters,
                         ...baseAssetFilterParameters,
                         ...extendedAssetFilterParameters,
