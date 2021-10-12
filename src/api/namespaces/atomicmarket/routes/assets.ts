@@ -138,7 +138,7 @@ export function assetsEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                             }
                         }
                     ],
-                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/' + this.schema}})
+                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/ListingAsset'}})
                 }
             }
         }
