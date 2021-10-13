@@ -14,3 +14,6 @@ config/readers.config.json
 config/server.config.json
 
 *.override.yml
+
+docker/postgres
+docker/redis

@@ -4,8 +4,10 @@ import fetch from 'node-fetch';
 
 import logger from '../src/utils/winston';
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const config = require('../config/server.config.json');
 describe('Endpoints Test', () => {
-    const endpoint = 'https://wax.api.atomicassets.io';
+    const endpoint = `http://${config.server_name}`;
 
     async function testEndpoint(namespace: string, path: string, params: any): Promise<number> {
         const url = endpoint + '/' + namespace + path + '?' + Object.keys(params).map(key => key + '=' + params[key]).join('&');
@@ -18,6 +20,31 @@ describe('Endpoints Test', () => {
 
         return resp.status;
     }
+
+
+    it('neftydrops namespace', async () => {
+        const namespace = 'neftydrops';
+
+        // stats
+        expect(await testEndpoint(namespace, '/v1/stats/collections', {symbol: 'WAX'})).to.equal(200);
+        expect(await testEndpoint(namespace, '/v1/stats/collections/test', {symbol: 'WAX'})).to.equal(416);
+        expect(await testEndpoint(namespace, '/v1/stats/accounts', {symbol: 'WAX'})).to.equal(200);
+        expect(await testEndpoint(namespace, '/v1/stats/accounts/test', {symbol: 'WAX'})).to.equal(416);
+
+        // liquidity mining
+        expect(await testEndpoint(namespace, '/v1/mining/collections', {})).to.equal(200);
+        expect(await testEndpoint(namespace, '/v1/mining/collections/_count', {})).to.equal(200);
+        expect(await testEndpoint(namespace, '/v1/mining/claimers', {})).to.equal(200);
+        expect(await testEndpoint(namespace, '/v1/mining/claimers/_count', {})).to.equal(200);
+
+        // expect(await testEndpoint(namespace, '/v1/marketplace/sellers', {})).to.equal(200);
+        // expect(await testEndpoint(namespace, '/v1/marketplace/sellers/_count', {})).to.equal(200);
+        // expect(await testEndpoint(namespace, '/v1/marketplace/buyers', {})).to.equal(200);
+        // expect(await testEndpoint(namespace, '/v1/marketplace/buyers/_count', {})).to.equal(200);
+        
+        // config
+        expect(await testEndpoint(namespace, '/v1/config', {})).to.equal(200);
+    }).timeout(10000);
 
     it('atomicassets namespace', async () => {
         const namespace = 'atomicassets';
@@ -134,57 +161,21 @@ describe('Endpoints Test', () => {
         expect(await testEndpoint(namespace, '/v1/auctions', {
             state: '0,1,2,3,4',
             max_assets: 1,
-            asset_id: '1',
             show_seller_contracts: false,
-            contract_whitelist: 'test',
-            seller_blacklist: 'test',
-            marketplace: 'test',
-            maker_marketplace: 'test',
-            taker_marketplace: 'test',
-            symbol: 'test',
-            seller: 'test',
-            buyer: 'test',
-            min_price: 100,
-            max_price: 100,
-            owner: 'test',
-            collection_name: 'test',
-            schema_name: 'test',
-            template_id: 1,
-            match: 'test',
             page: 1,
             limit: 1,
             order: 'asc',
-            sort: 'asset_id',
-            'data.test': 'test'
+            sort: 'asset_id'
         })).to.equal(200);
         expect(await testEndpoint(namespace, '/v1/auctions/1000000', {})).to.equal(416);
 
         // sales
         expect(await testEndpoint(namespace, '/v1/sales', {
-            state: '0,1,2,3,4',
             max_assets: 1,
-            asset_id: '1',
-            show_seller_contracts: false,
-            contract_whitelist: 'test',
-            seller_blacklist: 'test',
-            marketplace: 'test',
-            maker_marketplace: 'test',
-            taker_marketplace: 'test',
-            symbol: 'test',
-            seller: 'test',
-            buyer: 'test',
-            min_price: 100,
-            max_price: 100,
-            owner: 'test',
-            collection_name: 'test',
-            schema_name: 'test',
-            template_id: 1,
-            match: 'test',
             page: 1,
             limit: 1,
             order: 'asc',
-            sort: 'asset_id',
-            'data.test': 'test'
+            sort: 'asset_id'
         })).to.equal(200);
         expect(await testEndpoint(namespace, '/v1/sales/1000000', {})).to.equal(416);
 
@@ -196,9 +187,7 @@ describe('Endpoints Test', () => {
         expect(await testEndpoint(namespace, '/v1/stats/collections', {symbol: 'WAX'})).to.equal(200);
         expect(await testEndpoint(namespace, '/v1/stats/collections/test', {symbol: 'WAX'})).to.equal(416);
         expect(await testEndpoint(namespace, '/v1/stats/accounts', {symbol: 'WAX'})).to.equal(200);
-        expect(await testEndpoint(namespace, '/v1/stats/accounts/test', {symbol: 'WAX'})).to.equal(416);
-        expect(await testEndpoint(namespace, '/v1/stats/schemas/test', {symbol: 'WAX'})).to.equal(200);
-
+        
         // config
         expect(await testEndpoint(namespace, '/v1/config', {})).to.equal(200);
 
@@ -273,30 +262,25 @@ describe('Endpoints Test', () => {
     }).timeout(10000);
 
     it('atomichub namespace', async () => {
-        const namespace = 'atomichub';
+        // const namespace = 'atomichub';
 
-        expect(await testEndpoint(namespace, '/v1/notifications/test', {})).to.equal(200);
-        expect(await testEndpoint(namespace, '/v1/watchlist/test', {})).to.equal(200);
+        // expect(await testEndpoint(namespace, '/v1/notifications/test', {})).to.equal(200);
+        // expect(await testEndpoint(namespace, '/v1/watchlist/test', {})).to.equal(200);
 
-        expect(await testEndpoint(namespace, '/v1/watchlist/stats', {})).to.equal(200);
-        expect(await testEndpoint(namespace, '/v1/sales/trending', {})).to.equal(200);
-        expect(await testEndpoint(namespace, '/v1/assets/suggestions', {
-            asset_id: 10
-        })).to.equal(416);
-        expect(await testEndpoint(namespace, '/v1/assets/suggestions', {
-            collection_name: 'test',
-            template_id: 1,
-            schema_name: 'test'
-        })).to.equal(200);
-        expect(await testEndpoint(namespace, '/v1/sales/suggestions', {
-            sale_id: 10000000
-        })).to.equal(416);
-        expect(await testEndpoint(namespace, '/v1/sales/suggestions', {
-            collection_name: 'test',
-            template_id: 1,
-            schema_name: 'test',
-            asset_id: 1
-        })).to.equal(200);
-        expect(await testEndpoint(namespace, '/v1/avatar/test', {})).to.equal(200);
+        // expect(await testEndpoint(namespace, '/v1/watchlist/stats', {})).to.equal(200);
+        // expect(await testEndpoint(namespace, '/v1/sales/trending', {})).to.equal(200);
+        // expect(await testEndpoint(namespace, '/v1/assets/suggestions', {
+        //     asset_id: 10
+        // })).to.equal(416);
+        // expect(await testEndpoint(namespace, '/v1/assets/suggestions', {
+        //     collection_name: 'test',
+        //     template_id: 1,
+        //     schema_name: 'test'
+        // })).to.equal(200);
+        // expect(await testEndpoint(namespace, '/v1/sales/suggestions', {
+        //     sale_id: 10000000
+        // })).to.equal(416);
+        
+        // expect(await testEndpoint(namespace, '/v1/avatar/test', {})).to.equal(200);
     }).timeout(10000);
 });
