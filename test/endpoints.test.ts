@@ -30,8 +30,18 @@ describe('Endpoints Test', () => {
         expect(await testEndpoint(namespace, '/v1/stats/collections/test', {symbol: 'WAX'})).to.equal(416);
         expect(await testEndpoint(namespace, '/v1/stats/accounts', {symbol: 'WAX'})).to.equal(200);
         expect(await testEndpoint(namespace, '/v1/stats/accounts/test', {symbol: 'WAX'})).to.equal(416);
-        expect(await testEndpoint(namespace, '/v1/stats/graph', {symbol: 'WAX'})).to.equal(200);
 
+        // liquidity mining
+        expect(await testEndpoint(namespace, '/v1/mining/collections', {})).to.equal(200);
+        expect(await testEndpoint(namespace, '/v1/mining/collections/_count', {})).to.equal(200);
+        expect(await testEndpoint(namespace, '/v1/mining/claimers', {})).to.equal(200);
+        expect(await testEndpoint(namespace, '/v1/mining/claimers/_count', {})).to.equal(200);
+
+        // expect(await testEndpoint(namespace, '/v1/marketplace/sellers', {})).to.equal(200);
+        // expect(await testEndpoint(namespace, '/v1/marketplace/sellers/_count', {})).to.equal(200);
+        // expect(await testEndpoint(namespace, '/v1/marketplace/buyers', {})).to.equal(200);
+        // expect(await testEndpoint(namespace, '/v1/marketplace/buyers/_count', {})).to.equal(200);
+        
         // config
         expect(await testEndpoint(namespace, '/v1/config', {})).to.equal(200);
     }).timeout(10000);
@@ -177,9 +187,7 @@ describe('Endpoints Test', () => {
         expect(await testEndpoint(namespace, '/v1/stats/collections', {symbol: 'WAX'})).to.equal(200);
         expect(await testEndpoint(namespace, '/v1/stats/collections/test', {symbol: 'WAX'})).to.equal(416);
         expect(await testEndpoint(namespace, '/v1/stats/accounts', {symbol: 'WAX'})).to.equal(200);
-        expect(await testEndpoint(namespace, '/v1/stats/accounts/test', {symbol: 'WAX'})).to.equal(416);
-        expect(await testEndpoint(namespace, '/v1/stats/schemas/test', {symbol: 'WAX'})).to.equal(200);
-
+        
         // config
         expect(await testEndpoint(namespace, '/v1/config', {})).to.equal(200);
 
