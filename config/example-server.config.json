@@ -51,6 +51,15 @@
         "atomicassets_account": "atomicassets",
         "connected_reader": "atomic-1"
       }
+    },
+    {
+      "name": "neftydrops",
+      "path": "/neftydrops",
+      "args": {
+        "neftydrops_account": "neftyblocksd",
+        "neftymarket_name": "neftyblocksm",
+        "atomicassets_account": "atomicassets"
+      }
     }
   ]
 }
