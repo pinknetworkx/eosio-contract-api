@@ -46,7 +46,7 @@ export function marketplaceEndpoints(core: NeftyDropsNamespace, server: HTTPServ
         WHERE state = ${SaleState.SOLD} 
           AND settlement_symbol = 'WAX'
           AND market_contract = $1
-          AND (taker_marketplace = $2 OR maker_marketplace = $2)
+          AND maker_marketplace = $2
           ${rangeCondition}
       ${groupBy}`;
       const query = new QueryBuilder(queryString, 
@@ -76,7 +76,7 @@ export function marketplaceEndpoints(core: NeftyDropsNamespace, server: HTTPServ
         WHERE state = ${SaleState.SOLD} 
           AND settlement_symbol = 'WAX'
           AND market_contract = $1
-          AND (taker_marketplace = $2 OR maker_marketplace = $2)
+          AND taker_marketplace = $2
           ${rangeCondition}
       ${groupBy}`;
       const query = new QueryBuilder(queryString, 
