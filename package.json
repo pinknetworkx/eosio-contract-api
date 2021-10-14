@@ -2,7 +2,7 @@
   "name": "eosio-contract-api",
   "version": "1.2.13",
   "description": "EOSIO Contract API",
-  "author": "pink.network",
+  "author": "pink.gg",
   "license": "AGPL-3.0",
   "repository": "https://github.com/pinknetworkx/eosio-contract-api",
   "scripts": {
