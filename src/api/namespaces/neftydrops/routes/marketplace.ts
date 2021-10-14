@@ -71,7 +71,7 @@ export function marketplaceEndpoints(core: NeftyDropsNamespace, server: HTTPServ
       const rangeCondition = buildRangeCondition('updated_at_time', args.after, args.before);
       const groupBy = buildGroupQuery(group_by, args.sort, args.order, args.limit, args.page);
       const queryString = `
-      SELECT ${group_by}, SUM(final_price) AS sold_wax
+      SELECT ${group_by}, SUM(final_price) AS bought_wax
       FROM atomicmarket_sales
         WHERE state = ${SaleState.SOLD} 
           AND settlement_symbol = 'WAX'
