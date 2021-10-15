@@ -40,7 +40,10 @@ describe('Endpoints Test', () => {
         expect(await testEndpoint(namespace, '/v1/marketplace/sellers', {})).to.equal(200);
         expect(await testEndpoint(namespace, '/v1/marketplace/buyers', {})).to.equal(200);
         expect(await testEndpoint(namespace, '/v1/marketplace/collections', {})).to.equal(200);
-        
+        expect(await testEndpoint(namespace, '/v1/marketplace/sellers/_count', {})).to.equal(200);
+        expect(await testEndpoint(namespace, '/v1/marketplace/buyers/_count', {})).to.equal(200);
+        expect(await testEndpoint(namespace, '/v1/marketplace/collections/_count', {})).to.equal(200);
+
         // config
         expect(await testEndpoint(namespace, '/v1/config', {})).to.equal(200);
     }).timeout(10000);
@@ -186,7 +189,7 @@ describe('Endpoints Test', () => {
         expect(await testEndpoint(namespace, '/v1/stats/collections', {symbol: 'WAX'})).to.equal(200);
         expect(await testEndpoint(namespace, '/v1/stats/collections/test', {symbol: 'WAX'})).to.equal(416);
         expect(await testEndpoint(namespace, '/v1/stats/accounts', {symbol: 'WAX'})).to.equal(200);
-        
+
         // config
         expect(await testEndpoint(namespace, '/v1/config', {})).to.equal(200);
 
@@ -279,7 +282,7 @@ describe('Endpoints Test', () => {
         // expect(await testEndpoint(namespace, '/v1/sales/suggestions', {
         //     sale_id: 10000000
         // })).to.equal(416);
-        
+
         // expect(await testEndpoint(namespace, '/v1/avatar/test', {})).to.equal(200);
     }).timeout(10000);
 });

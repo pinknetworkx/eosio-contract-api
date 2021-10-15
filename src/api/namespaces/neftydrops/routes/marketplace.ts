@@ -9,7 +9,7 @@ import { SaleState } from '../../../../filler/handlers/atomicmarket';
 import QueryBuilder from '../../../builder';
 
 export function marketplaceEndpoints(core: NeftyDropsNamespace, server: HTTPServer, router: express.Router): any {
-  
+
   function marketFilterQueryArgs(sort: any): FilterDefinition {
     return {
       before: {type: 'int', min: 1, default: 0},
@@ -21,16 +21,20 @@ export function marketplaceEndpoints(core: NeftyDropsNamespace, server: HTTPServ
       order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
     };
   }
-  function buildGroupQuery(group_by: string,
+  function buildGroupQuery(group_by: string): string {
+    return `GROUP BY ${group_by}`;
+  }
+  function buildLimitQuery(
       sort: string, order: string, limit: number, page: number): string {
     const offset = (page - 1) * limit;
-    return `GROUP BY ${group_by}
+    return `
       ORDER BY ${sort} ${order}
       LIMIT ${limit}
       OFFSET ${offset}`;
   }
 
-  router.get(['/v1/marketplace/sellers'], server.web.caching(), async (req, res) => {
+  router.get(['/v1/marketplace/sellers', '/v1/marketplace/sellers/_count'],
+      server.web.caching(), async (req, res) => {
     try {
       const group_by = 'seller';
       const args = filterQueryArgs(req, marketFilterQueryArgs({
@@ -41,15 +45,15 @@ export function marketplaceEndpoints(core: NeftyDropsNamespace, server: HTTPServ
 
       const parameters = [core.args.atomicmarket_account, core.args.neftymarket_name];
       const rangeCondition = buildRangeCondition('updated_at_time', args.after, args.before);
-      const groupBy = buildGroupQuery(group_by, args.sort, args.order, args.limit, args.page);
-      
+      const groupBy = buildGroupQuery(group_by);
+
       let collectionFilter = '';
       if (args.collection) {
-        collectionFilter = ` AND collection_name = $3`;
+        collectionFilter = ' AND collection_name = $3';
         parameters.push(args.collection);
       }
 
-      const queryString = `
+      let queryString = `
       SELECT ${group_by}, SUM(final_price) AS sold_wax
       FROM atomicmarket_sales
         WHERE state = ${SaleState.SOLD} 
@@ -60,16 +64,25 @@ export function marketplaceEndpoints(core: NeftyDropsNamespace, server: HTTPServ
           ${rangeCondition}
       ${groupBy}`;
 
+      if (req.originalUrl.search('/_count') >= 0) {
+        queryString = `SELECT COUNT(*) FROM (${queryString}) AS res`;
+      } else {
+        queryString += buildLimitQuery(args.sort, args.order, args.limit, args.page);
+      }
+
       const query = new QueryBuilder(queryString, parameters);
       const soldByUsers = await server.query(query.buildString(), query.buildValues());
+      const result = req.originalUrl.search('/_count') >= 0 ?
+          soldByUsers.rows[0].count : soldByUsers.rows;
 
-      res.json({success: true, data: soldByUsers.rows, query_time: Date.now()});
+      res.json({success: true, data: result, query_time: Date.now()});
     } catch (e) {
       res.status(500).json({success: false, message: 'Internal Server Error'});
     }
   });
 
-  router.get(['/v1/marketplace/buyers'], server.web.caching(), async (req, res) => {
+  router.get(['/v1/marketplace/buyers', '/v1/marketplace/buyers/_count'],
+      server.web.caching(), async (req, res) => {
     try {
       const group_by = 'buyer';
       const args = filterQueryArgs(req, marketFilterQueryArgs({
@@ -80,15 +93,15 @@ export function marketplaceEndpoints(core: NeftyDropsNamespace, server: HTTPServ
 
       const parameters = [core.args.atomicmarket_account, core.args.neftymarket_name];
       const rangeCondition = buildRangeCondition('updated_at_time', args.after, args.before);
-      const groupBy = buildGroupQuery(group_by, args.sort, args.order, args.limit, args.page);
-      
+      const groupBy = buildGroupQuery(group_by);
+
       let collectionFilter = '';
       if (args.collection) {
-        collectionFilter = ` AND collection_name = $3`;
+        collectionFilter = ' AND collection_name = $3';
         parameters.push(args.collection);
       }
 
-      const queryString = `
+      let queryString = `
       SELECT ${group_by}, SUM(final_price) AS spent_wax
       FROM atomicmarket_sales
         WHERE state = ${SaleState.SOLD} 
@@ -99,16 +112,25 @@ export function marketplaceEndpoints(core: NeftyDropsNamespace, server: HTTPServ
           ${rangeCondition}
       ${groupBy}`;
 
+      if (req.originalUrl.search('/_count') >= 0) {
+        queryString = `SELECT COUNT(*) FROM (${queryString}) AS res`;
+      } else {
+        queryString += buildLimitQuery(args.sort, args.order, args.limit, args.page);
+      }
+
       const query = new QueryBuilder(queryString, parameters);
       const boughtByUsers = await server.query(query.buildString(), query.buildValues());
+      const result = req.originalUrl.search('/_count') >= 0 ?
+          boughtByUsers.rows[0].count : boughtByUsers.rows;
 
-      res.json({success: true, data: boughtByUsers.rows, query_time: Date.now()});
+      res.json({success: true, data: result, query_time: Date.now()});
     } catch (e) {
       res.status(500).json({success: false, message: 'Internal Server Error'});
     }
   });
 
-  router.get(['/v1/marketplace/collections'], server.web.caching(), async (req, res) => {
+  router.get(['/v1/marketplace/collections', '/v1/marketplace/collections/_count'],
+      server.web.caching(), async (req, res) => {
     try {
       const group_by = 'collection_name';
       const args = filterQueryArgs(req, marketFilterQueryArgs({
@@ -119,15 +141,15 @@ export function marketplaceEndpoints(core: NeftyDropsNamespace, server: HTTPServ
 
       const parameters = [core.args.atomicmarket_account, core.args.neftymarket_name];
       const rangeCondition = buildRangeCondition('updated_at_time', args.after, args.before);
-      const groupBy = buildGroupQuery(group_by, args.sort, args.order, args.limit, args.page);
+      const groupBy = buildGroupQuery(group_by);
 
       let collectionFilter = '';
       if (args.collection) {
-        collectionFilter = ` AND collection_name = $3`;
+        collectionFilter = ' AND collection_name = $3';
         parameters.push(args.collection);
       }
 
-      const queryString = `
+      let queryString = `
       SELECT ${group_by}, SUM(final_price) AS sold_wax
       FROM atomicmarket_sales
         WHERE state = ${SaleState.SOLD} 
@@ -137,10 +159,19 @@ export function marketplaceEndpoints(core: NeftyDropsNamespace, server: HTTPServ
           ${collectionFilter}
           ${rangeCondition}
       ${groupBy}`;
+
+      if (req.originalUrl.search('/_count') >= 0) {
+        queryString = `SELECT COUNT(*) FROM (${queryString}) AS res`;
+      } else {
+        queryString += buildLimitQuery(args.sort, args.order, args.limit, args.page);
+      }
+
       const query = new QueryBuilder(queryString, parameters);
       const soldByCollection = await server.query(query.buildString(), query.buildValues());
+      const result = req.originalUrl.search('/_count') >= 0 ?
+          soldByCollection.rows[0].count : soldByCollection.rows;
 
-      res.json({success: true, data: soldByCollection.rows, query_time: Date.now()});
+      res.json({success: true, data: result, query_time: Date.now()});
     } catch (e) {
       res.status(500).json({success: false, message: 'Internal Server Error'});
     }
