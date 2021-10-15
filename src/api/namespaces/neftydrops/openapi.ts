@@ -5,10 +5,16 @@ export const neftyDropsComponents = {
   Claim: {
 
   },
-  Collections: {
+  CollectionsBalance: {
 
   },
-  Claimers: {
+  ClaimersBalance: {
+
+  },
+  SellersBalance: {
+
+  },
+  BuyersBalance: {
 
   }
 };

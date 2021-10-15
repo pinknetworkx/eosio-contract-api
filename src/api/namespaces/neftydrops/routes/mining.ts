@@ -156,7 +156,7 @@ export function miningEndpoints(core: NeftyDropsNamespace, server: HTTPServer, r
           ],
           responses: getOpenAPI3Responses([200, 500], {
             type: 'array',
-            items: {'$ref': '#/components/schemas/Collections'}
+            items: {'$ref': '#/components/schemas/CollectionsBalance'}
           })
         }
       },
@@ -184,7 +184,7 @@ export function miningEndpoints(core: NeftyDropsNamespace, server: HTTPServer, r
           ],
           responses: getOpenAPI3Responses([200, 500], {
             type: 'array',
-            items: {'$ref': '#/components/schemas/Claimers'}
+            items: {'$ref': '#/components/schemas/ClaimersBalance'}
           })
         }
       }

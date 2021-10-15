@@ -37,10 +37,9 @@ describe('Endpoints Test', () => {
         expect(await testEndpoint(namespace, '/v1/mining/claimers', {})).to.equal(200);
         expect(await testEndpoint(namespace, '/v1/mining/claimers/_count', {})).to.equal(200);
 
-        // expect(await testEndpoint(namespace, '/v1/marketplace/sellers', {})).to.equal(200);
-        // expect(await testEndpoint(namespace, '/v1/marketplace/sellers/_count', {})).to.equal(200);
-        // expect(await testEndpoint(namespace, '/v1/marketplace/buyers', {})).to.equal(200);
-        // expect(await testEndpoint(namespace, '/v1/marketplace/buyers/_count', {})).to.equal(200);
+        expect(await testEndpoint(namespace, '/v1/marketplace/sellers', {})).to.equal(200);
+        expect(await testEndpoint(namespace, '/v1/marketplace/buyers', {})).to.equal(200);
+        expect(await testEndpoint(namespace, '/v1/marketplace/collections', {})).to.equal(200);
         
         // config
         expect(await testEndpoint(namespace, '/v1/config', {})).to.equal(200);

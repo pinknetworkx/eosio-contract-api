@@ -7,10 +7,13 @@ import { configEndpoints } from './routes/config';
 import {statsEndpoints} from './routes/stats';
 import {dropsEndpoints} from './routes/drops';
 import {miningEndpoints} from './routes/mining';
+import {marketplaceEndpoints} from './routes/marketplace';
 
 export type NeftyDropsNamespaceArgs = {
     neftydrops_account: string,
+    neftymarket_name: string,
     atomicassets_account: string,
+    atomicmarket_account: string,
 };
 
 export enum DropApiState {
@@ -29,6 +32,9 @@ export class NeftyDropsNamespace extends ApiNamespace {
         if (typeof this.args.neftydrops_account !== 'string') {
             throw new Error('Argument missing in neftydrops api namespace: neftydrops_account');
         }
+        if (typeof this.args.neftymarket_name !== 'string') {
+            throw new Error('Argument missing in neftydrops api namespace: neftymarket_name');
+        }
 
         const query = await this.connection.database.query(
             'SELECT * FROM neftydrops_config WHERE drops_contract = $1',
@@ -41,6 +47,17 @@ export class NeftyDropsNamespace extends ApiNamespace {
             }
         } else {
             this.args.neftydrops_account = query.rows[0].drops_contract;
+        }
+
+        const market_query = await this.connection.database.query(
+            'SELECT * FROM atomicmarket_marketplaces WHERE marketplace_name = $1',
+            [this.args.neftymarket_name]
+        );
+
+        if (market_query.rowCount === 0) {
+            throw new Error(`NeftyMarket not found: ${this.args.neftymarket_name}`);
+        } else {
+            this.args.atomicmarket_account = market_query.rows[0].market_contract;
         }
     }
 
@@ -59,6 +76,7 @@ export class NeftyDropsNamespace extends ApiNamespace {
         endpointsDocs.push(dropsEndpoints(this, server, router));
         endpointsDocs.push(statsEndpoints(this, server, router));
         endpointsDocs.push(miningEndpoints(this, server, router));
+        endpointsDocs.push(marketplaceEndpoints(this, server, router));
 
         for (const doc of endpointsDocs) {
             if (doc.tag) {
