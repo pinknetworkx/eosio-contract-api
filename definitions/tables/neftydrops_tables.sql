@@ -33,7 +33,7 @@ CREATE TABLE neftydrops_drop_assets
     collection_name character varying(12),
     template_id     bigint                NOT NULL,
     use_pool        boolean,
-    tokens_to_back  jsonb,
+    tokens_to_back  character varying(100)[],
     "index"         integer               NOT NULL,
 
     CONSTRAINT neftydrops_drop_assets_pkey PRIMARY KEY (drops_contract, drop_id, index)
