@@ -251,7 +251,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
             }
 
             if (args.schema_name) {
-                query.equalMany('price.schema_name', args.schema_name.split(','));
+                query.equalMany('"template".schema_name', args.schema_name.split(','));
             }
 
             if (args.template_id) {
