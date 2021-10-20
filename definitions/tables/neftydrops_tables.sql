@@ -57,6 +57,10 @@ CREATE TABLE neftydrops_claims
     txid              bytea                 NOT NULL,
     created_at_block  bigint                NOT NULL,
     created_at_time   bigint                NOT NULL,
+    amount_spent      bigint,
+    spent_symbol      character varying(12),
+    core_amount       bigint,
+    core_symbol       character varying(12),
     CONSTRAINT neftydrops_claims_pkey PRIMARY KEY (drops_contract, claim_id)
 );
 
@@ -103,78 +107,78 @@ CREATE TABLE neftydrops_config
 
 ALTER TABLE ONLY neftydrops_balances
     ADD CONSTRAINT neftydrops_balances_symbols_fkey FOREIGN KEY (token_symbol, drops_contract)
-    REFERENCES neftydrops_tokens (token_symbol, drops_contract) MATCH SIMPLE ON
-UPDATE RESTRICT
-ON
-DELETE
-RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+        REFERENCES neftydrops_tokens (token_symbol, drops_contract) MATCH SIMPLE ON
+            UPDATE RESTRICT
+        ON
+            DELETE
+            RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY neftydrops_symbol_pairs
     ADD CONSTRAINT neftydrops_symbol_pairs_delphi_fkey FOREIGN KEY (delphi_contract, delphi_pair_name)
-    REFERENCES delphioracle_pairs (contract, delphi_pair_name) MATCH SIMPLE ON
-UPDATE RESTRICT
-ON
-DELETE
-RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+        REFERENCES delphioracle_pairs (contract, delphi_pair_name) MATCH SIMPLE ON
+            UPDATE RESTRICT
+        ON
+            DELETE
+            RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY neftydrops_drop_assets
-    ADD CONSTRAINT neftydrops_drop_assets_drop_fkey FOREIGN KEY (drop_id, drops_contract) REFERENCES neftydrops_drops(drop_id, drops_contract) MATCH SIMPLE ON
-UPDATE RESTRICT
-ON
-DELETE
-RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+    ADD CONSTRAINT neftydrops_drop_assets_drop_fkey FOREIGN KEY (drop_id, drops_contract) REFERENCES neftydrops_drops (drop_id, drops_contract) MATCH SIMPLE ON
+        UPDATE RESTRICT
+        ON
+            DELETE
+            RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 -- Indexes
 CREATE
-INDEX neftydrops_drops_drop_id ON neftydrops_drops USING btree (drop_id);
+    INDEX neftydrops_drops_drop_id ON neftydrops_drops USING btree (drop_id);
 CREATE
-INDEX neftydrops_drops_collection_name ON neftydrops_drops USING hash (collection_name);
+    INDEX neftydrops_drops_collection_name ON neftydrops_drops USING hash (collection_name);
 CREATE
-INDEX neftydrops_drops_collection_price ON neftydrops_drops USING btree (listing_price);
+    INDEX neftydrops_drops_collection_price ON neftydrops_drops USING btree (listing_price);
 CREATE
-INDEX neftydrops_drops_collection_listing_symbol ON neftydrops_drops USING btree (listing_symbol);
+    INDEX neftydrops_drops_collection_listing_symbol ON neftydrops_drops USING btree (listing_symbol);
 CREATE
-INDEX neftydrops_drops_collection_settlement_symbol ON neftydrops_drops USING btree (settlement_symbol);
+    INDEX neftydrops_drops_collection_settlement_symbol ON neftydrops_drops USING btree (settlement_symbol);
 CREATE
-INDEX neftydrops_drops_collection_auth_required ON neftydrops_drops USING btree (auth_required);
+    INDEX neftydrops_drops_collection_auth_required ON neftydrops_drops USING btree (auth_required);
 CREATE
-INDEX neftydrops_drops_collection_preminted ON neftydrops_drops USING btree (preminted);
+    INDEX neftydrops_drops_collection_preminted ON neftydrops_drops USING btree (preminted);
 CREATE
-INDEX neftydrops_drops_collection_start_time ON neftydrops_drops USING btree (start_time);
+    INDEX neftydrops_drops_collection_start_time ON neftydrops_drops USING btree (start_time);
 CREATE
-INDEX neftydrops_drops_collection_end_time ON neftydrops_drops USING btree (end_time);
+    INDEX neftydrops_drops_collection_end_time ON neftydrops_drops USING btree (end_time);
 CREATE
-INDEX neftydrops_drops_created_at_time ON neftydrops_drops USING btree (created_at_time);
+    INDEX neftydrops_drops_created_at_time ON neftydrops_drops USING btree (created_at_time);
 CREATE
-INDEX neftydrops_drops_updated_at_time ON neftydrops_drops USING btree (updated_at_time);
+    INDEX neftydrops_drops_updated_at_time ON neftydrops_drops USING btree (updated_at_time);
 
 CREATE
-INDEX neftydrops_claims_drop_id ON neftydrops_claims USING btree (drop_id);
+    INDEX neftydrops_claims_drop_id ON neftydrops_claims USING btree (drop_id);
 CREATE
-INDEX neftydrops_claims_amount ON neftydrops_claims USING btree (amount);
+    INDEX neftydrops_claims_amount ON neftydrops_claims USING btree (amount);
 CREATE
-INDEX neftydrops_claims_final_price ON neftydrops_claims USING btree (final_price);
+    INDEX neftydrops_claims_final_price ON neftydrops_claims USING btree (final_price);
 CREATE
-INDEX neftydrops_claims_total_price ON neftydrops_claims USING btree (total_price);
+    INDEX neftydrops_claims_total_price ON neftydrops_claims USING btree (total_price);
 CREATE
-INDEX neftydrops_claims_listing_symbol ON neftydrops_claims USING hash (listing_symbol);
+    INDEX neftydrops_claims_listing_symbol ON neftydrops_claims USING hash (listing_symbol);
 CREATE
-INDEX neftydrops_claims_settlement_symbol ON neftydrops_claims USING hash (settlement_symbol);
+    INDEX neftydrops_claims_settlement_symbol ON neftydrops_claims USING hash (settlement_symbol);
 CREATE
-INDEX neftydrops_claims_referrer ON neftydrops_claims USING hash (referrer);
+    INDEX neftydrops_claims_referrer ON neftydrops_claims USING hash (referrer);
 CREATE
-INDEX neftydrops_claims_country ON neftydrops_claims USING hash (country);
+    INDEX neftydrops_claims_country ON neftydrops_claims USING hash (country);
 CREATE
-INDEX neftydrops_claims_claimer ON neftydrops_claims USING hash (claimer);
+    INDEX neftydrops_claims_claimer ON neftydrops_claims USING hash (claimer);
 CREATE
-INDEX neftydrops_claims_created_at_time ON neftydrops_claims USING btree (created_at_time);
+    INDEX neftydrops_claims_created_at_time ON neftydrops_claims USING btree (created_at_time);
 
 CREATE
-INDEX neftydrops_balances_owner ON neftydrops_balances USING btree (owner);
+    INDEX neftydrops_balances_owner ON neftydrops_balances USING btree (owner);
 
 CREATE
-INDEX neftydrops_drop_assets_drop_id ON neftydrops_drop_assets USING btree (drop_id);
+    INDEX neftydrops_drop_assets_drop_id ON neftydrops_drop_assets USING btree (drop_id);
 CREATE
-INDEX neftydrops_drop_assets_template_id ON neftydrops_drop_assets USING btree (template_id);
+    INDEX neftydrops_drop_assets_template_id ON neftydrops_drop_assets USING btree (template_id);
 CREATE
-INDEX neftydrops_drop_assets_collection_name ON neftydrops_drop_assets USING btree (collection_name);
+    INDEX neftydrops_drop_assets_collection_name ON neftydrops_drop_assets USING btree (collection_name);
