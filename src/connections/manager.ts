@@ -31,6 +31,18 @@ export default class ConnectionManager {
         );
     }
 
+    async alive(): Promise<boolean> {
+        try {
+            await this.chain.rpc.get_info();
+            await this.redis.ioRedis.ping();
+            await this.database.pool.query('SELECT 1');
+
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
     createShipBlockReader(options?: IBlockReaderOptions): StateHistoryBlockReader {
         const reader = new StateHistoryBlockReader(process.env.CHAIN_SHIP || this.config.chain.ship);
 

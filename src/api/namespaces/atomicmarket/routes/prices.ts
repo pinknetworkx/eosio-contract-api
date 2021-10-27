@@ -107,7 +107,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                         SELECT 
                             listing.market_contract, (NULL)::bigint sale_id, listing.auction_id, (NULL)::bigint buyoffer_id,
                             listing.token_symbol, "token".token_precision, "token".token_contract,
-                            listing.price, listing.seller, listing.buyer, listing.end_time block_time
+                            listing.price, listing.seller, listing.buyer, listing.end_time * 1000 block_time
                         FROM atomicmarket_auctions listing, atomicmarket_auctions_assets asset, atomicmarket_tokens "token"
                         WHERE listing.market_contract = asset.market_contract AND listing.auction_id = asset.auction_id
                             AND listing.market_contract = "token".market_contract AND listing.token_symbol = "token".token_symbol
