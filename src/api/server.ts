@@ -244,6 +244,14 @@ export class WebServer {
             return res.send('success');
         });
 
+        router.get(['/healthc', '/eosio-contract-api/healthc'], async (req, res) => {
+            if (await server.connection.alive()) {
+                res.status(200).send('success');
+            } else {
+                res.status(500).send('error');
+            }
+        });
+
         router.get(['/timestamp', '/eosio-contract-api/timestamp'], async (_: express.Request, res: express.Response) => {
             res.json({success: true, data: Date.now(), query_time: Date.now()});
         });

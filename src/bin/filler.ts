@@ -141,7 +141,7 @@ if (cluster.isPrimary || cluster.isMaster) {
 
     const app = express();
 
-    app.all('/alive', async (req, res) => {
+    app.get('/healthc', async (req, res) => {
         if (await connection.alive()) {
             res.status(200).send('success');
         } else {
