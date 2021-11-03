@@ -11,8 +11,12 @@ import { handlers } from '../filler/handlers/loader';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const readerConfigs: IReaderConfig[] = require('../../config/readers.config.json');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const connectionConfig: IConnectionsConfig = require('../../config/connections.config.json');
+
+let connectionConfig: IConnectionsConfig = {postgres: {}, redis: {}, chain: {}} as IConnectionsConfig;
+if (fs.existsSync('../../config/connections.config.json')) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    connectionConfig = require('../../config/connections.config.json');
+}
 
 if (!readerConfigs || readerConfigs.length === 0) {
     logger.error('No readers defined');
@@ -149,7 +153,7 @@ if (cluster.isPrimary || cluster.isMaster) {
         }
     });
 
-    app.listen(readerConfigs[0].server_port, readerConfigs[0].server_addr);
+    app.listen(readerConfigs[0].server_port || 9000, readerConfigs[0].server_addr || '0.0.0.0');
 } else {
     logger.info('Worker ' + process.pid + ' started');
 

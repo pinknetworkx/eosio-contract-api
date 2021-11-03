@@ -56,7 +56,7 @@ export class HTTPServer {
     }
 
     listen(): void {
-        this.httpServer.listen(this.config.server_port, this.config.server_addr);
+        this.httpServer.listen(this.config.server_port || 9000, this.config.server_addr || '0.0.0.0');
     }
 
     async query<T = any>(queryText: string, values?: any[]): Promise<QueryResult<T>> {
