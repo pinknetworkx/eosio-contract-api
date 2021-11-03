@@ -30,7 +30,7 @@
 
       "watch": false,
 
-      "node_args": ["max-old-space-size=4096"],
+      "node_args": ["--max-old-space-size=4096"],
 
       "env": {
         "NODE_ENV": "production"
