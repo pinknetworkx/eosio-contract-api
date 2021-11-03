@@ -161,7 +161,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
         try {
             const args = filterQueryArgs(req, {
                 collection_name: {type: 'string', min: 1},
-                template_id: {type: 'string', min: 1},
+                template_id: {type: 'string', min: 0},
                 schema_name: {type: 'string', min: 1},
                 asset_id: {type: 'string', min: 1},
                 symbol: {type: 'string', min: 1}
@@ -189,6 +189,10 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
 
             if (args.template_id) {
                 query.equalMany('price.template_id', args.template_id.split(','));
+            }
+
+            if (args.template_id === '') {
+                query.isNull('price.template_id');
             }
 
             if (args.asset_id) {
