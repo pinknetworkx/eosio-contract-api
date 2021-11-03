@@ -23,6 +23,7 @@ import QueryBuilder from '../../../builder';
 import { fillAssets } from '../../atomicassets/filler';
 import { buildAssetQueryCondition } from '../../atomicassets/routes/assets';
 import { buildAssetFillerHook, formatListingAsset } from '../format';
+import { hasAssetFilter } from '../../atomicassets/utils';
 
 export function assetsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/assets', '/v1/assets/_count'], server.web.caching(), async (req, res) => {
@@ -84,7 +85,9 @@ export function assetsEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 sorting = {column: 'asset.asset_id', nullable: false};
             }
 
-            query.append('ORDER BY ' + sorting.column + ' ' + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC');
+            const useSortIndex = !hasAssetFilter(req);
+
+            query.append('ORDER BY ' + sorting.column + (useSortIndex ? ' ' : ' + 1 ') + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC');
             query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
             const result = await server.query(query.buildString(), query.buildValues());

@@ -2,7 +2,7 @@ import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter } from '../utils';
+import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter, hasAssetFilter } from '../utils';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import {
     primaryBoundaryParameters,
@@ -194,7 +194,9 @@ export class AssetApi {
                     sorting = {column: 'asset.asset_id', nullable: false};
                 }
 
-                query.append('ORDER BY ' + sorting.column + ' ' + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC');
+                const useSortIndex = !hasAssetFilter(req);
+
+                query.append('ORDER BY ' + sorting.column + (useSortIndex ? ' ' : ' + 1 ') + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC');
                 query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
                 const result = await this.server.query(query.buildString(), query.buildValues());
