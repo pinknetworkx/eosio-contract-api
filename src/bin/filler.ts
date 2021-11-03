@@ -13,9 +13,12 @@ import { handlers } from '../filler/handlers/loader';
 const readerConfigs: IReaderConfig[] = require('../../config/readers.config.json');
 
 let connectionConfig: IConnectionsConfig = {postgres: {}, redis: {}, chain: {}} as IConnectionsConfig;
-if (fs.existsSync('../../config/connections.config.json')) {
+
+try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     connectionConfig = require('../../config/connections.config.json');
+} catch {
+    logger.warn('No connections.config.json found. Falling back to environment variables');
 }
 
 if (!readerConfigs || readerConfigs.length === 0) {

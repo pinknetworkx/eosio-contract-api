@@ -1,5 +1,3 @@
-import * as fs from 'fs';
-
 import ConnectionManager from '../connections/manager';
 import logger from '../utils/winston';
 import { IConnectionsConfig, IServerConfig } from '../types/config';
@@ -9,9 +7,12 @@ import Api from '../api/api';
 const serverConfig: IServerConfig = require('../../config/server.config.json');
 
 let connectionConfig: IConnectionsConfig = {postgres: {}, redis: {}, chain: {}} as IConnectionsConfig;
-if (fs.existsSync('../../config/connections.config.json')) {
+
+try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     connectionConfig = require('../../config/connections.config.json');
+} catch {
+    logger.warn('No connections.config.json found. Falling back to environment variables');
 }
 
 logger.info('Starting API Server...');
