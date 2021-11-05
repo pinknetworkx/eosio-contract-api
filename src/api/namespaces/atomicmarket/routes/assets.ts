@@ -23,7 +23,8 @@ import QueryBuilder from '../../../builder';
 import { fillAssets } from '../../atomicassets/filler';
 import { buildAssetQueryCondition } from '../../atomicassets/routes/assets';
 import { buildAssetFillerHook, formatListingAsset } from '../format';
-import { hasAssetFilter } from '../../atomicassets/utils';
+import { hasAssetFilter, hasDataFilters } from '../../atomicassets/utils';
+import { hasListingFilter } from '../utils';
 
 export function assetsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     router.all(['/v1/assets', '/v1/assets/_count'], server.web.caching(), async (req, res) => {
@@ -85,9 +86,9 @@ export function assetsEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 sorting = {column: 'asset.asset_id', nullable: false, numericIndex: true};
             }
 
-            const ignoreIndex = hasAssetFilter(req) && sorting.numericIndex;
+            const ignoreIndex = (hasAssetFilter(req) || hasDataFilters(req) || hasListingFilter(req)) && sorting.numericIndex;
 
-            query.append('ORDER BY ' + sorting.column + (ignoreIndex ? '  + 1 ' : '') + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC');
+            query.append('ORDER BY ' + sorting.column + (ignoreIndex ? ' + 1 ' : '') + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC');
             query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
             const result = await server.query(query.buildString(), query.buildValues());

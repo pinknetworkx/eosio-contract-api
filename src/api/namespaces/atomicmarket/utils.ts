@@ -1,12 +1,27 @@
 import * as express from 'express';
 
-import { filterQueryArgs } from '../utils';
+import { filterQueryArgs, mergeRequestData } from '../utils';
 import { buildAssetFilter, hasAssetFilter, hasDataFilters } from '../atomicassets/utils';
 import { AuctionApiState, BuyofferApiState, SaleApiState } from './index';
 import { AuctionState, BuyofferState, SaleState } from '../../../filler/handlers/atomicmarket';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 import QueryBuilder from '../../builder';
 import { ApiError } from '../../error';
+
+export function hasListingFilter(req: express.Request, blacklist: string[] = []): boolean {
+    const keys = Object.keys(mergeRequestData(req));
+
+    for (const key of keys) {
+        if (
+            ['account', 'seller', 'buyer'].indexOf(key) >= 0 &&
+            blacklist.indexOf(key) === -1
+        ) {
+            return true;
+        }
+    }
+
+    return false;
+}
 
 export function buildListingFilter(req: express.Request, query: QueryBuilder): void {
     const args = filterQueryArgs(req, {

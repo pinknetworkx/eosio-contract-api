@@ -2,7 +2,7 @@ import * as express from 'express';
 
 import { AtomicMarketNamespace, SaleApiState } from '../index';
 import { HTTPServer } from '../../../server';
-import { buildSaleFilter } from '../utils';
+import { buildSaleFilter, hasListingFilter } from '../utils';
 import { fillSales } from '../filler';
 import { formatSale } from '../format';
 import { extendedAssetFilterParameters, atomicDataFilter, baseAssetFilterParameters } from '../../atomicassets/openapi';
@@ -15,7 +15,7 @@ import {
 } from '../../../docs';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
-import { buildAssetFilter, buildGreylistFilter, hasAssetFilter } from '../../atomicassets/utils';
+import { buildAssetFilter, buildGreylistFilter, hasAssetFilter, hasDataFilters } from '../../atomicassets/utils';
 import {
     applyActionGreylistFilters,
     createSocketApiNamespace,
@@ -76,15 +76,17 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                 return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
             }
 
-            const sortMapping: {[key: string]: {column: string, nullable: boolean}}  = {
-                sale_id: {column: 'listing.sale_id', nullable: false},
-                created: {column: 'listing.created_at_time', nullable: false},
-                updated: {column: 'listing.updated_at_time', nullable: false},
-                price: {column: args.state === '3' ? 'listing.final_price' : 'price.price', nullable: true},
-                template_mint: {column: 'LOWER(listing.template_mint)', nullable: true}
+            const sortMapping: {[key: string]: {column: string, nullable: boolean, numericIndex: boolean}}  = {
+                sale_id: {column: 'listing.sale_id', nullable: false, numericIndex: true},
+                created: {column: 'listing.created_at_time', nullable: false, numericIndex: true},
+                updated: {column: 'listing.updated_at_time', nullable: false, numericIndex: true},
+                price: {column: args.state === '3' ? 'listing.final_price' : 'price.price', nullable: true, numericIndex: false},
+                template_mint: {column: 'LOWER(listing.template_mint)', nullable: true, numericIndex: false}
             };
 
-            query.append('ORDER BY ' + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.sale_id ASC');
+            const ignoreIndex = (hasAssetFilter(req) || hasDataFilters(req) || hasListingFilter(req)) && sortMapping[args.sort].numericIndex;
+
+            query.append('ORDER BY ' + sortMapping[args.sort].column + (ignoreIndex ? ' + 1 ' : ' ') + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.sale_id ASC');
             query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
             const saleQuery = await server.query(query.buildString(), query.buildValues());

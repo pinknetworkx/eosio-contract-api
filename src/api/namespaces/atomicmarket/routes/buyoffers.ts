@@ -4,7 +4,7 @@ import { AtomicMarketNamespace, BuyofferApiState } from '../index';
 import { HTTPServer } from '../../../server';
 import { formatBuyoffer } from '../format';
 import { fillBuyoffers } from '../filler';
-import { buildBuyofferFilter } from '../utils';
+import { buildBuyofferFilter, hasListingFilter } from '../utils';
 import {
     actionGreylistParameters,
     dateBoundaryParameters,
@@ -15,7 +15,7 @@ import {
 import { extendedAssetFilterParameters, atomicDataFilter, baseAssetFilterParameters } from '../../atomicassets/openapi';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
-import { buildGreylistFilter } from '../../atomicassets/utils';
+import { buildGreylistFilter, hasAssetFilter, hasDataFilters } from '../../atomicassets/utils';
 import {
     applyActionGreylistFilters,
     createSocketApiNamespace,
@@ -74,15 +74,17 @@ export function buyoffersEndpoints(core: AtomicMarketNamespace, server: HTTPServ
                 return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
             }
 
-            const sortMapping: {[key: string]: {column: string, nullable: boolean}} = {
-                buyoffer_id: {column: 'listing.buyoffer_id', nullable: false},
-                created: {column: 'listing.created_at_time', nullable: false},
-                updated: {column: 'listing.updated_at_time', nullable: false},
-                price: {column: 'listing.price', nullable: false},
-                template_mint: {column: 'LOWER(listing.template_mint)', nullable: true}
+            const sortMapping: {[key: string]: {column: string, nullable: boolean, numericIndex: boolean}} = {
+                buyoffer_id: {column: 'listing.buyoffer_id', nullable: false, numericIndex: true},
+                created: {column: 'listing.created_at_time', nullable: false, numericIndex: true},
+                updated: {column: 'listing.updated_at_time', nullable: false, numericIndex: true},
+                price: {column: 'listing.price', nullable: false, numericIndex: false},
+                template_mint: {column: 'LOWER(listing.template_mint)', nullable: true, numericIndex: false}
             };
 
-            query.append('ORDER BY ' + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.buyoffer_id ASC');
+            const ignoreIndex = (hasAssetFilter(req) || hasDataFilters(req) || hasListingFilter(req)) && sortMapping[args.sort].numericIndex;
+
+            query.append('ORDER BY ' + sortMapping[args.sort].column + (ignoreIndex ? ' + 1 ' : ' ') + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.buyoffer_id ASC');
             query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit) + ' ');
 
             const buyofferResult = await server.query(query.buildString(), query.buildValues());
