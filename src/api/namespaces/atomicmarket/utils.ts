@@ -109,7 +109,7 @@ export function buildListingFilter(req: express.Request, query: QueryBuilder): v
 
 export function buildSaleFilter(req: express.Request, query: QueryBuilder): void {
     const args = filterQueryArgs(req, {
-        state: {type: 'string', min: 0},
+        state: {type: 'string', min: 1},
 
         max_assets: {type: 'int', min: 1},
         min_assets: {type: 'int', min: 1},
@@ -202,7 +202,7 @@ export function buildSaleFilter(req: express.Request, query: QueryBuilder): void
 
 export function buildAuctionFilter(req: express.Request, query: QueryBuilder): void {
     const args = filterQueryArgs(req, {
-        state: {type: 'string', min: 0},
+        state: {type: 'string', min: 1},
 
         min_assets: {type: 'int', min: 1},
         max_assets: {type: 'int', min: 1},
@@ -322,7 +322,7 @@ export function buildAuctionFilter(req: express.Request, query: QueryBuilder): v
 
 export function buildBuyofferFilter(req: express.Request, query: QueryBuilder): void {
     const args = filterQueryArgs(req, {
-        state: {type: 'string', min: 0},
+        state: {type: 'string', min: 1},
 
         min_assets: {type: 'int', min: 1},
         max_assets: {type: 'int', min: 1},

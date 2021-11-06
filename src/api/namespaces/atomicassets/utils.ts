@@ -128,7 +128,7 @@ export function buildAssetFilter(
         asset_id: {type: 'string', min: 1},
         owner: {type: 'string', min: 1, max: 12},
         burned: {type: 'bool'},
-        template_id: {type: 'string', min: 0},
+        template_id: {type: 'string', min: 1},
         collection_name: {type: 'string', min: 1},
         schema_name: {type: 'string', min: 1},
         is_transferable: {type: 'bool'},
@@ -147,11 +147,11 @@ export function buildAssetFilter(
         query.equalMany(options.assetTable + '.owner', args.owner.split(','));
     }
 
-    if (args.template_id) {
+    if (args.template_id && args.template_id.toLowerCase() !== 'null') {
         query.equalMany(options.assetTable + '.template_id', args.template_id.split(','));
     }
 
-    if (args.template_id === '') {
+    if (args.template_id && args.template_id.toLowerCase() === 'null') {
         query.isNull(options.assetTable + '.template_id');
     }
 

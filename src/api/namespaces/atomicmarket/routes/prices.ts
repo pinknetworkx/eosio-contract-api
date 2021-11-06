@@ -19,7 +19,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
         try {
             const args = filterQueryArgs(req, {
                 collection_name: {type: 'string', min: 1},
-                template_id: {type: 'string', min: 0},
+                template_id: {type: 'string', min: 1},
                 schema_name: {type: 'string', min: 1},
                 asset_id: {type: 'string', min: 1},
                 symbol: {type: 'string', min: 1}
@@ -44,11 +44,11 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 query.equalMany('price.schema_name', args.schema_name.split(','));
             }
 
-            if (args.template_id) {
+            if (args.template_id && args.template_id.toLowerCase() !== 'null') {
                 query.equalMany('price.template_id', args.template_id.split(','));
             }
 
-            if (args.template_id === '') {
+            if (args.template_id && args.template_id.toLowerCase() === 'null') {
                 query.isNull('price.template_id');
             }
 
@@ -161,7 +161,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
         try {
             const args = filterQueryArgs(req, {
                 collection_name: {type: 'string', min: 1},
-                template_id: {type: 'string', min: 0},
+                template_id: {type: 'string', min: 1},
                 schema_name: {type: 'string', min: 1},
                 asset_id: {type: 'string', min: 1},
                 symbol: {type: 'string', min: 1}
@@ -187,11 +187,11 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                 query.equalMany('price.schema_name', args.schema_name.split(','));
             }
 
-            if (args.template_id) {
+            if (args.template_id && args.template_id.toLowerCase() !== 'null') {
                 query.equalMany('price.template_id', args.template_id.split(','));
             }
 
-            if (args.template_id === '') {
+            if (args.template_id && args.template_id.toLowerCase() === 'null') {
                 query.isNull('price.template_id');
             }
 
