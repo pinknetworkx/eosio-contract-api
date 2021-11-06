@@ -241,7 +241,7 @@ export class WebServer {
                 }
             }
 
-            return res.send('success');
+            return res.send('success:' + server.connection.chain.chainId);
         });
 
         router.get(['/healthc', '/eosio-contract-api/healthc'], async (req, res) => {
