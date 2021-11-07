@@ -156,7 +156,7 @@ if (cluster.isPrimary || cluster.isMaster) {
         }
     });
 
-    app.listen(readerConfigs[0].server_port || 9000, readerConfigs[0].server_addr || '0.0.0.0');
+    app.listen(readerConfigs[0].server_port || 9001, readerConfigs[0].server_addr || '0.0.0.0');
 } else {
     logger.info('Worker ' + process.pid + ' started');
 
