@@ -1,5 +1,6 @@
 import * as express from 'express';
 
+import logger from '../../../../utils/winston';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
@@ -109,6 +110,52 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
             return res.json({success: true, data: query.rows[0]});
         } catch (error) {
             return respondApiError(res, error);
+        }
+    }));
+
+    router.all(['/v1/schemas/:collection_name/:schema_name/attribute_value_filters', '/v1/schemas/:collection_name/:schema_name/attribute_value_filters/_count'], server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+        try {
+            const query = new QueryBuilder(`
+                SELECT asset.asset_id, template.template_id, (asset.immutable_data || asset.mutable_data || template.immutable_data) as data
+                FROM atomicassets_assets asset
+                    LEFT JOIN atomicassets_templates template ON asset.template_id = template.template_id
+                WHERE asset.contract = $1 AND template.contract = $1 AND 
+                    asset.collection_name = $2 AND 
+                    asset.schema_name = $3
+            `);
+
+            const queryArgs = [
+                core.args.atomicassets_account, 
+                req.params.collection_name, 
+                req.params.schema_name
+            ];
+
+            const result = await server.query(query.buildString(), queryArgs);
+
+            let resData:any = {};
+            for(let row of result.rows){
+                for(let key in row.data){
+                    if(resData[key] === undefined){
+                        resData[key] = new Set();
+                    }
+
+                    resData[key].add(row.data[key].toString());
+                }
+            }
+
+            for(let key in resData){
+                if(resData[key].size > 100){
+                    resData[key] = undefined;
+                }
+                else{
+                    resData[key] = Array.from(resData[key]);
+                }
+            }
+
+            res.json({success: true, data: resData, query_time: Date.now()});
+        } catch (e) {
+            logger.error(e);
+            res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));
 
