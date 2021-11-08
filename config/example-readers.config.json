@@ -2,6 +2,9 @@
   {
     "name": "atomic-1",
 
+    "server_addr": "0.0.0.0",
+    "server_port": 9001,
+
     "start_block": 0,
     "stop_block": 0,
     "irreversible_only": false,

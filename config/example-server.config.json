@@ -1,6 +1,6 @@
 {
-  "provider_name": "pink.network",
-  "provider_url": "https://pink.network",
+  "provider_name": "pink.gg",
+  "provider_url": "https://pink.gg",
 
   "server_addr": "0.0.0.0",
   "server_name": "wax.api.atomicassets.io",
