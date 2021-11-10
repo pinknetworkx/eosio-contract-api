@@ -18,32 +18,42 @@ export function filtersEndpoints(core: NeftyMarketNamespace, server: HTTPServer,
                 limit: {type: 'int', min: 1, max: 1000, default: 100},
                 sort: {type: 'string', values: ['key', 'value'], default: 'key'},
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+
+                attribute_names: {type: 'string', default: ""}
             });
 
+            if(args.attribute_names === ""){
+                return res.status(400).json(
+                    {
+                        success: false, 
+                        message: "Error in query param: 'attribute_names'"
+                    }
+                );
+            }
+
+            // We dont want the attribute_names to be case sensitive
+            const lowerCaseAttributeNames = args.attribute_names.split(',').map(
+                (attrName:string):string => attrName.toLowerCase()
+            );
+
             const query = new QueryBuilder(`
-                SELECT DISTINCT d.key, d.value
+                SELECT v.key, v.value
                 FROM
-                    atomicassets_templates as t, 
-                    jsonb_each(t.immutable_data) as d 
-                WHERE 
-                    t.contract = $1 AND
-                    t.collection_name = $2 AND
-                    t.schema_name = $3
-                ORDER BY
-                    d.${args.sort} ${args.order}
-                LIMIT $4
-                OFFSET $5
+                    neftydrops_attribute_filters as v
             `);
+            query.equal('v.contract', core.args.atomicassets_account);
+            query.equal('v.collection_name', req.params.collection_name);
+            query.equal('v.schema_name', req.params.schema_name);
+            query.equalMany('LOWER(v.key)', lowerCaseAttributeNames);
 
-            const queryArgs = [
-                core.args.atomicassets_account, 
-                req.params.collection_name, 
-                req.params.schema_name,
-                args.limit,
-                (args.page - 1) * args.limit
-            ];
+            query.append(`
+                ORDER BY
+                    v.${args.sort} ${args.order}
+                LIMIT ${query.addVariable(args.limit)}
+                OFFSET ${query.addVariable((args.page - 1) * args.limit)}
+            `)
 
-            const result = await server.query(query.buildString(), queryArgs);
+            const result = await server.query(query.buildString(), query.buildValues());
 
             res.json({success: true, data: result.rows, query_time: Date.now()});
         } catch (e) {

@@ -34,8 +34,14 @@ export enum NeftyDropsUpdatePriority {
     ACTION_LOG_CLAIM = ACTION_CLAIM_DROP + 10,
 }
 
-const views = ['neftydrops_stats_master', 'neftydrops_drop_prices_master', 'neftydrops_drops_master', 'neftydrops_claims_master'];
-const materializedViews = ['neftydrops_stats', 'neftydrops_drop_prices'];
+const views = [
+    'neftydrops_stats_master', 
+    'neftydrops_drop_prices_master', 
+    'neftydrops_drops_master', 
+    'neftydrops_claims_master',
+    'neftydrops_attribute_filters_master'
+];
+const materializedViews = ['neftydrops_stats', 'neftydrops_drop_prices', 'neftydrops_attribute_filters'];
 const procedures: string[] = [];
 
 export default class NeftyDropsHandler extends ContractHandler {
