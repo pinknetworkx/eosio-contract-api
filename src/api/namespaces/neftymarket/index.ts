@@ -3,6 +3,7 @@ import * as express from 'express';
 import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
 import { filtersEndpoints } from './routes/filters';
+import { neftyMarketComponents } from './openapi';
 
 export type NeftyMarketNamespaceArgs = {
     neftymarket_name: string,
@@ -43,37 +44,32 @@ export class NeftyMarketNamespace extends ApiNamespace {
 
         const router = express.Router();
 
-        // @TODO: this is for the swagger docs, I think
-        // server.docs.addSchemas(neftyDropsComponents);
+        server.docs.addSchemas(neftyMarketComponents);
 
-        // if (server.web.limiter) {
-        //     server.web.express.use(this.path + '/v1', server.web.limiter);
-        // }
+        if (server.web.limiter) {
+            server.web.express.use(this.path + '/v1', server.web.limiter);
+        }
 
-        // const endpointsDocs = [];
-        // endpointsDocs.push(configEndpoints(this, server, router));
-        // endpointsDocs.push(filtersEndpoints(this, server, router));
-        // endpointsDocs.push(statsEndpoints(this, server, router));
-        // endpointsDocs.push(miningEndpoints(this, server, router));
-        // endpointsDocs.push(marketplaceEndpoints(this, server, router));
+        const endpointsDocs = [];
+        endpointsDocs.push(filtersEndpoints(this, server, router));
 
-        // for (const doc of endpointsDocs) {
-        //     if (doc.tag) {
-        //         server.docs.addTags([doc.tag]);
-        //     }
+        for (const doc of endpointsDocs) {
+            if (doc.tag) {
+                server.docs.addTags([doc.tag]);
+            }
 
-        //     if (doc.paths) {
-        //         const paths: any = {};
+            if (doc.paths) {
+                const paths: any = {};
 
-        //         for (const path of Object.keys(doc.paths)) {
-        //             paths[this.path + path] = doc.paths[path];
-        //         }
+                for (const path of Object.keys(doc.paths)) {
+                    paths[this.path + path] = doc.paths[path];
+                }
 
-        //         server.docs.addPaths(paths);
-        //     }
-        // }
+                server.docs.addPaths(paths);
+            }
+        }
 
-        // router.all(['/docs', '/docs/swagger'], (req, res) => res.redirect('/docs'));
+        router.all(['/docs', '/docs/swagger'], (req, res) => res.redirect('/docs'));
         return router;
     }
 

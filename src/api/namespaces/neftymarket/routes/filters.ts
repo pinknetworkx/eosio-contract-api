@@ -4,6 +4,10 @@ import { NeftyMarketNamespace} from '../index';
 import { HTTPServer } from '../../../server';
 import { filterQueryArgs } from '../../utils';
 import QueryBuilder from '../../../builder';
+import {
+    getOpenAPI3Responses,
+    paginationParameters,
+} from '../../../docs';
 import logger from '../../../../utils/winston';
 
 export function filtersEndpoints(core: NeftyMarketNamespace, server: HTTPServer, router: express.Router): any {
@@ -47,4 +51,43 @@ export function filtersEndpoints(core: NeftyMarketNamespace, server: HTTPServer,
             res.status(500).json({success: false, message: 'Internal Server Error'});
         }
     }));
+
+    return {
+        tag: {
+            name: 'neftymarket',
+            description: 'NeftyMarket'
+        },
+        paths: {
+            '/v1/neftymarket/{collection_name}/{schema_name}/attribute_value_filters': {
+                get: {
+                    tags: ['neftymarket'],
+                    summary: 'Get unique (attribute_name, atribute_value) pairs',
+                    description: 
+                        'Get every unique (attribute_name, atribute_value) pairs' + 
+                        'in all the templates of a schema',
+                    parameters: [
+                        {
+                            name: 'collection_name',
+                            in: 'path',
+                            description: 'Collection name of schema',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'schema_name',
+                            in: 'path',
+                            description: 'Name of schema',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                        ...paginationParameters
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'array',
+                        items: {'$ref': '#/components/schemas/AttributeValueFilter'}
+                    })
+                }
+            },
+        }
+    };
 }
