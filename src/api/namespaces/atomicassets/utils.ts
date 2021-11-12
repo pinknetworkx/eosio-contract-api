@@ -23,7 +23,7 @@ export function hasDataFilters(req: express.Request): boolean {
     const keys = Object.keys(mergeRequestData(req));
 
     for (const key of keys) {
-        if (['match', 'full_match'].indexOf(key) >= 0) {
+        if (['match', 'match_immutable_name', 'match_mutable_name'].indexOf(key) >= 0) {
             return true;
         }
 
@@ -147,8 +147,12 @@ export function buildAssetFilter(
         query.equalMany(options.assetTable + '.owner', args.owner.split(','));
     }
 
-    if (args.template_id) {
+    if (args.template_id && args.template_id.toLowerCase() !== 'null') {
         query.equalMany(options.assetTable + '.template_id', args.template_id.split(','));
+    }
+
+    if (args.template_id && args.template_id.toLowerCase() === 'null') {
+        query.isNull(options.assetTable + '.template_id');
     }
 
     if (args.collection_name) {

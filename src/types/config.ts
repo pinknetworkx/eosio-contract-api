@@ -52,6 +52,9 @@ export interface INamespaceConfig {
 export interface IReaderConfig {
     name: string;
 
+    server_addr: string;
+    server_port: number;
+
     start_block: number;
     stop_block: number;
     irreversible_only: boolean;

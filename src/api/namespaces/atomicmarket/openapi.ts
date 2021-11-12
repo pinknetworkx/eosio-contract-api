@@ -230,21 +230,21 @@ export const listingFilterParameters = [
         in: 'query',
         description: 'Show these accounts even if they are contracts',
         required: false,
-        schema: {type: 'boolean'}
+        schema: {type: 'string'}
     },
     {
         name: 'seller_blacklist',
         in: 'query',
         description: 'Dont show listings from these sellers (Split multiple with ",")',
         required: false,
-        schema: {type: 'boolean'}
+        schema: {type: 'string'}
     },
     {
         name: 'buyer_blacklist',
         in: 'query',
         description: 'Dont show listings from these buyers (Split multiple with ",")',
         required: false,
-        schema: {type: 'boolean'}
+        schema: {type: 'string'}
     },
     {
         name: 'asset_id',

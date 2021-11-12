@@ -4,7 +4,7 @@ import { AtomicMarketNamespace, AuctionApiState } from '../index';
 import { HTTPServer } from '../../../server';
 import { formatAuction } from '../format';
 import { fillAuctions } from '../filler';
-import { buildAuctionFilter } from '../utils';
+import { buildAuctionFilter, hasListingFilter } from '../utils';
 import {
     actionGreylistParameters,
     dateBoundaryParameters,
@@ -15,7 +15,7 @@ import {
 import { extendedAssetFilterParameters, atomicDataFilter, baseAssetFilterParameters } from '../../atomicassets/openapi';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
-import { buildGreylistFilter } from '../../atomicassets/utils';
+import { buildGreylistFilter, hasAssetFilter, hasDataFilters } from '../../atomicassets/utils';
 import {
     applyActionGreylistFilters,
     createSocketApiNamespace,
@@ -76,16 +76,18 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                 return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
             }
 
-            const sortMapping: {[key: string]: {column: string, nullable: boolean}} = {
-                auction_id: {column: 'listing.auction_id', nullable: false},
-                ending: {column: 'listing.end_time', nullable: false},
-                created: {column: 'listing.created_at_time', nullable: false},
-                updated: {column: 'listing.updated_at_time', nullable: false},
-                price: {column: 'listing.price', nullable: true},
-                template_mint: {column: 'LOWER(listing.template_mint)', nullable: true}
+            const sortMapping: {[key: string]: {column: string, nullable: boolean, numericIndex: boolean}} = {
+                auction_id: {column: 'listing.auction_id', nullable: false, numericIndex: true},
+                ending: {column: 'listing.end_time', nullable: false, numericIndex: true},
+                created: {column: 'listing.created_at_time', nullable: false, numericIndex: true},
+                updated: {column: 'listing.updated_at_time', nullable: false, numericIndex: true},
+                price: {column: 'listing.price', nullable: true, numericIndex: false},
+                template_mint: {column: 'LOWER(listing.template_mint)', nullable: true, numericIndex: false}
             };
 
-            query.append('ORDER BY ' + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.auction_id ASC');
+            const ignoreIndex = (hasAssetFilter(req) || hasDataFilters(req) || hasListingFilter(req)) && sortMapping[args.sort].numericIndex;
+
+            query.append('ORDER BY ' + sortMapping[args.sort].column + (ignoreIndex ? ' + 1 ' : ' ') + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.auction_id ASC');
             query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit) + ' ');
 
             const auctionResult = await server.query(query.buildString(), query.buildValues());
@@ -194,6 +196,13 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                             description: 'Filter by auctions where this account participated and can still claim / bid',
                             required: false,
                             schema: {type: 'string'}
+                        },
+                        {
+                            name: 'hide_empty_auctions',
+                            in: 'query',
+                            description: 'Hide auctions with no bids',
+                            required: false,
+                            schema: {type: 'boolean'}
                         },
                         ...listingFilterParameters,
                         ...baseAssetFilterParameters,

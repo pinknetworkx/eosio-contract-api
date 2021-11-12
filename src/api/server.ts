@@ -7,7 +7,6 @@ import * as expressRedisStore from 'rate-limit-redis';
 
 import * as bodyParser from 'body-parser';
 import * as cors from 'cors';
-import * as cookieParser from 'cookie-parser';
 import { Pool, QueryResult } from 'pg';
 
 import ConnectionManager from '../connections/manager';
@@ -57,7 +56,7 @@ export class HTTPServer {
     }
 
     listen(): void {
-        this.httpServer.listen(this.config.server_port, this.config.server_addr);
+        this.httpServer.listen(this.config.server_port || 9000, this.config.server_addr || '0.0.0.0');
     }
 
     async query<T = any>(queryText: string, values?: any[]): Promise<QueryResult<T>> {
@@ -245,7 +244,15 @@ export class WebServer {
                 }
             }
 
-            return res.send('success');
+            return res.send('success:' + server.connection.chain.chainId);
+        });
+
+        router.get(['/healthc', '/eosio-contract-api/healthc'], async (req, res) => {
+            if (await server.connection.alive()) {
+                res.status(200).send('success');
+            } else {
+                res.status(500).send('error');
+            }
         });
 
         router.get(['/timestamp', '/eosio-contract-api/timestamp'], async (_: express.Request, res: express.Response) => {

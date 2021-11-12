@@ -2,7 +2,7 @@ import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter } from '../utils';
+import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter, hasAssetFilter, hasDataFilters } from '../utils';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import {
     primaryBoundaryParameters,
@@ -175,26 +175,28 @@ export class AssetApi {
                     return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
                 }
 
-                let sorting: {column: string, nullable: boolean};
+                let sorting: {column: string, nullable: boolean, numericIndex: boolean};
 
                 if (args.sort) {
-                    const sortColumnMapping: {[key: string]: {column: string, nullable: boolean}} = {
-                        asset_id: {column: 'asset.asset_id', nullable: false},
-                        updated: {column: 'asset.updated_at_time', nullable: false},
-                        transferred: {column: 'asset.transferred_at_time', nullable: false},
-                        minted: {column: 'asset.asset_id', nullable: false},
-                        template_mint: {column: 'asset.template_mint', nullable: true},
-                        name: {column: '"template".immutable_data->>\'name\'', nullable: true}
+                    const sortColumnMapping: {[key: string]: {column: string, nullable: boolean, numericIndex: boolean}} = {
+                        asset_id: {column: 'asset.asset_id', nullable: false, numericIndex: true},
+                        updated: {column: 'asset.updated_at_time', nullable: false, numericIndex: true},
+                        transferred: {column: 'asset.transferred_at_time', nullable: false, numericIndex: true},
+                        minted: {column: 'asset.asset_id', nullable: false, numericIndex: true},
+                        template_mint: {column: 'asset.template_mint', nullable: true, numericIndex: false},
+                        name: {column: '"template".immutable_data->>\'name\'', nullable: true, numericIndex: false}
                     };
 
                     sorting = sortColumnMapping[args.sort];
                 }
 
                 if (!sorting) {
-                    sorting = {column: 'asset.asset_id', nullable: false};
+                    sorting = {column: 'asset.asset_id', nullable: false, numericIndex: true};
                 }
 
-                query.append('ORDER BY ' + sorting.column + ' ' + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC');
+                const ignoreIndex = (hasAssetFilter(req) || hasDataFilters(req)) && sorting.numericIndex;
+
+                query.append('ORDER BY ' + sorting.column + (ignoreIndex ? ' + 1 ' : ' ') + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC');
                 query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
                 const result = await this.server.query(query.buildString(), query.buildValues());

@@ -2,7 +2,6 @@ import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import logger from '../../../../utils/winston';
 import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { FillerHook, fillOffers } from '../filler';
 import {
@@ -63,7 +62,9 @@ export class OfferApi {
                     collection_whitelist: {type: 'string', min: 1},
 
                     is_recipient_contract: {type: 'bool'},
-                    hide_contracts: {type: 'bool'}
+
+                    hide_contracts: {type: 'bool'},
+                    hide_empty_offers: {type: 'bool'}
                 });
 
                 const query = new QueryBuilder('SELECT contract, offer_id FROM atomicassets_offers offer');
@@ -99,6 +100,18 @@ export class OfferApi {
                         'WHERE (account = offer.recipient OR account = offer.sender) AND NOT (account = ANY(' +
                         query.addVariable([args.account, args.sender, args.recipient].filter(row => !!row)) +
                         ')))'
+                    );
+                }
+
+                if (args.hide_empty_offers) {
+                    query.addCondition(
+                        'EXISTS(SELECT * FROM atomicassets_offers_assets asset ' +
+                        'WHERE asset.contract = offer.contract AND asset.offer_id = offer.offer_id AND asset.owner = offer.sender)'
+                    );
+
+                    query.addCondition(
+                        'EXISTS(SELECT * FROM atomicassets_offers_assets asset ' +
+                        'WHERE asset.contract = offer.contract AND asset.offer_id = offer.offer_id AND asset.owner = offer.recipient)'
                     );
                 }
 
@@ -416,6 +429,13 @@ export class OfferApi {
                                 name: 'hide_contracts',
                                 in: 'query',
                                 description: 'dont show offers from or to accounts that have code deployed',
+                                required: false,
+                                schema: {type: 'boolean'}
+                            },
+                            {
+                                name: 'hide_empty_offers',
+                                in: 'query',
+                                description: 'dont show offers where one side is empty',
                                 required: false,
                                 schema: {type: 'boolean'}
                             },

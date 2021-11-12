@@ -12,7 +12,7 @@ CREATE OR REPLACE VIEW atomicmarket_stats_prices_master AS
             WHERE
                 sale.assets_contract = offer_asset.contract AND sale.offer_id = offer_asset.offer_id AND
                 offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND
-                asset.template_id IS NOT NULL AND sale.final_price IS NOT NULL AND sale.state = 3
+                sale.final_price IS NOT NULL AND sale.state = 3
             GROUP BY sale.market_contract, sale.sale_id
             HAVING COUNT(*) = 1
         ) UNION ALL (
@@ -26,7 +26,7 @@ CREATE OR REPLACE VIEW atomicmarket_stats_prices_master AS
             WHERE
                 auction.assets_contract = auction_asset.assets_contract AND auction.auction_id = auction_asset.auction_id AND
                 auction_asset.assets_contract = asset.contract AND auction_asset.asset_id = asset.asset_id AND
-                asset.template_id IS NOT NULL AND auction.buyer IS NOT NULL AND auction.state = 1 AND auction.end_time < extract(epoch from now())
+                auction.buyer IS NOT NULL AND auction.state = 1 AND auction.end_time < extract(epoch from now())
             GROUP BY auction.market_contract, auction.auction_id
             HAVING COUNT(*) = 1
         ) UNION ALL (
@@ -40,7 +40,7 @@ CREATE OR REPLACE VIEW atomicmarket_stats_prices_master AS
             WHERE
                 buyoffer.assets_contract = buyoffer_asset.assets_contract AND buyoffer.buyoffer_id = buyoffer_asset.buyoffer_id AND
                 buyoffer_asset.assets_contract = asset.contract AND buyoffer_asset.asset_id = asset.asset_id AND
-                asset.template_id IS NOT NULL AND buyoffer.state = 3
+                buyoffer.state = 3
             GROUP BY buyoffer.market_contract, buyoffer.buyoffer_id
             HAVING COUNT(*) = 1
        )
