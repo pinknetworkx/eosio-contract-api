@@ -6,17 +6,8 @@ import { filtersEndpoints } from './routes/filters';
 import { neftyMarketComponents } from './openapi';
 
 export type NeftyMarketNamespaceArgs = {
-    neftymarket_name: string,
     atomicassets_account: string,
-    atomicmarket_account: string,
 };
-
-export enum NeftyMarketApiState {
-    CREATED = 0,
-    ACTIVE = 1,
-    SOLD_OUT = 2,
-    ENDED = 3,
-}
 
 export class NeftyMarketNamespace extends ApiNamespace {
     static namespaceName = 'neftymarket';
@@ -24,19 +15,8 @@ export class NeftyMarketNamespace extends ApiNamespace {
     declare args: NeftyMarketNamespaceArgs;
 
     async init(): Promise<void> {
-        if (typeof this.args.neftymarket_name !== 'string') {
-            throw new Error('Argument missing in neftydrops api namespace: neftymarket_name');
-        }
-
-        const market_query = await this.connection.database.query(
-            'SELECT * FROM atomicmarket_marketplaces WHERE marketplace_name = $1',
-            [this.args.neftymarket_name]
-        );
-
-        if (market_query.rowCount === 0) {
-            throw new Error(`NeftyMarket not found: ${this.args.neftymarket_name}`);
-        } else {
-            this.args.atomicmarket_account = market_query.rows[0].market_contract;
+        if (typeof this.args.atomicassets_account !== 'string') {
+            throw new Error('Argument missing in neftymarket api namespace: atomicassets_account');
         }
     }
 

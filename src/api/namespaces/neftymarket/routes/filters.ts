@@ -19,14 +19,14 @@ export function filtersEndpoints(core: NeftyMarketNamespace, server: HTTPServer,
                 sort: {type: 'string', values: ['key', 'value'], default: 'key'},
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
-                attribute_names: {type: 'string', default: ""}
+                attribute_names: {type: 'string', default: ''}
             });
 
-            if(args.attribute_names === ""){
+            if(args.attribute_names === ''){
                 return res.status(400).json(
                     {
-                        success: false, 
-                        message: "Error in query param: 'attribute_names'"
+                        success: false,
+                        message: 'Error in query param: \'attribute_names\''
                     }
                 );
             }
@@ -51,7 +51,7 @@ export function filtersEndpoints(core: NeftyMarketNamespace, server: HTTPServer,
                     v.${args.sort} ${args.order}
                 LIMIT ${query.addVariable(args.limit)}
                 OFFSET ${query.addVariable((args.page - 1) * args.limit)}
-            `)
+            `);
 
             const result = await server.query(query.buildString(), query.buildValues());
 
@@ -68,12 +68,12 @@ export function filtersEndpoints(core: NeftyMarketNamespace, server: HTTPServer,
             description: 'NeftyMarket'
         },
         paths: {
-            '/v1/neftymarket/{collection_name}/{schema_name}/attribute_value_filters': {
+            '/v1/schemas/{collection_name}/{schema_name}/attribute_value_filters': {
                 get: {
                     tags: ['neftymarket'],
                     summary: 'Get unique (attribute_name, atribute_value) pairs',
-                    description: 
-                        'Get every unique (attribute_name, atribute_value) pairs' + 
+                    description:
+                        'Get every unique (attribute_name, atribute_value) pairs' +
                         'in all the templates of a schema',
                     parameters: [
                         {
@@ -87,6 +87,13 @@ export function filtersEndpoints(core: NeftyMarketNamespace, server: HTTPServer,
                             name: 'schema_name',
                             in: 'path',
                             description: 'Name of schema',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'attribute_names',
+                            in: 'query',
+                            description: 'Attributes to group separated by commas',
                             required: true,
                             schema: {type: 'string'}
                         },
