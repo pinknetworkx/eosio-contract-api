@@ -11,7 +11,7 @@ import {
 import logger from '../../../../utils/winston';
 
 export function filtersEndpoints(core: NeftyMarketNamespace, server: HTTPServer, router: express.Router): any {
-    router.all(['/v1/schemas/:collection_name/:schema_name/attribute_value_filters', '/v1/schemas/:collection_name/:schema_name/attribute_value_filters/_count'], server.web.caching({ignoreQueryString: true}), (async (req, res) => {
+    router.all(['/v1/schemas/:collection_name/attribute_value_filters', '/v1/schemas/:collection_name/attribute_value_filters/_count'], server.web.caching({ignoreQueryString: true}), (async (req, res) => {
         try {
             const args = filterQueryArgs(req, {
                 page: {type: 'int', min: 1, default: 1},
@@ -19,10 +19,11 @@ export function filtersEndpoints(core: NeftyMarketNamespace, server: HTTPServer,
                 sort: {type: 'string', values: ['key', 'value'], default: 'key'},
                 order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
+                schema_name: {type: 'string', default: ''},
                 attribute_names: {type: 'string', default: ''}
             });
 
-            if(args.attribute_names === ''){
+            if(!args.attribute_names || args.attribute_names.trim() === ''){
                 return res.status(400).json(
                     {
                         success: false,
@@ -38,12 +39,13 @@ export function filtersEndpoints(core: NeftyMarketNamespace, server: HTTPServer,
 
             const query = new QueryBuilder(`
                 SELECT v.key, v.value
-                FROM
-                    neftydrops_attribute_filters as v
+                FROM neftydrops_attribute_filters as v
             `);
             query.equal('v.contract', core.args.atomicassets_account);
             query.equal('v.collection_name', req.params.collection_name);
-            query.equal('v.schema_name', req.params.schema_name);
+            if (args.schema_name && args.schema_name.trim() !== '') {
+                query.equal('v.schema_name', args.schema_name);
+            }
             query.equalMany('LOWER(v.key)', lowerCaseAttributeNames);
 
             query.append(`
@@ -68,13 +70,13 @@ export function filtersEndpoints(core: NeftyMarketNamespace, server: HTTPServer,
             description: 'NeftyMarket'
         },
         paths: {
-            '/v1/schemas/{collection_name}/{schema_name}/attribute_value_filters': {
+            '/v1/schemas/{collection_name}/attribute_value_filters': {
                 get: {
                     tags: ['neftymarket'],
-                    summary: 'Get unique (attribute_name, atribute_value) pairs',
+                    summary: 'Get unique (attribute_name, attribute_value) pairs',
                     description:
-                        'Get every unique (attribute_name, atribute_value) pairs' +
-                        'in all the templates of a schema',
+                        'Get every unique (attribute_name, attribute_value) pairs' +
+                        'in all the templates of a collection and schema',
                     parameters: [
                         {
                             name: 'collection_name',
@@ -85,9 +87,9 @@ export function filtersEndpoints(core: NeftyMarketNamespace, server: HTTPServer,
                         },
                         {
                             name: 'schema_name',
-                            in: 'path',
+                            in: 'query',
                             description: 'Name of schema',
-                            required: true,
+                            required: false,
                             schema: {type: 'string'}
                         },
                         {
