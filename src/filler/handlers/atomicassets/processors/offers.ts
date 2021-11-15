@@ -119,11 +119,16 @@ export function offerProcessor(core: AtomicAssetsHandler, processor: DataProcess
                 }
 
                 const relatedOffersQuery = await db.query(
-                    'SELECT DISTINCT ON (offer.offer_id) offer.offer_id, offer.state ' +
-                    'FROM atomicassets_offers offer, atomicassets_offers_assets asset ' +
-                    'WHERE offer.contract = asset.contract AND offer.offer_id = asset.offer_id AND ' +
-                    'offer.state IN (' + [OfferState.PENDING.valueOf(), OfferState.INVALID.valueOf()].join(',') + ') AND ' +
-                    'offer.contract = $1 AND asset.asset_id = ANY ($2)',
+                    `SELECT offer.offer_id, offer.state 
+                    FROM atomicassets_offers offer
+                    WHERE offer.contract = $1
+                        AND offer.state IN (${[OfferState.PENDING.valueOf(), OfferState.INVALID.valueOf()].join(',')})
+                        AND (offer.contract, offer.offer_id) IN (
+                            SELECT asset.contract, asset.offer_id
+                            FROM atomicassets_offers_assets asset
+                            WHERE asset.asset_id = ANY ($2)
+                        )
+                `,
                     [core.args.atomicassets_account, transferredAssets]
                 );
 
