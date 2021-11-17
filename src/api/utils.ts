@@ -71,7 +71,7 @@ export function extractNotificationIdentifiers(notifications: NotificationData[]
 
 export function respondApiError(res: express.Response, error: Error): express.Response {
     if ((error as ApiError).showMessage) {
-        return res.status(500).json({success: false, message: error.message});
+        return res.status((error as ApiError).code).json({success: false, message: error.message});
     }
 
     if (error.message && String(error.message).search('canceling statement due to statement timeout') >= 0) {

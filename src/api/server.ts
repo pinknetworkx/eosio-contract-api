@@ -20,7 +20,11 @@ import { getOpenApiDescription, LogSchema } from './docs';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson: any = require('../../package.json');
 
-export class HTTPServer {
+export interface DB {
+    query<T = any>(queryText: string, values?: any[]): Promise<QueryResult<T>>
+}
+
+export class HTTPServer implements DB {
     readonly httpServer: http.Server;
 
     readonly web: WebServer;

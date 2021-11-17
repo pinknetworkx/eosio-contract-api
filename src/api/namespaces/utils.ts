@@ -11,14 +11,21 @@ export type FilterDefinition = {
     }
 };
 
+export type RequestParams = {[key: string]: any};
+
 export function mergeRequestData(req: express.Request): {[key: string]: any} {
-    return Object.assign({}, req.query || {}, req.body || {});
+    return Object.assign({}, req.query || {}, req.body || {}, req.params || {});
 }
 
-export function filterQueryArgs(req: express.Request, filter: FilterDefinition, keyType: string = null): {[key: string]: any} {
+export function filterQueryArgs(req: RequestParams, filter: FilterDefinition): {[key: string]: any};
+export function filterQueryArgs(req: RequestParams, filter: FilterDefinition, keyType: string): {[key: string]: any};
+export function filterQueryArgs(req: express.Request, filter: FilterDefinition): {[key: string]: any};
+export function filterQueryArgs(req: express.Request, filter: FilterDefinition, keyType: string): {[key: string]: any};
+
+export function filterQueryArgs(req: any, filter: FilterDefinition, keyType: string = null): {[key: string]: any} {
     const keys = Object.keys(filter);
     const result: {[key: string]: any} = {};
-    const merged = mergeRequestData(req);
+    const merged = req.app !== undefined ? mergeRequestData(req) : req;
 
     for (const key of keys) {
         let data;

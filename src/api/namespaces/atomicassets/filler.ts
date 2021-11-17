@@ -1,12 +1,12 @@
-import { HTTPServer } from '../../server';
+import { DB, HTTPServer } from '../../server';
 
-export type FillerHook = (server: HTTPServer, contract: string, rows: any[]) => Promise<any[]>;
+export type FillerHook = (db: DB, contract: string, rows: any[]) => Promise<any[]>;
 
 export class AssetFiller {
     private assets: Promise<{[key: string]: any}> | null;
 
     constructor(
-        readonly server: HTTPServer,
+        readonly db: DB,
         readonly contract: string,
         readonly assetIDs: string[],
         readonly formatter: (_: any) => any,
@@ -35,12 +35,12 @@ export class AssetFiller {
             }
 
             try {
-                const query = await this.server.query(
+                const query = await this.db.query(
                     'SELECT * FROM ' + this.view + ' WHERE contract = $1 AND asset_id = ANY ($2)',
                     [this.contract, this.assetIDs]
                 );
 
-                const rows = this.hook ? await this.hook(this.server, this.contract, query.rows) : query.rows;
+                const rows = this.hook ? await this.hook(this.db, this.contract, query.rows) : query.rows;
                 const result: {[key: string]: any} = {};
 
                 for (const row of rows) {
