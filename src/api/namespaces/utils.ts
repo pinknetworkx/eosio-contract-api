@@ -1,5 +1,6 @@
 import * as express from 'express';
 import QueryBuilder from '../builder';
+import { Socket } from 'net';
 
 export type FilterDefinition = {
     [key: string]: {
@@ -13,19 +14,14 @@ export type FilterDefinition = {
 
 export type RequestParams = {[key: string]: any};
 
-export function mergeRequestData(req: express.Request): {[key: string]: any} {
+export function mergeRequestData(req: express.Request): RequestParams {
     return Object.assign({}, req.query || {}, req.body || {});
 }
 
-export function filterQueryArgs(req: RequestParams, filter: FilterDefinition): {[key: string]: any};
-export function filterQueryArgs(req: RequestParams, filter: FilterDefinition, keyType: string): {[key: string]: any};
-export function filterQueryArgs(req: express.Request, filter: FilterDefinition): {[key: string]: any};
-export function filterQueryArgs(req: express.Request, filter: FilterDefinition, keyType: string): {[key: string]: any};
-
-export function filterQueryArgs(req: any, filter: FilterDefinition, keyType: string = null): {[key: string]: any} {
+export function filterQueryArgs(req: RequestParams | express.Request, filter: FilterDefinition, keyType: string = null): RequestParams {
     const keys = Object.keys(filter);
-    const result: {[key: string]: any} = {};
-    const merged = req.app !== undefined ? mergeRequestData(req) : req;
+    const result: RequestParams = {};
+    const merged = req.socket instanceof Socket ? mergeRequestData(req as express.Request) : req;
 
     for (const key of keys) {
         let data;
