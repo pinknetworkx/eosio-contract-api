@@ -27,7 +27,6 @@ import { NotificationData } from '../../../../filler/notifier';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
 import QueryBuilder from '../../../builder';
-import { wrapJSONHandler } from './wrapper';
 import { getSaleAction } from './handlers/sales';
 
 export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
@@ -217,7 +216,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     });
 
-    router.all('/v1/sales/:sale_id', server.web.caching(), wrapJSONHandler(getSaleAction, core, server));
+    router.all('/v1/sales/:sale_id', server.web.caching(), server.web.wrapJSONHandler(getSaleAction, core));
 
     router.all('/v1/sales/:sale_id/logs', server.web.caching(), (async (req, res) => {
         const args = filterQueryArgs(req, {

@@ -14,7 +14,7 @@ export type FilterDefinition = {
 export type RequestParams = {[key: string]: any};
 
 export function mergeRequestData(req: express.Request): {[key: string]: any} {
-    return Object.assign({}, req.query || {}, req.body || {}, req.params || {});
+    return Object.assign({}, req.query || {}, req.body || {});
 }
 
 export function filterQueryArgs(req: RequestParams, filter: FilterDefinition): {[key: string]: any};
