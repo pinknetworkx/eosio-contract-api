@@ -1,4 +1,4 @@
-import { DB, HTTPServer } from '../../server';
+import { DB } from '../../server';
 
 export type FillerHook = (db: DB, contract: string, rows: any[]) => Promise<any[]>;
 
@@ -56,16 +56,16 @@ export class AssetFiller {
 }
 
 export async function fillAssets(
-    server: HTTPServer, contract: string, assetIDs: any[], formatter: (_: any) => any,
+    db: DB, contract: string, assetIDs: any[], formatter: (_: any) => any,
     view: string, hook?: FillerHook
 ): Promise<any[]> {
-    const filler = new AssetFiller(server, contract, assetIDs, formatter, view, hook);
+    const filler = new AssetFiller(db, contract, assetIDs, formatter, view, hook);
 
     return await filler.fill(assetIDs);
 }
 
 export async function fillOffers(
-    server: HTTPServer, contract: string, offers: any[], formatter: (_: any) => any,
+    db: DB, contract: string, offers: any[], formatter: (_: any) => any,
     view: string, hook?: FillerHook
 ): Promise<any[]> {
     const assetIDs: string[] = [];
@@ -75,7 +75,7 @@ export async function fillOffers(
         assetIDs.push(...offer.recipient_assets);
     }
 
-    const filler = new AssetFiller(server, contract, assetIDs, formatter, view, hook);
+    const filler = new AssetFiller(db, contract, assetIDs, formatter, view, hook);
 
     return await Promise.all(offers.map(async (offer) => {
         offer.sender_assets = await filler.fill(offer.sender_assets);
@@ -86,7 +86,7 @@ export async function fillOffers(
 }
 
 export async function fillTransfers(
-    server: HTTPServer, contract: string, transfers: any[], formatter: (_: any) => any,
+    db: DB, contract: string, transfers: any[], formatter: (_: any) => any,
     view: string, hook?: FillerHook
 ): Promise<any[]> {
     const assetIDs: string[] = [];
@@ -95,7 +95,7 @@ export async function fillTransfers(
         assetIDs.push(...transfer.assets);
     }
 
-    const filler = new AssetFiller(server, contract, assetIDs, formatter, view, hook);
+    const filler = new AssetFiller(db, contract, assetIDs, formatter, view, hook);
 
     return await Promise.all(transfers.map(async (transfer) => {
         transfer.assets = await filler.fill(transfer.assets);

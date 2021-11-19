@@ -17,8 +17,9 @@ import { eosioTimestampToDate } from '../utils/eosio';
 import * as swagger from 'swagger-ui-express';
 import { getOpenApiDescription, LogSchema } from './docs';
 import { respondApiError } from './utils';
-import { ActionHandler } from './actionhandler';
+import { ActionHandler, ActionHandlerOptions } from './actionhandler';
 import { ApiNamespace } from './namespaces/interfaces';
+import { mergeRequestData } from './namespaces/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson: any = require('../../package.json');
@@ -269,15 +270,13 @@ export class WebServer {
     wrapJSONHandler(handler: ActionHandler, core: ApiNamespace): express.Handler {
         const server = this.server;
 
-        function mergeRequestData(req: express.Request): {[key: string]: any} {
-            return Object.assign({}, req.query || {}, req.body || {}, req.params || {});
-        }
-
         return async (req: express.Request, res: express.Response): Promise<void> => {
             try {
                 const params = mergeRequestData(req);
+                const pathParams = req.params || {};
 
-                const options = {
+                const options: ActionHandlerOptions<ApiNamespace> = {
+                    pathParams,
                     db: {
                         async query<T = any>(queryText: string, values?: any[]): Promise<QueryResult<T>> {
                             return server.query(queryText, values);

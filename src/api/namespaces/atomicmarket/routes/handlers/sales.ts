@@ -7,7 +7,7 @@ import { AtomicMarketActionHandlerOptions } from '../../index';
 export async function getSaleAction(params: RequestParams, options: AtomicMarketActionHandlerOptions): Promise<any> {
     const query = await options.db.query(
         'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = $2',
-        [options.core.args.atomicmarket_account, params.sale_id]
+        [options.core.args.atomicmarket_account, options.pathParams.sale_id]
     );
 
     if (query.rowCount === 0) {
