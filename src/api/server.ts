@@ -17,7 +17,7 @@ import { eosioTimestampToDate } from '../utils/eosio';
 import * as swagger from 'swagger-ui-express';
 import { getOpenApiDescription, LogSchema } from './docs';
 import { respondApiError } from './utils';
-import { ActionHandler, ActionHandlerOptions } from './actionhandler';
+import { ActionHandler, ActionHandlerContext } from './actionhandler';
 import { ApiNamespace } from './namespaces/interfaces';
 import { mergeRequestData } from './namespaces/utils';
 
@@ -275,13 +275,13 @@ export class WebServer {
                 const params = mergeRequestData(req);
                 const pathParams = req.params || {};
 
-                const options: ActionHandlerOptions<ApiNamespace> = {
+                const context: ActionHandlerContext<ApiNamespace> = {
                     pathParams,
                     db: server,
                     core,
                 };
 
-                const result = await handler(params, options);
+                const result = await handler(params, context);
 
                 res.json({success: true, data: result, query_time: Date.now()});
             } catch (error) {

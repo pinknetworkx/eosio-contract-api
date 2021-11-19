@@ -17,7 +17,7 @@ import { statsEndpoints } from './routes/stats';
 import ApiNotificationReceiver from '../../notification';
 import { buyoffersEndpoints, buyofferSockets } from './routes/buyoffers';
 import { assetsEndpoints } from './routes/assets';
-import { ActionHandlerOptions } from '../../actionhandler';
+import { ActionHandlerContext } from '../../actionhandler';
 
 export type AtomicMarketNamespaceArgs = {
     atomicmarket_account: string
@@ -56,7 +56,7 @@ export enum BuyofferApiState {
     INVALID = 4
 }
 
-export type AtomicMarketActionHandlerOptions = ActionHandlerOptions<AtomicMarketNamespace>;
+export type AtomicMarketContext = ActionHandlerContext<AtomicMarketNamespace>;
 
 export class AtomicMarketNamespace extends ApiNamespace {
     static namespaceName = 'atomicmarket';
