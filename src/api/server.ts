@@ -277,11 +277,7 @@ export class WebServer {
 
                 const options: ActionHandlerOptions<ApiNamespace> = {
                     pathParams,
-                    db: {
-                        async query<T = any>(queryText: string, values?: any[]): Promise<QueryResult<T>> {
-                            return server.query(queryText, values);
-                        },
-                    },
+                    db: server,
                     core,
                 };
 
