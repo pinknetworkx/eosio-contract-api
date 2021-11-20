@@ -1,4 +1,4 @@
-import { filterQueryArgs, FilterValues, getPlainValues } from '../utils';
+import { filterQueryArgs, FilterValues } from '../utils';
 import { buildAssetFilter, hasAssetFilter, hasDataFilters } from '../atomicassets/utils';
 import { AuctionApiState, BuyofferApiState, SaleApiState } from './index';
 import { AuctionState, BuyofferState, SaleState } from '../../../filler/handlers/atomicmarket';
@@ -7,12 +7,12 @@ import QueryBuilder from '../../builder';
 import { ApiError } from '../../error';
 
 export function hasListingFilter(values: FilterValues, blacklist: string[] = []): boolean {
-    const keys = Object.keys(getPlainValues(values));
+    const keys = Object.keys(values);
 
     for (const key of keys) {
         if (
-            ['account', 'seller', 'buyer'].indexOf(key) >= 0 &&
-            blacklist.indexOf(key) === -1
+            ['account', 'seller', 'buyer'].includes(key) &&
+            !blacklist.includes(key)
         ) {
             return true;
         }

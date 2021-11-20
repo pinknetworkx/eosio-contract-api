@@ -1,6 +1,5 @@
 import * as express from 'express';
 import QueryBuilder from '../builder';
-import { Socket } from 'net';
 
 export type FilterDefinition = {
     [key: string]: {
@@ -15,32 +14,22 @@ export type FilterDefinition = {
 export type RequestValues = {[key: string]: any};
 
 export function mergeRequestData(req: express.Request): RequestValues {
-    return Object.assign({}, req.query || {}, req.body || {});
+    return {...req.query, ...req.body};
 }
 
-export type FilterValues = RequestValues | express.Request;
+export type FilterValues = RequestValues;
 export type FilteredValues = {[key: string]: any};
-
-/**
- *
- * @deprecated Remove when possible
- */
-export function getPlainValues(values: FilterValues): RequestValues {
-    return values.socket instanceof Socket ? mergeRequestData(values as express.Request) : values;
-}
 
 export function filterQueryArgs(values: FilterValues, filter: FilterDefinition, keyType: string = null): FilteredValues {
     const keys: string[] = Object.keys(filter);
     const result: RequestValues = {};
-    const merged = getPlainValues(values);
 
     for (const key of keys) {
         let data;
         if (keyType) {
-            // @ts-ignore
             data = values[keyType] ? values[keyType][key] : undefined;
         } else {
-            data = merged[key];
+            data = values[key];
         }
 
         if (typeof data !== 'string') {

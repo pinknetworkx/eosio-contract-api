@@ -30,10 +30,10 @@ import {
 export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;
 
-    router.all('/v1/sales', server.web.caching(), returnAsJSON(getSalesAction, core));
-    router.all('/v1/sales/_count', server.web.caching(), returnAsJSON(getSalesCountAction, core));
+    router.all('/v1/sales', caching(), returnAsJSON(getSalesAction, core));
+    router.all('/v1/sales/_count', caching(), returnAsJSON(getSalesCountAction, core));
 
-    router.all('/v1/sales/templates', server.web.caching(), returnAsJSON(getSalesTemplatesAction, core));
+    router.all('/v1/sales/templates', caching(), returnAsJSON(getSalesTemplatesAction, core));
 
     router.all('/v1/sales/:sale_id', caching(), returnAsJSON(getSaleAction, core));
 

@@ -30,7 +30,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
 
     router.all('/v1/auctions/:auction_id', caching(), returnAsJSON(getAuctionAction, core));
 
-    router.all('/v1/auctions/:auction_id/logs', server.web.caching(), returnAsJSON(getAuctionLogsAction, core));
+    router.all('/v1/auctions/:auction_id/logs', caching(), returnAsJSON(getAuctionLogsAction, core));
 
     return {
         tag: {
