@@ -1,8 +1,8 @@
 import * as express from 'express';
 
-import { AtomicAssetsNamespace } from '../index';
+import { AtomicAssetsContext, AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
+import { RequestValues } from '../../utils';
 import { FillerHook, fillOffers } from '../filler';
 import {
     actionGreylistParameters,
@@ -14,15 +14,13 @@ import {
 import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { greylistFilterParameters } from '../openapi';
 import {
-    applyActionGreylistFilters,
     createSocketApiNamespace,
     extractNotificationIdentifiers,
-    getContractActionLogs, respondApiError
 } from '../../../utils';
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
-import { buildAssetFilter, hasAssetFilter } from '../utils';
-import QueryBuilder from '../../../builder';
+import { getOfferLogsCountAction, getOffersCountAction, getRawOffersAction } from './handlers/offers';
+import { ApiError } from '../../../error';
 
 export class OfferApi {
     constructor(
@@ -36,271 +34,56 @@ export class OfferApi {
         readonly fillerHook?: FillerHook
     ) { }
 
+    getOffersAction = async (params: RequestValues, ctx: AtomicAssetsContext): Promise<any> => {
+        const offerResult = await getRawOffersAction(params, ctx);
+
+        const offerLookup: {[key: string]: any} = {};
+        const result = await ctx.db.query(
+            'SELECT * FROM ' + this.offerView + ' WHERE contract = $1 AND offer_id = ANY ($2)',
+            [ctx.core.args.atomicassets_account, offerResult.rows.map((row: any) => row.offer_id)]
+        );
+
+        result.rows.reduce((prev, current) => {
+            prev[String(current.offer_id)] = current;
+
+            return prev;
+        }, offerLookup);
+
+        return await fillOffers(
+            this.server, this.core.args.atomicassets_account,
+            offerResult.rows.map((row: any) => this.offerFormatter(offerLookup[row.offer_id])),
+            this.assetFormatter, this.assetView, this.fillerHook
+        );
+    }
+
+    getOfferAction = async (params: RequestValues, ctx: AtomicAssetsContext): Promise<any> => {
+        const query = await this.server.query(
+            'SELECT * FROM atomicassets_offers_master WHERE contract = $1 AND offer_id = $2',
+            [ctx.core.args.atomicassets_account, ctx.pathParams.offer_id]
+        );
+
+        if (query.rowCount === 0) {
+            throw new ApiError('Offer not found', 416);
+        }
+
+        const offers = await fillOffers(
+            ctx.db, ctx.core.args.atomicassets_account,
+            query.rows.map((row) => this.offerFormatter(row)),
+            this.assetFormatter, this.assetView, this.fillerHook
+        );
+
+        return offers[0];
+    }
+
     endpoints(router: express.Router): any {
-        router.all(['/v1/offers', '/v1/offers/_count'], this.server.web.caching(), (async (req, res) => {
-            try {
-                const args = filterQueryArgs(req, {
-                    page: {type: 'int', min: 1, default: 1},
-                    limit: {type: 'int', min: 1, max: 100, default: 100},
-                    sort: {type: 'string', values: ['created', 'updated'], default: 'created'},
-                    order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+        const {caching, returnAsJSON} = this.server.web;
 
-                    account: {type: 'string', min: 1},
-                    sender: {type: 'string', min: 1},
-                    recipient: {type: 'string', min: 1},
-                    state: {type: 'string', min: 1},
+        router.all('/v1/offers', caching(), returnAsJSON(this.getOffersAction, this.core));
+        router.all('/v1/offers/_count', caching(), returnAsJSON(getOffersCountAction, this.core));
 
-                    asset_id: {type: 'string', min: 1},
+        router.all('/v1/offers/:offer_id', caching({ignoreQueryString: true}), returnAsJSON(this.getOfferAction, this.core));
 
-                    recipient_asset_blacklist: {type: 'string', min: 1},
-                    recipient_asset_whitelist: {type: 'string', min: 1},
-                    sender_asset_blacklist: {type: 'string', min: 1},
-                    sender_asset_whitelist: {type: 'string', min: 1},
-                    account_whitelist: {type: 'string', min: 1},
-                    account_blacklist: {type: 'string', min: 1},
-                    collection_blacklist: {type: 'string', min: 1},
-                    collection_whitelist: {type: 'string', min: 1},
-
-                    is_recipient_contract: {type: 'bool'},
-
-                    hide_contracts: {type: 'bool'},
-                    hide_empty_offers: {type: 'bool'}
-                });
-
-                const query = new QueryBuilder('SELECT contract, offer_id FROM atomicassets_offers offer');
-
-                query.equal('contract', this.core.args.atomicassets_account);
-
-                if (args.account) {
-                    const varName = query.addVariable(args.account.split(','));
-                    query.addCondition('(sender = ANY (' + varName + ') OR recipient = ANY (' + varName + '))');
-                }
-
-                if (args.sender) {
-                    query.equalMany('sender', args.sender.split(','));
-                }
-
-                if (args.recipient) {
-                    query.equalMany('recipient', args.recipient.split(','));
-                }
-
-                if (args.state) {
-                    query.equalMany('state', args.state.split(','));
-                }
-
-                if (args.is_recipient_contract === true) {
-                    query.addCondition('EXISTS(SELECT * FROM contract_codes WHERE account = offer.recipient)');
-                } else if (args.is_recipient_contract === false) {
-                    query.addCondition('NOT EXISTS(SELECT * FROM contract_codes WHERE account = offer.recipient)');
-                }
-
-                if (args.hide_contracts) {
-                    query.addCondition(
-                        'NOT EXISTS(SELECT * FROM contract_codes ' +
-                        'WHERE (account = offer.recipient OR account = offer.sender) AND NOT (account = ANY(' +
-                        query.addVariable([args.account, args.sender, args.recipient].filter(row => !!row)) +
-                        ')))'
-                    );
-                }
-
-                if (args.hide_empty_offers) {
-                    query.addCondition(
-                        'EXISTS(SELECT * FROM atomicassets_offers_assets asset ' +
-                        'WHERE asset.contract = offer.contract AND asset.offer_id = offer.offer_id AND asset.owner = offer.sender)'
-                    );
-
-                    query.addCondition(
-                        'EXISTS(SELECT * FROM atomicassets_offers_assets asset ' +
-                        'WHERE asset.contract = offer.contract AND asset.offer_id = offer.offer_id AND asset.owner = offer.recipient)'
-                    );
-                }
-
-                if (hasAssetFilter(req, ['asset_id'])) {
-                    const assetQuery = new QueryBuilder('SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset', query.buildValues());
-
-                    assetQuery.join('asset', 'offer_asset', ['contract', 'asset_id']);
-                    assetQuery.join('offer_asset', 'offer', ['contract', 'offer_id']);
-
-                    buildAssetFilter(req, assetQuery, {assetTable: '"asset"', allowDataFilter: false});
-
-                    query.addCondition('EXISTS(' + assetQuery.buildString() + ')');
-                    query.setVars(assetQuery.buildValues());
-                }
-
-                if (args.asset_id) {
-                    query.addCondition(
-                        'EXISTS(' +
-                        'SELECT * FROM atomicassets_offers_assets asset ' +
-                        'WHERE offer.contract = asset.contract AND offer.offer_id = asset.offer_id AND ' +
-                        'asset_id = ANY (' + query.addVariable(args.asset_id.split(',')) + ')' +
-                        ')'
-                    );
-                }
-
-                if (args.collection_blacklist) {
-                    query.addCondition(
-                        'NOT EXISTS(' +
-                        'SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
-                        'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
-                        'offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND ' +
-                        'asset.collection_name = ANY (' + query.addVariable(args.collection_blacklist.split(',')) + ')' +
-                        ')'
-                    );
-                }
-
-                if (args.collection_whitelist) {
-                    query.addCondition(
-                        'NOT EXISTS(' +
-                        'SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
-                        'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
-                        'offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND ' +
-                        'NOT (asset.collection_name = ANY (' + query.addVariable(args.collection_whitelist.split(',')) + '))' +
-                        ')'
-                    );
-                }
-
-                if (args.account_blacklist) {
-                    const varName = query.addVariable(args.account_blacklist.split(','));
-                    query.addCondition('NOT (offer.sender = ANY(' + varName + ') OR offer.recipient = ANY(' + varName + '))');
-                }
-
-                if (args.account_whitelist) {
-                    const varName = query.addVariable(args.account_whitelist.split(','));
-                    query.addCondition('(offer.sender = ANY(' + varName + ') OR offer.recipient = ANY(' + varName + '))');
-                }
-
-                if (args.recipient_asset_blacklist) {
-                    query.addCondition(
-                        'NOT EXISTS(' +
-                        'SELECT * FROM atomicassets_offers_assets offer_asset ' +
-                        'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
-                        'offer_asset.owner = offer.recipient AND offer_asset.asset_id = ANY (' + query.addVariable(args.recipient_asset_blacklist.split(',')) + ')' +
-                        ')'
-                    );
-                }
-
-                if (args.recipient_asset_whitelist) {
-                    query.addCondition(
-                        'NOT EXISTS(' +
-                        'SELECT * FROM atomicassets_offers_assets offer_asset ' +
-                        'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
-                        'offer_asset.owner = offer.recipient AND NOT (offer_asset.asset_id = ANY (' + query.addVariable(args.recipient_asset_whitelist.split(',')) + '))' +
-                        ')'
-                    );
-                }
-
-                if (args.sender_asset_blacklist) {
-                    query.addCondition(
-                        'NOT EXISTS(' +
-                        'SELECT * FROM atomicassets_offers_assets offer_asset ' +
-                        'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
-                        'offer_asset.owner = offer.sender AND offer_asset.asset_id = ANY (' + query.addVariable(args.sender_asset_blacklist.split(',')) + ')' +
-                        ')'
-                    );
-                }
-
-                if (args.sender_asset_whitelist) {
-                    query.addCondition(
-                        'NOT EXISTS(' +
-                        'SELECT * FROM atomicassets_offers_assets offer_asset ' +
-                        'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
-                        'offer_asset.owner = offer.sender AND NOT (offer_asset.asset_id = ANY (' + query.addVariable(args.sender_asset_whitelist.split(',')) + '))' +
-                        ')'
-                    );
-                }
-
-                buildBoundaryFilter(
-                    req, query, 'offer_id', 'int',
-                    args.sort === 'updated' ? 'updated_at_time' : 'created_at_time'
-                );
-
-                const sortColumnMapping: {[key: string]: string} = {
-                    created: 'created_at_time',
-                    updated: 'updated_at_time'
-                };
-
-                if (req.originalUrl.search('/_count') >= 0) {
-                    const countQuery = await this.server.query(
-                        'SELECT COUNT(*) counter FROM (' + query.buildString() + ') x',
-                        query.buildValues()
-                    );
-
-                    return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
-                }
-
-                query.append('ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', offer_id ASC');
-                query.paginate(args.page, args.limit);
-
-                const offerResult = await this.server.query(query.buildString(), query.buildValues());
-
-                const offerLookup: {[key: string]: any} = {};
-                const result = await this.server.query(
-                    'SELECT * FROM ' + this.offerView + ' WHERE contract = $1 AND offer_id = ANY ($2)',
-                    [this.core.args.atomicassets_account, offerResult.rows.map(row => row.offer_id)]
-                );
-
-                result.rows.reduce((prev, current) => {
-                    prev[String(current.offer_id)] = current;
-
-                    return prev;
-                }, offerLookup);
-
-                const offers = await fillOffers(
-                    this.server, this.core.args.atomicassets_account,
-                    offerResult.rows.map((row) => this.offerFormatter(offerLookup[row.offer_id])),
-                    this.assetFormatter, this.assetView, this.fillerHook
-                );
-
-                return res.json({success: true, data: offers, query_time: Date.now()});
-            } catch (error) {
-                return respondApiError(res, error);
-            }
-        }));
-
-        router.all('/v1/offers/:offer_id', this.server.web.caching({ignoreQueryString: true}), (async (req, res) => {
-            try {
-                const query = await this.server.query(
-                    'SELECT * FROM atomicassets_offers_master WHERE contract = $1 AND offer_id = $2',
-                    [this.core.args.atomicassets_account, req.params.offer_id]
-                );
-
-                if (query.rowCount === 0) {
-                    return res.status(416).json({success: false, message: 'Offer not found'});
-                }
-
-                const offers = await fillOffers(
-                    this.server, this.core.args.atomicassets_account,
-                    query.rows.map((row) => this.offerFormatter(row)),
-                    this.assetFormatter, this.assetView, this.fillerHook
-                );
-
-                return res.json({success: true, data: offers[0], query_time: Date.now()});
-            } catch (error) {
-                return respondApiError(res, error);
-            }
-        }));
-
-        router.all('/v1/offers/:offer_id/logs', this.server.web.caching(), (async (req, res) => {
-            const args = filterQueryArgs(req, {
-                page: {type: 'int', min: 1, default: 1},
-                limit: {type: 'int', min: 1, max: 100, default: 100},
-                order: {type: 'string', values: ['asc', 'desc'], default: 'asc'}
-            });
-
-            try {
-                res.json({
-                    success: true,
-                    data: await getContractActionLogs(
-                        this.server, this.core.args.atomicassets_account,
-                        applyActionGreylistFilters(['lognewoffer', 'acceptoffer', 'declineoffer', 'canceloffer'], args),
-                        {offer_id: req.params.offer_id},
-                        (args.page - 1) * args.limit, args.limit, args.order
-                    ), query_time: Date.now()
-                });
-            } catch (error) {
-                return respondApiError(res, error);
-            }
-        }));
+        router.all('/v1/offers/:offer_id/logs', caching(), returnAsJSON(getOfferLogsCountAction, this.core));
 
         return {
             tag: {
