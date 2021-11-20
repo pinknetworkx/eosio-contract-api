@@ -241,8 +241,8 @@ export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, c
     }
 }
 
-export function buildHideOffersFilter(req: express.Request, query: QueryBuilder, assetTable: string): void {
-    const args = filterQueryArgs(req, {
+export function buildHideOffersFilter(values: FilterValues, query: QueryBuilder, assetTable: string): void {
+    const args = filterQueryArgs(values, {
         hide_offers: {type: 'bool', default: false}
     });
 
