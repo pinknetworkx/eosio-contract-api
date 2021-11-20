@@ -15,12 +15,12 @@ import {
     hideOffersParameters,
     baseAssetFilterParameters, completeAssetFilterParameters
 } from '../../atomicassets/openapi';
-import { getAssetsAction } from './handlers/assets';
+import { getAssetsAction, getAssetsCountAction } from './handlers/assets';
 
 export function assetsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;
     router.all('/v1/assets', caching(), returnAsJSON(getAssetsAction, core));
-    router.all('/v1/assets/_count', caching(), returnAsJSON(getAssetsAction, core));
+    router.all('/v1/assets/_count', caching(), returnAsJSON(getAssetsCountAction, core));
 
     return {
         tag: {

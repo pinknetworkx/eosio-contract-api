@@ -200,8 +200,8 @@ export function buildSaleFilter(values: FilterValues, query: QueryBuilder): void
     }
 }
 
-export function buildAuctionFilter(req: express.Request, query: QueryBuilder): void {
-    const args = filterQueryArgs(req, {
+export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): void {
+    const args = filterQueryArgs(values, {
         state: {type: 'string', min: 1},
 
         min_assets: {type: 'int', min: 1},
@@ -217,9 +217,9 @@ export function buildAuctionFilter(req: express.Request, query: QueryBuilder): v
         hide_empty_auctions: {type: 'bool'},
     });
 
-    buildListingFilter(req, query);
+    buildListingFilter(values, query);
 
-    if (hasAssetFilter(req, ['collection_name']) || hasDataFilters(req)) {
+    if (hasAssetFilter(values, ['collection_name']) || hasDataFilters(values)) {
         const assetQuery = new QueryBuilder(
             'SELECT * FROM atomicmarket_auctions_assets auction_asset, ' +
             'atomicassets_assets asset LEFT JOIN atomicassets_templates "template" ON ("asset".contract = "template".contract AND "asset".template_id = "template".template_id)',
@@ -229,7 +229,7 @@ export function buildAuctionFilter(req: express.Request, query: QueryBuilder): v
         assetQuery.addCondition('asset.contract = auction_asset.assets_contract AND asset.asset_id = auction_asset.asset_id');
         assetQuery.join('auction_asset', 'listing', ['market_contract', 'auction_id']);
 
-        buildAssetFilter(req, assetQuery, {assetTable: '"asset"', templateTable: '"template"', allowDataFilter: true});
+        buildAssetFilter(values, assetQuery, {assetTable: '"asset"', templateTable: '"template"', allowDataFilter: true});
 
         query.addCondition('EXISTS(' + assetQuery.buildString() + ')');
         query.setVars(assetQuery.buildValues());
