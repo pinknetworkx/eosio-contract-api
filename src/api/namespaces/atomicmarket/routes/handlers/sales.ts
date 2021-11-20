@@ -100,7 +100,7 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
     const ignoreIndex = (hasAssetFilter(params) || hasDataFilters(params) || hasListingFilter(params)) && sortMapping[args.sort].numericIndex;
 
     query.append('ORDER BY ' + sortMapping[args.sort].column + (ignoreIndex ? ' + 1 ' : ' ') + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.sale_id ASC');
-    query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
+    query.paginate(args.page, args.limit);
 
     const saleQuery = await ctx.db.query(query.buildString(), query.buildValues());
 

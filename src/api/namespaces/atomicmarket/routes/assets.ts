@@ -89,7 +89,7 @@ export function assetsEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
             const ignoreIndex = (hasAssetFilter(req) || hasDataFilters(req) || hasListingFilter(req)) && sorting.numericIndex;
 
             query.append('ORDER BY ' + sorting.column + (ignoreIndex ? ' + 1 ' : ' ') + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC');
-            query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
+            query.paginate(args.page, args.limit);
 
             const result = await server.query(query.buildString(), query.buildValues());
 

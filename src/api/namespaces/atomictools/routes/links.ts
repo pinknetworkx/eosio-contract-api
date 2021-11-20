@@ -101,7 +101,7 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
             };
 
             query.append('ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', link_id ASC');
-            query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
+            query.paginate(args.page, args.limit);
 
             const result = await server.query(query.buildString(), query.buildValues());
 

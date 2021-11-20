@@ -51,7 +51,8 @@ export async function getAccountsAction(params: RequestValues, ctx: AtomicAssets
         return countQuery.rows[0].counter;
     }
 
-    query.append('ORDER BY assets DESC, account ASC LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
+    query.append('ORDER BY assets DESC, account ASC');
+    query.paginate(args.page, args.limit);
 
     const result = await ctx.db.query(query.buildString(), query.buildValues());
 

@@ -271,7 +271,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
             }
 
             query.append('ORDER BY "price".template_id ASC, "price".symbol ASC');
-            query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit) + ' ');
+            query.paginate(args.page, args.limit);
 
             const result = await server.query(query.buildString(), query.buildValues());
 

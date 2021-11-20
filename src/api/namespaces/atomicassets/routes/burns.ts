@@ -57,7 +57,8 @@ export function burnEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, r
                 return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
             }
 
-            query.append('ORDER BY assets DESC, account ASC LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
+            query.append('ORDER BY assets DESC, account ASC');
+            query.paginate(args.page, args.limit);
 
             const result = await server.query(query.buildString(), query.buildValues());
 

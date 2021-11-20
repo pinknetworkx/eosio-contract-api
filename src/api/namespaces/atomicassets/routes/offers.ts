@@ -229,7 +229,7 @@ export class OfferApi {
                 }
 
                 query.append('ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', offer_id ASC');
-                query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
+                query.paginate(args.page, args.limit);
 
                 const offerResult = await this.server.query(query.buildString(), query.buildValues());
 

@@ -88,7 +88,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
             const ignoreIndex = (hasAssetFilter(req) || hasDataFilters(req) || hasListingFilter(req)) && sortMapping[args.sort].numericIndex;
 
             query.append('ORDER BY ' + sortMapping[args.sort].column + (ignoreIndex ? ' + 1 ' : ' ') + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.auction_id ASC');
-            query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit) + ' ');
+            query.paginate(args.page, args.limit);
 
             const auctionResult = await server.query(query.buildString(), query.buildValues());
 

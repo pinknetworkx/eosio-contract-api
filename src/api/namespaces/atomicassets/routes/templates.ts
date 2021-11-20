@@ -122,7 +122,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
             };
 
             query.append('ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', template_id ASC');
-            query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
+            query.paginate(args.page, args.limit);
 
             const templateQuery = await server.query(query.buildString(), query.buildValues());
 

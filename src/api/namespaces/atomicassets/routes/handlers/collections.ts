@@ -58,7 +58,7 @@ export async function getCollectionsAction(params: RequestValues, ctx: AtomicAss
     };
 
     query.append('ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', collection_name ASC');
-    query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
+    query.paginate(args.page, args.limit);
 
     const result = await ctx.db.query(query.buildString(), query.buildValues());
 
