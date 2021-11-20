@@ -2,7 +2,7 @@ import * as express from 'express';
 
 import { AtomicMarketNamespace, SaleApiState } from '../index';
 import { HTTPServer } from '../../../server';
-import { filterQueryArgs, mergeRequestData } from '../../utils';
+import { filterQueryArgs, FilterValues, mergeRequestData } from '../../utils';
 import { formatCollection } from '../../atomicassets/format';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
 import { atomicassetsComponents, greylistFilterParameters } from '../../atomicassets/openapi';

@@ -1,11 +1,11 @@
 import * as express from 'express';
 
-import { filterQueryArgs, mergeRequestData } from '../utils';
+import { filterQueryArgs, FilterValues, getPlainValues } from '../utils';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 import QueryBuilder from '../../builder';
 
-export function hasAssetFilter(req: express.Request, blacklist: string[] = []): boolean {
-    const keys = Object.keys(mergeRequestData(req));
+export function hasAssetFilter(values: FilterValues, blacklist: string[] = []): boolean {
+    const keys = Object.keys(getPlainValues(values));
 
     for (const key of keys) {
         if (
@@ -19,8 +19,8 @@ export function hasAssetFilter(req: express.Request, blacklist: string[] = []): 
     return false;
 }
 
-export function hasDataFilters(req: express.Request): boolean {
-    const keys = Object.keys(mergeRequestData(req));
+export function hasDataFilters(values: FilterValues): boolean {
+    const keys = Object.keys(getPlainValues(values));
 
     for (const key of keys) {
         if (['match', 'match_immutable_name', 'match_mutable_name'].indexOf(key) >= 0) {
@@ -47,8 +47,8 @@ export function hasDataFilters(req: express.Request): boolean {
     return false;
 }
 
-export function buildDataConditions(req: express.Request, query: QueryBuilder, options: {assetTable?: string, templateTable?: string}): void {
-    const args = mergeRequestData(req);
+export function buildDataConditions(values: FilterValues, query: QueryBuilder, options: {assetTable?: string, templateTable?: string}): void {
+    const args = getPlainValues(values);
     const keys = Object.keys(args);
 
     function buildConditionObject(name: string): {[key: string]: string | number | boolean} {
@@ -119,12 +119,12 @@ export function buildDataConditions(req: express.Request, query: QueryBuilder, o
 }
 
 export function buildAssetFilter(
-    req: express.Request, query: QueryBuilder,
+    values: FilterValues, query: QueryBuilder,
     options: {assetTable?: string, templateTable?: string, allowDataFilter?: boolean} = {}
 ): void {
     options = Object.assign({allowDataFilter: true}, options);
 
-    const args = filterQueryArgs(req, {
+    const args = filterQueryArgs(values, {
         asset_id: {type: 'string', min: 1},
         owner: {type: 'string', min: 1, max: 12},
         burned: {type: 'bool'},
@@ -136,7 +136,7 @@ export function buildAssetFilter(
     });
 
     if (options.allowDataFilter !== false) {
-        buildDataConditions(req, query, {assetTable: options.assetTable, templateTable: options.templateTable});
+        buildDataConditions(values, query, {assetTable: options.assetTable, templateTable: options.templateTable});
     }
 
     if (args.asset_id) {
@@ -188,8 +188,8 @@ export function buildAssetFilter(
     }
 }
 
-export function buildGreylistFilter(req: express.Request, query: QueryBuilder, columns: {collectionName?: string, account?: string[]}): void {
-    const args = filterQueryArgs(req, {
+export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, columns: {collectionName?: string, account?: string[]}): void {
+    const args = filterQueryArgs(values, {
         collection_blacklist: {type: 'string', min: 1},
         collection_whitelist: {type: 'string', min: 1},
         account_blacklist: {type: 'string', min: 1}

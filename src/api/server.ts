@@ -267,7 +267,7 @@ export class WebServer {
         this.express.use(router);
     }
 
-    wrapJSONHandler(handler: ActionHandler, core: ApiNamespace): express.Handler {
+    returnAsJSON = (handler: ActionHandler, core: ApiNamespace): express.Handler => {
         const server = this.server;
 
         return async (req: express.Request, res: express.Response): Promise<void> => {
@@ -275,13 +275,13 @@ export class WebServer {
                 const params = mergeRequestData(req);
                 const pathParams = req.params || {};
 
-                const context: ActionHandlerContext<ApiNamespace> = {
+                const ctx: ActionHandlerContext<ApiNamespace> = {
                     pathParams,
                     db: server,
                     core,
                 };
 
-                const result = await handler(params, context);
+                const result = await handler(params, ctx);
 
                 res.json({success: true, data: result, query_time: Date.now()});
             } catch (error) {

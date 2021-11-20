@@ -1,10 +1,10 @@
 import { DB } from './server';
-import { RequestParams } from './namespaces/utils';
+import { RequestValues } from './namespaces/utils';
 
 export interface ActionHandlerContext<T> {
-    pathParams: RequestParams,
+    pathParams: RequestValues,
     db: DB,
     core: T,
 }
 
-export type ActionHandler = (params: RequestParams, context: ActionHandlerContext<any>) => Promise<any>;
+export type ActionHandler = (params: RequestValues, ctx: ActionHandlerContext<any>) => Promise<any>;

@@ -12,22 +12,33 @@ export type FilterDefinition = {
     }
 };
 
-export type RequestParams = {[key: string]: any};
+export type RequestValues = {[key: string]: any};
 
-export function mergeRequestData(req: express.Request): RequestParams {
+export function mergeRequestData(req: express.Request): RequestValues {
     return Object.assign({}, req.query || {}, req.body || {});
 }
 
-export function filterQueryArgs(req: RequestParams | express.Request, filter: FilterDefinition, keyType: string = null): RequestParams {
-    const keys = Object.keys(filter);
-    const result: RequestParams = {};
-    const merged = req.socket instanceof Socket ? mergeRequestData(req as express.Request) : req;
+export type FilterValues = RequestValues | express.Request;
+export type FilteredValues = {[key: string]: any};
+
+/**
+ *
+ * @deprecated Remove when possible
+ */
+export function getPlainValues(values: FilterValues): RequestValues {
+    return values.socket instanceof Socket ? mergeRequestData(values as express.Request) : values;
+}
+
+export function filterQueryArgs(values: FilterValues, filter: FilterDefinition, keyType: string = null): FilteredValues {
+    const keys: string[] = Object.keys(filter);
+    const result: RequestValues = {};
+    const merged = getPlainValues(values);
 
     for (const key of keys) {
         let data;
         if (keyType) {
             // @ts-ignore
-            data = req[keyType] ? req[keyType][key] : undefined;
+            data = values[keyType] ? values[keyType][key] : undefined;
         } else {
             data = merged[key];
         }
@@ -103,11 +114,11 @@ export function filterQueryArgs(req: RequestParams | express.Request, filter: Fi
 }
 
 export function buildBoundaryFilter(
-    req: express.Request, query: QueryBuilder,
+    values: FilterValues, query: QueryBuilder,
     primaryColumn: string, primaryType: 'string' | 'int',
     dateColumn: string | null
 ): void {
-    const args = filterQueryArgs(req, {
+    const args = filterQueryArgs(values, {
         lower_bound: {type: primaryType, min: 1},
         upper_bound: {type: primaryType, min: 1},
         before: {type: 'int', min: 1},
