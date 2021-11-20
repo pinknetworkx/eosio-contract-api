@@ -1,5 +1,3 @@
-import * as express from 'express';
-
 import { filterQueryArgs, FilterValues, getPlainValues } from '../utils';
 import { buildAssetFilter, hasAssetFilter, hasDataFilters } from '../atomicassets/utils';
 import { AuctionApiState, BuyofferApiState, SaleApiState } from './index';
@@ -320,8 +318,8 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
     }
 }
 
-export function buildBuyofferFilter(req: express.Request, query: QueryBuilder): void {
-    const args = filterQueryArgs(req, {
+export function buildBuyofferFilter(values: FilterValues, query: QueryBuilder): void {
+    const args = filterQueryArgs(values, {
         state: {type: 'string', min: 1},
 
         min_assets: {type: 'int', min: 1},
@@ -332,9 +330,9 @@ export function buildBuyofferFilter(req: express.Request, query: QueryBuilder): 
         max_price: {type: 'float', min: 0}
     });
 
-    buildListingFilter(req, query);
+    buildListingFilter(values, query);
 
-    if (hasAssetFilter(req, ['collection_name']) || hasDataFilters(req)) {
+    if (hasAssetFilter(values, ['collection_name']) || hasDataFilters(values)) {
         const assetQuery = new QueryBuilder(
             'SELECT * FROM atomicmarket_buyoffers_assets buyoffer_asset, ' +
             'atomicassets_assets asset LEFT JOIN atomicassets_templates "template" ON ("asset".contract = "template".contract AND "asset".template_id = "template".template_id)',
@@ -344,7 +342,7 @@ export function buildBuyofferFilter(req: express.Request, query: QueryBuilder): 
         assetQuery.addCondition('asset.contract = buyoffer_asset.assets_contract AND asset.asset_id = buyoffer_asset.asset_id');
         assetQuery.join('buyoffer_asset', 'listing', ['market_contract', 'buyoffer_id']);
 
-        buildAssetFilter(req, assetQuery, {assetTable: '"asset"', templateTable: '"template"', allowDataFilter: true});
+        buildAssetFilter(values, assetQuery, {assetTable: '"asset"', templateTable: '"template"', allowDataFilter: true});
 
         query.addCondition('EXISTS(' + assetQuery.buildString() + ')');
         query.setVars(assetQuery.buildValues());
