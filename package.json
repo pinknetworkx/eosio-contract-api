@@ -7,15 +7,17 @@
   "repository": "https://github.com/pinknetworkx/eosio-contract-api",
   "scripts": {
     "clean": "rimraf ./build/* && rimraf ./logs/*",
-    "lint": "eslint 'src/**/*.ts'",
+    "lint": "eslint \"src/**/*.ts\"",
     "build": "yarn clean && tsc",
     "test": "mocha -r ts-node/register test/**/*.test.ts",
+    "test2": "mocha -r ts-node/register src/**/*.test.ts",
     "postinstall": "yarn build",
     "start:server": "node ./build/bin/server.js",
     "start:filler": "node ./build/bin/filler.js",
     "start:abiscan": "node ./build/bin/abiscan.js",
     "dev:server": "tsc && node --trace-warnings ./build/bin/server.js",
-    "dev:filler": "tsc && node --trace-warnings ./build/bin/filler.js"
+    "dev:filler": "tsc && node --trace-warnings ./build/bin/filler.js",
+    "dev:init-test-db": "tsc && node --trace-warnings ./build/bin/init-test-db.js"
   },
   "dependencies": {
     "async-exit-hook": "^2.0.1",
@@ -67,6 +69,7 @@
     "mocha": "^9.1.2",
     "rimraf": "^3.0.2",
     "ts-loader": "^9.2.6",
+    "ts-node": "^10.4.0",
     "typescript": "^4.4.3"
   }
 }
