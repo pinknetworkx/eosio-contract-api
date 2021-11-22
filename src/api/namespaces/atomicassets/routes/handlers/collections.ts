@@ -52,7 +52,7 @@ export async function getCollectionsAction(params: RequestValues, ctx: AtomicAss
         return countQuery.rows[0].counter;
     }
 
-    const sortColumnMapping: {[key: string]: string} = {
+    const sortColumnMapping: { [key: string]: string } = {
         created: 'created_at_time',
         collection_name: 'collection_name'
     };
@@ -72,7 +72,7 @@ export async function getCollectionsCountAction(params: RequestValues, ctx: Atom
 export async function getCollectionAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const query = await ctx.db.query(
         'SELECT * FROM atomicassets_collections_master WHERE contract = $1 AND collection_name = $2',
-        [ctx.core.args.atomicassets_account, ctx.pathParams.collection_name]
+        [ctx.coreArgs.atomicassets_account, ctx.pathParams.collection_name]
     );
 
     if (query.rowCount === 0) {
@@ -99,7 +99,7 @@ export async function getCollectionStatsAction(params: RequestValues, ctx: Atomi
         ') burned_by_schema, ' +
         '(SELECT COUNT(*) FROM atomicassets_templates WHERE contract = $1 AND collection_name = $2) templates, ' +
         '(SELECT COUNT(*) FROM atomicassets_schemas WHERE contract = $1 AND collection_name = $2) "schemas"',
-        [ctx.core.args.atomicassets_account, ctx.pathParams.collection_name]
+        [ctx.coreArgs.atomicassets_account, ctx.pathParams.collection_name]
     );
 
     return query.rows[0];
@@ -113,7 +113,7 @@ export async function getCollectionSchemasAction(params: RequestValues, ctx: Ato
                     WHERE asset.contract = "schema".contract AND asset.collection_name = "schema".collection_name AND 
                         asset.schema_name = "schema".schema_name AND "owner" IS NOT NULL
                 )`,
-        [ctx.core.args.atomicassets_account, ctx.pathParams.collection_name]
+        [ctx.coreArgs.atomicassets_account, ctx.pathParams.collection_name]
     );
 
     return query.rows;
@@ -127,7 +127,7 @@ export async function getCollectionLogsAction(params: RequestValues, ctx: Atomic
     });
 
     return await getContractActionLogs(
-        ctx.db, ctx.core.args.atomicassets_account,
+        ctx.db, ctx.coreArgs.atomicassets_account,
         applyActionGreylistFilters(['createcol', 'addcolauth', 'forbidnotify', 'remcolauth', 'remnotifyacc', 'setmarketfee', 'setcoldata'], args),
         {collection_name: ctx.pathParams.collection_name},
         (args.page - 1) * args.limit, args.limit, args.order

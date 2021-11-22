@@ -12,7 +12,7 @@ export type AtomicToolsNamespaceArgs = {
     atomicassets_account: string
 };
 
-export type AtomicToolsContext = ActionHandlerContext<AtomicToolsNamespace>;
+export type AtomicToolsContext = ActionHandlerContext<AtomicToolsNamespaceArgs>;
 
 export class AtomicToolsNamespace extends ApiNamespace {
     static namespaceName = 'atomictools';

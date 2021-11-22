@@ -18,7 +18,7 @@ export async function getBurnsAction(params: RequestValues, ctx: AtomicAssetsCon
 
     const query = new QueryBuilder('SELECT burned_by_account account, COUNT(*) as assets FROM atomicassets_assets asset');
 
-    query.equal('contract', ctx.core.args.atomicassets_account).notNull('burned_by_account');
+    query.equal('contract', ctx.coreArgs.atomicassets_account).notNull('burned_by_account');
 
     if (args.match) {
         query.addCondition('POSITION(' + query.addVariable(args.match.toLowerCase()) + ' IN burned_by_account) > 0');
@@ -57,7 +57,7 @@ export async function getBurnsAccountAction(params: RequestValues, ctx: AtomicAs
         'SELECT collection_name, COUNT(*) as assets ' +
         'FROM atomicassets_assets asset'
     );
-    collectionQuery.equal('contract', ctx.core.args.atomicassets_account);
+    collectionQuery.equal('contract', ctx.coreArgs.atomicassets_account);
     collectionQuery.equal('burned_by_account', ctx.pathParams.account);
 
     buildGreylistFilter(params, collectionQuery, {collectionName: 'asset.collection_name'});
@@ -73,7 +73,7 @@ export async function getBurnsAccountAction(params: RequestValues, ctx: AtomicAs
         'SELECT collection_name, template_id, COUNT(*) as assets ' +
         'FROM atomicassets_assets asset'
     );
-    templateQuery.equal('contract', ctx.core.args.atomicassets_account);
+    templateQuery.equal('contract', ctx.coreArgs.atomicassets_account);
     templateQuery.equal('burned_by_account', ctx.pathParams.account);
 
     buildGreylistFilter(params, templateQuery, {collectionName: 'asset.collection_name'});
@@ -86,7 +86,7 @@ export async function getBurnsAccountAction(params: RequestValues, ctx: AtomicAs
 
     const collections = await ctx.db.query(
         'SELECT * FROM atomicassets_collections_master WHERE contract = $1 AND collection_name = ANY ($2)',
-        [ctx.core.args.atomicassets_account, collectionResult.rows.map(row => row.collection_name)]
+        [ctx.coreArgs.atomicassets_account, collectionResult.rows.map(row => row.collection_name)]
     );
 
     const lookupCollections = collections.rows.reduce(

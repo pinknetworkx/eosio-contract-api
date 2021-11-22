@@ -24,7 +24,7 @@ export type AtomicAssetsNamespaceArgs = {
     }
 };
 
-export type AtomicAssetsContext = ActionHandlerContext<AtomicAssetsNamespace>;
+export type AtomicAssetsContext = ActionHandlerContext<AtomicAssetsNamespaceArgs>;
 
 export class AtomicAssetsNamespace extends ApiNamespace {
     static namespaceName = 'atomicassets';

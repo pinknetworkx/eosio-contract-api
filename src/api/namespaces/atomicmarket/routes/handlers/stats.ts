@@ -23,7 +23,7 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Atom
         limit: {type: 'int', min: 1, max: 100, default: 100}
     });
 
-    const symbol = await fetchSymbol(ctx.db, ctx.core.args.atomicmarket_account, args.symbol);
+    const symbol = await fetchSymbol(ctx.db, ctx.coreArgs.atomicmarket_account, args.symbol);
 
     if (!symbol) {
         throw new ApiError('Symbol not found');
@@ -32,7 +32,7 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Atom
     let queryString = 'SELECT * FROM (' + buildCollectionStatsQuery(args.after, args.before) + ') x ' +
         'WHERE (volume IS NOT NULL OR listings IS NOT NULL) ';
 
-    const queryValues = [ctx.core.args.atomicassets_account, args.symbol];
+    const queryValues = [ctx.coreArgs.atomicassets_account, args.symbol];
     let varCounter = queryValues.length;
 
     if (args.match) {
@@ -71,14 +71,14 @@ export async function getStatsCollectionAction(params: RequestValues, ctx: Atomi
         symbol: {type: 'string', min: 1},
     });
 
-    const symbol = await fetchSymbol(ctx.db, ctx.core.args.atomicmarket_account, args.symbol);
+    const symbol = await fetchSymbol(ctx.db, ctx.coreArgs.atomicmarket_account, args.symbol);
 
     if (!symbol) {
         throw new ApiError('Symbol not found');
     }
 
     const queryString = 'SELECT * FROM (' + buildCollectionStatsQuery() + ') x WHERE x.collection_name = $3 ';
-    const queryValues = [ctx.core.args.atomicassets_account, args.symbol, ctx.pathParams.collection_name];
+    const queryValues = [ctx.coreArgs.atomicassets_account, args.symbol, ctx.pathParams.collection_name];
 
     const query = await ctx.db.query(queryString, queryValues);
 
@@ -104,7 +104,7 @@ export async function getStatsAccountsAction(params: RequestValues, ctx: AtomicM
         limit: {type: 'int', min: 1, max: 100, default: 100}
     });
 
-    const symbol = await fetchSymbol(ctx.db, ctx.core.args.atomicmarket_account, args.symbol);
+    const symbol = await fetchSymbol(ctx.db, ctx.coreArgs.atomicmarket_account, args.symbol);
 
     if (!symbol) {
         throw new ApiError('Symbol not found');
@@ -112,7 +112,7 @@ export async function getStatsAccountsAction(params: RequestValues, ctx: AtomicM
 
     let queryString = 'SELECT * FROM (' + buildAccountStatsQuery(args.after, args.before) + ') x ';
     const queryValues = [
-        ctx.core.args.atomicmarket_account, args.symbol,
+        ctx.coreArgs.atomicmarket_account, args.symbol,
         args.collection_whitelist.split(',').filter((x: string) => !!x),
         args.collection_blacklist.split(',').filter((x: string) => !!x)
     ];
@@ -142,7 +142,7 @@ export async function getStatsAccountAction(params: RequestValues, ctx: AtomicMa
         symbol: {type: 'string', min: 1}
     });
 
-    const symbol = await fetchSymbol(ctx.db, ctx.core.args.atomicmarket_account, args.symbol);
+    const symbol = await fetchSymbol(ctx.db, ctx.coreArgs.atomicmarket_account, args.symbol);
 
     if (!symbol) {
         throw new ApiError('Symbol not found');
@@ -150,7 +150,7 @@ export async function getStatsAccountAction(params: RequestValues, ctx: AtomicMa
 
     const queryString = 'SELECT * FROM (' + buildAccountStatsQuery() + ') x WHERE x.account = $5 ';
     const queryValues = [
-        ctx.core.args.atomicmarket_account, args.symbol,
+        ctx.coreArgs.atomicmarket_account, args.symbol,
         args.collection_whitelist.split(',').filter((x: string) => !!x),
         args.collection_blacklist.split(',').filter((x: string) => !!x),
         ctx.pathParams.account
@@ -176,14 +176,14 @@ export async function getStatsCollectionV1Action(params: RequestValues, ctx: Ato
         sort: {type: 'string', values: ['volume', 'listings'], default: 'volume'}
     });
 
-    const symbol = await fetchSymbol(ctx.db, ctx.core.args.atomicmarket_account, args.symbol);
+    const symbol = await fetchSymbol(ctx.db, ctx.coreArgs.atomicmarket_account, args.symbol);
 
     if (!symbol) {
         throw new ApiError('Symbol not found');
     }
 
     let queryString = 'SELECT * FROM (' + buildSchemaStatsQuery(args.after, args.before) + ') x ';
-    const queryValues = [ctx.core.args.atomicmarket_account, args.symbol, ctx.pathParams.collection_name];
+    const queryValues = [ctx.coreArgs.atomicmarket_account, args.symbol, ctx.pathParams.collection_name];
     let varCounter = queryValues.length;
 
     const sortColumnMapping = {
@@ -212,7 +212,7 @@ export async function getStatsCollectionV2Action(params: RequestValues, ctx: Ato
         after: {type: 'int', min: 1}
     });
 
-    const symbol = await fetchSymbol(ctx.db, ctx.core.args.atomicmarket_account, args.symbol);
+    const symbol = await fetchSymbol(ctx.db, ctx.coreArgs.atomicmarket_account, args.symbol);
 
     if (!symbol) {
         throw new ApiError('Symbol not found');
@@ -225,7 +225,7 @@ export async function getStatsCollectionV2Action(params: RequestValues, ctx: Ato
 
     query.addCondition('price.assets_contract = template.contract AND price.template_id = template.template_id');
 
-    query.equal('price.market_contract', ctx.core.args.atomicmarket_account);
+    query.equal('price.market_contract', ctx.coreArgs.atomicmarket_account);
     query.equal('price.symbol', args.symbol);
     query.equal('price.collection_name', ctx.pathParams.collection_name);
 
@@ -247,7 +247,7 @@ export async function getStatsCollectionV2Action(params: RequestValues, ctx: Ato
         'WHERE asset.contract = "schema".contract AND asset.collection_name = "schema".collection_name AND ' +
         'asset.schema_name = "schema".schema_name AND "owner" IS NOT NULL ' +
         ') ',
-        [ctx.core.args.atomicassets_account, ctx.pathParams.collection_name]
+        [ctx.coreArgs.atomicassets_account, ctx.pathParams.collection_name]
     );
 
     const result = schemasQuery.rows.map(row => {
@@ -275,7 +275,7 @@ export async function getStatsMarketsAction(params: RequestValues, ctx: AtomicMa
         after: {type: 'int', min: 1}
     });
 
-    const symbol = await fetchSymbol(ctx.db, ctx.core.args.atomicmarket_account, args.symbol);
+    const symbol = await fetchSymbol(ctx.db, ctx.coreArgs.atomicmarket_account, args.symbol);
 
     if (!symbol) {
         throw new ApiError('Symbol not found');
@@ -283,7 +283,7 @@ export async function getStatsMarketsAction(params: RequestValues, ctx: AtomicMa
 
     let queryString = 'SELECT * FROM (' + buildMarketStatsQuery(args.after, args.before) + ') x ';
     const queryValues = [
-        ctx.core.args.atomicmarket_account, args.symbol,
+        ctx.coreArgs.atomicmarket_account, args.symbol,
         args.collection_whitelist.split(',').filter((x: string) => !!x),
         args.collection_blacklist.split(',').filter((x: string) => !!x),
     ];
@@ -312,7 +312,7 @@ export async function getStatsGraphAction(params: RequestValues, ctx: AtomicMark
         after: {type: 'int', min: 1}
     });
 
-    const symbol = await fetchSymbol(ctx.db, ctx.core.args.atomicmarket_account, args.symbol);
+    const symbol = await fetchSymbol(ctx.db, ctx.coreArgs.atomicmarket_account, args.symbol);
 
     if (!symbol) {
         throw new ApiError('Symbol not found');
@@ -325,7 +325,7 @@ export async function getStatsGraphAction(params: RequestValues, ctx: AtomicMark
                     ${getGreylistCondition('collection_name', 3, 4)}
                `;
     const queryValues = [
-        ctx.core.args.atomicmarket_account, args.symbol,
+        ctx.coreArgs.atomicmarket_account, args.symbol,
         args.collection_whitelist.split(',').filter((x: string) => !!x),
         args.collection_blacklist.split(',').filter((x: string) => !!x),
     ];
@@ -353,7 +353,7 @@ export async function getStatsSalesAction(params: RequestValues, ctx: AtomicMark
         symbol: {type: 'string', min: 1}
     });
 
-    const symbol = await fetchSymbol(ctx.db, ctx.core.args.atomicmarket_account, args.symbol);
+    const symbol = await fetchSymbol(ctx.db, ctx.coreArgs.atomicmarket_account, args.symbol);
 
     if (!symbol) {
         throw new ApiError('Symbol not found');
@@ -361,7 +361,7 @@ export async function getStatsSalesAction(params: RequestValues, ctx: AtomicMark
 
     const query = new QueryBuilder('SELECT SUM(final_price) volume, COUNT(*) sales FROM atomicmarket_sales');
 
-    query.equal('market_contract', ctx.core.args.atomicmarket_account);
+    query.equal('market_contract', ctx.coreArgs.atomicmarket_account);
     query.equal('settlement_symbol', args.symbol);
     query.equal('state', SaleState.SOLD.valueOf());
 

@@ -31,7 +31,7 @@ export async function getTemplatesAction(params: RequestValues, ctx: AtomicAsset
 
     const query = new QueryBuilder('SELECT "template".template_id FROM atomicassets_templates "template"');
 
-    query.equal('"template".contract', ctx.core.args.atomicassets_account);
+    query.equal('"template".contract', ctx.coreArgs.atomicassets_account);
 
     buildDataConditions(params, query, {templateTable: '"template"'});
 
@@ -119,7 +119,7 @@ export async function getTemplatesAction(params: RequestValues, ctx: AtomicAsset
     const templateLookup: {[key: string]: any} = {};
     const result = await ctx.db.query(
         'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND template_id = ANY ($2)',
-        [ctx.core.args.atomicassets_account, templateQuery.rows.map((row: any) => row.template_id)]
+        [ctx.coreArgs.atomicassets_account, templateQuery.rows.map((row: any) => row.template_id)]
     );
 
     result.rows.reduce((prev: any, current: any) => {
@@ -138,7 +138,7 @@ export async function getTemplatesCountAction(params: RequestValues, ctx: Atomic
 export async function getTemplateAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const query = await ctx.db.query(
         'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND template_id = $2 LIMIT 1',
-        [ctx.core.args.atomicassets_account, ctx.pathParams.template_id]
+        [ctx.coreArgs.atomicassets_account, ctx.pathParams.template_id]
     );
 
     if (query.rowCount === 0) {
@@ -153,7 +153,7 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicA
         `SELECT SUM(assets) AS assets, SUM(burned) AS burned
                 FROM atomicassets_template_counts
                 WHERE contract = $1 AND template_id = $2`,
-        [ctx.core.args.atomicassets_account, ctx.pathParams.template_id]
+        [ctx.coreArgs.atomicassets_account, ctx.pathParams.template_id]
     );
 
     return {assets: query.rows[0].assets || '0', burned: query.rows[0].burned || '0'};
@@ -167,7 +167,7 @@ export async function getTemplateLogsAction(params: RequestValues, ctx: AtomicAs
     });
 
     return await getContractActionLogs(
-        ctx.db, ctx.core.args.atomicassets_account,
+        ctx.db, ctx.coreArgs.atomicassets_account,
         applyActionGreylistFilters(['lognewtempl', 'locktemplate'], args),
         {collection_name: ctx.pathParams.collection_name, template_id: parseInt(ctx.pathParams.template_id, 10)},
         (args.page - 1) * args.limit, args.limit, args.order

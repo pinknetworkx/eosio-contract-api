@@ -25,7 +25,7 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
     });
 
     const query = new QueryBuilder('SELECT * FROM atomicassets_transfers_master transfer'); // TODO was ' + this.transferView + '
-    query.equal('contract', ctx.core.args.atomicassets_account);
+    query.equal('contract', ctx.coreArgs.atomicassets_account);
 
     if (args.account) {
         const varName = query.addVariable(args.account.split(','));
@@ -104,7 +104,7 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
         return countQuery.rows[0].counter;
     }
 
-    const sortColumnMapping: {[key: string]: string} = {
+    const sortColumnMapping: { [key: string]: string } = {
         created: 'transfer_id'
     };
 

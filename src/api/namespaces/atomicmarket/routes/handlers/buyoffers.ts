@@ -31,7 +31,7 @@ export async function getBuyOffersAction(params: RequestValues, ctx: AtomicMarke
         'JOIN atomicmarket_tokens "token" ON (listing.market_contract = "token".market_contract AND listing.token_symbol = "token".token_symbol)'
     );
 
-    query.equal('listing.market_contract', ctx.core.args.atomicmarket_account);
+    query.equal('listing.market_contract', ctx.coreArgs.atomicmarket_account);
     query.addCondition(
         'NOT EXISTS (' +
         'SELECT * FROM atomicmarket_buyoffers_assets buyoffer_asset ' +
@@ -74,7 +74,7 @@ export async function getBuyOffersAction(params: RequestValues, ctx: AtomicMarke
     const buyofferLookup: {[key: string]: any} = {};
     const result = await ctx.db.query(
         'SELECT * FROM atomicmarket_buyoffers_master WHERE market_contract = $1 AND buyoffer_id = ANY ($2)',
-        [ctx.core.args.atomicmarket_account, buyofferResult.rows.map(row => row.buyoffer_id)]
+        [ctx.coreArgs.atomicmarket_account, buyofferResult.rows.map(row => row.buyoffer_id)]
     );
 
     result.rows.reduce((prev, current) => {
@@ -84,7 +84,7 @@ export async function getBuyOffersAction(params: RequestValues, ctx: AtomicMarke
     }, buyofferLookup);
 
     const buyoffers = await fillBuyoffers(
-        ctx.db, ctx.core.args.atomicassets_account,
+        ctx.db, ctx.coreArgs.atomicassets_account,
         buyofferResult.rows.map((row) => buyofferLookup[String(row.buyoffer_id)])
     );
 
@@ -98,7 +98,7 @@ export async function getBuyOffersCountAction(params: RequestValues, ctx: Atomic
 export async function getBuyOfferAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const query = await ctx.db.query(
         'SELECT * FROM atomicmarket_buyoffers_master WHERE market_contract = $1 AND buyoffer_id = $2',
-        [ctx.core.args.atomicmarket_account, ctx.pathParams.buyoffer_id]
+        [ctx.coreArgs.atomicmarket_account, ctx.pathParams.buyoffer_id]
     );
 
     if (query.rowCount === 0) {
@@ -106,7 +106,7 @@ export async function getBuyOfferAction(params: RequestValues, ctx: AtomicMarket
     }
 
     const buyoffers = await fillBuyoffers(
-        ctx.db, ctx.core.args.atomicassets_account, query.rows
+        ctx.db, ctx.coreArgs.atomicassets_account, query.rows
     );
 
     return formatBuyoffer(buyoffers[0]);
@@ -120,7 +120,7 @@ export async function getBuyOfferLogsAction(params: RequestValues, ctx: AtomicMa
     });
 
     return await getContractActionLogs(
-        ctx.db, ctx.core.args.atomicmarket_account,
+        ctx.db, ctx.coreArgs.atomicmarket_account,
         applyActionGreylistFilters(['lognewbuyo', 'cancelbuyo', 'acceptbuyo', 'declinebuyo'], args),
         {buyoffer_id: ctx.pathParams.buyoffer_id},
         (args.page - 1) * args.limit, args.limit, args.order

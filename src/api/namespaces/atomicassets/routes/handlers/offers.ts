@@ -37,7 +37,7 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
 
     const query = new QueryBuilder('SELECT contract, offer_id FROM atomicassets_offers offer');
 
-    query.equal('contract', ctx.core.args.atomicassets_account);
+    query.equal('contract', ctx.coreArgs.atomicassets_account);
 
     if (args.account) {
         const varName = query.addVariable(args.account.split(','));
@@ -214,7 +214,7 @@ export async function getOfferLogsCountAction(params: RequestValues, ctx: Atomic
     });
 
     return await getContractActionLogs(
-        ctx.db, ctx.core.args.atomicassets_account,
+        ctx.db, ctx.coreArgs.atomicassets_account,
         applyActionGreylistFilters(['lognewoffer', 'acceptoffer', 'declineoffer', 'canceloffer'], args),
         {offer_id: ctx.pathParams.offer_id},
         (args.page - 1) * args.limit, args.limit, args.order

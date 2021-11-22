@@ -197,7 +197,7 @@ export class AssetApi {
 
     getAssetAction = async (params: RequestValues, ctx: AtomicAssetsContext): Promise<any> => {
         const assets = await fillAssets(
-            ctx.db, ctx.core.args.atomicassets_account,
+            ctx.db, ctx.coreArgs.atomicassets_account,
             [ctx.pathParams.asset_id],
             this.assetFormatter, this.assetView, this.fillerHook
         );

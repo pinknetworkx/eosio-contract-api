@@ -23,7 +23,7 @@ export async function getSchemasAction(params: RequestValues, ctx: AtomicAssetsC
     });
 
     const query = new QueryBuilder('SELECT * FROM atomicassets_schemas_master');
-    query.equal('contract', ctx.core.args.atomicassets_account);
+    query.equal('contract', ctx.coreArgs.atomicassets_account);
 
     if (args.collection_name) {
         query.equalMany('collection_name', args.collection_name.split(','));
@@ -73,7 +73,7 @@ export async function getSchemasCountAction(params: RequestValues, ctx: AtomicAs
 export async function getSchemaAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const query = await ctx.db.query(
         'SELECT * FROM atomicassets_schemas_master WHERE contract = $1 AND collection_name = $2 AND schema_name = $3',
-        [ctx.core.args.atomicassets_account, ctx.pathParams.collection_name, ctx.pathParams.schema_name]
+        [ctx.coreArgs.atomicassets_account, ctx.pathParams.collection_name, ctx.pathParams.schema_name]
     );
 
     if (query.rowCount === 0) {
@@ -89,7 +89,7 @@ export async function getSchemaStatsAction(params: RequestValues, ctx: AtomicAss
         '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND schema_name = $3) assets, ' +
         '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND schema_name = $3 AND owner IS NULL) burned, ' +
         '(SELECT COUNT(*) FROM atomicassets_templates WHERE contract = $1 AND collection_name = $2 AND schema_name = $3) templates',
-        [ctx.core.args.atomicassets_account, ctx.pathParams.collection_name, ctx.pathParams.schema_name]
+        [ctx.coreArgs.atomicassets_account, ctx.pathParams.collection_name, ctx.pathParams.schema_name]
     );
 
     return query.rows[0];
@@ -103,7 +103,7 @@ export async function getSchemaLogsAction(params: RequestValues, ctx: AtomicAsse
     });
 
     return await getContractActionLogs(
-        ctx.db, ctx.core.args.atomicassets_account,
+        ctx.db, ctx.coreArgs.atomicassets_account,
         applyActionGreylistFilters(['createschema', 'extendschema'], args),
         {collection_name: ctx.pathParams.collection_name, schema_name: ctx.pathParams.schema_name},
         (args.page - 1) * args.limit, args.limit, args.order

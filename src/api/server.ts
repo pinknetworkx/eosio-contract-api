@@ -275,10 +275,10 @@ export class WebServer {
                 const params = mergeRequestData(req);
                 const pathParams = req.params || {};
 
-                const ctx: ActionHandlerContext<ApiNamespace> = {
+                const ctx: ActionHandlerContext<any> = {
                     pathParams,
                     db: server,
-                    core,
+                    coreArgs: core.args,
                 };
 
                 const result = await handler(params, ctx);

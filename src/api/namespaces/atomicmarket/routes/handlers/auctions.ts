@@ -31,7 +31,7 @@ export async function getAuctionsAction(params: RequestValues, ctx: AtomicMarket
         'JOIN atomicmarket_tokens "token" ON (listing.market_contract = "token".market_contract AND listing.token_symbol = "token".token_symbol)'
     );
 
-    query.equal('listing.market_contract', ctx.core.args.atomicmarket_account);
+    query.equal('listing.market_contract', ctx.coreArgs.atomicmarket_account);
 
     query.addCondition(
         'NOT EXISTS (' +
@@ -76,7 +76,7 @@ export async function getAuctionsAction(params: RequestValues, ctx: AtomicMarket
     const auctionLookup: {[key: string]: any} = {};
     const result = await ctx.db.query(
         'SELECT * FROM atomicmarket_auctions_master WHERE market_contract = $1 AND auction_id = ANY ($2)',
-        [ctx.core.args.atomicmarket_account, auctionResult.rows.map(row => row.auction_id)]
+        [ctx.coreArgs.atomicmarket_account, auctionResult.rows.map(row => row.auction_id)]
     );
 
     result.rows.reduce((prev, current) => {
@@ -86,7 +86,7 @@ export async function getAuctionsAction(params: RequestValues, ctx: AtomicMarket
     }, auctionLookup);
 
     return await fillAuctions(
-        ctx.db, ctx.core.args.atomicassets_account,
+        ctx.db, ctx.coreArgs.atomicassets_account,
         auctionResult.rows.map((row) => formatAuction(auctionLookup[String(row.auction_id)]))
     );
 }
@@ -98,14 +98,14 @@ export async function getAuctionsCountAction(params: RequestValues, ctx: AtomicM
 export async function getAuctionAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const query = await ctx.db.query(
         'SELECT * FROM atomicmarket_auctions_master WHERE market_contract = $1 AND auction_id = $2',
-        [ctx.core.args.atomicmarket_account, ctx.pathParams.auction_id]
+        [ctx.coreArgs.atomicmarket_account, ctx.pathParams.auction_id]
     );
 
     if (query.rowCount === 0) {
         throw new ApiError('Auction not found', 416);
     }
     const auctions = await fillAuctions(
-        ctx.db, ctx.core.args.atomicassets_account, query.rows.map(formatAuction)
+        ctx.db, ctx.coreArgs.atomicassets_account, query.rows.map(formatAuction)
     );
 
     return auctions[0];
@@ -119,7 +119,7 @@ export async function getAuctionLogsAction(params: RequestValues, ctx: AtomicMar
     });
 
     return await getContractActionLogs(
-        ctx.db, ctx.core.args.atomicmarket_account,
+        ctx.db, ctx.coreArgs.atomicmarket_account,
         applyActionGreylistFilters(['lognewauct', 'logauctstart', 'cancelauct', 'auctclaimbuy', 'auctclaimsel'], args),
         {auction_id: ctx.pathParams.auction_id},
         (args.page - 1) * args.limit, args.limit, args.order

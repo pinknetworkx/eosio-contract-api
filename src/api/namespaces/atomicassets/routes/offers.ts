@@ -40,7 +40,7 @@ export class OfferApi {
         const offerLookup: {[key: string]: any} = {};
         const result = await ctx.db.query(
             'SELECT * FROM ' + this.offerView + ' WHERE contract = $1 AND offer_id = ANY ($2)',
-            [ctx.core.args.atomicassets_account, offerResult.rows.map((row: any) => row.offer_id)]
+            [ctx.coreArgs.atomicassets_account, offerResult.rows.map((row: any) => row.offer_id)]
         );
 
         result.rows.reduce((prev, current) => {
@@ -59,7 +59,7 @@ export class OfferApi {
     getOfferAction = async (params: RequestValues, ctx: AtomicAssetsContext): Promise<any> => {
         const query = await this.server.query(
             'SELECT * FROM atomicassets_offers_master WHERE contract = $1 AND offer_id = $2',
-            [ctx.core.args.atomicassets_account, ctx.pathParams.offer_id]
+            [ctx.coreArgs.atomicassets_account, ctx.pathParams.offer_id]
         );
 
         if (query.rowCount === 0) {
@@ -67,7 +67,7 @@ export class OfferApi {
         }
 
         const offers = await fillOffers(
-            ctx.db, ctx.core.args.atomicassets_account,
+            ctx.db, ctx.coreArgs.atomicassets_account,
             query.rows.map((row) => this.offerFormatter(row)),
             this.assetFormatter, this.assetView, this.fillerHook
         );

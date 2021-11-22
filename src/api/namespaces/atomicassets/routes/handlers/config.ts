@@ -5,7 +5,7 @@ import { ApiError } from '../../../../error';
 export async function getConfigAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const configQuery = await ctx.db.query(
         'SELECT * FROM atomicassets_config WHERE contract = $1',
-        [ctx.core.args.atomicassets_account]
+        [ctx.coreArgs.atomicassets_account]
     );
 
     if (configQuery.rowCount === 0) {

@@ -20,7 +20,7 @@ export async function getAccountsAction(params: RequestValues, ctx: AtomicAssets
 
     const query = new QueryBuilder('SELECT owner account, COUNT(*) as assets FROM atomicassets_assets asset');
 
-    query.equal('contract', ctx.core.args.atomicassets_account).notNull('owner');
+    query.equal('contract', ctx.coreArgs.atomicassets_account).notNull('owner');
 
     if (args.match) {
         query.addCondition('POSITION(' + query.addVariable(args.match.toLowerCase()) + ' IN owner) > 0');
@@ -69,7 +69,7 @@ export async function getAccountAction(params: RequestValues, ctx: AtomicAssetsC
         'SELECT collection_name, COUNT(*) as assets ' +
         'FROM atomicassets_assets asset'
     );
-    collectionQuery.equal('contract', ctx.core.args.atomicassets_account);
+    collectionQuery.equal('contract', ctx.coreArgs.atomicassets_account);
     collectionQuery.equal('owner', ctx.pathParams.account);
 
     buildGreylistFilter(params, collectionQuery, {collectionName: 'asset.collection_name'});
@@ -85,7 +85,7 @@ export async function getAccountAction(params: RequestValues, ctx: AtomicAssetsC
         'SELECT collection_name, template_id, COUNT(*) as assets ' +
         'FROM atomicassets_assets asset'
     );
-    templateQuery.equal('contract', ctx.core.args.atomicassets_account);
+    templateQuery.equal('contract', ctx.coreArgs.atomicassets_account);
     templateQuery.equal('owner', ctx.pathParams.account);
 
     buildGreylistFilter(params, templateQuery, {collectionName: 'asset.collection_name'});
@@ -98,7 +98,7 @@ export async function getAccountAction(params: RequestValues, ctx: AtomicAssetsC
 
     const collections = await ctx.db.query(
         'SELECT * FROM atomicassets_collections_master WHERE contract = $1 AND collection_name = ANY ($2)',
-        [ctx.core.args.atomicassets_account, collectionResult.rows.map(row => row.collection_name)]
+        [ctx.coreArgs.atomicassets_account, collectionResult.rows.map(row => row.collection_name)]
     );
 
     const lookupCollections = collections.rows.reduce(
@@ -121,7 +121,7 @@ export async function getAccountCollectionAction(params: RequestValues, ctx: Ato
         'FROM atomicassets_assets asset ' +
         'WHERE contract = $1 AND owner = $2 AND collection_name = $3 ' +
         'GROUP BY template_id ORDER BY assets DESC',
-        [ctx.core.args.atomicassets_account, ctx.pathParams.account, ctx.pathParams.collection_name]
+        [ctx.coreArgs.atomicassets_account, ctx.pathParams.account, ctx.pathParams.collection_name]
     );
 
     const schemaQuery = await ctx.db.query(
@@ -129,7 +129,7 @@ export async function getAccountCollectionAction(params: RequestValues, ctx: Ato
         'FROM atomicassets_assets asset ' +
         'WHERE contract = $1 AND owner = $2 AND collection_name = $3 ' +
         'GROUP BY schema_name ORDER BY assets DESC',
-        [ctx.core.args.atomicassets_account, ctx.pathParams.account, ctx.pathParams.collection_name]
+        [ctx.coreArgs.atomicassets_account, ctx.pathParams.account, ctx.pathParams.collection_name]
     );
 
     return {

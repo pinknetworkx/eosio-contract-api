@@ -27,7 +27,7 @@ export async function getAssetsAction(params: RequestValues, ctx: AtomicMarketCo
         ') '
     );
 
-    query.equal('asset.contract', ctx.core.args.atomicassets_account);
+    query.equal('asset.contract', ctx.coreArgs.atomicassets_account);
 
     buildAssetQueryCondition(params, query, {assetTable: '"asset"', templateTable: '"template"'});
     buildBoundaryFilter(
@@ -75,7 +75,7 @@ export async function getAssetsAction(params: RequestValues, ctx: AtomicMarketCo
     const result = await ctx.db.query(query.buildString(), query.buildValues());
 
     return await fillAssets(
-        ctx.db, ctx.core.args.atomicassets_account,
+        ctx.db, ctx.coreArgs.atomicassets_account,
         result.rows.map(row => row.asset_id),
         formatListingAsset, 'atomicmarket_assets_master',
         buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true})

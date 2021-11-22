@@ -17,7 +17,7 @@ export async function getPricesAction(params: RequestValues, ctx: AtomicMarketCo
         'FROM atomicmarket_stats_prices price, atomicassets_assets asset, atomicmarket_tokens token '
     );
 
-    query.equal('price.market_contract', ctx.core.args.atomicmarket_account);
+    query.equal('price.market_contract', ctx.coreArgs.atomicmarket_account);
     query.addCondition(
         'price.assets_contract = asset.contract AND price.asset_id = asset.asset_id AND ' +
         'price.market_contract = token.market_contract AND price.symbol = token.token_symbol'
@@ -108,7 +108,7 @@ export async function getAssetSalesAction(params: RequestValues, ctx: AtomicMark
                 ) t1
             `, [ctx.pathParams.asset_id]);
 
-    query.equal('t1.market_contract', ctx.core.args.atomicmarket_account);
+    query.equal('t1.market_contract', ctx.coreArgs.atomicmarket_account);
 
     if (args.symbol) {
         query.equalMany('t1.token_symbol', args.symbol.split(','));
@@ -147,7 +147,7 @@ export async function getPricesSalesDaysAction(params: RequestValues, ctx: Atomi
                 FROM atomicmarket_stats_prices price, atomicmarket_tokens token 
             `);
 
-    query.equal('price.market_contract', ctx.core.args.atomicmarket_account);
+    query.equal('price.market_contract', ctx.coreArgs.atomicmarket_account);
     query.addCondition('price.market_contract = token.market_contract AND price.symbol = token.token_symbol');
 
     if (args.collection_name) {
@@ -210,8 +210,8 @@ export async function getPricesTemplatesAction(params: RequestValues, ctx: Atomi
         'FROM atomicassets_templates "template", atomicmarket_template_prices "price", atomicmarket_tokens "token" '
     );
 
-    query.equal('"price".market_contract', ctx.core.args.atomicmarket_account);
-    query.equal('"price".assets_contract', ctx.core.args.atomicassets_account);
+    query.equal('"price".market_contract', ctx.coreArgs.atomicmarket_account);
+    query.equal('"price".assets_contract', ctx.coreArgs.atomicassets_account);
     query.addCondition(
         '"template".contract = "price".assets_contract AND "template".collection_name = "price".collection_name AND "template".template_id = "price".template_id AND ' +
         '"price".market_contract = "token".market_contract AND "price".symbol = "token".token_symbol'
@@ -249,8 +249,8 @@ export async function getPricesAssetsAction(params: RequestValues, ctx: AtomicMa
         'FROM atomicassets_assets asset, atomicassets_templates "template", atomicmarket_template_prices "price", atomicmarket_tokens token'
     );
 
-    query.equal('price.assets_contract', ctx.core.args.atomicassets_account);
-    query.equal('price.market_contract', ctx.core.args.atomicmarket_account);
+    query.equal('price.assets_contract', ctx.coreArgs.atomicassets_account);
+    query.equal('price.market_contract', ctx.coreArgs.atomicmarket_account);
     query.addCondition(
         'asset.contract = template.contract AND asset.template_id = template.template_id AND ' +
         'template.contract = price.assets_contract AND template.template_id = price.template_id AND ' +

@@ -13,7 +13,7 @@ import { SaleState } from '../../../../../filler/handlers/atomicmarket';
 export async function getSaleAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const query = await ctx.db.query(
         'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = $2',
-        [ctx.core.args.atomicmarket_account, ctx.pathParams.sale_id]
+        [ctx.coreArgs.atomicmarket_account, ctx.pathParams.sale_id]
     );
 
     if (query.rowCount === 0) {
@@ -21,7 +21,7 @@ export async function getSaleAction(params: RequestValues, ctx: AtomicMarketCont
     }
 
     const sales = await fillSales(
-        ctx.db, ctx.core.args.atomicassets_account, query.rows.map(formatSale)
+        ctx.db, ctx.coreArgs.atomicassets_account, query.rows.map(formatSale)
     );
 
     return sales[0];
@@ -35,7 +35,7 @@ export async function getSaleLogsAction(params: RequestValues, ctx: AtomicMarket
     });
 
     return await getContractActionLogs(
-        ctx.db, ctx.core.args.atomicmarket_account,
+        ctx.db, ctx.coreArgs.atomicmarket_account,
         applyActionGreylistFilters(['lognewsale', 'logsalestart', 'cancelsale', 'purchasesale'], args),
         {sale_id: ctx.pathParams.sale_id},
         (args.page - 1) * args.limit, args.limit, args.order
@@ -67,7 +67,7 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
                     LEFT JOIN atomicmarket_sale_prices price ON (price.market_contract = listing.market_contract AND price.sale_id = listing.sale_id)
             `);
 
-    query.equal('listing.market_contract', ctx.core.args.atomicmarket_account);
+    query.equal('listing.market_contract', ctx.coreArgs.atomicmarket_account);
 
     buildSaleFilter(params, query);
 
@@ -107,7 +107,7 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
     const saleLookup: {[key: string]: any} = {};
     const result = await ctx.db.query(
         'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY ($2)',
-        [ctx.core.args.atomicmarket_account, saleQuery.rows.map(row => row.sale_id)]
+        [ctx.coreArgs.atomicmarket_account, saleQuery.rows.map(row => row.sale_id)]
     );
 
     result.rows.reduce((prev, current) => {
@@ -117,7 +117,7 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
     }, saleLookup);
 
     return await fillSales(
-        ctx.db, ctx.core.args.atomicassets_account, saleQuery.rows.map((row) => formatSale(saleLookup[String(row.sale_id)]))
+        ctx.db, ctx.coreArgs.atomicassets_account, saleQuery.rows.map((row) => formatSale(saleLookup[String(row.sale_id)]))
     );
 }
 
@@ -170,7 +170,7 @@ export async function getSalesTemplatesAction(params: RequestValues, ctx: Atomic
                 offer.state = ${OfferState.PENDING.valueOf()} AND sale.state = ${SaleState.LISTED.valueOf()}
             `);
 
-    query.equal('sale.market_contract', ctx.core.args.atomicmarket_account);
+    query.equal('sale.market_contract', ctx.coreArgs.atomicmarket_account);
     query.equal('sale.settlement_symbol', args.symbol);
 
     if (!args.collection_name) {
@@ -207,7 +207,7 @@ export async function getSalesTemplatesAction(params: RequestValues, ctx: Atomic
     const saleLookup: {[key: string]: any} = {};
     const result = await ctx.db.query(
         'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY ($2)',
-        [ctx.core.args.atomicmarket_account, saleResult.rows.map(row => row.sale_id)]
+        [ctx.coreArgs.atomicmarket_account, saleResult.rows.map(row => row.sale_id)]
     );
 
     result.rows.reduce((prev, current) => {
@@ -217,6 +217,6 @@ export async function getSalesTemplatesAction(params: RequestValues, ctx: Atomic
     }, saleLookup);
 
     return await fillSales(
-        ctx.db, ctx.core.args.atomicassets_account, saleResult.rows.map((row) => formatSale(saleLookup[String(row.sale_id)]))
+        ctx.db, ctx.coreArgs.atomicassets_account, saleResult.rows.map((row) => formatSale(saleLookup[String(row.sale_id)]))
     );
 }

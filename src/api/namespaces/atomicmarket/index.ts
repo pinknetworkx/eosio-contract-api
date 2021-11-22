@@ -56,7 +56,7 @@ export enum BuyofferApiState {
     INVALID = 4
 }
 
-export type AtomicMarketContext = ActionHandlerContext<AtomicMarketNamespace>;
+export type AtomicMarketContext = ActionHandlerContext<AtomicMarketNamespaceArgs>;
 
 export class AtomicMarketNamespace extends ApiNamespace {
     static namespaceName = 'atomicmarket';

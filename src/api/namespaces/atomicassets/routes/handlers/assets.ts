@@ -23,7 +23,7 @@ export async function getRawAssetsAction(params: RequestValues, ctx: AtomicAsset
         ') '
     );
 
-    query.equal('asset.contract', ctx.core.args.atomicassets_account);
+    query.equal('asset.contract', ctx.coreArgs.atomicassets_account);
 
     buildAssetQueryCondition(params, query, {assetTable: '"asset"', templateTable: '"template"'});
     buildBoundaryFilter(
@@ -101,7 +101,7 @@ export async function getAssetLogsAction(params: RequestValues, ctx: AtomicAsset
     });
 
     return await getContractActionLogs(
-        ctx.db, ctx.core.args.atomicassets_account,
+        ctx.db, ctx.coreArgs.atomicassets_account,
         applyActionGreylistFilters(['logmint', 'logburnasset', 'logbackasset', 'logsetdata'], args),
         {asset_id: ctx.pathParams.asset_id},
         (args.page - 1) * args.limit, args.limit, args.order

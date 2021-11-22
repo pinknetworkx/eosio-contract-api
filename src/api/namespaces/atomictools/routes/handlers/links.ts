@@ -27,7 +27,7 @@ export async function getLinksAction(params: RequestValues, ctx: AtomicToolsCont
 
     const query = new QueryBuilder('SELECT * FROM atomictools_links_master link');
 
-    query.equal('tools_contract', ctx.core.args.atomictools_account);
+    query.equal('tools_contract', ctx.coreArgs.atomictools_account);
 
     if (args.creator) {
         query.equalMany('creator', args.creator.split(','));
@@ -95,7 +95,7 @@ export async function getLinksAction(params: RequestValues, ctx: AtomicToolsCont
     const result = await ctx.db.query(query.buildString(), query.buildValues());
 
     return await fillLinks(
-        ctx.db, ctx.core.args.atomicassets_account, result.rows.map(formatLink)
+        ctx.db, ctx.coreArgs.atomicassets_account, result.rows.map(formatLink)
     );
 }
 
@@ -106,7 +106,7 @@ export async function getLinksCountAction(params: RequestValues, ctx: AtomicTool
 export async function getLinkAction(params: RequestValues, ctx: AtomicToolsContext): Promise<any> {
     const query = await ctx.db.query(
         'SELECT * FROM atomictools_links_master WHERE tools_contract = $1 AND link_id = $2',
-        [ctx.core.args.atomictools_account, ctx.pathParams.link_id]
+        [ctx.coreArgs.atomictools_account, ctx.pathParams.link_id]
     );
 
     if (query.rowCount === 0) {
@@ -114,7 +114,7 @@ export async function getLinkAction(params: RequestValues, ctx: AtomicToolsConte
     }
 
     const links = await fillLinks(
-        ctx.db, ctx.core.args.atomicassets_account, query.rows.map(formatLink)
+        ctx.db, ctx.coreArgs.atomicassets_account, query.rows.map(formatLink)
     );
 
     return links[0];
@@ -128,7 +128,7 @@ export async function getLinkLogsAction(params: RequestValues, ctx: AtomicToolsC
     });
 
     return await getContractActionLogs(
-        ctx.db, ctx.core.args.atomictools_account,
+        ctx.db, ctx.coreArgs.atomictools_account,
         applyActionGreylistFilters(['lognewlink', 'loglinkstart', 'cancellink', 'claimlink'], args),
         {link_id: ctx.pathParams.link_id},
         (args.page - 1) * args.limit, args.limit, args.order
