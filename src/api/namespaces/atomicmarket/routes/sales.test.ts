@@ -6,6 +6,7 @@ import { txit } from '../../../../utils/test';
 import { SaleApiState } from '../index';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
+import { ApiError } from '../../../error';
 
 describe('AtomicMarket Sales API', () => {
 
@@ -159,6 +160,86 @@ describe('AtomicMarket Sales API', () => {
             const testContext = getTestContext(client);
 
             const result = await getSalesAction({max_assets: '1'}, testContext);
+
+            expect(result.length).to.equal(1);
+            expect(result[0]).to.haveOwnProperty('sale_id', sale_id);
+        });
+
+        txit('filters by settlement symbol', async (client) => {
+
+            await client.createSale({
+                settlement_symbol: 'NOT_THIS',
+            });
+
+            const {sale_id} = await client.createSale();
+
+            const testContext = getTestContext(client);
+
+            const result = await getSalesAction({symbol: 'TEST'}, testContext);
+
+            expect(result.length).to.equal(1);
+            expect(result[0]).to.haveOwnProperty('sale_id', sale_id);
+        });
+
+        txit('throws error when minimum price filter is set without settlement symbol', async (client) => {
+
+            const testContext = getTestContext(client);
+
+            let err;
+            try {
+                await getSalesAction({min_price: '1'}, testContext);
+            } catch (e) {
+                err = e;
+            }
+
+            expect(err).to.be.instanceof(ApiError);
+            expect(err.message).to.equal('Price range filters require the "symbol" filter');
+        });
+
+        txit('throws error when maximum price filter is set without settlement symbol', async (client) => {
+
+            const testContext = getTestContext(client);
+
+            let err;
+            try {
+                await getSalesAction({max_price: '1'}, testContext);
+            } catch (e) {
+                err = e;
+            }
+
+            expect(err).to.be.instanceof(ApiError);
+            expect(err.message).to.equal('Price range filters require the "symbol" filter');
+        });
+
+        txit('filters by minimum price', async (client) => {
+            await client.createSale({});
+
+            const {sale_id} = await client.createSale({
+                listing_price: 200000000,
+            });
+
+            await client.query('REFRESH MATERIALIZED VIEW atomicmarket_sale_prices');
+
+            const testContext = getTestContext(client);
+
+            const result = await getSalesAction({symbol: 'TEST', min_price: '2'}, testContext);
+
+            expect(result.length).to.equal(1);
+            expect(result[0]).to.haveOwnProperty('sale_id', sale_id);
+        });
+
+        txit('filters by maximum price', async (client) => {
+            await client.createSale({
+                listing_price: 200000000,
+            });
+
+            const {sale_id} = await client.createSale({});
+
+            await client.query('REFRESH MATERIALIZED VIEW atomicmarket_sale_prices');
+
+            const testContext = getTestContext(client);
+
+            const result = await getSalesAction({symbol: 'TEST', max_price: '1'}, testContext);
 
             expect(result.length).to.equal(1);
             expect(result[0]).to.haveOwnProperty('sale_id', sale_id);
