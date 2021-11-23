@@ -75,6 +75,7 @@ export function buildListingFilter(values: FilterValues, query: QueryBuilder): v
     }
 
     if (args.buyer_blacklist) {
+        // TODO this excludes listings without a buyer, is that expected?
         query.notMany('listing.buyer', args.buyer_blacklist.split(','));
     }
 

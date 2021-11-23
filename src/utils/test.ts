@@ -24,12 +24,22 @@ export class TestClient extends Client {
         await this.createToken();
     }
 
-    async createToken(_: Record<string, any> = {}): Promise<Record<string, any>> {
+    async createToken(values: Record<string, any> = {}): Promise<Record<string, any>> {
         return await this.insert('atomicmarket_tokens', {
             market_contract: 'amtest',
             token_contract: 'tctest',
             token_symbol: 'TEST',
             token_precision: 8,
+            ...values,
+        });
+    }
+
+    async createContractCode(values: Record<string, any> = {}): Promise<Record<string, any>> {
+        return await this.insert('contract_codes', {
+            account: 'account',
+            block_num: ++this.id,
+            block_time: ++this.id,
+            ...values,
         });
     }
 
@@ -38,6 +48,7 @@ export class TestClient extends Client {
             market_contract: 'amtest',
             sale_id: ++this.id,
             seller: 'seller',
+            buyer: 'buyer',
             listing_price: 1,
             listing_symbol: 'TEST',
             settlement_symbol: 'TEST',

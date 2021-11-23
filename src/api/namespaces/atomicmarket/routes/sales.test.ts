@@ -201,6 +201,76 @@ describe('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id]);
         });
 
+        txit('filters out seller contracts unless whitelisted', async (client) => {
+            await client.createContractCode({
+                account: 'excluded',
+            });
+            await client.createSale({
+                seller: 'excluded',
+            });
+
+            await client.createContractCode({
+                account: 'whitelisted',
+            });
+            const {sale_id} = await client.createSale({
+                seller: 'whitelisted',
+            });
+
+            expect(await getSalesIds(client, {show_seller_contracts: 'false', contract_whitelist: 'whitelisted,abc'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by blacklisted sellers', async (client) => {
+            await client.createSale({
+                seller: 'blacklisted',
+            });
+
+            const {sale_id} = await client.createSale({});
+
+            expect(await getSalesIds(client, {seller_blacklist: 'blacklisted,abc'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by blacklisted buyers', async (client) => {
+            await client.createSale({
+                buyer: 'blacklisted',
+            });
+
+            const {sale_id} = await client.createSale({});
+
+            expect(await getSalesIds(client, {buyer_blacklist: 'blacklisted,abc'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by accounts', async (client) => {
+            await client.createSale();
+
+            const {sale_id: sale_id1} = await client.createSale({buyer: 'x'});
+            const {sale_id: sale_id2} = await client.createSale({seller: 'x'});
+
+            expect(await getSalesIds(client, {account: 'x,abc'}))
+                .to.deep.equal([sale_id2, sale_id1]);
+        });
+
+        txit('filters by seller', async (client) => {
+            await client.createSale();
+
+            const {sale_id} = await client.createSale({seller: 'x'});
+
+            expect(await getSalesIds(client, {seller: 'x,abc'}))
+                .to.deep.equal([sale_id]);
+        });
+
+
+        txit('filters by buyer', async (client) => {
+            await client.createSale();
+
+            const {sale_id} = await client.createSale({buyer: 'x'});
+
+            expect(await getSalesIds(client, {buyer: 'x,abc'}))
+                .to.deep.equal([sale_id]);
+        });
+
     });
 
 });
