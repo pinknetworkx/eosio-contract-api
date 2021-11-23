@@ -174,24 +174,24 @@ export function buildSaleFilter(values: FilterValues, query: QueryBuilder): void
     if (args.state) {
         const stateFilters: string[] = [];
 
-        if (args.state.split(',').indexOf(String(SaleApiState.WAITING.valueOf())) >= 0) {
-            stateFilters.push(`(listing.state = ${SaleState.WAITING.valueOf()})`);
+        if (args.state.split(',').includes(String(SaleApiState.WAITING))) {
+            stateFilters.push(`(listing.state = ${SaleState.WAITING})`);
         }
 
-        if (args.state.split(',').indexOf(String(SaleApiState.LISTED.valueOf())) >= 0) {
-            stateFilters.push(`(listing.state = ${SaleState.LISTED.valueOf()} AND offer.state = ${OfferState.PENDING.valueOf()})`);
+        if (args.state.split(',').includes(String(SaleApiState.LISTED))) {
+            stateFilters.push(`(listing.state = ${SaleState.LISTED} AND offer.state = ${OfferState.PENDING})`);
         }
 
-        if (args.state.split(',').indexOf(String(SaleApiState.CANCELED.valueOf())) >= 0) {
-            stateFilters.push(`(listing.state = ${SaleState.CANCELED.valueOf()})`);
+        if (args.state.split(',').includes(String(SaleApiState.CANCELED))) {
+            stateFilters.push(`(listing.state = ${SaleState.CANCELED})`);
         }
 
-        if (args.state.split(',').indexOf(String(SaleApiState.SOLD.valueOf())) >= 0) {
-            stateFilters.push(`(listing.state = ${SaleState.SOLD.valueOf()})`);
+        if (args.state.split(',').includes(String(SaleApiState.SOLD))) {
+            stateFilters.push(`(listing.state = ${SaleState.SOLD})`);
         }
 
-        if (args.state.split(',').indexOf(String(SaleApiState.INVALID.valueOf())) >= 0) {
-            stateFilters.push(`(offer.state != ${OfferState.PENDING.valueOf()} AND listing.state = ${SaleState.LISTED.valueOf()})`);
+        if (args.state.split(',').includes(String(SaleApiState.INVALID))) {
+            stateFilters.push(`(offer.state != ${OfferState.PENDING} AND listing.state = ${SaleState.LISTED})`);
         }
 
         query.addCondition('(' + stateFilters.join(' OR ') + ')');

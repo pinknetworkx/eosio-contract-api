@@ -10,7 +10,7 @@
     "lint": "eslint \"src/**/*.ts\"",
     "build": "yarn clean && tsc",
     "test": "mocha -r ts-node/register test/**/*.test.ts",
-    "test2": "mocha -r ts-node/register src/**/*.test.ts",
+    "test2": "mocha -r ts-node/register src/**/*.test.ts --watch --watch-files src/ --reporter min",
     "postinstall": "yarn build",
     "start:server": "node ./build/bin/server.js",
     "start:filler": "node ./build/bin/filler.js",
