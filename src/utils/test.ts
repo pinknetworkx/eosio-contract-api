@@ -3,7 +3,7 @@ import { AsyncFunc, Test } from 'mocha';
 import { SaleApiState } from '../api/namespaces/atomicmarket';
 import { OfferState } from '../filler/handlers/atomicassets';
 
-async function getTransactionClient(): Promise<TestClient> {
+async function getTestClient(): Promise<TestClient> {
     const client = new TestClient({
         user: 'postgres',
         database: 'atomichub-test',
@@ -12,7 +12,6 @@ async function getTransactionClient(): Promise<TestClient> {
         host: 'localhost',
     });
     await client.connect();
-    await client.query('BEGIN');
 
     return client;
 }
@@ -132,19 +131,27 @@ export class TestClient extends Client {
     }
 
 }
+let client: TestClient;
+
+async function runTxTest(fn: (client: TestClient) => Promise<void>, self: any): Promise<any> {
+    if (!client) {
+        client = await getTestClient();
+    }
+
+    await client.query('BEGIN');
+
+    try {
+        await client.init();
+
+        return await fn.call(self, client);
+    } finally {
+        await client.query('ROLLBACK');
+    }
+}
 
 export function txit(title: string, fn: (client: TestClient) => Promise<void>): Test {
-
     return it(title, async function () {
-        const client = await getTransactionClient();
-
-        try {
-            await client.init();
-
-            return await fn.call(this, client);
-        } finally {
-            await client.query('ROLLBACK');
-        }
+        return await runTxTest(fn, this);
     });
 }
 
@@ -153,14 +160,6 @@ txit.skip = (title: string, func: (client: TestClient) => Promise<void>): Test =
 txit.only = function (title: string, fn: (client: TestClient) => Promise<void>): Test {
 
     return it.only(title, async () => {
-        const client = await getTransactionClient();
-
-        try {
-            await client.init();
-
-            return await fn.call(this, client);
-        } finally {
-            await client.query('ROLLBACK');
-        }
+        return await runTxTest(fn, this);
     });
 };

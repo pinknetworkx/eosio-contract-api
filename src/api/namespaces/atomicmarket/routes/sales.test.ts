@@ -2,11 +2,20 @@ import 'mocha';
 import { expect } from 'chai';
 import { getSalesAction } from './handlers/sales';
 import { getTestContext } from '../testutils';
-import { txit } from '../../../../utils/test';
+import { TestClient, txit } from '../../../../utils/test';
 import { SaleApiState } from '../index';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
 import { ApiError } from '../../../error';
+import { RequestValues } from '../../utils';
+
+async function getSalesIds(client: TestClient, values: RequestValues): Promise<Array<number>> {
+    const testContext = getTestContext(client);
+
+    const result = await getSalesAction(values, testContext);
+
+    return result.map((s: any) => s.sale_id);
+}
 
 describe('AtomicMarket Sales API', () => {
 
@@ -14,13 +23,9 @@ describe('AtomicMarket Sales API', () => {
 
         txit('works without filters', async (client) => {
 
-            await client.createSale();
+            const {sale_id} = await client.createSale();
 
-            const testContext = getTestContext(client);
-
-            const result = await getSalesAction({}, testContext);
-
-            expect(result.length).to.equal(1);
+            expect(await getSalesIds(client, {})).to.deep.equal([sale_id]);
         });
 
         txit('filters by waiting state', async (client) => {
@@ -29,12 +34,8 @@ describe('AtomicMarket Sales API', () => {
                 state: SaleApiState.WAITING,
             });
 
-            const testContext = getTestContext(client);
-
-            const result = await getSalesAction({state: `${SaleApiState.WAITING}`}, testContext);
-
-            expect(result.length).to.equal(1);
-            expect(result[0]).to.haveOwnProperty('sale_id', sale_id);
+            expect(await getSalesIds(client, {state: `${SaleApiState.WAITING}`}))
+                .to.deep.equal([sale_id]);
         });
 
         txit('filters by listed state', async (client) => {
@@ -54,12 +55,8 @@ describe('AtomicMarket Sales API', () => {
                 state: SaleApiState.LISTED,
             });
 
-            const testContext = getTestContext(client);
-
-            const result = await getSalesAction({state: `${SaleApiState.LISTED}`}, testContext);
-
-            expect(result.length).to.equal(1);
-            expect(result[0]).to.haveOwnProperty('sale_id', sale_id);
+            expect(await getSalesIds(client, {state: `${SaleApiState.LISTED}`}))
+                .to.deep.equal([sale_id]);
         });
 
         txit('filters by canceled state', async (client) => {
@@ -68,12 +65,8 @@ describe('AtomicMarket Sales API', () => {
                 state: SaleApiState.CANCELED,
             });
 
-            const testContext = getTestContext(client);
-
-            const result = await getSalesAction({state: `${SaleApiState.CANCELED}`}, testContext);
-
-            expect(result.length).to.equal(1);
-            expect(result[0]).to.haveOwnProperty('sale_id', sale_id);
+            expect(await getSalesIds(client, {state: `${SaleApiState.CANCELED}`}))
+                .to.deep.equal([sale_id]);
         });
 
         txit('filters by sold state', async (client) => {
@@ -82,12 +75,8 @@ describe('AtomicMarket Sales API', () => {
                 state: SaleApiState.SOLD,
             });
 
-            const testContext = getTestContext(client);
-
-            const result = await getSalesAction({state: `${SaleApiState.SOLD}`}, testContext);
-
-            expect(result.length).to.equal(1);
-            expect(result[0]).to.haveOwnProperty('sale_id', sale_id);
+            expect(await getSalesIds(client, {state: `${SaleApiState.SOLD}`}))
+                .to.deep.equal([sale_id]);
         });
 
         txit('filters by invalid state', async (client) => {
@@ -107,12 +96,8 @@ describe('AtomicMarket Sales API', () => {
                 offer_id,
             });
 
-            const testContext = getTestContext(client);
-
-            const result = await getSalesAction({state: `${SaleApiState.INVALID}`}, testContext);
-
-            expect(result.length).to.equal(1);
-            expect(result[0]).to.haveOwnProperty('sale_id', sale_id);
+            expect(await getSalesIds(client, {state: `${SaleApiState.INVALID}`}))
+                .to.deep.equal([sale_id]);
         });
 
         txit('filters by multiple states', async (client) => {
@@ -126,13 +111,8 @@ describe('AtomicMarket Sales API', () => {
                 state: SaleState.CANCELED,
             });
 
-            const testContext = getTestContext(client);
-
-            const result = await getSalesAction({state: `${SaleApiState.WAITING},${SaleApiState.CANCELED}`}, testContext);
-
-            expect(result.length).to.equal(2);
-            expect(result[0]).to.haveOwnProperty('sale_id', sale_id2);
-            expect(result[1]).to.haveOwnProperty('sale_id', sale_id1);
+            expect(await getSalesIds(client, {state: `${SaleApiState.WAITING},${SaleApiState.CANCELED}`}))
+                .to.deep.equal([sale_id2, sale_id1]);
         });
 
         txit('filters by minimum asset count', async (client) => {
@@ -141,12 +121,8 @@ describe('AtomicMarket Sales API', () => {
             const {offer_id} = await client.createOfferAsset();
             const {sale_id} = await client.createSale({offer_id});
 
-            const testContext = getTestContext(client);
-
-            const result = await getSalesAction({min_assets: '1'}, testContext);
-
-            expect(result.length).to.equal(1);
-            expect(result[0]).to.haveOwnProperty('sale_id', sale_id);
+            expect(await getSalesIds(client, {min_assets: '1'}))
+                .to.deep.equal([sale_id]);
         });
 
         txit('filters by maximum asset count', async (client) => {
@@ -157,12 +133,8 @@ describe('AtomicMarket Sales API', () => {
 
             const {sale_id} = await client.createSale();
 
-            const testContext = getTestContext(client);
-
-            const result = await getSalesAction({max_assets: '1'}, testContext);
-
-            expect(result.length).to.equal(1);
-            expect(result[0]).to.haveOwnProperty('sale_id', sale_id);
+            expect(await getSalesIds(client, {max_assets: '1'}))
+                .to.deep.equal([sale_id]);
         });
 
         txit('filters by settlement symbol', async (client) => {
@@ -173,21 +145,15 @@ describe('AtomicMarket Sales API', () => {
 
             const {sale_id} = await client.createSale();
 
-            const testContext = getTestContext(client);
-
-            const result = await getSalesAction({symbol: 'TEST'}, testContext);
-
-            expect(result.length).to.equal(1);
-            expect(result[0]).to.haveOwnProperty('sale_id', sale_id);
+            expect(await getSalesIds(client, {symbol: 'TEST'}))
+                .to.deep.equal([sale_id]);
         });
 
         txit('throws error when minimum price filter is set without settlement symbol', async (client) => {
 
-            const testContext = getTestContext(client);
-
             let err;
             try {
-                await getSalesAction({min_price: '1'}, testContext);
+                await getSalesIds(client, {min_price: '1'});
             } catch (e) {
                 err = e;
             }
@@ -198,11 +164,9 @@ describe('AtomicMarket Sales API', () => {
 
         txit('throws error when maximum price filter is set without settlement symbol', async (client) => {
 
-            const testContext = getTestContext(client);
-
             let err;
             try {
-                await getSalesAction({max_price: '1'}, testContext);
+                await getSalesIds(client, {max_price: '1'});
             } catch (e) {
                 err = e;
             }
@@ -220,12 +184,8 @@ describe('AtomicMarket Sales API', () => {
 
             await client.query('REFRESH MATERIALIZED VIEW atomicmarket_sale_prices');
 
-            const testContext = getTestContext(client);
-
-            const result = await getSalesAction({symbol: 'TEST', min_price: '2'}, testContext);
-
-            expect(result.length).to.equal(1);
-            expect(result[0]).to.haveOwnProperty('sale_id', sale_id);
+            expect(await getSalesIds(client, {symbol: 'TEST', min_price: '2'}))
+                .to.deep.equal([sale_id]);
         });
 
         txit('filters by maximum price', async (client) => {
@@ -237,12 +197,8 @@ describe('AtomicMarket Sales API', () => {
 
             await client.query('REFRESH MATERIALIZED VIEW atomicmarket_sale_prices');
 
-            const testContext = getTestContext(client);
-
-            const result = await getSalesAction({symbol: 'TEST', max_price: '1'}, testContext);
-
-            expect(result.length).to.equal(1);
-            expect(result[0]).to.haveOwnProperty('sale_id', sale_id);
+            expect(await getSalesIds(client, {symbol: 'TEST', max_price: '1'}))
+                .to.deep.equal([sale_id]);
         });
 
     });
