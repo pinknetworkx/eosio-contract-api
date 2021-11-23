@@ -134,6 +134,36 @@ describe('AtomicMarket Sales API', () => {
             expect(result[1]).to.haveOwnProperty('sale_id', sale_id1);
         });
 
+        txit('filters by minimum asset count', async (client) => {
+            await client.createSale();
+
+            const {offer_id} = await client.createOfferAsset();
+            const {sale_id} = await client.createSale({offer_id});
+
+            const testContext = getTestContext(client);
+
+            const result = await getSalesAction({min_assets: '1'}, testContext);
+
+            expect(result.length).to.equal(1);
+            expect(result[0]).to.haveOwnProperty('sale_id', sale_id);
+        });
+
+        txit('filters by maximum asset count', async (client) => {
+
+            const {offer_id} = await client.createOfferAsset();
+            await client.createOfferAsset({offer_id});
+            await client.createSale({offer_id});
+
+            const {sale_id} = await client.createSale();
+
+            const testContext = getTestContext(client);
+
+            const result = await getSalesAction({max_assets: '1'}, testContext);
+
+            expect(result.length).to.equal(1);
+            expect(result[0]).to.haveOwnProperty('sale_id', sale_id);
+        });
+
     });
 
 });

@@ -56,6 +56,33 @@ export class TestClient extends Client {
         });
     }
 
+    async createAsset(values: Record<string, any> = {}): Promise<Record<string, any>> {
+        return await this.insert('atomicassets_assets', {
+            contract: 'aatest',
+            asset_id: ++this.id,
+            collection_name: values.collection_name ?? (await this.createCollection()).collection_name,
+            schema_name: 'schema_name',
+            transferred_at_block: ++this.id,
+            transferred_at_time: ++this.id,
+            updated_at_block: ++this.id,
+            updated_at_time: ++this.id,
+            minted_at_block: ++this.id,
+            minted_at_time: ++this.id,
+            ...values,
+        });
+    }
+
+    async createOfferAsset(values: Record<string, any> = {}): Promise<Record<string, any>> {
+        return await this.insert('atomicassets_offers_assets', {
+            contract: 'aatest',
+            offer_id: values.offer_id ?? (await this.createOffer()).offer_id,
+            owner: 'owner',
+            index: 0,
+            asset_id: values.asset_id ?? (await this.createAsset()).asset_id,
+            ...values,
+        });
+    }
+
     async createOffer(values: Record<string, any> = {}): Promise<Record<string, any>> {
         return await this.insert('atomicassets_offers', {
             contract: 'aatest',
