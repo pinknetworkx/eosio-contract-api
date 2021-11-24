@@ -81,7 +81,7 @@ export function buildListingFilter(values: FilterValues, query: QueryBuilder): v
 
     if (args.marketplace) {
         const varName = query.addVariable(args.marketplace.split(','));
-        query.addCondition('AND (listing.maker_marketplace = ANY (' + varName + ') OR listing.taker_marketplace = ANY (' + varName + ')) ');
+        query.addCondition('(listing.maker_marketplace = ANY (' + varName + ') OR listing.taker_marketplace = ANY (' + varName + ')) ');
     } else {
         if (args.maker_marketplace) {
             query.equalMany('listing.maker_marketplace', args.maker_marketplace.split(','));

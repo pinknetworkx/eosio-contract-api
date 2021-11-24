@@ -261,7 +261,6 @@ describe('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id]);
         });
 
-
         txit('filters by buyer', async (client) => {
             await client.createSale();
 
@@ -269,6 +268,34 @@ describe('AtomicMarket Sales API', () => {
 
             expect(await getSalesIds(client, {buyer: 'x,abc'}))
                 .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by maker marketplace', async (client) => {
+            await client.createSale();
+
+            const {sale_id} = await client.createSale({maker_marketplace: 'x'});
+
+            expect(await getSalesIds(client, {maker_marketplace: 'x,abc'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by taker marketplace', async (client) => {
+            await client.createSale();
+
+            const {sale_id} = await client.createSale({taker_marketplace: 'x'});
+
+            expect(await getSalesIds(client, {taker_marketplace: 'x,abc'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by maker or taker marketplace', async (client) => {
+            await client.createSale();
+
+            const {sale_id: sale_id1} = await client.createSale({maker_marketplace: 'x'});
+            const {sale_id: sale_id2} = await client.createSale({taker_marketplace: 'x'});
+
+            expect(await getSalesIds(client, {marketplace: 'x,abc'}))
+                .to.deep.equal([sale_id2, sale_id1]);
         });
 
     });
