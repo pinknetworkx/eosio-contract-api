@@ -1,20 +1,11 @@
-import { filterQueryArgs, FilterValues } from '../utils';
+import { FilterDefinition, filterQueryArgs, FilterValues } from '../utils';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 import QueryBuilder from '../../builder';
 
 export function hasAssetFilter(values: FilterValues, blacklist: string[] = []): boolean {
-    const keys = Object.keys(values);
-
-    for (const key of keys) {
-        if (
-            ['asset_id', 'collection_name', 'template_id', 'schema_name','owner', 'is_transferable', 'is_burnable'].includes(key) &&
-            !blacklist.includes(key)
-        ) {
-            return true;
-        }
-    }
-
-    return false;
+    return Object.keys(values)
+        .filter(key => !blacklist.includes(key))
+        .some(key => assetFilters[key]);
 }
 
 export function hasDataFilters(values: FilterValues): boolean {
@@ -115,22 +106,24 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
     }
 }
 
+const assetFilters: FilterDefinition = {
+    asset_id: {type: 'string', min: 1},
+    owner: {type: 'string', min: 1, max: 12},
+    burned: {type: 'bool'},
+    template_id: {type: 'string', min: 1},
+    collection_name: {type: 'string', min: 1},
+    schema_name: {type: 'string', min: 1},
+    is_transferable: {type: 'bool'},
+    is_burnable: {type: 'bool'}
+};
+
 export function buildAssetFilter(
     values: FilterValues, query: QueryBuilder,
     options: {assetTable?: string, templateTable?: string, allowDataFilter?: boolean} = {}
 ): void {
     options = Object.assign({allowDataFilter: true}, options);
 
-    const args = filterQueryArgs(values, {
-        asset_id: {type: 'string', min: 1},
-        owner: {type: 'string', min: 1, max: 12},
-        burned: {type: 'bool'},
-        template_id: {type: 'string', min: 1},
-        collection_name: {type: 'string', min: 1},
-        schema_name: {type: 'string', min: 1},
-        is_transferable: {type: 'bool'},
-        is_burnable: {type: 'bool'}
-    });
+    const args = filterQueryArgs(values, assetFilters);
 
     if (options.allowDataFilter !== false) {
         buildDataConditions(values, query, {assetTable: options.assetTable, templateTable: options.templateTable});

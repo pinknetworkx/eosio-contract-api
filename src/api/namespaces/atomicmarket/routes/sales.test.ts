@@ -319,6 +319,145 @@ describe('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id]);
         });
 
+        txit('filters by asset_id', async (client) => {
+            const offer1 = await client.createOfferAsset();
+            await client.createSale({offer_id: offer1.offer_id});
+
+            const {asset_id, offer_id} = await client.createOfferAsset();
+            const {sale_id} = await client.createSale({offer_id});
+
+            expect(await getSalesIds(client, {asset_id}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by asset owner', async (client) => {
+            const offer1 = await client.createOfferAsset();
+            await client.createSale({offer_id: offer1.offer_id});
+
+            const {offer_id} = await client.createOfferAsset({}, {owner: 'x'});
+            const {sale_id} = await client.createSale({offer_id});
+
+            expect(await getSalesIds(client, {owner: 'x,abc'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by asset burned', async (client) => {
+            const offer1 = await client.createOfferAsset();
+            await client.createSale({offer_id: offer1.offer_id});
+
+            const {offer_id} = await client.createOfferAsset({}, {owner: null});
+            const {sale_id} = await client.createSale({offer_id});
+
+            expect(await getSalesIds(client, {burned: 'true'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by asset not burned', async (client) => {
+            const offer1 = await client.createOfferAsset({}, {owner: null});
+            await client.createSale({offer_id: offer1.offer_id});
+
+            const {offer_id} = await client.createOfferAsset();
+            const {sale_id} = await client.createSale({offer_id});
+
+            expect(await getSalesIds(client, {burned: 'false'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by asset template', async (client) => {
+            const offer1 = await client.createOfferAsset({}, {
+                template_id: (await client.createTemplate()).template_id,
+            });
+            await client.createSale({offer_id: offer1.offer_id});
+
+            const {template_id} = await client.createTemplate();
+            const {offer_id} = await client.createOfferAsset({}, {template_id});
+            const {sale_id} = await client.createSale({offer_id});
+
+            expect(await getSalesIds(client, {template_id: `${template_id},-1`}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by not having an asset template', async (client) => {
+            const offer1 = await client.createOfferAsset({}, {
+                template_id: (await client.createTemplate()).template_id,
+            });
+            await client.createSale({offer_id: offer1.offer_id});
+
+            const {offer_id} = await client.createOfferAsset();
+            const {sale_id} = await client.createSale({offer_id});
+
+            expect(await getSalesIds(client, {template_id: 'null'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by schema', async (client) => {
+            const offer1 = await client.createOfferAsset();
+            await client.createSale({offer_id: offer1.offer_id});
+
+            const {schema_name} = await client.createSchema();
+            const {offer_id} = await client.createOfferAsset({}, {schema_name});
+            const {sale_id} = await client.createSale({offer_id});
+
+            expect(await getSalesIds(client, {schema_name: `${schema_name},-1`}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by asset being transferable', async (client) => {
+            const offer1 = await client.createOfferAsset({}, {
+                template_id: (await client.createTemplate({transferable: false})).template_id,
+            });
+            await client.createSale({offer_id: offer1.offer_id});
+
+            const {template_id} = await client.createTemplate({transferable: true});
+            const {offer_id} = await client.createOfferAsset({}, {template_id});
+            const {sale_id} = await client.createSale({offer_id});
+
+            expect(await getSalesIds(client, {is_transferable: 'true'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by asset not being transferable', async (client) => {
+            const offer1 = await client.createOfferAsset({}, {
+                template_id: (await client.createTemplate({transferable: true})).template_id,
+            });
+            await client.createSale({offer_id: offer1.offer_id});
+
+            const {template_id} = await client.createTemplate({transferable: false});
+            const {offer_id} = await client.createOfferAsset({}, {template_id});
+            const {sale_id} = await client.createSale({offer_id});
+
+            expect(await getSalesIds(client, {is_transferable: 'false'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by asset being burnable', async (client) => {
+            const offer1 = await client.createOfferAsset({}, {
+                template_id: (await client.createTemplate({burnable: false})).template_id,
+            });
+            await client.createSale({offer_id: offer1.offer_id});
+
+            const {template_id} = await client.createTemplate({burnable: true});
+            const {offer_id} = await client.createOfferAsset({}, {template_id});
+            const {sale_id} = await client.createSale({offer_id});
+
+            expect(await getSalesIds(client, {is_burnable: 'true'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by asset not being burnable', async (client) => {
+            const offer1 = await client.createOfferAsset({}, {
+                template_id: (await client.createTemplate({burnable: true})).template_id,
+            });
+            await client.createSale({offer_id: offer1.offer_id});
+
+            const {template_id} = await client.createTemplate({burnable: false});
+            const {offer_id} = await client.createOfferAsset({}, {template_id});
+            const {sale_id} = await client.createSale({offer_id});
+
+            expect(await getSalesIds(client, {is_burnable: 'false'}))
+                .to.deep.equal([sale_id]);
+        });
+
     });
 
 });
