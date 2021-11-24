@@ -298,6 +298,27 @@ describe('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id2, sale_id1]);
         });
 
+        txit('filters by collection', async (client) => {
+            await client.createSale();
+
+            const {collection_name} = await client.createCollection({collection_name: 'x'});
+            const {sale_id} = await client.createSale({collection_name});
+
+            expect(await getSalesIds(client, {collection_name: 'x,abc'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by minimum and maximum template mint', async (client) => {
+            await client.createSale();
+            await client.createSale({template_mint: '[1,2)'});
+            await client.createSale({template_mint: '[10,11)'});
+
+            const {sale_id} = await client.createSale({template_mint: '[5,5]'});
+
+            expect(await getSalesIds(client, {min_template_mint: '4', max_template_mint: '6'}))
+                .to.deep.equal([sale_id]);
+        });
+
     });
 
 });
