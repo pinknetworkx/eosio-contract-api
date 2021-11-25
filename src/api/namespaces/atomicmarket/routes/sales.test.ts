@@ -458,6 +458,52 @@ describe('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id]);
         });
 
+        txit('filters by text data', async (client) => {
+            const offer1 = await client.createOfferAsset();
+            await client.createSale({offer_id: offer1.offer_id});
+
+            const {template_id} = await client.createTemplate({immutable_data: JSON.stringify({'prop': 'TheValue'})});
+            const {offer_id} = await client.createOfferAsset({}, {template_id});
+            const {sale_id} = await client.createSale({offer_id});
+
+            expect(await getSalesIds(client, {'data:text.prop': 'TheValue'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by number template_data', async (client) => {
+            const offer1 = await client.createOfferAsset();
+            await client.createSale({offer_id: offer1.offer_id});
+
+            const {template_id} = await client.createTemplate({immutable_data: JSON.stringify({'prop': 1})});
+            const {offer_id} = await client.createOfferAsset({}, {template_id});
+            const {sale_id} = await client.createSale({offer_id});
+
+            expect(await getSalesIds(client, {'template_data:number.prop': 1}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by bool mutable_data', async (client) => {
+            const offer1 = await client.createOfferAsset();
+            await client.createSale({offer_id: offer1.offer_id});
+
+            const {offer_id} = await client.createOfferAsset({}, {mutable_data: JSON.stringify({'prop': 1})});
+            const {sale_id} = await client.createSale({offer_id});
+
+            expect(await getSalesIds(client, {'mutable_data:bool.prop': 'true'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by untyped immutable_data', async (client) => {
+            const offer1 = await client.createOfferAsset();
+            await client.createSale({offer_id: offer1.offer_id});
+
+            const {offer_id} = await client.createOfferAsset({}, {immutable_data: JSON.stringify({'prop': 'this'})});
+            const {sale_id} = await client.createSale({offer_id});
+
+            expect(await getSalesIds(client, {'immutable_data.prop': 'this'}))
+                .to.deep.equal([sale_id]);
+        });
+
     });
 
 });

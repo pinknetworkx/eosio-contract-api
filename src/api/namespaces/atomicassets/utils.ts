@@ -40,24 +40,24 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
     const keys = Object.keys(values);
 
     function buildConditionObject(name: string): {[key: string]: string | number | boolean} {
-        const query: {[key: string]: string | number | boolean} = {};
+        const searchObject: {[key: string]: string | number} = {};
 
         for (const key of keys) {
             if (key.startsWith(name + ':text.')) {
-                query[key.substr((name + ':text.').length)] = String(values[key]);
+                searchObject[key.substr((name + ':text.').length)] = String(values[key]);
             } else if (key.startsWith(name + ':number.')) {
-                query[key.substr((name + ':number.').length)] = parseFloat(values[key]);
+                searchObject[key.substr((name + ':number.').length)] = parseFloat(values[key]);
             } else if (key.startsWith(name + ':bool.')) {
-                query[key.substr((name + ':bool.').length)] = (values[key] === 'true' || values[key] === '1') ? 1 : 0;
+                searchObject[key.substr((name + ':bool.').length)] = (values[key] === 'true' || values[key] === '1') ? 1 : 0;
             } else if (key.startsWith(name + '.')) {
-                query[key.substr((name + '.').length)] = values[key];
+                searchObject[key.substr((name + '.').length)] = values[key];
             }
         }
 
-        return query;
+        return searchObject;
     }
 
-    const templateCondition = Object.assign({}, buildConditionObject('data'), buildConditionObject('template_data'));
+    const templateCondition = {...buildConditionObject('data'), ...buildConditionObject('template_data')};
     const mutableCondition = buildConditionObject('mutable_data');
     const immutableCondition = buildConditionObject('immutable_data');
 
@@ -74,7 +74,7 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
             query.addCondition(options.assetTable + '.immutable_data @> ' + query.addVariable(JSON.stringify(immutableCondition)) + '::jsonb');
         }
 
-        if (values.match_immutable_name && typeof values.match_immutable_name === 'string' && values.match_immutable_name.length > 0) {
+        if (typeof values.match_immutable_name === 'string' && values.match_immutable_name.length > 0) {
             query.addCondition(
                 options.assetTable + '.immutable_data->>\'name\' IS NOT NULL AND ' +
                 options.assetTable + '.immutable_data->>\'name\' ILIKE ' +
@@ -82,7 +82,7 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
             );
         }
 
-        if (values.match_mutable_name && typeof values.match_mutable_name === 'string' && values.match_mutable_name.length > 0) {
+        if (typeof values.match_mutable_name === 'string' && values.match_mutable_name.length > 0) {
             query.addCondition(
                 options.assetTable + '.mutable_data->>\'name\' IS NOT NULL AND ' +
                 options.assetTable + '.mutable_data->>\'name\' ILIKE ' +
