@@ -61,8 +61,8 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
     });
 
     const query = new QueryBuilder(`
-                SELECT listing.sale_id 
-                FROM atomicmarket_sales listing 
+                SELECT listing.sale_id, price.price
+                FROM atomicmarket_sales listing
                     JOIN atomicassets_offers offer ON (listing.assets_contract = offer.contract AND listing.offer_id = offer.offer_id)
                     LEFT JOIN atomicmarket_sale_prices price ON (price.market_contract = listing.market_contract AND price.sale_id = listing.sale_id)
             `);
