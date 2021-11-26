@@ -104,19 +104,16 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
 
     const saleQuery = await ctx.db.query(query.buildString(), query.buildValues());
 
-    const result = await ctx.db.query(
-        'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY ($2)',
+    const result = await ctx.db.query(`
+            SELECT * FROM atomicmarket_sales_master m
+                JOIN UNNEST($2::BIGINT[]) WITH ORDINALITY AS f(sale_id) ON m.sale_id = f.sale_id
+            WHERE market_contract = $1
+            ORDER BY f.ordinality`,
         [ctx.coreArgs.atomicmarket_account, saleQuery.rows.map(row => row.sale_id)]
     );
 
-    const saleLookup: {[key: string]: any} = result.rows.reduce((prev, current) => {
-        prev[String(current.sale_id)] = current;
-
-        return prev;
-    }, {});
-
     return await fillSales(
-        ctx.db, ctx.coreArgs.atomicassets_account, saleQuery.rows.map((row) => formatSale(saleLookup[String(row.sale_id)]))
+        ctx.db, ctx.coreArgs.atomicassets_account, result.rows.map(formatSale)
     );
 }
 
