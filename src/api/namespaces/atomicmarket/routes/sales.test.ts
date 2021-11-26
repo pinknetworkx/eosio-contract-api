@@ -685,6 +685,19 @@ describe('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id1]);
         });
 
+        txit('formats and fills result', async (client) => {
+            await client.createSale();
+
+            const testContext = getTestContext(client);
+
+            const [result] = await getSalesAction({}, testContext);
+
+            expect(result).to.not.haveOwnProperty('raw_price');
+            expect(result).to.haveOwnProperty('state');
+            expect(result).to.haveOwnProperty('price');
+            expect(result).to.haveOwnProperty('collection');
+        });
+
     });
 
 });

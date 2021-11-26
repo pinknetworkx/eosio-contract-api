@@ -104,17 +104,16 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
 
     const saleQuery = await ctx.db.query(query.buildString(), query.buildValues());
 
-    const saleLookup: {[key: string]: any} = {};
     const result = await ctx.db.query(
         'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY ($2)',
         [ctx.coreArgs.atomicmarket_account, saleQuery.rows.map(row => row.sale_id)]
     );
 
-    result.rows.reduce((prev, current) => {
+    const saleLookup: {[key: string]: any} = result.rows.reduce((prev, current) => {
         prev[String(current.sale_id)] = current;
 
         return prev;
-    }, saleLookup);
+    }, {});
 
     return await fillSales(
         ctx.db, ctx.coreArgs.atomicassets_account, saleQuery.rows.map((row) => formatSale(saleLookup[String(row.sale_id)]))
@@ -204,17 +203,16 @@ export async function getSalesTemplatesAction(params: RequestValues, ctx: Atomic
 
     const saleResult = await ctx.db.query(queryString, query.buildValues());
 
-    const saleLookup: {[key: string]: any} = {};
     const result = await ctx.db.query(
         'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY ($2)',
         [ctx.coreArgs.atomicmarket_account, saleResult.rows.map(row => row.sale_id)]
     );
 
-    result.rows.reduce((prev, current) => {
+    const saleLookup: {[key: string]: any} = result.rows.reduce((prev, current) => {
         prev[String(current.sale_id)] = current;
 
         return prev;
-    }, saleLookup);
+    }, {});
 
     return await fillSales(
         ctx.db, ctx.coreArgs.atomicassets_account, saleResult.rows.map((row) => formatSale(saleLookup[String(row.sale_id)]))
