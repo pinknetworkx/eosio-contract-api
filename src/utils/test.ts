@@ -20,6 +20,10 @@ export class TestClient extends Client {
 
     private id: number = 1;
 
+    getId(): number {
+        return ++this.id;
+    }
+
     async init(): Promise<void> {
         await this.createToken();
     }
@@ -37,8 +41,8 @@ export class TestClient extends Client {
     async createContractCode(values: Record<string, any> = {}): Promise<Record<string, any>> {
         return await this.insert('contract_codes', {
             account: 'account',
-            block_num: ++this.id,
-            block_time: ++this.id,
+            block_num: this.getId(),
+            block_time: this.getId(),
             ...values,
         });
     }
@@ -47,10 +51,10 @@ export class TestClient extends Client {
         return await this.insert('atomicassets_schemas', {
             contract: 'aatest',
             collection_name: values.collection_name ?? (await this.createCollection()).collection_name,
-            schema_name: `${++this.id}`,
+            schema_name: this.getId(),
             format: '{}',
-            created_at_block: ++this.id,
-            created_at_time: ++this.id,
+            created_at_block: this.getId(),
+            created_at_time: this.getId(),
             ...values,
         });
     }
@@ -62,14 +66,14 @@ export class TestClient extends Client {
         };
         return await this.insert('atomicassets_templates', {
             contract: 'aatest',
-            template_id: ++this.id,
+            template_id: this.getId(),
             schema_name: values.schema_name ?? (await this.createSchema({collection_name: values.collection_name})).schema_name,
             transferable: true,
             burnable: true,
             max_supply: 10,
             issued_supply: 1,
-            created_at_time: ++this.id,
-            created_at_block: ++this.id,
+            created_at_time: this.getId(),
+            created_at_block: this.getId(),
             ...values,
         });
     }
@@ -77,7 +81,7 @@ export class TestClient extends Client {
     async createSale(values: Record<string, any> = {}): Promise<Record<string, any>> {
         return await this.insert('atomicmarket_sales', {
             market_contract: 'amtest',
-            sale_id: ++this.id,
+            sale_id: this.getId(),
             seller: 'seller',
             buyer: 'buyer',
             listing_price: 1,
@@ -89,10 +93,10 @@ export class TestClient extends Client {
             collection_name: values.collection_name ?? (await this.createCollection()).collection_name,
             collection_fee: 0,
             state: SaleApiState.LISTED,
-            updated_at_block: ++this.id,
-            updated_at_time: ++this.id,
-            created_at_block: ++this.id,
-            created_at_time: ++this.id,
+            updated_at_block: this.getId(),
+            updated_at_time: this.getId(),
+            created_at_block: this.getId(),
+            created_at_time: this.getId(),
             ...values,
         });
     }
@@ -104,15 +108,15 @@ export class TestClient extends Client {
         };
         return await this.insert('atomicassets_assets', {
             contract: 'aatest',
-            asset_id: ++this.id,
+            asset_id: this.getId(),
             schema_name: values.schema_name ?? (await this.createSchema({collection_name: values.collection_name})).schema_name,
             owner: 'owner',
-            transferred_at_block: ++this.id,
-            transferred_at_time: ++this.id,
-            updated_at_block: ++this.id,
-            updated_at_time: ++this.id,
-            minted_at_block: ++this.id,
-            minted_at_time: ++this.id,
+            transferred_at_block: this.getId(),
+            transferred_at_time: this.getId(),
+            updated_at_block: this.getId(),
+            updated_at_time: this.getId(),
+            minted_at_block: this.getId(),
+            minted_at_time: this.getId(),
             ...values,
         });
     }
@@ -131,15 +135,15 @@ export class TestClient extends Client {
     async createOffer(values: Record<string, any> = {}): Promise<Record<string, any>> {
         return await this.insert('atomicassets_offers', {
             contract: 'aatest',
-            offer_id: ++this.id,
+            offer_id: this.getId(),
             sender: 'sender',
             recipient: 'recipient',
             memo: 'memo',
             state: OfferState.PENDING,
-            updated_at_block: ++this.id,
-            updated_at_time: ++this.id,
-            created_at_block: ++this.id,
-            created_at_time: ++this.id,
+            updated_at_block: this.getId(),
+            updated_at_time: this.getId(),
+            created_at_block: this.getId(),
+            created_at_time: this.getId(),
             ...values,
         });
     }
@@ -147,15 +151,15 @@ export class TestClient extends Client {
     async createCollection(values: Record<string, any> = {}): Promise<Record<string, any>> {
         return await this.insert('atomicassets_collections', {
             contract: 'aatest',
-            collection_name: `${++this.id}`,
+            collection_name: this.getId(),
             author: 'author',
             allow_notify: false,
             authorized_accounts: [],
             notify_accounts: [],
             market_fee: 0,
             data: JSON.stringify({name: 'test'}),
-            created_at_block: ++this.id,
-            created_at_time: ++this.id,
+            created_at_block: this.getId(),
+            created_at_time: this.getId(),
             ...values,
         });
     }

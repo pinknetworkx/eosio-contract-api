@@ -558,6 +558,43 @@ describe('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id]);
         });
 
+        txit('filters by id (sale_id)', async (client) => {
+            await client.createSale();
+
+            const {sale_id} = await client.createSale();
+
+            expect(await getSalesIds(client, {ids: `${sale_id},-1`}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by id range (sale_id)', async (client) => {
+            await client.createSale();
+
+            const lower_bound = `${client.getId()}`;
+
+            const {sale_id} = await client.createSale();
+            const upper_bound = `${client.getId()}`;
+
+            await client.createSale();
+
+            expect(await getSalesIds(client, {lower_bound, upper_bound}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by date range', async (client) => {
+            await client.createSale();
+
+            const after = `${client.getId()}`;
+
+            const {sale_id} = await client.createSale();
+            const before = `${client.getId()}`;
+
+            await client.createSale();
+
+            expect(await getSalesIds(client, {after, before}))
+                .to.deep.equal([sale_id]);
+        });
+
     });
 
 });

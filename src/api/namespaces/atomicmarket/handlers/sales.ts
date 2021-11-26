@@ -97,9 +97,9 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
         template_mint: {column: 'LOWER(listing.template_mint)', nullable: true, numericIndex: false}
     };
 
-    const ignoreIndex = (hasAssetFilter(params) || hasDataFilters(params) || hasListingFilter(params)) && sortMapping[args.sort].numericIndex;
+    const preventIndexUsage = (hasAssetFilter(params) || hasDataFilters(params) || hasListingFilter(params)) && sortMapping[args.sort].numericIndex;
 
-    query.append('ORDER BY ' + sortMapping[args.sort].column + (ignoreIndex ? ' + 1 ' : ' ') + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.sale_id ASC');
+    query.append('ORDER BY ' + sortMapping[args.sort].column + (preventIndexUsage ? ' + 1 ' : ' ') + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.sale_id ASC');
     query.paginate(args.page, args.limit);
 
     const saleQuery = await ctx.db.query(query.buildString(), query.buildValues());
