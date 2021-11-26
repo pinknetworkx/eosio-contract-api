@@ -595,6 +595,18 @@ describe('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id]);
         });
 
+        txit('returns count', async (client) => {
+            await client.createSale();
+
+            const {sale_id} = await client.createSale();
+
+            const testContext = getTestContext(client);
+
+            const result = await getSalesAction({ids: `${sale_id}`, count: 'true'}, testContext);
+
+            expect(result).to.equal('1');
+        });
+
     });
 
 });
