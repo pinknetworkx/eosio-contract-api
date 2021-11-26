@@ -96,7 +96,7 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
             query.addCondition(options.templateTable + '.immutable_data @> ' + query.addVariable(JSON.stringify(templateCondition)) + '::jsonb');
         }
 
-        if (values.match && typeof values.match === 'string' && values.match.length > 0) {
+        if (typeof values.match === 'string' && values.match.length > 0) {
             query.addCondition(
                 options.templateTable + '.immutable_data->>\'name\' IS NOT NULL AND ' +
                 options.templateTable + '.immutable_data->>\'name\' ILIKE ' +

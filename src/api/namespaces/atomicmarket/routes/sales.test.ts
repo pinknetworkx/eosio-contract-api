@@ -1,6 +1,6 @@
 import 'mocha';
 import { expect } from 'chai';
-import { getSalesAction } from './handlers/sales';
+import { getSalesAction } from '../handlers/sales';
 import { getTestContext } from '../testutils';
 import { TestClient, txit } from '../../../../utils/test';
 import { SaleApiState } from '../index';
@@ -501,6 +501,40 @@ describe('AtomicMarket Sales API', () => {
             const {sale_id} = await client.createSale({offer_id});
 
             expect(await getSalesIds(client, {'immutable_data.prop': 'this'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by match_immutable_name', async (client) => {
+            const offer1 = await client.createOfferAsset();
+            await client.createSale({offer_id: offer1.offer_id});
+
+            const {offer_id} = await client.createOfferAsset({}, {immutable_data: JSON.stringify({name: 'prefix_par%_tial_postfix'})});
+            const {sale_id} = await client.createSale({offer_id});
+
+            expect(await getSalesIds(client, {'match_immutable_name': 'par%_tial'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by match_mutable_name', async (client) => {
+            const offer1 = await client.createOfferAsset();
+            await client.createSale({offer_id: offer1.offer_id});
+
+            const {offer_id} = await client.createOfferAsset({}, {mutable_data: JSON.stringify({name: 'prefix_par%_tial_postfix'})});
+            const {sale_id} = await client.createSale({offer_id});
+
+            expect(await getSalesIds(client, {'match_mutable_name': 'par%_tial'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by match (template name)', async (client) => {
+            const offer1 = await client.createOfferAsset();
+            await client.createSale({offer_id: offer1.offer_id});
+
+            const {template_id} = await client.createTemplate({immutable_data: JSON.stringify({name: 'prefix_par%_tial_postfix'})});
+            const {offer_id} = await client.createOfferAsset({}, {template_id});
+            const {sale_id} = await client.createSale({offer_id});
+
+            expect(await getSalesIds(client, {'match': 'par%_tial'}))
                 .to.deep.equal([sale_id]);
         });
 
