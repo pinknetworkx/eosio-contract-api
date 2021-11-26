@@ -1,8 +1,8 @@
-import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../../utils';
-import { AtomicAssetsContext } from '../../index';
-import QueryBuilder from '../../../../builder';
-import { buildAssetFilter, hasAssetFilter } from '../../utils';
-import { applyActionGreylistFilters, getContractActionLogs } from '../../../../utils';
+import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../utils';
+import { AtomicAssetsContext } from '../index';
+import QueryBuilder from '../../../builder';
+import { buildAssetFilter, hasAssetFilter } from '../utils';
+import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
 
 export async function getRawOffersAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const args = filterQueryArgs(params, {

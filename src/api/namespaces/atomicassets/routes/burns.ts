@@ -4,7 +4,7 @@ import { getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters }
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { greylistFilterParameters, hideOffersParameters } from '../openapi';
-import { getBurnsAccountAction, getBurnsAction } from './handlers/burns';
+import { getBurnsAccountAction, getBurnsAction } from '../handlers/burns';
 
 export function burnEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;

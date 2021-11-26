@@ -11,7 +11,7 @@ import {
 } from '../../../docs';
 import { LinkState } from '../../../../filler/handlers/atomictools';
 import { greylistFilterParameters } from '../../atomicassets/openapi';
-import { getLinkAction, getLinkLogsAction, getLinksAction, getLinksCountAction } from './handlers/links';
+import { getLinkAction, getLinkLogsAction, getLinksAction, getLinksCountAction } from '../handlers/links';
 
 export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;

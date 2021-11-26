@@ -1,11 +1,11 @@
-import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../../utils';
-import { AtomicToolsContext } from '../../index';
-import QueryBuilder from '../../../../builder';
+import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../utils';
+import { AtomicToolsContext } from '../index';
+import QueryBuilder from '../../../builder';
 import { Numeric } from 'eosjs';
-import { fillLinks } from '../../filler';
-import { formatLink } from '../../format';
-import { ApiError } from '../../../../error';
-import { applyActionGreylistFilters, getContractActionLogs } from '../../../../utils';
+import { fillLinks } from '../filler';
+import { formatLink } from '../format';
+import { ApiError } from '../../../error';
+import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
 
 export async function getLinksAction(params: RequestValues, ctx: AtomicToolsContext): Promise<any> {
     const args = filterQueryArgs(params, {

@@ -9,7 +9,7 @@ import {
     getAccountCollectionAction,
     getAccountsAction,
     getAccountsCountAction
-} from './handlers/accounts';
+} from '../handlers/accounts';
 
 export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;

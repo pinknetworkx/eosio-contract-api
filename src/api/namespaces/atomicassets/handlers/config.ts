@@ -1,6 +1,6 @@
-import { RequestValues } from '../../../utils';
-import { AtomicAssetsContext } from '../../index';
-import { ApiError } from '../../../../error';
+import { RequestValues } from '../../utils';
+import { AtomicAssetsContext } from '../index';
+import { ApiError } from '../../../error';
 
 export async function getConfigAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const configQuery = await ctx.db.query(

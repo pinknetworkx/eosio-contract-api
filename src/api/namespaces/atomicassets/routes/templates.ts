@@ -15,7 +15,7 @@ import {
     getTemplatesAction,
     getTemplatesCountAction,
     getTemplateStatsAction
-} from './handlers/templates';
+} from '../handlers/templates';
 
 export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;

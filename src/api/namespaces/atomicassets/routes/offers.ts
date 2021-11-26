@@ -19,7 +19,7 @@ import {
 } from '../../../utils';
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
-import { getOfferLogsCountAction, getOffersCountAction, getRawOffersAction } from './handlers/offers';
+import { getOfferLogsCountAction, getOffersCountAction, getRawOffersAction } from '../handlers/offers';
 import { ApiError } from '../../../error';
 
 export class OfferApi {

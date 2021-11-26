@@ -3,7 +3,7 @@ import * as express from 'express';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { getOpenAPI3Responses } from '../../../docs';
-import { getConfigAction } from './handlers/config';
+import { getConfigAction } from '../handlers/config';
 
 export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;

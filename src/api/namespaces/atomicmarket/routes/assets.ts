@@ -15,7 +15,7 @@ import {
     hideOffersParameters,
     baseAssetFilterParameters, completeAssetFilterParameters
 } from '../../atomicassets/openapi';
-import { getAssetsAction, getAssetsCountAction } from './handlers/assets';
+import { getAssetsAction, getAssetsCountAction } from '../handlers/assets';
 
 export function assetsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;

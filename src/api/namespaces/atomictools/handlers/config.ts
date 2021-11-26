@@ -1,5 +1,5 @@
-import { RequestValues } from '../../../utils';
-import { AtomicToolsContext } from '../../index';
+import { RequestValues } from '../../utils';
+import { AtomicToolsContext } from '../index';
 
 export async function getConfigAction(params: RequestValues, ctx: AtomicToolsContext): Promise<any> {
     const configQuery = await ctx.db.query(
