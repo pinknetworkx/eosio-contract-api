@@ -1,42 +1,30 @@
 import { Client } from 'pg';
 import { AsyncFunc, Test } from 'mocha';
-import { SaleApiState } from '../api/namespaces/atomicmarket';
-import { OfferState } from '../filler/handlers/atomicassets';
-
-async function getTestClient(): Promise<TestClient> {
-    const client = new TestClient({
-        user: 'postgres',
-        database: 'atomichub-test',
-        // password
-        // port
-        host: 'localhost',
-    });
-    await client.connect();
-
-    return client;
-}
+import { DB } from '../api/server';
+import { RequestValues } from '../api/namespaces/utils';
+import { AtomicMarketContext } from '../api/namespaces/atomicmarket';
 
 export class TestClient extends Client {
 
     private id: number = 1;
 
+    constructor() {
+        super({
+            user: 'postgres',
+            database: 'atomichub-test',
+            // password
+            // port
+            host: 'localhost',
+        });
+
+        this.connect().catch(console.error);
+    }
+
     getId(): number {
         return ++this.id;
     }
 
-    async init(): Promise<void> {
-        await this.createToken();
-    }
-
-    async createToken(values: Record<string, any> = {}): Promise<Record<string, any>> {
-        return await this.insert('atomicmarket_tokens', {
-            market_contract: 'amtest',
-            token_contract: 'tctest',
-            token_symbol: 'TEST',
-            token_precision: 8,
-            ...values,
-        });
-    }
+    async init(): Promise<void> {}
 
     async createContractCode(values: Record<string, any> = {}): Promise<Record<string, any>> {
         return await this.insert('contract_codes', {
@@ -47,124 +35,7 @@ export class TestClient extends Client {
         });
     }
 
-    async createSchema(values: Record<string, any> = {}): Promise<Record<string, any>> {
-        return await this.insert('atomicassets_schemas', {
-            contract: 'aatest',
-            collection_name: values.collection_name ?? (await this.createCollection()).collection_name,
-            schema_name: this.getId(),
-            format: '{}',
-            created_at_block: this.getId(),
-            created_at_time: this.getId(),
-            ...values,
-        });
-    }
-
-    async createTemplate(values: Record<string, any> = {}): Promise<Record<string, any>> {
-        values = {
-            ...values,
-            collection_name: values.collection_name ?? (await this.createCollection()).collection_name,
-        };
-        return await this.insert('atomicassets_templates', {
-            contract: 'aatest',
-            template_id: this.getId(),
-            schema_name: values.schema_name ?? (await this.createSchema({collection_name: values.collection_name})).schema_name,
-            transferable: true,
-            burnable: true,
-            max_supply: 10,
-            issued_supply: 1,
-            created_at_time: this.getId(),
-            created_at_block: this.getId(),
-            ...values,
-        });
-    }
-
-    async createSale(values: Record<string, any> = {}): Promise<Record<string, any>> {
-        return await this.insert('atomicmarket_sales', {
-            market_contract: 'amtest',
-            sale_id: this.getId(),
-            seller: 'seller',
-            buyer: 'buyer',
-            listing_price: 1,
-            listing_symbol: 'TEST',
-            settlement_symbol: 'TEST',
-            assets_contract: 'aatest',
-            offer_id: values.offer_id ?? (await this.createOffer()).offer_id,
-            maker_marketplace: '',
-            collection_name: values.collection_name ?? (await this.createCollection()).collection_name,
-            collection_fee: 0,
-            state: SaleApiState.LISTED,
-            updated_at_block: this.getId(),
-            updated_at_time: this.getId(),
-            created_at_block: this.getId(),
-            created_at_time: this.getId(),
-            ...values,
-        });
-    }
-
-    async createAsset(values: Record<string, any> = {}): Promise<Record<string, any>> {
-        values = {
-            ...values,
-            collection_name: values.collection_name ?? (await this.createCollection()).collection_name,
-        };
-        return await this.insert('atomicassets_assets', {
-            contract: 'aatest',
-            asset_id: this.getId(),
-            schema_name: values.schema_name ?? (await this.createSchema({collection_name: values.collection_name})).schema_name,
-            owner: 'owner',
-            transferred_at_block: this.getId(),
-            transferred_at_time: this.getId(),
-            updated_at_block: this.getId(),
-            updated_at_time: this.getId(),
-            minted_at_block: this.getId(),
-            minted_at_time: this.getId(),
-            ...values,
-        });
-    }
-
-    async createOfferAsset(values: Record<string, any> = {}, assetValues: Record<string, any> = {}): Promise<Record<string, any>> {
-        return await this.insert('atomicassets_offers_assets', {
-            contract: 'aatest',
-            offer_id: values.offer_id ?? (await this.createOffer()).offer_id,
-            owner: 'owner',
-            index: 0,
-            asset_id: values.asset_id ?? (await this.createAsset(assetValues)).asset_id,
-            ...values,
-        });
-    }
-
-    async createOffer(values: Record<string, any> = {}): Promise<Record<string, any>> {
-        return await this.insert('atomicassets_offers', {
-            contract: 'aatest',
-            offer_id: this.getId(),
-            sender: 'sender',
-            recipient: 'recipient',
-            memo: 'memo',
-            state: OfferState.PENDING,
-            updated_at_block: this.getId(),
-            updated_at_time: this.getId(),
-            created_at_block: this.getId(),
-            created_at_time: this.getId(),
-            ...values,
-        });
-    }
-
-    async createCollection(values: Record<string, any> = {}): Promise<Record<string, any>> {
-        return await this.insert('atomicassets_collections', {
-            contract: 'aatest',
-            collection_name: this.getId(),
-            author: 'author',
-            allow_notify: false,
-            authorized_accounts: [],
-            notify_accounts: [],
-            market_fee: 0,
-            data: JSON.stringify({name: 'test'}),
-            created_at_block: this.getId(),
-            created_at_time: this.getId(),
-            ...values,
-        });
-    }
-
-    private async insert(table: string, data: Record<string, any>): Promise<Record<string, any>> {
+    protected async insert(table: string, data: Record<string, any>): Promise<Record<string, any>> {
         data = data || {};
 
         const columns = Object.keys(data);
@@ -181,35 +52,52 @@ export class TestClient extends Client {
     }
 
 }
-let client: TestClient;
 
-async function runTxTest(fn: (client: TestClient) => Promise<void>, self: any): Promise<any> {
-    if (!client) {
-        client = await getTestClient();
+export function createTxIt(client: TestClient): any {
+    async function runTxTest(fn: () => Promise<void>, self: any): Promise<any> {
+        await client.query('BEGIN');
+
+        try {
+            await client.init();
+
+            return await fn.call(self, client);
+        } finally {
+            await client.query('ROLLBACK');
+        }
     }
 
-    await client.query('BEGIN');
+    const result = function txit(title: string, fn: () => Promise<void>): Test {
+        return it(title, async function () {
+            return await runTxTest(fn, this);
+        });
+    };
 
-    try {
-        await client.init();
+    result.skip = (title: string, func: () => Promise<void>): Test => it.skip(title, func as unknown as AsyncFunc);
 
-        return await fn.call(self, client);
-    } finally {
-        await client.query('ROLLBACK');
-    }
+    result.only = function (title: string, fn: () => Promise<void>): Test {
+
+        return it.only(title, async () => {
+            return await runTxTest(fn, this);
+        });
+    };
+
+    return result;
 }
 
-export function txit(title: string, fn: (client: TestClient) => Promise<void>): Test {
-    return it(title, async function () {
-        return await runTxTest(fn, this);
-    });
+export function getTestContext(db: DB, pathParams: RequestValues = {}): AtomicMarketContext {
+    return {
+        pathParams,
+        db,
+        coreArgs: {
+            atomicmarket_account: 'amtest',
+            atomicassets_account: 'aatest',
+            delphioracle_account: 'dotest',
+
+            connected_reader: '',
+
+            socket_features: {
+                asset_update: false,
+            },
+        },
+    };
 }
-
-txit.skip = (title: string, func: (client: TestClient) => Promise<void>): Test => it.skip(title, func as unknown as AsyncFunc);
-
-txit.only = function (title: string, fn: (client: TestClient) => Promise<void>): Test {
-
-    return it.only(title, async () => {
-        return await runTxTest(fn, this);
-    });
-};
