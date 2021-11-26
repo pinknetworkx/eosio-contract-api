@@ -14,7 +14,7 @@ import {
     getPricesAction, getPricesAssetsAction,
     getPricesSalesDaysAction,
     getPricesTemplatesAction
-} from './handlers/prices';
+} from '../handlers/prices';
 
 export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;

@@ -1,10 +1,10 @@
-import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../../utils';
-import { AtomicAssetsContext } from '../../index';
-import QueryBuilder from '../../../../builder';
-import { buildGreylistFilter } from '../../utils';
-import { formatSchema } from '../../format';
-import { ApiError } from '../../../../error';
-import { applyActionGreylistFilters, getContractActionLogs } from '../../../../utils';
+import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../utils';
+import { AtomicAssetsContext } from '../index';
+import QueryBuilder from '../../../builder';
+import { buildGreylistFilter } from '../utils';
+import { formatSchema } from '../format';
+import { ApiError } from '../../../error';
+import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
 
 export async function getSchemasAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const args = filterQueryArgs(params, {

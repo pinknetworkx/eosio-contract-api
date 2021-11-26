@@ -16,7 +16,7 @@ import {
     getSchemasAction,
     getSchemasCountAction,
     getSchemaStatsAction
-} from './handlers/schemas';
+} from '../handlers/schemas';
 
 export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;

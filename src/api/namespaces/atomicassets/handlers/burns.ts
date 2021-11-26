@@ -1,8 +1,8 @@
-import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../../utils';
-import { AtomicAssetsContext } from '../../index';
-import QueryBuilder from '../../../../builder';
-import { buildGreylistFilter, buildHideOffersFilter } from '../../utils';
-import { formatCollection } from '../../format';
+import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../utils';
+import { AtomicAssetsContext } from '../index';
+import QueryBuilder from '../../../builder';
+import { buildGreylistFilter, buildHideOffersFilter } from '../utils';
+import { formatCollection } from '../format';
 
 export async function getBurnsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const args = filterQueryArgs(params, {

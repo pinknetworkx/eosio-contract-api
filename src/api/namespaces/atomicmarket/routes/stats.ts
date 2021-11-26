@@ -13,7 +13,7 @@ import {
     getStatsCollectionV2Action,
     getStatsGraphAction,
     getStatsMarketsAction, getStatsSalesAction
-} from './handlers/stats';
+} from '../handlers/stats';
 
 export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;

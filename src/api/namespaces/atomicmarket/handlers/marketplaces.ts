@@ -1,6 +1,6 @@
-import { RequestValues } from '../../../utils';
-import { AtomicMarketContext } from '../../index';
-import { ApiError } from '../../../../error';
+import { RequestValues } from '../../utils';
+import { AtomicMarketContext } from '../index';
+import { ApiError } from '../../../error';
 
 export async function getMarketplacesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const query = await ctx.db.query(

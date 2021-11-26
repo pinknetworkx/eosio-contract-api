@@ -20,7 +20,7 @@ import {
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
 import { eosioTimestampToDate } from '../../../../utils/eosio';
-import { getAuctionAction, getAuctionLogsAction, getAuctionsAction, getAuctionsCountAction } from './handlers/auctions';
+import { getAuctionAction, getAuctionLogsAction, getAuctionsAction, getAuctionsCountAction } from '../handlers/auctions';
 
 export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;

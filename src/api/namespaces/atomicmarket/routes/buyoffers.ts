@@ -24,7 +24,7 @@ import {
     getBuyOfferLogsAction,
     getBuyOffersAction,
     getBuyOffersCountAction
-} from './handlers/buyoffers';
+} from '../handlers/buyoffers';
 
 export function buyoffersEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;

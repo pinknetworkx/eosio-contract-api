@@ -1,10 +1,111 @@
-import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../../utils';
-import { AtomicAssetsContext } from '../../index';
-import QueryBuilder from '../../../../builder';
-import { hasAssetFilter, hasDataFilters } from '../../utils';
-import { buildAssetQueryCondition } from '../assets';
-import { ApiError } from '../../../../error';
-import { applyActionGreylistFilters, getContractActionLogs } from '../../../../utils';
+import { buildBoundaryFilter, filterQueryArgs, FilterValues, RequestValues } from '../../utils';
+import { AtomicAssetsContext } from '../index';
+import QueryBuilder from '../../../builder';
+import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter, hasAssetFilter, hasDataFilters } from '../utils';
+import { ApiError } from '../../../error';
+import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
+
+export function buildAssetQueryCondition(
+    values: FilterValues, query: QueryBuilder,
+    options: { assetTable: string, templateTable?: string }
+): void {
+    const args = filterQueryArgs(values, {
+        authorized_account: {type: 'string', min: 1, max: 12},
+        hide_templates_by_accounts: {type: 'string', min: 1, max: 12},
+
+        only_duplicate_templates: {type: 'bool'},
+        has_backed_tokens: {type: 'bool'},
+
+        template_mint: {type: 'int', min: 1},
+
+        min_template_mint: {type: 'int', min: 1},
+        max_template_mint: {type: 'int', min: 1},
+
+        template_blacklist: {type: 'string', min: 1},
+        template_whitelist: {type: 'string', min: 1}
+    });
+
+    if (args.authorized_account) {
+        query.addCondition(
+            'EXISTS(' +
+            'SELECT * FROM atomicassets_collections collection ' +
+            'WHERE collection.collection_name = ' + options.assetTable + '.collection_name AND collection.contract = ' + options.assetTable + '.contract ' +
+            'AND ' + query.addVariable(args.authorized_account) + ' = ANY(collection.authorized_accounts)' +
+            ')'
+        );
+    }
+
+    if (args.hide_templates_by_accounts) {
+        query.addCondition(
+            'NOT EXISTS(' +
+            'SELECT * FROM atomicassets_assets asset2 ' +
+            'WHERE asset2.template_id = ' + options.assetTable + '.template_id AND asset2.contract = ' + options.assetTable + '.contract ' +
+            'AND asset2.owner = ANY(' + query.addVariable(args.hide_templates_by_accounts.split(',')) + ')' +
+            ')'
+        );
+    }
+
+    if (args.only_duplicate_templates) {
+        query.addCondition(
+            'EXISTS (' +
+            'SELECT * FROM atomicassets_assets inner_asset ' +
+            'WHERE inner_asset.contract = asset.contract AND inner_asset.template_id = ' + options.assetTable + '.template_id ' +
+            'AND inner_asset.asset_id < ' + options.assetTable + '.asset_id AND inner_asset.owner = ' + options.assetTable + '.owner' +
+            ') AND ' + options.assetTable + '.template_id IS NOT NULL'
+        );
+    }
+
+    if (typeof args.has_backed_tokens === 'boolean') {
+        if (args.has_backed_tokens) {
+            query.addCondition('EXISTS (' +
+                'SELECT * FROM atomicassets_assets_backed_tokens token ' +
+                'WHERE ' + options.assetTable + '.contract = token.contract AND ' + options.assetTable + '.asset_id = token.asset_id' +
+                ')');
+        } else {
+            query.addCondition('NOT EXISTS (' +
+                'SELECT * FROM atomicassets_assets_backed_tokens token ' +
+                'WHERE ' + options.assetTable + '.contract = token.contract AND ' + options.assetTable + '.asset_id = token.asset_id' +
+                ')');
+        }
+    }
+
+    buildHideOffersFilter(values, query, options.assetTable);
+
+    if (args.template_mint) {
+        query.equal(options.assetTable + '.template_mint', args.template_mint);
+    }
+
+    if (args.min_template_mint) {
+        let condition = options.assetTable + '.template_mint >= ' + query.addVariable(args.min_template_mint);
+
+        if (args.min_template_mint <= 1) {
+            condition += ' OR ' + options.assetTable + '.template_id IS NULL';
+        }
+
+        query.addCondition('(' + condition + ')');
+    }
+
+    if (args.max_template_mint) {
+        let condition = options.assetTable + '.template_mint <= ' + query.addVariable(args.max_template_mint);
+
+        if (args.max_template_mint >= 1) {
+            condition += ' OR ' + options.assetTable + '.template_id IS NULL';
+        }
+
+        query.addCondition('(' + condition + ')');
+    }
+
+    buildAssetFilter(values, query, {assetTable: options.assetTable, templateTable: options.templateTable});
+    buildGreylistFilter(values, query, {collectionName: options.assetTable + '.collection_name'});
+
+    if (args.template_blacklist) {
+        query.notMany(options.assetTable + '.template_id', args.template_blacklist.split(','));
+    }
+
+    if (args.template_whitelist) {
+        query.equalMany(options.assetTable + '.template_id', args.template_whitelist.split(','));
+    }
+}
 
 export async function getRawAssetsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const args = filterQueryArgs(params, {

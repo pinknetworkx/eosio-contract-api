@@ -25,7 +25,7 @@ import {
     getSalesAction,
     getSalesCountAction,
     getSalesTemplatesAction
-} from './handlers/sales';
+} from '../handlers/sales';
 
 export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;

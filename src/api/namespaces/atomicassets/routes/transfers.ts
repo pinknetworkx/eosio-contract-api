@@ -14,7 +14,7 @@ import { greylistFilterParameters } from '../openapi';
 import ApiNotificationReceiver from '../../../notification';
 import { createSocketApiNamespace } from '../../../utils';
 import { NotificationData } from '../../../../filler/notifier';
-import { getRawTransfersAction, getTransfersCountAction } from './handlers/transfers';
+import { getRawTransfersAction, getTransfersCountAction } from '../handlers/transfers';
 
 export class TransferApi {
     constructor(

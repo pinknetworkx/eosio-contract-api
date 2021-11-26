@@ -15,7 +15,7 @@ import {
     getCollectionsAction, getCollectionSchemasAction,
     getCollectionsCountAction,
     getCollectionStatsAction
-} from './handlers/collections';
+} from '../handlers/collections';
 
 export function collectionsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;

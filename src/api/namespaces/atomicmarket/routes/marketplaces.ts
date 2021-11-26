@@ -3,7 +3,7 @@ import * as express from 'express';
 import { AtomicMarketNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { getOpenAPI3Responses } from '../../../docs';
-import { getMarketplaceAction, getMarketplacesAction } from './handlers/marketplaces';
+import { getMarketplaceAction, getMarketplacesAction } from '../handlers/marketplaces';
 
 export function marketplacesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;

@@ -1,7 +1,7 @@
-import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../../utils';
-import { AtomicMarketContext } from '../../index';
-import QueryBuilder from '../../../../builder';
-import { buildAssetQueryCondition } from '../../../atomicassets/routes/assets';
+import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../utils';
+import { AtomicMarketContext } from '../index';
+import QueryBuilder from '../../../builder';
+import { buildAssetQueryCondition } from '../../atomicassets/handlers/assets';
 
 export async function getPricesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
