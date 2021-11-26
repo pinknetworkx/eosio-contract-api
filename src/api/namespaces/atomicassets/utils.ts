@@ -199,7 +199,7 @@ export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, c
     if (columns.collectionName) {
         if (collectionWhitelist.length > 0 && collectionBlacklist.length > 0) {
             query.addCondition(
-                'EXISTS (SELECT * FROM UNNEST(' + query.addVariable(collectionWhitelist.filter(row => collectionBlacklist.indexOf(row) === -1)) + '::text[]) ' +
+                'EXISTS (SELECT * FROM UNNEST(' + query.addVariable(collectionWhitelist.filter(row => !collectionBlacklist.includes(row))) + '::text[]) ' +
                 'WHERE "unnest" = ' + columns.collectionName + ')'
             );
         } else {
@@ -219,7 +219,7 @@ export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, c
         }
     }
 
-    if (columns.account && columns.account.length > 0 && args.account_blacklist) {
+    if (columns.account?.length > 0 && args.account_blacklist) {
         const accounts = args.account_blacklist.split(',');
 
         if (accounts.length > 0) {
