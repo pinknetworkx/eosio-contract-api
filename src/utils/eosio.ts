@@ -57,7 +57,7 @@ export function eosioDeserialize(type: string, data: Uint8Array | string, types:
     if (typeof data === 'string') {
         dataArray = Uint8Array.from(Buffer.from(data, 'hex'));
     } else {
-        dataArray = data;
+        dataArray = new Uint8Array(data);
     }
 
     const buffer = new Serialize.SerialBuffer({ textEncoder: new TextEncoder(), textDecoder: new TextDecoder(), array: dataArray });

@@ -30,18 +30,22 @@ services:
     container_name: eosio-contract-api-redis
     image: redis:5-alpine
     restart: on-failure
+    ports:
+      - "6379:6379"
     volumes:
       - ./docker/redis/data:/data
     networks:
       - eosio-contract-api
   eosio-contract-api-postgres:
     container_name: eosio-contract-api-postgres
-    image: postgres:12
+    image: postgres:13
     restart: on-failure
     shm_size: '8gb'
     environment:
-      - 'POSTGRES_USER=eosio-contract-api'
+      - 'POSTGRES_USER=root'
       - 'POSTGRES_PASSWORD=changeme'
+    ports:
+      - "5432:5432"
     volumes:
       - ./docker/postgres/data:/var/lib/postgresql/data
     networks:
