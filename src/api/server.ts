@@ -16,11 +16,19 @@ import { expressRedisCache, ExpressRedisCacheHandler } from '../utils/cache';
 import { eosioTimestampToDate } from '../utils/eosio';
 import * as swagger from 'swagger-ui-express';
 import { getOpenApiDescription, LogSchema } from './docs';
+import { respondApiError } from './utils';
+import { ActionHandler, ActionHandlerContext } from './actionhandler';
+import { ApiNamespace } from './namespaces/interfaces';
+import { mergeRequestData } from './namespaces/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson: any = require('../../package.json');
 
-export class HTTPServer {
+export interface DB {
+    query<T = any>(queryText: string, values?: any[]): Promise<QueryResult<T>>
+}
+
+export class HTTPServer implements DB {
     readonly httpServer: http.Server;
 
     readonly web: WebServer;
@@ -258,6 +266,30 @@ export class WebServer {
 
         this.express.use(router);
     }
+
+    returnAsJSON = (handler: ActionHandler, core: ApiNamespace): express.Handler => {
+        const server = this.server;
+
+        return async (req: express.Request, res: express.Response): Promise<void> => {
+            try {
+                const params = mergeRequestData(req);
+                const pathParams = req.params || {};
+
+                const ctx: ActionHandlerContext<any> = {
+                    pathParams,
+                    db: server,
+                    coreArgs: core.args,
+                };
+
+                const result = await handler(params, ctx);
+
+                res.json({success: true, data: result, query_time: Date.now()});
+            } catch (error) {
+                respondApiError(res, error);
+            }
+        };
+    }
+
 }
 
 export class SocketServer {

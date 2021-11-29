@@ -1,16 +1,14 @@
-import * as express from 'express';
-
-import { filterQueryArgs, mergeRequestData } from '../utils';
+import { filterQueryArgs, FilterValues } from '../utils';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 import QueryBuilder from '../../builder';
 
-export function hasAssetFilter(req: express.Request, blacklist: string[] = []): boolean {
-    const keys = Object.keys(mergeRequestData(req));
+export function hasAssetFilter(values: FilterValues, blacklist: string[] = []): boolean {
+    const keys = Object.keys(values);
 
     for (const key of keys) {
         if (
-            ['asset_id', 'collection_name', 'template_id', 'schema_name','owner', 'is_transferable', 'is_burnable'].indexOf(key) >= 0 &&
-            blacklist.indexOf(key) === -1
+            ['asset_id', 'collection_name', 'template_id', 'schema_name','owner', 'is_transferable', 'is_burnable'].includes(key) &&
+            !blacklist.includes(key)
         ) {
             return true;
         }
@@ -19,11 +17,11 @@ export function hasAssetFilter(req: express.Request, blacklist: string[] = []): 
     return false;
 }
 
-export function hasDataFilters(req: express.Request): boolean {
-    const keys = Object.keys(mergeRequestData(req));
+export function hasDataFilters(values: FilterValues): boolean {
+    const keys = Object.keys(values);
 
     for (const key of keys) {
-        if (['match', 'match_immutable_name', 'match_mutable_name'].indexOf(key) >= 0) {
+        if (['match', 'match_immutable_name', 'match_mutable_name'].includes(key)) {
             return true;
         }
 
@@ -47,22 +45,21 @@ export function hasDataFilters(req: express.Request): boolean {
     return false;
 }
 
-export function buildDataConditions(req: express.Request, query: QueryBuilder, options: {assetTable?: string, templateTable?: string}): void {
-    const args = mergeRequestData(req);
-    const keys = Object.keys(args);
+export function buildDataConditions(values: FilterValues, query: QueryBuilder, options: {assetTable?: string, templateTable?: string}): void {
+    const keys = Object.keys(values);
 
     function buildConditionObject(name: string): {[key: string]: string | number | boolean} {
         const query: {[key: string]: string | number | boolean} = {};
 
         for (const key of keys) {
             if (key.startsWith(name + ':text.')) {
-                query[key.substr((name + ':text.').length)] = String(args[key]);
+                query[key.substr((name + ':text.').length)] = String(values[key]);
             } else if (key.startsWith(name + ':number.')) {
-                query[key.substr((name + ':number.').length)] = parseFloat(args[key]);
+                query[key.substr((name + ':number.').length)] = parseFloat(values[key]);
             } else if (key.startsWith(name + ':bool.')) {
-                query[key.substr((name + ':bool.').length)] = (args[key] === 'true' || args[key] === '1') ? 1 : 0;
+                query[key.substr((name + ':bool.').length)] = (values[key] === 'true' || values[key] === '1') ? 1 : 0;
             } else if (key.startsWith(name + '.')) {
-                query[key.substr((name + '.').length)] = args[key];
+                query[key.substr((name + '.').length)] = values[key];
             }
         }
 
@@ -86,19 +83,19 @@ export function buildDataConditions(req: express.Request, query: QueryBuilder, o
             query.addCondition(options.assetTable + '.immutable_data @> ' + query.addVariable(JSON.stringify(immutableCondition)) + '::jsonb');
         }
 
-        if (args.match_immutable_name && typeof args.match_immutable_name === 'string' && args.match_immutable_name.length > 0) {
+        if (values.match_immutable_name && typeof values.match_immutable_name === 'string' && values.match_immutable_name.length > 0) {
             query.addCondition(
                 options.assetTable + '.immutable_data->>\'name\' IS NOT NULL AND ' +
                 options.assetTable + '.immutable_data->>\'name\' ILIKE ' +
-                query.addVariable('%' + args.match_immutable_name.replace('%', '\\%').replace('_', '\\_') + '%')
+                query.addVariable('%' + values.match_immutable_name.replace('%', '\\%').replace('_', '\\_') + '%')
             );
         }
 
-        if (args.match_mutable_name && typeof args.match_mutable_name === 'string' && args.match_mutable_name.length > 0) {
+        if (values.match_mutable_name && typeof values.match_mutable_name === 'string' && values.match_mutable_name.length > 0) {
             query.addCondition(
                 options.assetTable + '.mutable_data->>\'name\' IS NOT NULL AND ' +
                 options.assetTable + '.mutable_data->>\'name\' ILIKE ' +
-                query.addVariable('%' + args.match_mutable_name.replace('%', '\\%').replace('_', '\\_') + '%')
+                query.addVariable('%' + values.match_mutable_name.replace('%', '\\%').replace('_', '\\_') + '%')
             );
         }
     }
@@ -108,23 +105,23 @@ export function buildDataConditions(req: express.Request, query: QueryBuilder, o
             query.addCondition(options.templateTable + '.immutable_data @> ' + query.addVariable(JSON.stringify(templateCondition)) + '::jsonb');
         }
 
-        if (args.match && typeof args.match === 'string' && args.match.length > 0) {
+        if (values.match && typeof values.match === 'string' && values.match.length > 0) {
             query.addCondition(
                 options.templateTable + '.immutable_data->>\'name\' IS NOT NULL AND ' +
                 options.templateTable + '.immutable_data->>\'name\' ILIKE ' +
-                query.addVariable('%' + args.match.replace('%', '\\%').replace('_', '\\_') + '%')
+                query.addVariable('%' + values.match.replace('%', '\\%').replace('_', '\\_') + '%')
             );
         }
     }
 }
 
 export function buildAssetFilter(
-    req: express.Request, query: QueryBuilder,
+    values: FilterValues, query: QueryBuilder,
     options: {assetTable?: string, templateTable?: string, allowDataFilter?: boolean} = {}
 ): void {
     options = Object.assign({allowDataFilter: true}, options);
 
-    const args = filterQueryArgs(req, {
+    const args = filterQueryArgs(values, {
         asset_id: {type: 'string', min: 1},
         owner: {type: 'string', min: 1, max: 12},
         burned: {type: 'bool'},
@@ -136,7 +133,7 @@ export function buildAssetFilter(
     });
 
     if (options.allowDataFilter !== false) {
-        buildDataConditions(req, query, {assetTable: options.assetTable, templateTable: options.templateTable});
+        buildDataConditions(values, query, {assetTable: options.assetTable, templateTable: options.templateTable});
     }
 
     if (args.asset_id) {
@@ -188,8 +185,8 @@ export function buildAssetFilter(
     }
 }
 
-export function buildGreylistFilter(req: express.Request, query: QueryBuilder, columns: {collectionName?: string, account?: string[]}): void {
-    const args = filterQueryArgs(req, {
+export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, columns: {collectionName?: string, account?: string[]}): void {
+    const args = filterQueryArgs(values, {
         collection_blacklist: {type: 'string', min: 1},
         collection_whitelist: {type: 'string', min: 1},
         account_blacklist: {type: 'string', min: 1}
@@ -241,8 +238,8 @@ export function buildGreylistFilter(req: express.Request, query: QueryBuilder, c
     }
 }
 
-export function buildHideOffersFilter(req: express.Request, query: QueryBuilder, assetTable: string): void {
-    const args = filterQueryArgs(req, {
+export function buildHideOffersFilter(values: FilterValues, query: QueryBuilder, assetTable: string): void {
+    const args = filterQueryArgs(values, {
         hide_offers: {type: 'bool', default: false}
     });
 

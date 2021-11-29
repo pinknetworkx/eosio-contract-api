@@ -4,7 +4,6 @@ import { AtomicMarketNamespace, BuyofferApiState } from '../index';
 import { HTTPServer } from '../../../server';
 import { formatBuyoffer } from '../format';
 import { fillBuyoffers } from '../filler';
-import { buildBuyofferFilter, hasListingFilter } from '../utils';
 import {
     actionGreylistParameters,
     dateBoundaryParameters,
@@ -13,147 +12,29 @@ import {
     primaryBoundaryParameters
 } from '../../../docs';
 import { extendedAssetFilterParameters, atomicDataFilter, baseAssetFilterParameters } from '../../atomicassets/openapi';
-import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
 import { listingFilterParameters } from '../openapi';
-import { buildGreylistFilter, hasAssetFilter, hasDataFilters } from '../../atomicassets/utils';
 import {
-    applyActionGreylistFilters,
     createSocketApiNamespace,
     extractNotificationIdentifiers,
-    getContractActionLogs, respondApiError
 } from '../../../utils';
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
-import QueryBuilder from '../../../builder';
+import {
+    getBuyOfferAction,
+    getBuyOfferLogsAction,
+    getBuyOffersAction,
+    getBuyOffersCountAction
+} from '../handlers/buyoffers';
 
 export function buyoffersEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
-    router.all(['/v1/buyoffers', '/v1/buyoffers/_count'], server.web.caching(), async (req, res) => {
-        try {
-            const args = filterQueryArgs(req, {
-                page: {type: 'int', min: 1, default: 1},
-                limit: {type: 'int', min: 1, max: 100, default: 100},
-                sort: {
-                    type: 'string',
-                    values: [
-                        'created', 'updated', 'ending', 'buyoffer_id', 'price',
-                        'template_mint'
-                    ],
-                    default: 'created'
-                },
-                order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
-            });
+    const {caching, returnAsJSON} = server.web;
 
-            const query = new QueryBuilder(
-                'SELECT listing.buyoffer_id ' +
-                'FROM atomicmarket_buyoffers listing ' +
-                'JOIN atomicmarket_tokens "token" ON (listing.market_contract = "token".market_contract AND listing.token_symbol = "token".token_symbol)'
-            );
+    router.all('/v1/buyoffers', caching(), returnAsJSON(getBuyOffersAction, core));
+    router.all('/v1/buyoffers/_count', caching(), returnAsJSON(getBuyOffersCountAction, core));
 
-            query.equal('listing.market_contract', core.args.atomicmarket_account);
-            query.addCondition(
-                'NOT EXISTS (' +
-                'SELECT * FROM atomicmarket_buyoffers_assets buyoffer_asset ' +
-                'WHERE buyoffer_asset.market_contract = listing.market_contract AND buyoffer_asset.buyoffer_id = listing.buyoffer_id AND ' +
-                '       NOT EXISTS (SELECT * FROM atomicassets_assets asset WHERE asset.contract = buyoffer_asset.assets_contract AND asset.asset_id = buyoffer_asset.asset_id)' +
-                ')'
-            );
+    router.all('/v1/buyoffers/:buyoffer_id', caching(), returnAsJSON(getBuyOfferAction, core));
 
-            buildBuyofferFilter(req, query);
-            buildGreylistFilter(req, query, {collectionName: 'listing.collection_name'});
-            buildBoundaryFilter(
-                req, query, 'listing.buyoffer_id', 'int',
-                args.sort === 'updated' ? 'listing.updated_at_time' : 'listing.created_at_time'
-            );
-
-            if (req.originalUrl.search('/_count') >= 0) {
-                const countQuery = await server.query(
-                    'SELECT COUNT(*) counter FROM (' + query.buildString() + ') x',
-                    query.buildValues()
-                );
-
-                return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
-            }
-
-            const sortMapping: {[key: string]: {column: string, nullable: boolean, numericIndex: boolean}} = {
-                buyoffer_id: {column: 'listing.buyoffer_id', nullable: false, numericIndex: true},
-                created: {column: 'listing.created_at_time', nullable: false, numericIndex: true},
-                updated: {column: 'listing.updated_at_time', nullable: false, numericIndex: true},
-                price: {column: 'listing.price', nullable: false, numericIndex: false},
-                template_mint: {column: 'LOWER(listing.template_mint)', nullable: true, numericIndex: false}
-            };
-
-            const ignoreIndex = (hasAssetFilter(req) || hasDataFilters(req) || hasListingFilter(req)) && sortMapping[args.sort].numericIndex;
-
-            query.append('ORDER BY ' + sortMapping[args.sort].column + (ignoreIndex ? ' + 1 ' : ' ') + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.buyoffer_id ASC');
-            query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit) + ' ');
-
-            const buyofferResult = await server.query(query.buildString(), query.buildValues());
-
-            const buyofferLookup: {[key: string]: any} = {};
-            const result = await server.query(
-                'SELECT * FROM atomicmarket_buyoffers_master WHERE market_contract = $1 AND buyoffer_id = ANY ($2)',
-                [core.args.atomicmarket_account, buyofferResult.rows.map(row => row.buyoffer_id)]
-            );
-
-            result.rows.reduce((prev, current) => {
-                prev[String(current.buyoffer_id)] = current;
-
-                return prev;
-            }, buyofferLookup);
-
-            const buyoffers = await fillBuyoffers(
-                server, core.args.atomicassets_account,
-                buyofferResult.rows.map((row) => buyofferLookup[String(row.buyoffer_id)])
-            );
-
-            res.json({success: true, data: buyoffers.map(row => formatBuyoffer(row)), query_time: Date.now()});
-        } catch (error) {
-            return respondApiError(res, error);
-        }
-    });
-
-    router.all('/v1/buyoffers/:buyoffer_id', server.web.caching(), async (req, res) => {
-        try {
-            const query = await server.query(
-                'SELECT * FROM atomicmarket_buyoffers_master WHERE market_contract = $1 AND buyoffer_id = $2',
-                [core.args.atomicmarket_account, req.params.buyoffer_id]
-            );
-
-            if (query.rowCount === 0) {
-                res.status(416).json({success: false, message: 'Buyoffer not found'});
-            } else {
-                const buyoffers = await fillBuyoffers(
-                    server, core.args.atomicassets_account, query.rows
-                );
-
-                res.json({success: true, data: formatBuyoffer(buyoffers[0]), query_time: Date.now()});
-            }
-        } catch (error) {
-            return respondApiError(res, error);
-        }
-    });
-
-    router.all('/v1/buyoffers/:buyoffer_id/logs', server.web.caching(), (async (req, res) => {
-        const args = filterQueryArgs(req, {
-            page: {type: 'int', min: 1, default: 1},
-            limit: {type: 'int', min: 1, max: 100, default: 100},
-            order: {type: 'string', values: ['asc', 'desc'], default: 'asc'}
-        });
-
-        try {
-            res.json({
-                success: true,
-                data: await getContractActionLogs(
-                    server, core.args.atomicmarket_account,
-                    applyActionGreylistFilters(['lognewbuyo', 'cancelbuyo', 'acceptbuyo', 'declinebuyo'], args),
-                    {buyoffer_id: req.params.buyoffer_id},
-                    (args.page - 1) * args.limit, args.limit, args.order
-                ), query_time: Date.now()
-            });
-        } catch (error) {
-            return respondApiError(res, error);
-        }
-    }));
+    router.all('/v1/buyoffers/:buyoffer_id/logs', caching(), returnAsJSON(getBuyOfferLogsAction, core));
 
     return {
         tag: {

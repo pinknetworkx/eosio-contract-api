@@ -14,6 +14,7 @@ import { OfferApi } from './routes/offers';
 import { accountsEndpoints } from './routes/accounts';
 import ApiNotificationReceiver from '../../notification';
 import { burnEndpoints } from './routes/burns';
+import { ActionHandlerContext } from '../../actionhandler';
 
 export type AtomicAssetsNamespaceArgs = {
     atomicassets_account: string,
@@ -22,6 +23,8 @@ export type AtomicAssetsNamespaceArgs = {
         asset_update: boolean
     }
 };
+
+export type AtomicAssetsContext = ActionHandlerContext<AtomicAssetsNamespaceArgs>;
 
 export class AtomicAssetsNamespace extends ApiNamespace {
     static namespaceName = 'atomicassets';

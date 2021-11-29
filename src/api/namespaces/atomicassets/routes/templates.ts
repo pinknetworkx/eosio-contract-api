@@ -2,9 +2,6 @@ import * as express from 'express';
 
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { buildGreylistFilter, buildDataConditions } from '../utils';
-import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
-import { formatTemplate } from '../format';
 import {
     actionGreylistParameters,
     dateBoundaryParameters,
@@ -13,194 +10,24 @@ import {
     primaryBoundaryParameters
 } from '../../../docs';
 import { atomicDataFilter, greylistFilterParameters } from '../openapi';
-import { applyActionGreylistFilters, getContractActionLogs, respondApiError } from '../../../utils';
-import QueryBuilder from '../../../builder';
+import {
+    getTemplateAction, getTemplateLogsAction,
+    getTemplatesAction,
+    getTemplatesCountAction,
+    getTemplateStatsAction
+} from '../handlers/templates';
 
 export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
-    router.all(['/v1/templates', '/v1/templates/_count'], server.web.caching(), (async (req, res) => {
-        try {
-            const args = filterQueryArgs(req, {
-                page: {type: 'int', min: 1, default: 1},
-                limit: {type: 'int', min: 1, max: 1000, default: 100},
-                sort: {type: 'string', values: ['created', 'name'], default: 'created'},
-                order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+    const {caching, returnAsJSON} = server.web;
 
-                collection_name: {type: 'string', min: 1},
-                schema_name: {type: 'string', min: 1},
-                authorized_account: {type: 'string', min: 1, max: 12},
+    router.all('/v1/templates', caching(), returnAsJSON(getTemplatesAction, core));
+    router.all('/v1/templates/_count', caching(), returnAsJSON(getTemplatesCountAction, core));
 
-                issued_supply: {type: 'int', min: 0},
-                min_issued_supply: {type: 'int', min: 0},
-                max_issued_supply: {type: 'int', min: 0},
-                has_assets: {type: 'bool'},
+    router.all('/v1/templates/:collection_name/:template_id', caching({ignoreQueryString: true}), returnAsJSON(getTemplateAction, core));
 
-                max_supply: {type: 'int', min: 0},
-                is_transferable: {type: 'bool'},
-                is_burnable: {type: 'bool'}
-            });
+    router.all('/v1/templates/:collection_name/:template_id/stats', caching({ignoreQueryString: true}), returnAsJSON(getTemplateStatsAction, core));
 
-            const query = new QueryBuilder('SELECT "template".template_id FROM atomicassets_templates "template"');
-
-            query.equal('"template".contract', core.args.atomicassets_account);
-
-            buildDataConditions(req, query, {templateTable: '"template"'});
-
-            if (args.collection_name) {
-                query.equalMany('template.collection_name', args.collection_name.split(','));
-            }
-
-            if (args.schema_name) {
-                query.equalMany('template.schema_name', args.schema_name.split(','));
-            }
-
-            if (typeof args.issued_supply === 'number') {
-                query.equal('template.issued_supply', args.issued_supply);
-            }
-
-            if (typeof args.min_issued_supply === 'number') {
-                query.addCondition('template.issued_supply >= ' + query.addVariable(args.min_issued_supply));
-            }
-
-            if (typeof args.max_issued_supply === 'number') {
-                query.addCondition('template.issued_supply <= ' + query.addVariable(args.max_issued_supply));
-            }
-
-            if (args.has_assets) {
-                query.addCondition(
-                    'EXISTS(' +
-                    'SELECT * FROM atomicassets_assets asset ' +
-                    'WHERE template.contract = asset.contract AND template.template_id = asset.template_id AND owner IS NOT NULL' +
-                    ')'
-                );
-            }
-
-            if (typeof args.max_supply === 'number') {
-                query.equal('template.max_supply', args.max_supply);
-            }
-
-            if (typeof args.is_transferable === 'boolean') {
-                if (args.is_transferable) {
-                    query.addCondition('template.transferable = TRUE');
-                } else {
-                    query.addCondition('template.transferable = FALSE');
-                }
-            }
-
-            if (typeof args.is_burnable === 'boolean') {
-                if (args.is_burnable) {
-                    query.addCondition('template.burnable = TRUE');
-                } else {
-                    query.addCondition('template.burnable = FALSE');
-                }
-            }
-
-            if (args.authorized_account) {
-                query.addCondition(
-                    'EXISTS(' +
-                    'SELECT * FROM atomicassets_collections collection ' +
-                    'WHERE collection.collection_name = template.collection_name AND collection.contract = template.contract ' +
-                    'AND ' + query.addVariable(args.authorized_account) + ' = ANY(collection.authorized_accounts)' +
-                    ')'
-                );
-            }
-
-            buildBoundaryFilter(req, query, 'template.template_id', 'int', 'template.created_at_time');
-            buildGreylistFilter(req, query, {collectionName: 'collection_name'});
-
-            if (req.originalUrl.search('/_count') >= 0) {
-                const countQuery = await server.query(
-                    'SELECT COUNT(*) counter FROM (' + query.buildString() + ') x',
-                    query.buildValues()
-                );
-
-                return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
-            }
-
-            const sortColumnMapping: {[key: string]: string} = {
-                name: 'immutable_data->>\'name\'',
-                created: 'template_id'
-            };
-
-            query.append('ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', template_id ASC');
-            query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
-
-            const templateQuery = await server.query(query.buildString(), query.buildValues());
-
-            const templateLookup: {[key: string]: any} = {};
-            const result = await server.query(
-                'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND template_id = ANY ($2)',
-                [core.args.atomicassets_account, templateQuery.rows.map((row: any) => row.template_id)]
-            );
-
-            result.rows.reduce((prev: any, current: any) => {
-                prev[String(current.template_id)] = current;
-
-                return prev;
-            }, templateLookup);
-
-            return res.json({
-                success: true,
-                data: templateQuery.rows.map((row: any) => formatTemplate(templateLookup[String(row.template_id)])),
-                query_time: Date.now()
-            });
-        } catch (error) {
-            return respondApiError(res, error);
-        }
-    }));
-
-    router.all('/v1/templates/:collection_name/:template_id', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
-        try {
-            const query = await server.query(
-                'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND template_id = $2 LIMIT 1',
-                [core.args.atomicassets_account, req.params.template_id]
-            );
-
-            if (query.rowCount === 0) {
-                return res.status(416).json({success: false, message: 'Template not found'});
-            }
-
-            return res.json({success: true, data: formatTemplate(query.rows[0]), query_time: Date.now()});
-        } catch (error) {
-            return respondApiError(res, error);
-        }
-    }));
-
-    router.all('/v1/templates/:collection_name/:template_id/stats', server.web.caching({ignoreQueryString: true}), (async (req, res) => {
-        try {
-            const query = await server.query(
-                `SELECT SUM(assets) AS assets, SUM(burned) AS burned
-                FROM atomicassets_template_counts
-                WHERE contract = $1 AND template_id = $2`,
-                [core.args.atomicassets_account, req.params.template_id]
-            );
-
-            return res.json({success: true, data: {assets: query.rows[0].assets || '0', burned: query.rows[0].burned || '0'}});
-        } catch (error) {
-            return respondApiError(res, error);
-        }
-    }));
-
-    router.all('/v1/templates/:collection_name/:template_id/logs', server.web.caching(), (async (req, res) => {
-        const args = filterQueryArgs(req, {
-            page: {type: 'int', min: 1, default: 1},
-            limit: {type: 'int', min: 1, max: 100, default: 100},
-            order: {type: 'string', values: ['asc', 'desc'], default: 'asc'}
-        });
-
-        try {
-            res.json({
-                success: true,
-                data: await getContractActionLogs(
-                    server, core.args.atomicassets_account,
-                    applyActionGreylistFilters(['lognewtempl', 'locktemplate'], args),
-                    {collection_name: req.params.collection_name, template_id: parseInt(req.params.template_id, 10)},
-                    (args.page - 1) * args.limit, args.limit, args.order
-                ), query_time: Date.now()
-            });
-        } catch (error) {
-            return respondApiError(res, error);
-        }
-    }));
+    router.all('/v1/templates/:collection_name/:template_id/logs', caching(), returnAsJSON(getTemplateLogsAction, core));
 
     return {
         tag: {
