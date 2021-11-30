@@ -109,11 +109,13 @@ export default class StateHistoryBlockReader {
                 this.abi = JSON.parse(data);
                 this.types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), this.abi);
 
-                this.deserializeWorkers = new StaticPool({
-                    size: this.options.ds_threads,
-                    task: './build/workers/deserializer.js',
-                    workerData: {abi: data}
-                });
+                if (this.options.ds_threads > 0) {
+                    this.deserializeWorkers = new StaticPool({
+                        size: this.options.ds_threads,
+                        task: './build/workers/deserializer.js',
+                        workerData: {abi: data}
+                    });
+                }
 
                 for (const table of this.abi.tables) {
                     this.tables.set(table.name, table.type);
@@ -125,14 +127,37 @@ export default class StateHistoryBlockReader {
             } else {
                 const [type, response] = eosioDeserialize('result', data, this.types);
 
-                if (type === 'get_blocks_result_v0') {
+                if (['get_blocks_result_v0', 'get_blocks_result_v1'].indexOf(type) >= 0) {
+                    const dsConfig: {[key: string]: {version: number, trace_type: string, delta_type: string }} = {
+                        'get_blocks_result_v0': {
+                            version: 0,
+                            trace_type: 'transaction_trace',
+                            delta_type: 'table_delta'
+                        },
+                        'get_blocks_result_v1': {
+                            version: 1,
+                            trace_type: 'transaction_trace',
+                            delta_type: 'table_delta'
+                        }
+                    };
+
                     let block: any = null;
                     let traces: any = [];
                     let deltas: any = [];
 
                     if (response.this_block) {
                         if (response.block) {
-                            block = this.deserializeParallel('signed_block', response.block);
+                            if (dsConfig[type].version === 1) {
+                                if (response.block[0] === 'signed_block_v1') {
+                                    block = response.block[1];
+                                } else {
+                                    throw new Error('Unsupported table block type received ' + response.block[0]);
+                                }
+                            } else if (dsConfig[type].version === 0) {
+                                block = this.deserializeParallel('signed_block', response.block);
+                            } else {
+                                throw new Error('Unsupported table result type received ' + type);
+                            }
                         } else if(this.currentArgs.fetch_block) {
                             if (this.options.allow_empty_blocks) {
                                 logger.warn('Block #' + response.this_block.block_num + ' does not contain block data');
@@ -144,7 +169,7 @@ export default class StateHistoryBlockReader {
                         }
 
                         if (response.traces) {
-                            traces = this.deserializeParallel('transaction_trace[]', response.traces);
+                            traces = this.deserializeParallel(dsConfig[type].trace_type + '[]', response.traces);
                         } else if(this.currentArgs.fetch_traces) {
                             if (this.options.allow_empty_traces) {
                                 logger.warn('Block #' + response.this_block.block_num + ' does not contain trace data');
@@ -156,7 +181,8 @@ export default class StateHistoryBlockReader {
                         }
 
                         if (response.deltas) {
-                            deltas = this.deserializeDeltas(response.deltas);
+                            deltas = this.deserializeParallel(dsConfig[type].delta_type + '[]', response.deltas)
+                                .then(res => this.deserializeDeltas(res));
                         } else if(this.currentArgs.fetch_deltas) {
                             if (this.options.allow_empty_deltas) {
                                 logger.warn('Block #' + response.this_block.block_num + ' does not contain delta data');
@@ -340,6 +366,10 @@ export default class StateHistoryBlockReader {
     }
 
     private async deserializeParallel(type: string, data: Uint8Array): Promise<any> {
+        if (this.options.ds_threads === 0) {
+            return eosioDeserialize(type, data, this.types);
+        }
+
         const result = await this.deserializeWorkers.exec([{type, data}]);
 
         if (result.success) {
@@ -349,32 +379,46 @@ export default class StateHistoryBlockReader {
         throw new Error(result.message);
     }
 
-    private async deserializeDeltas(data: Uint8Array): Promise<any> {
-        const deltas = await this.deserializeParallel('table_delta[]', data);
-
+    private async deserializeDeltas(deltas: any[]): Promise<any> {
         return await Promise.all(deltas.map(async (delta: any) => {
             if (delta[0] === 'table_delta_v0') {
-                if (this.deltaWhitelist.indexOf(delta[1].name) >= 0) {
-                    const deserialized = await this.deserializeWorkers.exec(delta[1].rows.map((row: any) => ({
-                        type: delta[1].name, data: row.data
-                    })));
-
-                    if (!deserialized.success) {
-                        throw new Error(deserialized.message);
+                if (this.options.ds_threads === 0) {
+                    if (this.deltaWhitelist.indexOf(delta[1].name) >= 0) {
+                        return [
+                            delta[0],
+                            {
+                                ...delta[1],
+                                rows: delta[1].rows.map((row: any) => ({
+                                    ...row, data: eosioDeserialize(delta[1].name, row.data, this.types)
+                                }))
+                            }
+                        ];
                     }
 
-                    return [
-                        delta[0],
-                        {
-                            ...delta[1],
-                            rows: delta[1].rows.map((row: any, index: number) => ({
-                                ...row, data: deserialized.data[index]
-                            }))
-                        }
-                    ];
-                }
+                    return delta;
+                } else {
+                    if (this.deltaWhitelist.indexOf(delta[1].name) >= 0) {
+                        const deserialized = await this.deserializeWorkers.exec(delta[1].rows.map((row: any) => ({
+                            type: delta[1].name, data: row.data
+                        })));
 
-                return delta;
+                        if (!deserialized.success) {
+                            throw new Error(deserialized.message);
+                        }
+
+                        return [
+                            delta[0],
+                            {
+                                ...delta[1],
+                                rows: delta[1].rows.map((row: any, index: number) => ({
+                                    ...row, data: deserialized.data[index]
+                                }))
+                            }
+                        ];
+                    }
+
+                    return delta;
+                }
             }
 
             throw Error('Unsupported table delta type received ' + delta[0]);
