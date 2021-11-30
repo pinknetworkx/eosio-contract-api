@@ -147,18 +147,18 @@ export default class StateHistoryBlockReader {
                                             return res[1];
                                         }
 
-                                        throw new Error('Unsupported table block type received ' + res[0]);
+                                        throw new Error('Unsupported block type received ' + res[0]);
                                     });
                             } else if (respConfig[type].version === 1) {
                                 if (response.block[0] === 'signed_block_v1') {
                                     block = response.block[1];
                                 } else {
-                                    block = Promise.reject(new Error('Unsupported table block type received ' + response.block[0]));
+                                    block = Promise.reject(new Error('Unsupported block type received ' + response.block[0]));
                                 }
                             } else if (respConfig[type].version === 0) {
                                 block = this.deserializeParallel('signed_block', response.block);
                             } else {
-                                block = Promise.reject(new Error('Unsupported table result type received ' + type));
+                                block = Promise.reject(new Error('Unsupported result type received ' + type));
                             }
                         } else if(this.currentArgs.fetch_block) {
                             if (this.options.allow_empty_blocks) {
