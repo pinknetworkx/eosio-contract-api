@@ -10,13 +10,13 @@
     "lint": "eslint \"src/**/*.ts\"",
     "build": "yarn clean && tsc",
     "test": "mocha -r ts-node/register test/**/*.test.ts",
-    "test2": "mocha -r ts-node/register src/**/*.test.ts --watch --watch-files src/ --reporter min",
     "postinstall": "yarn build",
     "start:server": "node ./build/bin/server.js",
     "start:filler": "node ./build/bin/filler.js",
     "start:abiscan": "node ./build/bin/abiscan.js",
     "dev:server": "tsc && node --trace-warnings ./build/bin/server.js",
     "dev:filler": "tsc && node --trace-warnings ./build/bin/filler.js",
+    "dev:test": "mocha -r ts-node/register src/**/*.test.ts --watch --watch-files src/ --reporter min",
     "dev:init-test-db": "tsc && node --trace-warnings ./build/bin/init-test-db.js"
   },
   "dependencies": {
