@@ -128,7 +128,7 @@ export default class StateHistoryBlockReader {
                 const [type, response] = deserializeEosioType('result', data, this.types);
 
                 if (['get_blocks_result_v0', 'get_blocks_result_v1', 'get_blocks_result_v2'].indexOf(type) >= 0) {
-                    const respConfig: {[key: string]: {version: number }} = {
+                    const config: {[key: string]: {version: number }} = {
                         'get_blocks_result_v0': {version: 0},
                         'get_blocks_result_v1': {version: 1},
                         'get_blocks_result_v2': {version: 2}
@@ -140,7 +140,7 @@ export default class StateHistoryBlockReader {
 
                     if (response.this_block) {
                         if (response.block) {
-                            if (respConfig[type].version === 2) {
+                            if (config[type].version === 2) {
                                 block = this.deserializeParallel('signed_block_variant', response.block)
                                     .then((res: any) => {
                                         if (res[0] === 'signed_block_v1') {
@@ -149,13 +149,13 @@ export default class StateHistoryBlockReader {
 
                                         throw new Error('Unsupported block type received ' + res[0]);
                                     });
-                            } else if (respConfig[type].version === 1) {
+                            } else if (config[type].version === 1) {
                                 if (response.block[0] === 'signed_block_v1') {
                                     block = response.block[1];
                                 } else {
                                     block = Promise.reject(new Error('Unsupported block type received ' + response.block[0]));
                                 }
-                            } else if (respConfig[type].version === 0) {
+                            } else if (config[type].version === 0) {
                                 block = this.deserializeParallel('signed_block', response.block);
                             } else {
                                 block = Promise.reject(new Error('Unsupported result type received ' + type));
