@@ -1,20 +1,11 @@
-import { filterQueryArgs, FilterValues } from '../utils';
+import { FilterDefinition, filterQueryArgs, FilterValues } from '../utils';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 import QueryBuilder from '../../builder';
 
 export function hasAssetFilter(values: FilterValues, blacklist: string[] = []): boolean {
-    const keys = Object.keys(values);
-
-    for (const key of keys) {
-        if (
-            ['asset_id', 'collection_name', 'template_id', 'schema_name','owner', 'is_transferable', 'is_burnable'].includes(key) &&
-            !blacklist.includes(key)
-        ) {
-            return true;
-        }
-    }
-
-    return false;
+    return Object.keys(values)
+        .filter(key => !blacklist.includes(key))
+        .some(key => assetFilters[key]);
 }
 
 export function hasDataFilters(values: FilterValues): boolean {
@@ -49,24 +40,24 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
     const keys = Object.keys(values);
 
     function buildConditionObject(name: string): {[key: string]: string | number | boolean} {
-        const query: {[key: string]: string | number | boolean} = {};
+        const searchObject: {[key: string]: string | number} = {};
 
         for (const key of keys) {
             if (key.startsWith(name + ':text.')) {
-                query[key.substr((name + ':text.').length)] = String(values[key]);
+                searchObject[key.substr((name + ':text.').length)] = String(values[key]);
             } else if (key.startsWith(name + ':number.')) {
-                query[key.substr((name + ':number.').length)] = parseFloat(values[key]);
+                searchObject[key.substr((name + ':number.').length)] = parseFloat(values[key]);
             } else if (key.startsWith(name + ':bool.')) {
-                query[key.substr((name + ':bool.').length)] = (values[key] === 'true' || values[key] === '1') ? 1 : 0;
+                searchObject[key.substr((name + ':bool.').length)] = (values[key] === 'true' || values[key] === '1') ? 1 : 0;
             } else if (key.startsWith(name + '.')) {
-                query[key.substr((name + '.').length)] = values[key];
+                searchObject[key.substr((name + '.').length)] = values[key];
             }
         }
 
-        return query;
+        return searchObject;
     }
 
-    const templateCondition = Object.assign({}, buildConditionObject('data'), buildConditionObject('template_data'));
+    const templateCondition = {...buildConditionObject('data'), ...buildConditionObject('template_data')};
     const mutableCondition = buildConditionObject('mutable_data');
     const immutableCondition = buildConditionObject('immutable_data');
 
@@ -83,7 +74,7 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
             query.addCondition(options.assetTable + '.immutable_data @> ' + query.addVariable(JSON.stringify(immutableCondition)) + '::jsonb');
         }
 
-        if (values.match_immutable_name && typeof values.match_immutable_name === 'string' && values.match_immutable_name.length > 0) {
+        if (typeof values.match_immutable_name === 'string' && values.match_immutable_name.length > 0) {
             query.addCondition(
                 options.assetTable + '.immutable_data->>\'name\' IS NOT NULL AND ' +
                 options.assetTable + '.immutable_data->>\'name\' ILIKE ' +
@@ -91,7 +82,7 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
             );
         }
 
-        if (values.match_mutable_name && typeof values.match_mutable_name === 'string' && values.match_mutable_name.length > 0) {
+        if (typeof values.match_mutable_name === 'string' && values.match_mutable_name.length > 0) {
             query.addCondition(
                 options.assetTable + '.mutable_data->>\'name\' IS NOT NULL AND ' +
                 options.assetTable + '.mutable_data->>\'name\' ILIKE ' +
@@ -105,7 +96,7 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
             query.addCondition(options.templateTable + '.immutable_data @> ' + query.addVariable(JSON.stringify(templateCondition)) + '::jsonb');
         }
 
-        if (values.match && typeof values.match === 'string' && values.match.length > 0) {
+        if (typeof values.match === 'string' && values.match.length > 0) {
             query.addCondition(
                 options.templateTable + '.immutable_data->>\'name\' IS NOT NULL AND ' +
                 options.templateTable + '.immutable_data->>\'name\' ILIKE ' +
@@ -115,22 +106,24 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
     }
 }
 
+const assetFilters: FilterDefinition = {
+    asset_id: {type: 'string', min: 1},
+    owner: {type: 'string', min: 1, max: 12},
+    burned: {type: 'bool'},
+    template_id: {type: 'string', min: 1},
+    collection_name: {type: 'string', min: 1},
+    schema_name: {type: 'string', min: 1},
+    is_transferable: {type: 'bool'},
+    is_burnable: {type: 'bool'}
+};
+
 export function buildAssetFilter(
     values: FilterValues, query: QueryBuilder,
     options: {assetTable?: string, templateTable?: string, allowDataFilter?: boolean} = {}
 ): void {
     options = Object.assign({allowDataFilter: true}, options);
 
-    const args = filterQueryArgs(values, {
-        asset_id: {type: 'string', min: 1},
-        owner: {type: 'string', min: 1, max: 12},
-        burned: {type: 'bool'},
-        template_id: {type: 'string', min: 1},
-        collection_name: {type: 'string', min: 1},
-        schema_name: {type: 'string', min: 1},
-        is_transferable: {type: 'bool'},
-        is_burnable: {type: 'bool'}
-    });
+    const args = filterQueryArgs(values, assetFilters);
 
     if (options.allowDataFilter !== false) {
         buildDataConditions(values, query, {assetTable: options.assetTable, templateTable: options.templateTable});
@@ -206,7 +199,7 @@ export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, c
     if (columns.collectionName) {
         if (collectionWhitelist.length > 0 && collectionBlacklist.length > 0) {
             query.addCondition(
-                'EXISTS (SELECT * FROM UNNEST(' + query.addVariable(collectionWhitelist.filter(row => collectionBlacklist.indexOf(row) === -1)) + '::text[]) ' +
+                'EXISTS (SELECT * FROM UNNEST(' + query.addVariable(collectionWhitelist.filter(row => !collectionBlacklist.includes(row))) + '::text[]) ' +
                 'WHERE "unnest" = ' + columns.collectionName + ')'
             );
         } else {
@@ -226,7 +219,7 @@ export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, c
         }
     }
 
-    if (columns.account && columns.account.length > 0 && args.account_blacklist) {
+    if (columns.account?.length > 0 && args.account_blacklist) {
         const accounts = args.account_blacklist.split(',');
 
         if (accounts.length > 0) {

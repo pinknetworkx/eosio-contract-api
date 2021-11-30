@@ -61,8 +61,8 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
     });
 
     const query = new QueryBuilder(`
-                SELECT listing.sale_id 
-                FROM atomicmarket_sales listing 
+                SELECT listing.sale_id
+                FROM atomicmarket_sales listing
                     JOIN atomicassets_offers offer ON (listing.assets_contract = offer.contract AND listing.offer_id = offer.offer_id)
                     LEFT JOIN atomicmarket_sale_prices price ON (price.market_contract = listing.market_contract AND price.sale_id = listing.sale_id)
             `);
@@ -97,27 +97,23 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
         template_mint: {column: 'LOWER(listing.template_mint)', nullable: true, numericIndex: false}
     };
 
-    const ignoreIndex = (hasAssetFilter(params) || hasDataFilters(params) || hasListingFilter(params)) && sortMapping[args.sort].numericIndex;
+    const preventIndexUsage = (hasAssetFilter(params) || hasDataFilters(params) || hasListingFilter(params)) && sortMapping[args.sort].numericIndex;
 
-    query.append('ORDER BY ' + sortMapping[args.sort].column + (ignoreIndex ? ' + 1 ' : ' ') + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.sale_id ASC');
+    query.append('ORDER BY ' + sortMapping[args.sort].column + (preventIndexUsage ? ' + 1 ' : ' ') + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.sale_id ASC');
     query.paginate(args.page, args.limit);
 
     const saleQuery = await ctx.db.query(query.buildString(), query.buildValues());
 
-    const saleLookup: {[key: string]: any} = {};
-    const result = await ctx.db.query(
-        'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY ($2)',
+    const result = await ctx.db.query(`
+            SELECT * FROM atomicmarket_sales_master m
+                JOIN UNNEST($2::BIGINT[]) WITH ORDINALITY AS f(sale_id) ON m.sale_id = f.sale_id
+            WHERE market_contract = $1
+            ORDER BY f.ordinality`,
         [ctx.coreArgs.atomicmarket_account, saleQuery.rows.map(row => row.sale_id)]
     );
 
-    result.rows.reduce((prev, current) => {
-        prev[String(current.sale_id)] = current;
-
-        return prev;
-    }, saleLookup);
-
     return await fillSales(
-        ctx.db, ctx.coreArgs.atomicassets_account, saleQuery.rows.map((row) => formatSale(saleLookup[String(row.sale_id)]))
+        ctx.db, ctx.coreArgs.atomicassets_account, result.rows.map(formatSale)
     );
 }
 
@@ -204,17 +200,16 @@ export async function getSalesTemplatesAction(params: RequestValues, ctx: Atomic
 
     const saleResult = await ctx.db.query(queryString, query.buildValues());
 
-    const saleLookup: {[key: string]: any} = {};
     const result = await ctx.db.query(
         'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY ($2)',
         [ctx.coreArgs.atomicmarket_account, saleResult.rows.map(row => row.sale_id)]
     );
 
-    result.rows.reduce((prev, current) => {
+    const saleLookup: {[key: string]: any} = result.rows.reduce((prev, current) => {
         prev[String(current.sale_id)] = current;
 
         return prev;
-    }, saleLookup);
+    }, {});
 
     return await fillSales(
         ctx.db, ctx.coreArgs.atomicassets_account, saleResult.rows.map((row) => formatSale(saleLookup[String(row.sale_id)]))
