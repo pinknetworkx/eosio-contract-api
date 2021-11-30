@@ -3,6 +3,10 @@ import { AsyncFunc, Test } from 'mocha';
 import { DB } from '../api/server';
 import { RequestValues } from '../api/namespaces/utils';
 import { AtomicMarketContext } from '../api/namespaces/atomicmarket';
+import { IConnectionsConfig } from '../types/config';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const connectionConfig: IConnectionsConfig = require('../../config/connections.config.json');
 
 export class TestClient extends Client {
 
@@ -10,11 +14,8 @@ export class TestClient extends Client {
 
     constructor() {
         super({
-            user: 'postgres',
-            database: 'atomichub-test',
-            // password
-            // port
-            host: 'localhost',
+            ...connectionConfig.postgres,
+            database: `${connectionConfig.postgres.database}-test`,
         });
 
         this.connect().catch(console.error);
