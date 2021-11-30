@@ -52,7 +52,7 @@ export function splitEosioToken(asset: string, contract?: string): {amount: stri
     };
 }
 
-export function eosioDeserialize(type: string, data: Uint8Array | string, types: Map<string, Serialize.Type>, checkLength: boolean = true): any {
+export function deserializeEosioType(type: string, data: Uint8Array | string, types: Map<string, Serialize.Type>, checkLength: boolean = true): any {
     let dataArray;
     if (typeof data === 'string') {
         dataArray = Uint8Array.from(Buffer.from(data, 'hex'));
@@ -70,7 +70,7 @@ export function eosioDeserialize(type: string, data: Uint8Array | string, types:
     return result;
 }
 
-export function eosioSerialize(type: string, value: any, types: Map<string, Serialize.Type>): Uint8Array {
+export function serializeEosioType(type: string, value: any, types: Map<string, Serialize.Type>): Uint8Array {
     const buffer = new Serialize.SerialBuffer({ textEncoder: new TextEncoder(), textDecoder: new TextDecoder() });
     Serialize.getType(types, type).serialize(buffer, value);
 

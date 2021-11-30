@@ -9,7 +9,7 @@ import {
     BlockRequestType,
     IBlockReaderOptions, ShipBlockResponse
 } from '../types/ship';
-import { eosioDeserialize, eosioSerialize } from '../utils/eosio';
+import { deserializeEosioType, serializeEosioType } from '../utils/eosio';
 
 export type BlockConsumer = (block: ShipBlockResponse) => any;
 
@@ -93,7 +93,7 @@ export default class StateHistoryBlockReader {
     }
 
     send(request: [string, any]): void {
-        this.ws.send(eosioSerialize('request', request, this.types));
+        this.ws.send(serializeEosioType('request', request, this.types));
     }
 
     onConnect(): void {
@@ -125,7 +125,7 @@ export default class StateHistoryBlockReader {
                     this.requestBlocks();
                 }
             } else {
-                const [type, response] = eosioDeserialize('result', data, this.types);
+                const [type, response] = deserializeEosioType('result', data, this.types);
 
                 if (['get_blocks_result_v0', 'get_blocks_result_v1', 'get_blocks_result_v2'].indexOf(type) >= 0) {
                     const respConfig: {[key: string]: {version: number }} = {
@@ -368,60 +368,53 @@ export default class StateHistoryBlockReader {
     }
 
     private async deserializeParallel(type: string, data: Uint8Array): Promise<any> {
-        if (this.options.ds_threads === 0) {
-            return eosioDeserialize(type, data, this.types);
+        if (this.options.ds_threads > 0) {
+            const result = await this.deserializeWorkers.exec([{type, data}]);
+
+            if (result.success) {
+                return result.data[0];
+            }
+
+            throw new Error(result.message);
         }
 
-        const result = await this.deserializeWorkers.exec([{type, data}]);
+        return deserializeEosioType(type, data, this.types);
+    }
 
-        if (result.success) {
-            return result.data[0];
+    private async deserializeArrayParallel(rows: Array<{type: string, data: Uint8Array}>): Promise<any> {
+        if (this.options.ds_threads > 0) {
+            const result = await this.deserializeWorkers.exec(rows);
+
+            if (result.success) {
+                return result.data;
+            }
+
+            throw new Error(result.message);
         }
 
-        throw new Error(result.message);
+        return rows.map(row => deserializeEosioType(row.type, row.data, this.types));
     }
 
     private async deserializeDeltas(deltas: any[]): Promise<any> {
         return await Promise.all(deltas.map(async (delta: any) => {
             if (delta[0] === 'table_delta_v0' || delta[0] === 'table_delta_v1') {
-                if (this.options.ds_threads === 0) {
-                    if (this.deltaWhitelist.indexOf(delta[1].name) >= 0) {
-                        return [
-                            delta[0],
-                            {
-                                ...delta[1],
-                                rows: delta[1].rows.map((row: any) => ({
-                                    present: !!row.present,
-                                    data: eosioDeserialize(delta[1].name, row.data, this.types)
-                                }))
-                            }
-                        ];
-                    }
+                if (this.deltaWhitelist.indexOf(delta[1].name) >= 0) {
+                    const deserialized = await this.deserializeArrayParallel(delta[1].rows.map((row: any) => ({
+                        type: delta[1].name, data: row.data
+                    })));
 
-                    return delta;
-                } else {
-                    if (this.deltaWhitelist.indexOf(delta[1].name) >= 0) {
-                        const deserialized = await this.deserializeWorkers.exec(delta[1].rows.map((row: any) => ({
-                            type: delta[1].name, data: row.data
-                        })));
-
-                        if (!deserialized.success) {
-                            throw new Error(deserialized.message);
+                    return [
+                        delta[0],
+                        {
+                            ...delta[1],
+                            rows: delta[1].rows.map((row: any, index: number) => ({
+                                present: !!row.present, data: deserialized[index]
+                            }))
                         }
-
-                        return [
-                            delta[0],
-                            {
-                                ...delta[1],
-                                rows: delta[1].rows.map((row: any, index: number) => ({
-                                    present: !!row.present, data: deserialized.data[index]
-                                }))
-                            }
-                        ];
-                    }
-
-                    return delta;
+                    ];
                 }
+
+                return delta;
             }
 
             throw Error('Unsupported table delta type received ' + delta[0]);
