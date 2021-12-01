@@ -17,11 +17,12 @@ async function getSalesIds(values: RequestValues): Promise<Array<number>> {
     return result?.map((s: any) => s.sale_id);
 }
 
-describe('AtomicMarket Sales API', () => {
+// TODO remove only
+describe.only('AtomicMarket Sales API', () => {
 
     describe('getSalesAction V2', () => {
 
-        txit.only('works without filters', async () => {
+        txit('works without filters', async () => {
 
             const {sale_id} = await client.createFullSale();
 
@@ -606,85 +607,83 @@ describe('AtomicMarket Sales API', () => {
         //
         //     expect(result).to.equal('1');
         // });
-        //
-        // txit('orders ascending', async () => {
-        //     const {sale_id: sale_id1} = await client.createSale();
-        //
-        //     const {sale_id: sale_id2} = await client.createSale();
-        //
-        //     expect(await getSalesIds({order: 'asc'}))
-        //         .to.deep.equal([sale_id1, sale_id2]);
-        // });
-        //
-        // txit('orders descending', async () => {
-        //     const {sale_id: sale_id1} = await client.createSale();
-        //
-        //     const {sale_id: sale_id2} = await client.createSale();
-        //
-        //     expect(await getSalesIds({order: 'desc'}))
-        //         .to.deep.equal([sale_id2, sale_id1]);
-        // });
-        //
-        // txit('orders by sale_id', async () => {
-        //     const sale_id2 = `${client.getId()}`;
-        //     const {sale_id: sale_id1} = await client.createSale();
-        //
-        //     await client.createSale({sale_id: sale_id2, created_at_time: sale_id2});
-        //
-        //     expect(await getSalesIds({sort: 'sale_id'}))
-        //         .to.deep.equal([sale_id1, sale_id2]);
-        // });
-        //
-        // txit('orders by created', async () => {
-        //     const created_at_time = `${client.getId()}`;
-        //     const {sale_id: sale_id1} = await client.createSale({});
-        //
-        //     const {sale_id: sale_id2} = await client.createSale({created_at_time});
-        //
-        //     expect(await getSalesIds({sort: 'created'}))
-        //         .to.deep.equal([sale_id1, sale_id2]);
-        // });
-        //
-        // txit('orders by updated', async () => {
-        //     const updated_at_time = `${client.getId()}`;
-        //     const {sale_id: sale_id1} = await client.createSale({});
-        //
-        //     const {sale_id: sale_id2} = await client.createSale({updated_at_time});
-        //
-        //     expect(await getSalesIds({sort: 'updated'}))
-        //         .to.deep.equal([sale_id1, sale_id2]);
-        // });
-        //
-        // txit('orders by price', async () => {
-        //     const sale_id2 = `${client.getId()}`;
-        //     const {sale_id: sale_id1} = await client.createSale({listing_price: 2});
-        //
-        //     await client.createSale({listing_price: 1, sale_id: sale_id2});
-        //
-        //     await client.query('REFRESH MATERIALIZED VIEW atomicmarket_sale_prices');
-        //
-        //     expect(await getSalesIds({sort: 'price'}))
-        //         .to.deep.equal([sale_id1, sale_id2]);
-        // });
-        //
-        // txit('orders by template_mint', async () => {
-        //     const {sale_id: sale_id1} = await client.createSale({template_mint: '[2,3)'});
-        //
-        //     const {sale_id: sale_id2} = await client.createSale({template_mint: '[1,2)'});
-        //
-        //     expect(await getSalesIds({sort: 'template_mint'}))
-        //         .to.deep.equal([sale_id1, sale_id2]);
-        // });
-        //
-        // txit('paginates', async () => {
-        //     const {sale_id: sale_id1} = await client.createSale();
-        //
-        //     await client.createSale();
-        //
-        //     expect(await getSalesIds({page: '2', limit: '1'}))
-        //         .to.deep.equal([sale_id1]);
-        // });
-        //
+
+        txit('orders ascending', async () => {
+            const {sale_id: sale_id1} = await client.createFullSale();
+
+            const {sale_id: sale_id2} = await client.createFullSale();
+
+            expect(await getSalesIds({order: 'asc'}))
+                .to.deep.equal([sale_id1, sale_id2]);
+        });
+
+        txit('orders descending', async () => {
+            const {sale_id: sale_id1} = await client.createFullSale();
+
+            const {sale_id: sale_id2} = await client.createFullSale();
+
+            expect(await getSalesIds({order: 'desc'}))
+                .to.deep.equal([sale_id2, sale_id1]);
+        });
+
+        txit('orders by sale_id', async () => {
+            const sale_id2 = `${client.getId()}`;
+            const {sale_id: sale_id1} = await client.createFullSale();
+
+            await client.createFullSale({sale_id: sale_id2, created_at_time: sale_id2});
+
+            expect(await getSalesIds({sort: 'sale_id'}))
+                .to.deep.equal([sale_id1, sale_id2]);
+        });
+
+        txit('orders by created', async () => {
+            const created_at_time = `${client.getId()}`;
+            const {sale_id: sale_id1} = await client.createFullSale({});
+
+            const {sale_id: sale_id2} = await client.createFullSale({created_at_time});
+
+            expect(await getSalesIds({sort: 'created'}))
+                .to.deep.equal([sale_id1, sale_id2]);
+        });
+
+        txit('orders by updated', async () => {
+            const updated_at_time = `${client.getId()}`;
+            const {sale_id: sale_id1} = await client.createFullSale({});
+
+            const {sale_id: sale_id2} = await client.createFullSale({updated_at_time});
+
+            expect(await getSalesIds({sort: 'updated'}))
+                .to.deep.equal([sale_id1, sale_id2]);
+        });
+
+        txit('orders by price', async () => {
+            const sale_id2 = `${client.getId()}`;
+            const {sale_id: sale_id1} = await client.createFullSale({listing_price: 2});
+
+            await client.createFullSale({listing_price: 1, sale_id: sale_id2});
+
+            expect(await getSalesIds({sort: 'price'}))
+                .to.deep.equal([sale_id1, sale_id2]);
+        });
+
+        txit('orders by template_mint', async () => {
+            const {sale_id: sale_id1} = await client.createFullSale({template_mint: '[2,3)'});
+
+            const {sale_id: sale_id2} = await client.createFullSale({template_mint: '[1,2)'});
+
+            expect(await getSalesIds({sort: 'template_mint'}))
+                .to.deep.equal([sale_id1, sale_id2]);
+        });
+
+        txit('paginates', async () => {
+            const {sale_id: sale_id1} = await client.createFullSale();
+
+            await client.createFullSale();
+
+            expect(await getSalesIds({page: '2', limit: '1'}))
+                .to.deep.equal([sale_id1]);
+        });
+
         // txit('formats and fills result', async () => {
         //     await client.createSale();
         //

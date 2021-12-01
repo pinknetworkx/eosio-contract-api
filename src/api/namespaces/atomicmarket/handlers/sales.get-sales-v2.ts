@@ -7,12 +7,12 @@ import { fillSales } from '../filler';
 import { formatSale } from '../format';
 
 export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
-/*
+
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
-        collection_name: {type: 'string', min: 1},
-        state: {type: 'string', min: 1},
+        // collection_name: {type: 'string', min: 1},
+        // state: {type: 'string', min: 1},
         sort: {
             type: 'string',
             values: [
@@ -22,9 +22,8 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
             default: 'created'
         },
         order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
-        count: {type: 'bool'}
+        // count: {type: 'bool'}
     });
-*/
 
     const query = new QueryBuilder(`
                 SELECT listing.sale_id
@@ -52,24 +51,20 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
 
         return countQuery.rows[0].counter;
     }
-
+*/
     const sortMapping: { [key: string]: { column: string, nullable: boolean, numericIndex: boolean } } = {
         sale_id: {column: 'listing.sale_id', nullable: false, numericIndex: true},
         created: {column: 'listing.created_at_time', nullable: false, numericIndex: true},
         updated: {column: 'listing.updated_at_time', nullable: false, numericIndex: true},
-        price: {
-            column: args.state === '3' ? 'listing.final_price' : 'price.price',
-            nullable: true,
-            numericIndex: false
-        },
+        price: {column: 'listing.price', nullable: true, numericIndex: false},
         template_mint: {column: 'LOWER(listing.template_mint)', nullable: true, numericIndex: false}
     };
 
-    const preventIndexUsage = (hasAssetFilter(params) || hasDataFilters(params) || hasListingFilter(params)) && sortMapping[args.sort].numericIndex;
+    // const preventIndexUsage = (hasAssetFilter(params) || hasDataFilters(params) || hasListingFilter(params)) && sortMapping[args.sort].numericIndex;
 
-    query.append('ORDER BY ' + sortMapping[args.sort].column + (preventIndexUsage ? ' + 1 ' : ' ') + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', listing.sale_id ASC');
+    query.append(`ORDER BY ${sortMapping[args.sort].column} ${args.order} ${(sortMapping[args.sort].nullable ? 'NULLS LAST' : '')}, listing.sale_id ASC`);
     query.paginate(args.page, args.limit);
-*/
+
     const saleQuery = await ctx.db.query(query.buildString(), query.buildValues());
 
     const result = await ctx.db.query(`
