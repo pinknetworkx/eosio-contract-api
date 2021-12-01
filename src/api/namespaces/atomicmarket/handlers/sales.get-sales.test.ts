@@ -33,7 +33,7 @@ describe('AtomicMarket Sales API', () => {
         txit('filters by waiting state', async () => {
             await client.createSale();
             const {sale_id} = await client.createSale({
-                state: SaleApiState.WAITING,
+                state: SaleState.WAITING,
             });
 
             expect(await getSalesIds({state: `${SaleApiState.WAITING}`}))
@@ -42,19 +42,19 @@ describe('AtomicMarket Sales API', () => {
 
         txit('filters by listed state', async () => {
             await client.createSale({
-                state: SaleApiState.WAITING,
+                state: SaleState.WAITING,
             });
 
             const {offer_id} = await client.createOffer({
                 state: OfferState.ACCEPTED,
             });
             await client.createSale({
-                state: SaleApiState.LISTED,
+                state: SaleState.LISTED,
                 offer_id,
             });
 
             const {sale_id} = await client.createSale({
-                state: SaleApiState.LISTED,
+                state: SaleState.LISTED,
             });
 
             expect(await getSalesIds({state: `${SaleApiState.LISTED}`}))
@@ -64,7 +64,7 @@ describe('AtomicMarket Sales API', () => {
         txit('filters by canceled state', async () => {
             await client.createSale();
             const {sale_id} = await client.createSale({
-                state: SaleApiState.CANCELED,
+                state: SaleState.CANCELED,
             });
 
             expect(await getSalesIds({state: `${SaleApiState.CANCELED}`}))
@@ -74,7 +74,7 @@ describe('AtomicMarket Sales API', () => {
         txit('filters by sold state', async () => {
             await client.createSale();
             const {sale_id} = await client.createSale({
-                state: SaleApiState.SOLD,
+                state: SaleState.SOLD,
             });
 
             expect(await getSalesIds({state: `${SaleApiState.SOLD}`}))
@@ -87,14 +87,14 @@ describe('AtomicMarket Sales API', () => {
             });
 
             await client.createSale({
-                state: SaleApiState.LISTED,
+                state: SaleState.LISTED,
             });
 
             const {offer_id} = await client.createOffer({
                 state: OfferState.ACCEPTED,
             });
             const {sale_id} = await client.createSale({
-                state: SaleApiState.LISTED,
+                state: SaleState.LISTED,
                 offer_id,
             });
 

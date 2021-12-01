@@ -1,10 +1,13 @@
-import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../utils';
-import { AtomicMarketContext } from '../index';
+import { buildBoundaryFilter, filterQueryArgs, FilterValues, RequestValues } from '../../utils';
+import { AtomicMarketContext, SaleApiState } from '../index';
 import QueryBuilder from '../../../builder';
-import { buildSaleFilter, hasListingFilter } from '../utils';
-import { buildGreylistFilter, hasAssetFilter, hasDataFilters } from '../../atomicassets/utils';
+import { buildListingFilter, hasListingFilter } from '../utils';
+import { buildAssetFilter, buildGreylistFilter, hasAssetFilter, hasDataFilters } from '../../atomicassets/utils';
 import { fillSales } from '../filler';
 import { formatSale } from '../format';
+import { ApiError } from '../../../error';
+import { SaleState } from '../../../../filler/handlers/atomicmarket';
+import { OfferState } from '../../../../filler/handlers/atomicassets';
 
 export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
 
@@ -12,7 +15,6 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
         // collection_name: {type: 'string', min: 1},
-        // state: {type: 'string', min: 1},
         sort: {
             type: 'string',
             values: [
@@ -31,9 +33,9 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
             `);
 
     query.equal('listing.market_contract', ctx.coreArgs.atomicmarket_account);
-/*
-    buildSaleFilter(params, query);
 
+    buildSaleFilterV2(params, query);
+/*
     if (!args.collection_name) {
         buildGreylistFilter(params, query, {collectionName: 'listing.collection_name'});
     }
@@ -83,4 +85,75 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
 
 export async function getSalesCountV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     return await getSalesV2Action({...params, count: 'true'}, ctx);
+}
+
+function buildSaleFilterV2(values: FilterValues, query: QueryBuilder): void {
+    const args = filterQueryArgs(values, {
+        state: {type: 'string', min: 1},
+
+        // max_assets: {type: 'int', min: 1},
+        // min_assets: {type: 'int', min: 1},
+
+        // symbol: {type: 'string', min: 1},
+        // min_price: {type: 'float', min: 0},
+        // max_price: {type: 'float', min: 0}
+    });
+
+    // buildListingFilter(values, query);
+    //
+    // if (hasAssetFilter(values, ['collection_name']) || hasDataFilters(values)) {
+    //     const assetQuery = new QueryBuilder(
+    //         'SELECT * FROM atomicassets_offers_assets offer_asset, ' +
+    //         'atomicassets_assets asset LEFT JOIN atomicassets_templates "template" ON ("asset".contract = "template".contract AND "asset".template_id = "template".template_id)',
+    //         query.buildValues()
+    //     );
+    //
+    //     assetQuery.join('asset', 'offer_asset', ['contract', 'asset_id']);
+    //     assetQuery.addCondition(  'offer_asset.offer_id = listing.offer_id AND offer_asset.contract = listing.assets_contract');
+    //
+    //     buildAssetFilter(values, assetQuery, {assetTable: '"asset"', templateTable: '"template"', allowDataFilter: true});
+    //
+    //     query.addCondition('EXISTS(' + assetQuery.buildString() + ')');
+    //     query.setVars(assetQuery.buildValues());
+    // }
+    //
+    // if (args.max_assets) {
+    //     query.addCondition(
+    //         `(
+    //             SELECT COUNT(*) FROM (
+    //                 SELECT FROM atomicassets_offers_assets asset
+    //                 WHERE asset.contract = listing.assets_contract AND asset.offer_id = listing.offer_id LIMIT ${args.max_assets + 1}
+    //             ) ct
+    //         ) <= ${args.max_assets} `
+    //     );
+    // }
+    //
+    // if (args.min_assets) {
+    //     query.addCondition(
+    //         `(
+    //             SELECT COUNT(*) FROM (
+    //                 SELECT FROM atomicassets_offers_assets asset
+    //                 WHERE asset.contract = listing.assets_contract AND asset.offer_id = listing.offer_id LIMIT ${args.min_assets}
+    //             ) ct
+    //         ) >= ${args.min_assets} `
+    //     );
+    // }
+    //
+    // if (args.symbol) {
+    //     query.equal('listing.settlement_symbol', args.symbol);
+    //
+    //     if (args.min_price) {
+    //         query.addCondition('price.price >= 1.0 * ' + query.addVariable(args.min_price) + ' * POWER(10, price.settlement_precision)');
+    //     }
+    //
+    //     if (args.max_price) {
+    //         query.addCondition('price.price <= 1.0 * ' + query.addVariable(args.max_price) + ' * POWER(10, price.settlement_precision)');
+    //     }
+    // } else if (args.min_price || args.max_price) {
+    //     throw new ApiError('Price range filters require the "symbol" filter');
+    // }
+
+    if (args.state?.length) {
+        query.equalMany('listing.sale_state', args.state.split(',').map((state: string) => parseInt(state, 10)));
+    }
 }

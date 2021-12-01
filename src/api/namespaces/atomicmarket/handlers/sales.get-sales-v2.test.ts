@@ -4,6 +4,9 @@ import { RequestValues } from '../../utils';
 import { initAtomicMarketTest } from '../test';
 import { getTestContext } from '../../../../utils/test';
 import { getSalesV2Action } from './sales.get-sales-v2';
+import { SaleApiState } from '../index';
+import { OfferState } from '../../../../filler/handlers/atomicassets';
+import { SaleState } from '../../../../filler/handlers/atomicmarket';
 
 const {client, txit} = initAtomicMarketTest();
 
@@ -29,93 +32,90 @@ describe.only('AtomicMarket Sales API', () => {
             expect(await getSalesIds({})).to.deep.equal([sale_id]);
         });
 
-        // txit('filters by waiting state', async () => {
-        //     await client.createSale();
-        //     const {sale_id} = await client.createSale({
-        //         state: SaleApiState.WAITING,
-        //     });
-        //
-        //     expect(await getSalesIds({state: `${SaleApiState.WAITING}`}))
-        //         .to.deep.equal([sale_id]);
-        // });
-        //
-        // txit('filters by listed state', async () => {
-        //     await client.createSale({
-        //         state: SaleApiState.WAITING,
-        //     });
-        //
-        //     const {offer_id} = await client.createOffer({
-        //         state: OfferState.ACCEPTED,
-        //     });
-        //     await client.createSale({
-        //         state: SaleApiState.LISTED,
-        //         offer_id,
-        //     });
-        //
-        //     const {sale_id} = await client.createSale({
-        //         state: SaleApiState.LISTED,
-        //     });
-        //
-        //     expect(await getSalesIds({state: `${SaleApiState.LISTED}`}))
-        //         .to.deep.equal([sale_id]);
-        // });
-        //
+        txit('filters by waiting state', async () => {
+            await client.createFullSale();
+            const {sale_id} = await client.createFullSale({
+                state: SaleState.WAITING,
+            });
+
+            expect(await getSalesIds({state: `${SaleApiState.WAITING}`}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by listed state', async () => {
+            await client.createFullSale({
+                state: SaleState.WAITING,
+            });
+
+            await client.createFullSale({
+                state: SaleState.LISTED,
+            }, {}, {
+                state: OfferState.ACCEPTED
+            }, {});
+
+            const {sale_id} = await client.createFullSale({
+                state: SaleState.LISTED,
+            });
+
+            expect(await getSalesIds({state: `${SaleApiState.LISTED}`}))
+                .to.deep.equal([sale_id]);
+        });
+
+        // cancelled sales are not currently stored
         // txit('filters by canceled state', async () => {
         //     await client.createSale();
-        //     const {sale_id} = await client.createSale({
-        //         state: SaleApiState.CANCELED,
+        //     const {sale_id} = await client.createFullSale({
+        //         state: SaleState.CANCELED,
         //     });
         //
         //     expect(await getSalesIds({state: `${SaleApiState.CANCELED}`}))
         //         .to.deep.equal([sale_id]);
         // });
-        //
-        // txit('filters by sold state', async () => {
-        //     await client.createSale();
-        //     const {sale_id} = await client.createSale({
-        //         state: SaleApiState.SOLD,
-        //     });
-        //
-        //     expect(await getSalesIds({state: `${SaleApiState.SOLD}`}))
-        //         .to.deep.equal([sale_id]);
-        // });
-        //
-        // txit('filters by invalid state', async () => {
-        //     await client.createSale({
-        //         state: SaleState.WAITING
-        //     });
-        //
-        //     await client.createSale({
-        //         state: SaleApiState.LISTED,
-        //     });
-        //
-        //     const {offer_id} = await client.createOffer({
-        //         state: OfferState.ACCEPTED,
-        //     });
-        //     const {sale_id} = await client.createSale({
-        //         state: SaleApiState.LISTED,
-        //         offer_id,
-        //     });
-        //
-        //     expect(await getSalesIds({state: `${SaleApiState.INVALID}`}))
-        //         .to.deep.equal([sale_id]);
-        // });
-        //
-        // txit('filters by multiple states', async () => {
-        //     await client.createSale();
-        //
-        //     const {sale_id: sale_id1} = await client.createSale({
-        //         state: SaleState.WAITING,
-        //     });
-        //
-        //     const {sale_id: sale_id2} = await client.createSale({
-        //         state: SaleState.CANCELED,
-        //     });
-        //
-        //     expect(await getSalesIds({state: `${SaleApiState.WAITING},${SaleApiState.CANCELED}`}))
-        //         .to.deep.equal([sale_id2, sale_id1]);
-        // });
-        //
+
+        txit('filters by sold state', async () => {
+            await client.createSale();
+            const {sale_id} = await client.createFullSale({
+                state: SaleState.SOLD,
+            });
+
+            expect(await getSalesIds({state: `${SaleApiState.SOLD}`}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by invalid state', async () => {
+            await client.createFullSale({
+                state: SaleState.WAITING
+            });
+
+            await client.createSale({
+                state: SaleState.LISTED,
+            });
+
+            const {sale_id} = await client.createFullSale({
+                state: SaleState.LISTED,
+            }, {}, {
+                state: OfferState.ACCEPTED,
+            });
+
+            expect(await getSalesIds({state: `${SaleApiState.INVALID}`}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by multiple states', async () => {
+            await client.createFullSale();
+
+            const {sale_id: sale_id1} = await client.createFullSale({
+                state: SaleState.WAITING,
+            });
+
+            const {sale_id: sale_id2} = await client.createFullSale({
+                state: SaleState.SOLD,
+            });
+
+            expect(await getSalesIds({state: `${SaleApiState.WAITING},${SaleApiState.SOLD}`}))
+                .to.deep.equal([sale_id2, sale_id1]);
+        });
+
         // txit('filters by minimum asset count', async () => {
         //     await client.createSale();
         //
