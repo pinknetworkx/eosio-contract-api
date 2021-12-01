@@ -1,13 +1,9 @@
-import { buildBoundaryFilter, filterQueryArgs, FilterValues, RequestValues } from '../../utils';
-import { AtomicMarketContext, SaleApiState } from '../index';
+import { filterQueryArgs, FilterValues, RequestValues } from '../../utils';
+import { AtomicMarketContext } from '../index';
 import QueryBuilder from '../../../builder';
-import { buildListingFilter, hasListingFilter } from '../utils';
-import { buildAssetFilter, buildGreylistFilter, hasAssetFilter, hasDataFilters } from '../../atomicassets/utils';
 import { fillSales } from '../filler';
 import { formatSale } from '../format';
 import { ApiError } from '../../../error';
-import { SaleState } from '../../../../filler/handlers/atomicmarket';
-import { OfferState } from '../../../../filler/handlers/atomicassets';
 
 export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
 
@@ -99,8 +95,9 @@ async function buildSaleFilterV2(values: FilterValues, query: QueryBuilder, ctx:
         max_price: {type: 'float', min: 0}
     });
 
-    // buildListingFilter(values, query);
-    //
+    buildAggFilterV2(values, query);
+    buildListingFilterV2(values, query);
+
     // if (hasAssetFilter(values, ['collection_name']) || hasDataFilters(values)) {
     //     const assetQuery = new QueryBuilder(
     //         'SELECT * FROM atomicassets_offers_assets offer_asset, ' +
@@ -144,4 +141,123 @@ async function buildSaleFilterV2(values: FilterValues, query: QueryBuilder, ctx:
     if (args.state?.length) {
         query.equalMany('listing.sale_state', args.state.split(',').map((state: string) => parseInt(state, 10)));
     }
+}
+
+type AggFilter = {
+    buyers?: string[],
+    sellers?: string[],
+};
+
+export function buildAggFilterV2(values: FilterValues, query: QueryBuilder): void {
+    const args = filterQueryArgs(values, {
+        seller_blacklist: {type: 'string[]', min: 1},
+        buyer_blacklist: {type: 'string[]', min: 1},
+
+        account: {type: 'string[]', min: 1},
+        seller: {type: 'string[]', min: 1},
+        buyer: {type: 'string[]', min: 1},
+    });
+
+    let hasInc = 0;
+    const inc: AggFilter = {
+        buyers: [],
+        sellers: [],
+    };
+
+    let hasExc = 0;
+    const exc: AggFilter = {
+        buyers: [],
+        sellers: [],
+    };
+
+    if (args.account) {
+        query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(sellers := ${query.addVariable(args.account)}, buyers := ${query.addVariable(args.account)}))`);
+    }
+
+    if (args.seller) {
+        if (args.seller.length > 1) {
+            query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(sellers := ${query.addVariable(args.seller)}))`);
+        } else {
+            hasInc = inc.sellers.push(args.seller);
+        }
+    }
+
+    if (args.buyer) {
+        if (args.buyer.length > 1) {
+            query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(buyers := ${query.addVariable(args.buyer)}))`);
+        } else {
+            hasInc = inc.buyers.push(args.buyer);
+        }
+    }
+
+    if (args.seller_blacklist) {
+        hasExc = exc.sellers.push(args.seller_blacklist);
+    }
+
+    if (args.buyer_blacklist) {
+        hasExc = exc.buyers.push(args.buyer_blacklist);
+    }
+
+    if (hasInc) {
+        query.addCondition(`(listing.filter @> create_atomicmarket_sales_filter(buyers := ${query.addVariable(inc.buyers)}, sellers := ${query.addVariable(inc.sellers)}))`);
+    }
+
+    if (hasExc) {
+        query.addCondition(`NOT (listing.filter && create_atomicmarket_sales_filter(buyers := ${query.addVariable(exc.buyers)}, sellers := ${query.addVariable(exc.sellers)}))`);
+    }
+}
+
+export function buildListingFilterV2(values: FilterValues, query: QueryBuilder): void {
+    const args = filterQueryArgs(values, {
+        // show_seller_contracts: {type: 'bool', default: true},
+        // contract_whitelist: {type: 'string', min: 1, default: ''},
+
+        // maker_marketplace: {type: 'string', min: 1, max: 12},
+        // taker_marketplace: {type: 'string', min: 1, max: 12},
+        // marketplace: {type: 'string', min: 1, max: 12},
+        //
+        // collection_name: {type: 'string', min: 1},
+        //
+        // min_template_mint: {type: 'int', min: 1},
+        // max_template_mint: {type: 'int', min: 1}
+    });
+
+    // if (args.collection_name) {
+    //     query.equalMany('listing.collection_name', args.collection_name.split(','));
+    // }
+    //
+    // if (!args.show_seller_contracts) {
+    //     query.addCondition(
+    //         'NOT EXISTS(' +
+    //         'SELECT * FROM contract_codes code ' +
+    //         'WHERE code.account = listing.seller AND code.account != ALL(' + query.addVariable(args.contract_whitelist.split(',')) + ')' +
+    //         ')'
+    //     );
+    // }
+
+    // if (args.marketplace) {
+    //     const varName = query.addVariable(args.marketplace.split(','));
+    //     query.addCondition('(listing.maker_marketplace = ANY (' + varName + ') OR listing.taker_marketplace = ANY (' + varName + ')) ');
+    // } else {
+    //     if (args.maker_marketplace) {
+    //         query.equalMany('listing.maker_marketplace', args.maker_marketplace.split(','));
+    //     }
+    //
+    //     if (args.taker_marketplace) {
+    //         query.equalMany('listing.taker_marketplace', args.taker_marketplace.split(','));
+    //     }
+    // }
+    //
+    // if (args.min_template_mint || args.max_template_mint) {
+    //     if ((args.min_template_mint && args.min_template_mint > 1) || (args.max_template_mint && args.max_template_mint < 1)) {
+    //         query.addCondition('listing.template_mint != \'empty\'');
+    //     }
+    //
+    //     query.addCondition(
+    //         'listing.template_mint <@ int4range(' +
+    //         query.addVariable(args.min_template_mint ?? null) + ', ' +
+    //         query.addVariable(args.max_template_mint ?? null) +
+    //         ', \'[]\')'
+    //     );
+    // }
 }

@@ -3,7 +3,7 @@ import QueryBuilder from '../builder';
 
 export type FilterDefinition = {
     [key: string]: {
-        type: 'string' | 'int' | 'float' | 'bool',
+        type: 'string' | 'string[]' | 'int' | 'float' | 'bool',
         min?: number,
         max?: number,
         default?: any,
@@ -38,7 +38,7 @@ export function filterQueryArgs(values: FilterValues, filter: FilterDefinition, 
             continue;
         }
 
-        if (filter[key].type === 'string') {
+        if (filter[key].type.match(/string(\[])?/)) {
             if (typeof filter[key].min === 'number' && data.length < filter[key].min) {
                 result[key] = filter[key].default;
 
@@ -51,13 +51,17 @@ export function filterQueryArgs(values: FilterValues, filter: FilterDefinition, 
                 continue;
             }
 
-            if (Array.isArray(filter[key].values) && filter[key].values.indexOf(data) === -1) {
+            if (Array.isArray(filter[key].values) && !filter[key].values.includes(data)) {
                 result[key] = filter[key].default;
 
                 continue;
             }
 
-            result[key] = data;
+            if (filter[key].type === 'string[]') {
+                result[key] = data.split(',');
+            } else {
+                result[key] = data;
+            }
         } else if (filter[key].type === 'int' || filter[key].type === 'float') {
             const n = parseFloat(data);
 
