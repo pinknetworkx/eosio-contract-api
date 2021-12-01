@@ -51,4 +51,9 @@ export class AtomicMarketTestClient extends AtomicAssetsTestClient {
         });
     }
 
+    async createFullSale(saleValues: Record<string, any> = {}, assetValues: Record<string, any> = {}, offerAssetValues: Record<string, any> = {}): Promise<Record<string, any>> {
+        const {offer_id} = await this.createOfferAsset(offerAssetValues, assetValues);
+        return await this.createSale({...saleValues, offer_id});
+    }
+
 }

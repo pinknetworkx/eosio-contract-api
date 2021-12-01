@@ -1,6 +1,6 @@
 import 'mocha';
 import { expect } from 'chai';
-import { getSalesAction } from '../handlers/sales';
+import { getSalesAction } from './sales';
 import { SaleApiState } from '../index';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
