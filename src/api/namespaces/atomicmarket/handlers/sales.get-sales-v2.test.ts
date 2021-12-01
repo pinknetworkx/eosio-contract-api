@@ -597,13 +597,15 @@ describe.only('AtomicMarket Sales API', () => {
         // });
         //
         // txit('returns count', async () => {
-        //     await client.createSale();
+        //     await client.createFullSale();
         //
-        //     const {sale_id} = await client.createSale();
+        //     const {sale_id} = await client.createFullSale();
         //
         //     const testContext = getTestContext(client);
         //
-        //     const result = await getSalesAction({ids: `${sale_id}`, count: 'true'}, testContext);
+        //     await client.query('SELECT update_atomicmarket_sales_filters()');
+        //
+        //     const result = await getSalesV2Action({ids: `${sale_id}`, count: 'true'}, testContext);
         //
         //     expect(result).to.equal('1');
         // });
@@ -684,18 +686,20 @@ describe.only('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id1]);
         });
 
-        // txit('formats and fills result', async () => {
-        //     await client.createSale();
-        //
-        //     const testContext = getTestContext(client);
-        //
-        //     const [result] = await getSalesAction({}, testContext);
-        //
-        //     expect(result).to.not.haveOwnProperty('raw_price');
-        //     expect(result).to.haveOwnProperty('state');
-        //     expect(result).to.haveOwnProperty('price');
-        //     expect(result).to.haveOwnProperty('collection');
-        // });
+        txit('formats and fills result', async () => {
+            await client.createFullSale();
+
+            const testContext = getTestContext(client);
+
+            await client.query('SELECT update_atomicmarket_sales_filters()');
+
+            const [result] = await getSalesV2Action({}, testContext);
+
+            expect(result).to.not.haveOwnProperty('raw_price');
+            expect(result).to.haveOwnProperty('state');
+            expect(result).to.haveOwnProperty('price');
+            expect(result).to.haveOwnProperty('collection');
+        });
 
     });
 

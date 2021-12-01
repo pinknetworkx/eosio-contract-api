@@ -22,7 +22,7 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
             default: 'created'
         },
         order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
-        // count: {type: 'bool'}
+        count: {type: 'bool'}
     });
 
     const query = new QueryBuilder(`
