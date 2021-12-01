@@ -146,6 +146,7 @@ async function buildSaleFilterV2(values: FilterValues, query: QueryBuilder, ctx:
 type AggFilter = {
     buyers?: string[],
     sellers?: string[],
+    collection_names?: string[],
 };
 
 export function buildAggFilterV2(values: FilterValues, query: QueryBuilder): void {
@@ -156,12 +157,15 @@ export function buildAggFilterV2(values: FilterValues, query: QueryBuilder): voi
         account: {type: 'string[]', min: 1},
         seller: {type: 'string[]', min: 1},
         buyer: {type: 'string[]', min: 1},
+
+        collection_name: {type: 'string[]', min: 1},
     });
 
     let hasInc = 0;
     const inc: AggFilter = {
         buyers: [],
         sellers: [],
+        collection_names: [],
     };
 
     let hasExc = 0;
@@ -169,6 +173,14 @@ export function buildAggFilterV2(values: FilterValues, query: QueryBuilder): voi
         buyers: [],
         sellers: [],
     };
+
+    if (args.collection_name) {
+        if (args.collection_name.length > 1) {
+            query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(collection_names := ${query.addVariable(args.collection_name)}))`);
+        } else {
+            hasInc = inc.collection_names.push(args.collection_name);
+        }
+    }
 
     if (args.account) {
         query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(sellers := ${query.addVariable(args.account)}, buyers := ${query.addVariable(args.account)}))`);
@@ -199,7 +211,11 @@ export function buildAggFilterV2(values: FilterValues, query: QueryBuilder): voi
     }
 
     if (hasInc) {
-        query.addCondition(`(listing.filter @> create_atomicmarket_sales_filter(buyers := ${query.addVariable(inc.buyers)}, sellers := ${query.addVariable(inc.sellers)}))`);
+        query.addCondition(`(listing.filter @> create_atomicmarket_sales_filter(
+            buyers := ${query.addVariable(inc.buyers)},
+            sellers := ${query.addVariable(inc.sellers)},
+            collection_names := ${query.addVariable(inc.collection_names)}
+        ))`);
     }
 
     if (hasExc) {
@@ -209,55 +225,50 @@ export function buildAggFilterV2(values: FilterValues, query: QueryBuilder): voi
 
 export function buildListingFilterV2(values: FilterValues, query: QueryBuilder): void {
     const args = filterQueryArgs(values, {
-        // show_seller_contracts: {type: 'bool', default: true},
-        // contract_whitelist: {type: 'string', min: 1, default: ''},
+        show_seller_contracts: {type: 'bool', default: true},
+        contract_whitelist: {type: 'string[]', min: 1, default: []},
 
-        // maker_marketplace: {type: 'string', min: 1, max: 12},
-        // taker_marketplace: {type: 'string', min: 1, max: 12},
-        // marketplace: {type: 'string', min: 1, max: 12},
-        //
-        // collection_name: {type: 'string', min: 1},
-        //
-        // min_template_mint: {type: 'int', min: 1},
-        // max_template_mint: {type: 'int', min: 1}
+        maker_marketplace: {type: 'string[]', min: 1},
+        taker_marketplace: {type: 'string[]', min: 1},
+        marketplace: {type: 'string[]', min: 1},
+
+        min_template_mint: {type: 'int', min: 1},
+        max_template_mint: {type: 'int', min: 1}
     });
 
-    // if (args.collection_name) {
-    //     query.equalMany('listing.collection_name', args.collection_name.split(','));
-    // }
-    //
-    // if (!args.show_seller_contracts) {
-    //     query.addCondition(
-    //         'NOT EXISTS(' +
-    //         'SELECT * FROM contract_codes code ' +
-    //         'WHERE code.account = listing.seller AND code.account != ALL(' + query.addVariable(args.contract_whitelist.split(',')) + ')' +
-    //         ')'
-    //     );
-    // }
+    if (!args.show_seller_contracts) {
+        // TODO replace with flag on filter table? Needs to be updated when contract_codes changes
+        query.addCondition(
+            'NOT EXISTS(' +
+            'SELECT * FROM contract_codes code ' +
+            'WHERE code.account = listing.seller AND code.account != ALL(' + query.addVariable(args.contract_whitelist) + ')' +
+            ')'
+        );
+    }
 
-    // if (args.marketplace) {
-    //     const varName = query.addVariable(args.marketplace.split(','));
-    //     query.addCondition('(listing.maker_marketplace = ANY (' + varName + ') OR listing.taker_marketplace = ANY (' + varName + ')) ');
-    // } else {
-    //     if (args.maker_marketplace) {
-    //         query.equalMany('listing.maker_marketplace', args.maker_marketplace.split(','));
-    //     }
-    //
-    //     if (args.taker_marketplace) {
-    //         query.equalMany('listing.taker_marketplace', args.taker_marketplace.split(','));
-    //     }
-    // }
-    //
-    // if (args.min_template_mint || args.max_template_mint) {
-    //     if ((args.min_template_mint && args.min_template_mint > 1) || (args.max_template_mint && args.max_template_mint < 1)) {
-    //         query.addCondition('listing.template_mint != \'empty\'');
-    //     }
-    //
-    //     query.addCondition(
-    //         'listing.template_mint <@ int4range(' +
-    //         query.addVariable(args.min_template_mint ?? null) + ', ' +
-    //         query.addVariable(args.max_template_mint ?? null) +
-    //         ', \'[]\')'
-    //     );
-    // }
+    if (args.marketplace) {
+        const varName = query.addVariable(args.marketplace);
+        query.addCondition('(listing.maker_marketplace = ANY (' + varName + ') OR listing.taker_marketplace = ANY (' + varName + ')) ');
+    } else {
+        if (args.maker_marketplace) {
+            query.equalMany('listing.maker_marketplace', args.maker_marketplace);
+        }
+
+        if (args.taker_marketplace) {
+            query.equalMany('listing.taker_marketplace', args.taker_marketplace);
+        }
+    }
+
+    if (args.min_template_mint || args.max_template_mint) {
+        if ((args.min_template_mint && args.min_template_mint > 1) || (args.max_template_mint && args.max_template_mint < 1)) {
+            query.addCondition('listing.template_mint != \'empty\'');
+        }
+
+        query.addCondition(
+            'listing.template_mint <@ int4range(' +
+            query.addVariable(args.min_template_mint ?? null) + ', ' +
+            query.addVariable(args.max_template_mint ?? null) +
+            ', \'[]\')'
+        );
+    }
 }

@@ -149,7 +149,7 @@ BEGIN
             listing.settlement_symbol,
             listing.seller,
 
-            CASE WHEN MIN(asset.template_mint) IS NULL THEN 'empty'::int4range ELSE int4range(MIN(asset.template_mint), MAX(asset.template_mint)) END AS template_mint,
+            CASE WHEN MIN(asset.template_mint) IS NULL THEN 'empty'::int4range ELSE int4range(MIN(asset.template_mint), MAX(asset.template_mint), '[]') END AS template_mint,
 
             listing.assets_contract,
 
