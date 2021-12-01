@@ -91,8 +91,8 @@ function buildSaleFilterV2(values: FilterValues, query: QueryBuilder): void {
     const args = filterQueryArgs(values, {
         state: {type: 'string', min: 1},
 
-        // max_assets: {type: 'int', min: 1},
-        // min_assets: {type: 'int', min: 1},
+        max_assets: {type: 'int', min: 1},
+        min_assets: {type: 'int', min: 1},
 
         // symbol: {type: 'string', min: 1},
         // min_price: {type: 'float', min: 0},
@@ -116,29 +116,15 @@ function buildSaleFilterV2(values: FilterValues, query: QueryBuilder): void {
     //     query.addCondition('EXISTS(' + assetQuery.buildString() + ')');
     //     query.setVars(assetQuery.buildValues());
     // }
-    //
-    // if (args.max_assets) {
-    //     query.addCondition(
-    //         `(
-    //             SELECT COUNT(*) FROM (
-    //                 SELECT FROM atomicassets_offers_assets asset
-    //                 WHERE asset.contract = listing.assets_contract AND asset.offer_id = listing.offer_id LIMIT ${args.max_assets + 1}
-    //             ) ct
-    //         ) <= ${args.max_assets} `
-    //     );
-    // }
-    //
-    // if (args.min_assets) {
-    //     query.addCondition(
-    //         `(
-    //             SELECT COUNT(*) FROM (
-    //                 SELECT FROM atomicassets_offers_assets asset
-    //                 WHERE asset.contract = listing.assets_contract AND asset.offer_id = listing.offer_id LIMIT ${args.min_assets}
-    //             ) ct
-    //         ) >= ${args.min_assets} `
-    //     );
-    // }
-    //
+
+    if (args.max_assets) {
+        query.addCondition(`listing.asset_count <= ${args.max_assets}`);
+    }
+
+    if (args.min_assets) {
+        query.addCondition(`listing.asset_count >= ${args.min_assets}`);
+    }
+
     // if (args.symbol) {
     //     query.equal('listing.settlement_symbol', args.symbol);
     //

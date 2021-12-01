@@ -116,28 +116,27 @@ describe.only('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id2, sale_id1]);
         });
 
-        // txit('filters by minimum asset count', async () => {
-        //     await client.createSale();
-        //
-        //     const {offer_id} = await client.createOfferAsset();
-        //     const {sale_id} = await client.createSale({offer_id});
-        //
-        //     expect(await getSalesIds({min_assets: '1'}))
-        //         .to.deep.equal([sale_id]);
-        // });
-        //
-        // txit('filters by maximum asset count', async () => {
-        //
-        //     const {offer_id} = await client.createOfferAsset();
-        //     await client.createOfferAsset({offer_id});
-        //     await client.createSale({offer_id});
-        //
-        //     const {sale_id} = await client.createSale();
-        //
-        //     expect(await getSalesIds({max_assets: '1'}))
-        //         .to.deep.equal([sale_id]);
-        // });
-        //
+        txit('filters by minimum asset count', async () => {
+            await client.createFullSale();
+
+            const {sale_id, offer_id} = await client.createFullSale({});
+            await client.createOfferAsset({offer_id});
+
+            expect(await getSalesIds({min_assets: '2'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by maximum asset count', async () => {
+
+            const {offer_id} = await client.createFullSale({});
+            await client.createOfferAsset({offer_id});
+
+            const {sale_id} = await client.createFullSale();
+
+            expect(await getSalesIds({max_assets: '1'}))
+                .to.deep.equal([sale_id]);
+        });
+
         // txit('filters by settlement symbol', async () => {
         //
         //     await client.createSale({
