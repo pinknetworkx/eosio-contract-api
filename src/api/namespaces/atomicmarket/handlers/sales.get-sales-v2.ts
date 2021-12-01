@@ -34,7 +34,7 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
 
     query.equal('listing.market_contract', ctx.coreArgs.atomicmarket_account);
 
-    buildSaleFilterV2(params, query);
+    await buildSaleFilterV2(params, query, ctx);
 /*
     if (!args.collection_name) {
         buildGreylistFilter(params, query, {collectionName: 'listing.collection_name'});
@@ -87,16 +87,16 @@ export async function getSalesCountV2Action(params: RequestValues, ctx: AtomicMa
     return await getSalesV2Action({...params, count: 'true'}, ctx);
 }
 
-function buildSaleFilterV2(values: FilterValues, query: QueryBuilder): void {
+async function buildSaleFilterV2(values: FilterValues, query: QueryBuilder, ctx: AtomicMarketContext): Promise<void> {
     const args = filterQueryArgs(values, {
         state: {type: 'string', min: 1},
 
         max_assets: {type: 'int', min: 1},
         min_assets: {type: 'int', min: 1},
 
-        // symbol: {type: 'string', min: 1},
-        // min_price: {type: 'float', min: 0},
-        // max_price: {type: 'float', min: 0}
+        symbol: {type: 'string', min: 1},
+        min_price: {type: 'float', min: 0},
+        max_price: {type: 'float', min: 0}
     });
 
     // buildListingFilter(values, query);
@@ -125,19 +125,21 @@ function buildSaleFilterV2(values: FilterValues, query: QueryBuilder): void {
         query.addCondition(`listing.asset_count >= ${args.min_assets}`);
     }
 
-    // if (args.symbol) {
-    //     query.equal('listing.settlement_symbol', args.symbol);
-    //
-    //     if (args.min_price) {
-    //         query.addCondition('price.price >= 1.0 * ' + query.addVariable(args.min_price) + ' * POWER(10, price.settlement_precision)');
-    //     }
-    //
-    //     if (args.max_price) {
-    //         query.addCondition('price.price <= 1.0 * ' + query.addVariable(args.max_price) + ' * POWER(10, price.settlement_precision)');
-    //     }
-    // } else if (args.min_price || args.max_price) {
-    //     throw new ApiError('Price range filters require the "symbol" filter');
-    // }
+    if (args.symbol) {
+        query.equal('listing.settlement_symbol', args.symbol);
+
+        const {token_precision} = (await ctx.db.query('SELECT token_precision FROM atomicmarket_tokens WHERE market_contract = $1 AND token_symbol = $2', [ctx.coreArgs.atomicmarket_account, args.symbol])).rows[0];
+
+        if (args.min_price) {
+            query.addCondition(`listing.price >= 1.0 * ${query.addVariable(args.min_price)} * POWER(10, ${query.addVariable(token_precision)})`);
+        }
+
+        if (args.max_price) {
+            query.addCondition(`listing.price <= 1.0 * ${query.addVariable(args.max_price)} * POWER(10, ${query.addVariable(token_precision)})`);
+        }
+    } else if (args.min_price || args.max_price) {
+        throw new ApiError('Price range filters require the "symbol" filter');
+    }
 
     if (args.state?.length) {
         query.equalMany('listing.sale_state', args.state.split(',').map((state: string) => parseInt(state, 10)));

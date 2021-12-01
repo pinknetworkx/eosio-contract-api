@@ -141,6 +141,8 @@ describe('AtomicMarket Sales API', () => {
 
         txit('filters by settlement symbol', async () => {
 
+            await client.createToken({token_symbol: 'NOT_THIS'});
+
             await client.createSale({
                 settlement_symbol: 'NOT_THIS',
             });
