@@ -43,7 +43,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           start_time: trace.act.data.start_time,
           end_time: trace.act.data.end_time,
           display_data: trace.act.data.display_data,
-          state: trace.act.data.is_hidden === true ? DropState.HIDDEN.valueOf() : DropState.ACTIVE.valueOf(),
+          state: trace.act.data.is_hidden ? DropState.HIDDEN.valueOf() : DropState.ACTIVE.valueOf(),
           updated_at_block: block.block_num,
           updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
           created_at_block: block.block_num,
