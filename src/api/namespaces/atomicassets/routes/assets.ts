@@ -1,135 +1,29 @@
 import * as express from 'express';
 
-import { AtomicAssetsNamespace } from '../index';
+import { AtomicAssetsContext, AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter, hasAssetFilter, hasDataFilters } from '../utils';
-import { buildBoundaryFilter, filterQueryArgs } from '../../utils';
+import { RequestValues } from '../../utils';
 import {
-    primaryBoundaryParameters,
+    actionGreylistParameters,
+    dateBoundaryParameters,
     getOpenAPI3Responses,
     paginationParameters,
-    dateBoundaryParameters,
-    actionGreylistParameters
+    primaryBoundaryParameters
 } from '../../../docs';
 import {
-    extendedAssetFilterParameters,
     atomicDataFilter,
+    baseAssetFilterParameters,
+    completeAssetFilterParameters,
+    extendedAssetFilterParameters,
     greylistFilterParameters,
-    hideOffersParameters,
-    baseAssetFilterParameters, completeAssetFilterParameters
+    hideOffersParameters
 } from '../openapi';
 import { fillAssets, FillerHook } from '../filler';
-import {
-    applyActionGreylistFilters,
-    createSocketApiNamespace,
-    extractNotificationIdentifiers,
-    getContractActionLogs, respondApiError
-} from '../../../utils';
+import { createSocketApiNamespace, extractNotificationIdentifiers, } from '../../../utils';
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
-import QueryBuilder from '../../../builder';
-
-export function buildAssetQueryCondition(
-    req: express.Request, query: QueryBuilder,
-    options: {assetTable: string, templateTable?: string}
-): void {
-    const args = filterQueryArgs(req, {
-        authorized_account: {type: 'string', min: 1, max: 12},
-        hide_templates_by_accounts: {type: 'string', min: 1, max: 12},
-
-        only_duplicate_templates: {type: 'bool'},
-        has_backed_tokens: {type: 'bool'},
-
-        template_mint: {type: 'int', min: 1},
-
-        min_template_mint: {type: 'int', min: 1},
-        max_template_mint: {type: 'int', min: 1},
-
-        template_blacklist: {type: 'string', min: 1},
-        template_whitelist: {type: 'string', min: 1}
-    });
-
-    if (args.authorized_account) {
-        query.addCondition(
-            'EXISTS(' +
-            'SELECT * FROM atomicassets_collections collection ' +
-            'WHERE collection.collection_name = ' + options.assetTable + '.collection_name AND collection.contract = ' + options.assetTable + '.contract ' +
-            'AND ' + query.addVariable(args.authorized_account) + ' = ANY(collection.authorized_accounts)' +
-            ')'
-        );
-    }
-
-    if (args.hide_templates_by_accounts) {
-        query.addCondition(
-            'NOT EXISTS(' +
-            'SELECT * FROM atomicassets_assets asset2 ' +
-            'WHERE asset2.template_id = ' + options.assetTable + '.template_id AND asset2.contract = ' + options.assetTable + '.contract ' +
-            'AND asset2.owner = ANY(' + query.addVariable(args.hide_templates_by_accounts.split(',')) + ')' +
-            ')'
-        );
-    }
-
-    if (args.only_duplicate_templates) {
-        query.addCondition(
-            'EXISTS (' +
-            'SELECT * FROM atomicassets_assets inner_asset ' +
-            'WHERE inner_asset.contract = asset.contract AND inner_asset.template_id = ' + options.assetTable + '.template_id ' +
-            'AND inner_asset.asset_id < ' + options.assetTable + '.asset_id AND inner_asset.owner = ' + options.assetTable + '.owner' +
-            ') AND ' + options.assetTable + '.template_id IS NOT NULL'
-        );
-    }
-
-    if (typeof args.has_backed_tokens === 'boolean') {
-        if (args.has_backed_tokens) {
-            query.addCondition('EXISTS (' +
-                'SELECT * FROM atomicassets_assets_backed_tokens token ' +
-                'WHERE ' + options.assetTable + '.contract = token.contract AND ' + options.assetTable + '.asset_id = token.asset_id' +
-                ')');
-        } else {
-            query.addCondition('NOT EXISTS (' +
-                'SELECT * FROM atomicassets_assets_backed_tokens token ' +
-                'WHERE ' + options.assetTable + '.contract = token.contract AND ' + options.assetTable + '.asset_id = token.asset_id' +
-                ')');
-        }
-    }
-
-    buildHideOffersFilter(req, query, options.assetTable);
-
-    if (args.template_mint) {
-        query.equal(options.assetTable + '.template_mint', args.template_mint);
-    }
-
-    if (args.min_template_mint) {
-        let condition = options.assetTable + '.template_mint >= ' + query.addVariable(args.min_template_mint);
-
-        if (args.min_template_mint <= 1) {
-            condition += ' OR ' + options.assetTable + '.template_id IS NULL';
-        }
-
-        query.addCondition('(' + condition + ')');
-    }
-
-    if (args.max_template_mint) {
-        let condition = options.assetTable + '.template_mint <= ' + query.addVariable(args.max_template_mint);
-
-        if (args.max_template_mint >= 1) {
-            condition += ' OR ' + options.assetTable + '.template_id IS NULL';
-        }
-
-        query.addCondition('(' + condition + ')');
-    }
-
-    buildAssetFilter(req, query, {assetTable: options.assetTable, templateTable: options.templateTable});
-    buildGreylistFilter(req, query, {collectionName: options.assetTable + '.collection_name'});
-
-    if (args.template_blacklist) {
-        query.notMany(options.assetTable + '.template_id', args.template_blacklist.split(','));
-    }
-
-    if (args.template_whitelist) {
-        query.equalMany(options.assetTable + '.template_id', args.template_whitelist.split(','));
-    }
-}
+import { getAssetLogsAction, getAssetsCountAction, getAssetStatsAction, getRawAssetsAction } from '../handlers/assets';
+import { ApiError } from '../../../error';
 
 export class AssetApi {
     constructor(
@@ -141,77 +35,20 @@ export class AssetApi {
         readonly fillerHook?: FillerHook
     ) { }
 
+    getAssetsAction = async (params: RequestValues, ctx: AtomicAssetsContext): Promise<any> => {
+        const result = await getRawAssetsAction(params, ctx);
+        return await fillAssets(
+            this.server, this.core.args.atomicassets_account,
+            result.rows.map((row: any) => row.asset_id),
+            this.assetFormatter, this.assetView, this.fillerHook
+        );
+    };
+
     multipleAssetEndpoints(router: express.Router): any {
-        router.all(['/v1/assets', '/v1/assets/_count'], this.server.web.caching(), (async (req, res) => {
-            try {
-                const args = filterQueryArgs(req, {
-                    page: {type: 'int', min: 1, default: 1},
-                    limit: {type: 'int', min: 1, max: 1000, default: 100},
-                    sort: {type: 'string', min: 1},
-                    order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
-                });
+        const {caching, returnAsJSON} = this.server.web;
 
-                const query = new QueryBuilder(
-                    'SELECT asset.asset_id FROM atomicassets_assets asset ' +
-                    'LEFT JOIN atomicassets_templates "template" ON (' +
-                    'asset.contract = template.contract AND asset.template_id = template.template_id' +
-                    ') '
-                );
-
-                query.equal('asset.contract', this.core.args.atomicassets_account);
-
-                buildAssetQueryCondition(req, query, {assetTable: '"asset"', templateTable: '"template"'});
-                buildBoundaryFilter(
-                    req, query, 'asset.asset_id', 'int',
-                    args.sort === 'updated' ? 'asset.updated_at_time' : 'asset.minted_at_time'
-                );
-
-                if (req.originalUrl.search('/_count') >= 0) {
-                    const countQuery = await this.server.query(
-                        'SELECT COUNT(*) counter FROM (' + query.buildString() + ') x',
-                        query.buildValues()
-                    );
-
-                    return res.json({success: true, data: countQuery.rows[0].counter, query_time: Date.now()});
-                }
-
-                let sorting: {column: string, nullable: boolean, numericIndex: boolean};
-
-                if (args.sort) {
-                    const sortColumnMapping: {[key: string]: {column: string, nullable: boolean, numericIndex: boolean}} = {
-                        asset_id: {column: 'asset.asset_id', nullable: false, numericIndex: true},
-                        updated: {column: 'asset.updated_at_time', nullable: false, numericIndex: true},
-                        transferred: {column: 'asset.transferred_at_time', nullable: false, numericIndex: true},
-                        minted: {column: 'asset.asset_id', nullable: false, numericIndex: true},
-                        template_mint: {column: 'asset.template_mint', nullable: true, numericIndex: false},
-                        name: {column: '"template".immutable_data->>\'name\'', nullable: true, numericIndex: false}
-                    };
-
-                    sorting = sortColumnMapping[args.sort];
-                }
-
-                if (!sorting) {
-                    sorting = {column: 'asset.asset_id', nullable: false, numericIndex: true};
-                }
-
-                const ignoreIndex = (hasAssetFilter(req) || hasDataFilters(req)) && sorting.numericIndex;
-
-                query.append('ORDER BY ' + sorting.column + (ignoreIndex ? ' + 1 ' : ' ') + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC');
-                query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
-
-                const result = await this.server.query(query.buildString(), query.buildValues());
-
-                const assets = await fillAssets(
-                    this.server, this.core.args.atomicassets_account,
-                    result.rows.map(row => row.asset_id),
-                    this.assetFormatter, this.assetView, this.fillerHook
-                );
-
-                return res.json({success: true, data: assets, query_time: Date.now()});
-            } catch (error) {
-                return respondApiError(res, error);
-            }
-        }));
+        router.all('/v1/assets', caching(), returnAsJSON(this.getAssetsAction, this.core));
+        router.all('/v1/assets/_count', caching(), returnAsJSON(getAssetsCountAction, this.core));
 
         return {
             tag: {
@@ -252,72 +89,28 @@ export class AssetApi {
         };
     }
 
+    getAssetAction = async (params: RequestValues, ctx: AtomicAssetsContext): Promise<any> => {
+        const assets = await fillAssets(
+            ctx.db, ctx.coreArgs.atomicassets_account,
+            [ctx.pathParams.asset_id],
+            this.assetFormatter, this.assetView, this.fillerHook
+        );
+
+        if (assets.length === 0 || typeof assets[0] === 'string') {
+            throw new ApiError('Asset not found', 416);
+        }
+
+        return assets[0];
+    }
+
     singleAssetEndpoints(router: express.Router): any {
-        router.all('/v1/assets/:asset_id', this.server.web.caching({ignoreQueryString: true}), (async (req, res) => {
-            try {
-                const assets = await fillAssets(
-                    this.server, this.core.args.atomicassets_account,
-                    [req.params.asset_id],
-                    this.assetFormatter, this.assetView, this.fillerHook
-                );
+        const {caching, returnAsJSON} = this.server.web;
 
-                if (assets.length === 0 || typeof assets[0] === 'string') {
-                    return res.status(416).json({success: false, message: 'Asset not found'});
-                }
+        router.all('/v1/assets/:asset_id', caching({ignoreQueryString: true}), returnAsJSON(this.getAssetAction, this.core));
 
-                return res.json({success: true, data: assets[0], query_time: Date.now()});
-            } catch (error) {
-                return respondApiError(res, error);
-            }
-        }));
+        router.all('/v1/assets/:asset_id/stats', caching({ignoreQueryString: true}), returnAsJSON(getAssetStatsAction, this.core));
 
-        router.all('/v1/assets/:asset_id/stats', this.server.web.caching({ignoreQueryString: true}), (async (req, res) => {
-            try {
-                const assetQuery = await this.server.query(
-                    'SELECT * FROM atomicassets_assets WHERE contract = $1 AND asset_id = $2',
-                    [this.core.args.atomicassets_account, req.params.asset_id]
-                );
-
-                if (assetQuery.rowCount === 0) {
-                    return res.status(416).json({success: false, message: 'Asset not found'});
-                }
-
-                const asset = assetQuery.rows[0];
-
-                const query = await this.server.query(
-                    'SELECT COUNT(*) template_mint FROM atomicassets_assets WHERE contract = $1 AND asset_id <= $2 AND template_id = $3 AND schema_name = $4 AND collection_name = $5',
-                    [this.core.args.atomicassets_account, asset.asset_id, asset.template_id, asset.schema_name, asset.collection_name]
-                );
-
-                return res.json({success: true, data: query.rows[0]});
-            } catch (error) {
-                return respondApiError(res, error);
-            }
-        }));
-
-        router.all('/v1/assets/:asset_id/logs', this.server.web.caching(), (async (req, res) => {
-            const args = filterQueryArgs(req, {
-                page: {type: 'int', min: 1, default: 1},
-                limit: {type: 'int', min: 1, max: 100, default: 100},
-                order: {type: 'string', values: ['asc', 'desc'], default: 'asc'},
-                action_whitelist: {type: 'string', min: 1},
-                action_blacklist: {type: 'string', min: 1}
-            });
-
-            try {
-                res.json({
-                    success: true,
-                    data: await getContractActionLogs(
-                        this.server, this.core.args.atomicassets_account,
-                        applyActionGreylistFilters(['logmint', 'logburnasset', 'logbackasset', 'logsetdata'], args),
-                        {asset_id: req.params.asset_id},
-                        (args.page - 1) * args.limit, args.limit, args.order
-                    ), query_time: Date.now()
-                });
-            } catch (error) {
-                return respondApiError(res, error);
-            }
-        }));
+        router.all('/v1/assets/:asset_id/logs', caching(), returnAsJSON(getAssetLogsAction, this.core));
 
         return {
             tag: {

@@ -5,31 +5,30 @@ import logger from '../src/utils/winston';
 import StateHistoryBlockReader from '../src/connections/ship';
 
 describe('Ship Test', () => {
-    const ship = new StateHistoryBlockReader('ws://127.0.0.1:18080', {
+    const ship = new StateHistoryBlockReader('ws://127.0.0.1:8080', {
         min_block_confirmation: 1,
         ds_threads: 1,
-        allow_empty_traces: true, 
-        allow_empty_deltas: true, 
+        allow_empty_traces: true,
+        allow_empty_deltas: true,
         allow_empty_blocks: true
     });
 
     it('connect and receive first block', async () => {
+        return new Promise((async (resolve) => {
+            ship.consume( (block: ShipBlockResponse) => {
+                logger.info('block received', block);
 
-        // return new Promise((async (resolve) => {
-        //     ship.consume( (block: ShipBlockResponse) => {
-        //         logger.info('block received', block);
+                ship.stopProcessing();
+                resolve();
+            });
 
-        //         ship.stopProcessing();
-        //         resolve();
-        //     });
-
-        //     ship.startProcessing({
-        //         start_block_num: 97708771,
-        //         max_messages_in_flight: 1,
-        //         fetch_block: true,
-        //         fetch_traces: true,
-        //         fetch_deltas: true
-        //     }, ['contract_row']);
-        // }));
+            ship.startProcessing({
+                start_block_num: 97708771,
+                max_messages_in_flight: 1,
+                fetch_block: true,
+                fetch_traces: true,
+                fetch_deltas: true
+            }, ['contract_row']);
+        }));
     }).timeout(20000);
 });

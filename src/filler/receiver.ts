@@ -11,7 +11,7 @@ import { EosioAction, EosioActionTrace, EosioContractRow, EosioTransaction } fro
 import { ContractDB, ContractDBTransaction } from './database';
 import { binToHex } from '../utils/binary';
 import {
-    eosioDeserialize,
+    deserializeEosioType,
     eosioTimestampToDate,
     extractShipContractRows,
     extractShipTraces,
@@ -300,7 +300,7 @@ export default class StateReceiver {
 
                 if (types && type) {
                     try {
-                        trace.act.data = eosioDeserialize(type, trace.act.data.binary, types, false);
+                        trace.act.data = deserializeEosioType(type, trace.act.data.binary, types, false);
                     } catch (e) {
                         logger.error(
                             'Failed to deserialize trace in sync mode ' +
@@ -357,7 +357,7 @@ export default class StateReceiver {
 
                 if (types && type) {
                     try {
-                        delta.value = eosioDeserialize(type, delta.value.binary, types);
+                        delta.value = deserializeEosioType(type, delta.value.binary, types);
                     } catch (e) {
                         logger.error(
                             'Failed to deserialize contract row in sync mode ' +
@@ -463,7 +463,7 @@ export default class StateReceiver {
                         // @ts-ignore
                         binary: act.data.binary,
                         // @ts-ignore
-                        json: eosioDeserialize(type, act.data.binary, abi.types, false),
+                        json: deserializeEosioType(type, act.data.binary, abi.types, false),
                         block_num: abi.block_num
                     };
                 } catch (e) {
@@ -496,7 +496,7 @@ export default class StateReceiver {
                         // @ts-ignore
                         binary: delta.value.binary,
                         // @ts-ignore
-                        json: eosioDeserialize(type, delta.value.binary, abi.types),
+                        json: deserializeEosioType(type, delta.value.binary, abi.types),
                         block_num: abi.block_num
                     };
                 } catch (e) {

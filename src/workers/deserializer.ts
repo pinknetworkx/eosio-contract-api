@@ -2,7 +2,7 @@ import { parentPort, workerData } from 'worker_threads';
 import { Serialize } from 'eosjs';
 
 import logger from '../utils/winston';
-import { eosioDeserialize } from '../utils/eosio';
+import { deserializeEosioType } from '../utils/eosio';
 
 const args: {abi: string} = workerData;
 
@@ -22,9 +22,9 @@ parentPort.on('message', (param: Array<{type: string, data: Uint8Array | string,
             if (row.abi) {
                 const abiTypes = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), row.abi);
 
-                result.push(eosioDeserialize(row.type, row.data, abiTypes));
+                result.push(deserializeEosioType(row.type, row.data, abiTypes));
             } else {
-                result.push(eosioDeserialize(row.type, row.data, eosjsTypes));
+                result.push(deserializeEosioType(row.type, row.data, eosjsTypes));
             }
         }
 

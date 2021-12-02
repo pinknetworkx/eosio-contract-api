@@ -68,5 +68,5 @@ export const dropsFilterParameters = [
     description: 'Upper price limit',
     required: false,
     schema: {type: 'number'}
-  }
+  },
 ];

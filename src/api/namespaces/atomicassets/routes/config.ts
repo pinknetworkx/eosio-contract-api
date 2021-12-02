@@ -3,41 +3,12 @@ import * as express from 'express';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { getOpenAPI3Responses } from '../../../docs';
-import { respondApiError } from '../../../utils';
+import { getConfigAction } from '../handlers/config';
 
 export function configEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/config', server.web.caching({ignoreQueryString: true}), (async (_, res) => {
-        try {
-            const configQuery = await server.query(
-                'SELECT * FROM atomicassets_config WHERE contract = $1',
-                [core.args.atomicassets_account]
-            );
+    const {caching, returnAsJSON} = server.web;
 
-            if (configQuery.rowCount === 0) {
-                res.status(500);
-
-                return res.json({success: false, message: 'Config not found'});
-            }
-
-            const config = configQuery.rows[0];
-
-            const tokensQuery = await server.query(
-                'SELECT token_symbol, token_contract, token_precision FROM atomicassets_tokens WHERE contract = $1',
-                [config.contract]
-            );
-
-            return res.json({
-                success: true, data: {
-                    contract: config.contract,
-                    version: config.version,
-                    collection_format: config.collection_format,
-                    supported_tokens: tokensQuery.rows
-                }, query_time: Date.now()
-            });
-        } catch (error) {
-            return respondApiError(res, error);
-        }
-    }));
+    router.get('/v1/config', caching({ignoreQueryString: true}), returnAsJSON(getConfigAction, core));
 
     return {
         tag: {

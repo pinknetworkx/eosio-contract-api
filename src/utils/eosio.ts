@@ -52,12 +52,12 @@ export function splitEosioToken(asset: string, contract?: string): {amount: stri
     };
 }
 
-export function eosioDeserialize(type: string, data: Uint8Array | string, types: Map<string, Serialize.Type>, checkLength: boolean = true): any {
+export function deserializeEosioType(type: string, data: Uint8Array | string, types: Map<string, Serialize.Type>, checkLength: boolean = true): any {
     let dataArray;
     if (typeof data === 'string') {
         dataArray = Uint8Array.from(Buffer.from(data, 'hex'));
     } else {
-        dataArray = data;
+        dataArray = new Uint8Array(data);
     }
 
     const buffer = new Serialize.SerialBuffer({ textEncoder: new TextEncoder(), textDecoder: new TextDecoder(), array: dataArray });
@@ -70,7 +70,7 @@ export function eosioDeserialize(type: string, data: Uint8Array | string, types:
     return result;
 }
 
-export function eosioSerialize(type: string, value: any, types: Map<string, Serialize.Type>): Uint8Array {
+export function serializeEosioType(type: string, value: any, types: Map<string, Serialize.Type>): Uint8Array {
     const buffer = new Serialize.SerialBuffer({ textEncoder: new TextEncoder(), textDecoder: new TextDecoder() });
     Serialize.getType(types, type).serialize(buffer, value);
 
@@ -91,7 +91,7 @@ export function extractShipTraces(data: ShipTransactionTrace[]): Array<{trace: E
                 cpu_usage_us: transaction[1].cpu_usage_us,
                 net_usage_words: transaction[1].net_usage_words,
                 traces: transaction[1].action_traces.map(trace => {
-                    if (trace[0] === 'action_trace_v0') {
+                    if (trace[0] === 'action_trace_v0' || trace[0] === 'action_trace_v1') {
                         if (trace[1].receiver !== trace[1].act.account) {
                             return null;
                         }
@@ -139,11 +139,11 @@ export function extractShipContractRows(deltas: ShipTableDelta[]): Array<EosioCo
     const result: EosioContractRow<any>[] = [];
 
     for (const delta of deltas) {
-        if (delta[0] === 'table_delta_v0') {
+        if (delta[0] === 'table_delta_v0' || delta[0] === 'table_delta_v1') {
             if (delta[1].name === 'contract_row') {
                 for (const row of delta[1].rows) {
                     if (row.data[0] === 'contract_row_v0') {
-                        result.push({...row.data[1], present: row.present});
+                        result.push({...row.data[1], present: !!row.present});
                     } else {
                         throw new Error('Unsupported contract row received: ' + row.data[0]);
                     }

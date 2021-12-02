@@ -97,6 +97,12 @@ export default class QueryBuilder {
         return this;
     }
 
+    paginate(page: number, limit: number): QueryBuilder {
+        this.append('LIMIT ' + this.addVariable(limit) + ' OFFSET ' + this.addVariable((page - 1) * limit));
+
+        return this;
+    }
+
     append(text: string): QueryBuilder {
         this.ending += text + ' ';
 

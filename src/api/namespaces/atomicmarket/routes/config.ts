@@ -3,57 +3,12 @@ import * as express from 'express';
 import { AtomicMarketNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { getOpenAPI3Responses } from '../../../docs';
-import { respondApiError } from '../../../utils';
+import { getConfigAction } from '../handlers/config';
 
 export function configEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
-    router.get('/v1/config', server.web.caching(), async (_, res) => {
-        try {
-            const configQuery = await server.query(
-                'SELECT * FROM atomicmarket_config WHERE market_contract = $1',
-                [core.args.atomicmarket_account]
-            );
+    const {caching, returnAsJSON} = server.web;
 
-            if (configQuery.rowCount === 0) {
-                res.status(500);
-
-                return res.json({success: false, message: 'Config not found'});
-            }
-
-            const config = configQuery.rows[0];
-
-            const queryString =
-                'SELECT pair.listing_symbol, pair.settlement_symbol, pair.delphi_pair_name, pair.invert_delphi_pair, row_to_json(delphi.*) "data" ' +
-                'FROM atomicmarket_symbol_pairs pair, delphioracle_pairs delphi ' +
-                'WHERE pair.market_contract = $1 ' +
-                'AND pair.delphi_contract = delphi.contract AND pair.delphi_pair_name = delphi.delphi_pair_name';
-
-            const pairsQuery = await server.query(queryString, [core.args.atomicmarket_account]);
-
-            const tokensQuery = await server.query(
-                'SELECT token_contract, token_symbol, token_precision FROM atomicmarket_tokens WHERE market_contract = $1',
-                [core.args.atomicmarket_account]
-            );
-
-            res.json({
-                success: true, data: {
-                    atomicassets_contract: core.args.atomicassets_account,
-                    atomicmarket_contract: core.args.atomicmarket_account,
-                    delphioracle_contract: core.args.delphioracle_account,
-                    version: config.version,
-                    maker_market_fee: config.maker_market_fee,
-                    taker_market_fee: config.taker_market_fee,
-                    minimum_auction_duration: config.minimum_auction_duration,
-                    maximum_auction_duration: config.maximum_auction_duration,
-                    minimum_bid_increase: config.minimum_bid_increase,
-                    auction_reset_duration: config.auction_reset_duration,
-                    supported_tokens: tokensQuery.rows,
-                    supported_pairs: pairsQuery.rows
-                }, query_time: Date.now()
-            });
-        } catch (error) {
-            return respondApiError(res, error);
-        }
-    });
+    router.get('/v1/config', caching(), returnAsJSON(getConfigAction, core));
 
     return {
         tag: {

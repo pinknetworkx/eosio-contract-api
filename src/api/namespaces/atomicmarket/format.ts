@@ -2,7 +2,7 @@ import { formatAsset } from '../atomicassets/format';
 import { AuctionState, BuyofferState, SaleState } from '../../../filler/handlers/atomicmarket';
 import { AuctionApiState, BuyofferApiState, SaleApiState } from './index';
 import { OfferState } from '../../../filler/handlers/atomicassets';
-import { HTTPServer } from '../../server';
+import { DB } from '../../server';
 import { FillerHook } from '../atomicassets/filler';
 
 export function formatAuction(row: any): any {
@@ -92,11 +92,11 @@ export function formatListingAsset(row: any): any {
 export function buildAssetFillerHook(
     options: {fetchAuctions?: boolean, fetchSales?: boolean, fetchPrices?: boolean}
 ): FillerHook {
-    return async (server: HTTPServer, contract: string, rows: any[]): Promise<any[]> => {
+    return async (db: DB, contract: string, rows: any[]): Promise<any[]> => {
         const assetIDs = rows.map(asset => asset.asset_id);
 
         const queries = await Promise.all([
-            options.fetchSales && server.query(
+            options.fetchSales && db.query(
                 'SELECT sale.market_contract, sale.sale_id, offer_asset.asset_id ' +
                 'FROM atomicmarket_sales sale, atomicassets_offers offer, atomicassets_offers_assets offer_asset ' +
                 'WHERE sale.assets_contract = offer.contract AND sale.offer_id = offer.offer_id AND ' +
@@ -105,7 +105,7 @@ export function buildAssetFillerHook(
                 'sale.state = ' + SaleState.LISTED.valueOf() + ' AND offer.state = ' + OfferState.PENDING.valueOf(),
                 [contract, assetIDs]
             ),
-            options.fetchAuctions && server.query(
+            options.fetchAuctions && db.query(
                 'SELECT auction.market_contract, auction.auction_id, auction_asset.asset_id ' +
                 'FROM atomicmarket_auctions auction, atomicmarket_auctions_assets auction_asset ' +
                 'WHERE auction.market_contract = auction_asset.market_contract AND auction.auction_id = auction_asset.auction_id AND ' +
@@ -113,7 +113,7 @@ export function buildAssetFillerHook(
                 'auction.state = ' + AuctionState.LISTED.valueOf() + ' AND auction.end_time > ' + (Date.now() / 1000) + '::BIGINT ',
                 [contract, assetIDs]
             ),
-            options.fetchPrices && server.query(
+            options.fetchPrices && db.query(
                 'SELECT DISTINCT ON (price.market_contract, price.collection_name, price.template_id, price.symbol) ' +
                 'price.market_contract, asset.collection_name, asset.template_id, ' +
                 'token.token_symbol, token.token_precision, token.token_contract, ' +

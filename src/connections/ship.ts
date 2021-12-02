@@ -9,7 +9,7 @@ import {
     BlockRequestType,
     IBlockReaderOptions, ShipBlockResponse
 } from '../types/ship';
-import { eosioDeserialize, eosioSerialize } from '../utils/eosio';
+import { deserializeEosioType, serializeEosioType } from '../utils/eosio';
 
 export type BlockConsumer = (block: ShipBlockResponse) => any;
 
@@ -93,7 +93,7 @@ export default class StateHistoryBlockReader {
     }
 
     send(request: [string, any]): void {
-        this.ws.send(eosioSerialize('request', request, this.types));
+        this.ws.send(serializeEosioType('request', request, this.types));
     }
 
     onConnect(): void {
@@ -109,11 +109,13 @@ export default class StateHistoryBlockReader {
                 this.abi = JSON.parse(data);
                 this.types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), this.abi);
 
-                this.deserializeWorkers = new StaticPool({
-                    size: this.options.ds_threads,
-                    task: './build/workers/deserializer.js',
-                    workerData: {abi: data}
-                });
+                if (this.options.ds_threads > 0) {
+                    this.deserializeWorkers = new StaticPool({
+                        size: this.options.ds_threads,
+                        task: './build/workers/deserializer.js',
+                        workerData: {abi: data}
+                    });
+                }
 
                 for (const table of this.abi.tables) {
                     this.tables.set(table.name, table.type);
@@ -123,16 +125,41 @@ export default class StateHistoryBlockReader {
                     this.requestBlocks();
                 }
             } else {
-                const [type, response] = eosioDeserialize('result', data, this.types);
+                const [type, response] = deserializeEosioType('result', data, this.types);
 
-                if (type === 'get_blocks_result_v0') {
+                if (['get_blocks_result_v0', 'get_blocks_result_v1', 'get_blocks_result_v2'].indexOf(type) >= 0) {
+                    const config: {[key: string]: {version: number }} = {
+                        'get_blocks_result_v0': {version: 0},
+                        'get_blocks_result_v1': {version: 1},
+                        'get_blocks_result_v2': {version: 2}
+                    };
+
                     let block: any = null;
                     let traces: any = [];
                     let deltas: any = [];
 
                     if (response.this_block) {
                         if (response.block) {
-                            block = this.deserializeParallel('signed_block', response.block);
+                            if (config[type].version === 2) {
+                                block = this.deserializeParallel('signed_block_variant', response.block)
+                                    .then((res: any) => {
+                                        if (res[0] === 'signed_block_v1') {
+                                            return res[1];
+                                        }
+
+                                        throw new Error('Unsupported block type received ' + res[0]);
+                                    });
+                            } else if (config[type].version === 1) {
+                                if (response.block[0] === 'signed_block_v1') {
+                                    block = response.block[1];
+                                } else {
+                                    block = Promise.reject(new Error('Unsupported block type received ' + response.block[0]));
+                                }
+                            } else if (config[type].version === 0) {
+                                block = this.deserializeParallel('signed_block', response.block);
+                            } else {
+                                block = Promise.reject(new Error('Unsupported result type received ' + type));
+                            }
                         } else if(this.currentArgs.fetch_block) {
                             if (this.options.allow_empty_blocks) {
                                 logger.warn('Block #' + response.this_block.block_num + ' does not contain block data');
@@ -156,7 +183,8 @@ export default class StateHistoryBlockReader {
                         }
 
                         if (response.deltas) {
-                            deltas = this.deserializeDeltas(response.deltas);
+                            deltas = this.deserializeParallel('table_delta[]', response.deltas)
+                                .then(res => this.deserializeDeltas(res));
                         } else if(this.currentArgs.fetch_deltas) {
                             if (this.options.allow_empty_deltas) {
                                 logger.warn('Block #' + response.this_block.block_num + ' does not contain delta data');
@@ -340,35 +368,47 @@ export default class StateHistoryBlockReader {
     }
 
     private async deserializeParallel(type: string, data: Uint8Array): Promise<any> {
-        const result = await this.deserializeWorkers.exec([{type, data}]);
+        if (this.options.ds_threads > 0) {
+            const result = await this.deserializeWorkers.exec([{type, data}]);
 
-        if (result.success) {
-            return result.data[0];
+            if (result.success) {
+                return result.data[0];
+            }
+
+            throw new Error(result.message);
         }
 
-        throw new Error(result.message);
+        return deserializeEosioType(type, data, this.types);
     }
 
-    private async deserializeDeltas(data: Uint8Array): Promise<any> {
-        const deltas = await this.deserializeParallel('table_delta[]', data);
+    private async deserializeArrayParallel(rows: Array<{type: string, data: Uint8Array}>): Promise<any> {
+        if (this.options.ds_threads > 0) {
+            const result = await this.deserializeWorkers.exec(rows);
 
+            if (result.success) {
+                return result.data;
+            }
+
+            throw new Error(result.message);
+        }
+
+        return rows.map(row => deserializeEosioType(row.type, row.data, this.types));
+    }
+
+    private async deserializeDeltas(deltas: any[]): Promise<any> {
         return await Promise.all(deltas.map(async (delta: any) => {
-            if (delta[0] === 'table_delta_v0') {
+            if (delta[0] === 'table_delta_v0' || delta[0] === 'table_delta_v1') {
                 if (this.deltaWhitelist.indexOf(delta[1].name) >= 0) {
-                    const deserialized = await this.deserializeWorkers.exec(delta[1].rows.map((row: any) => ({
+                    const deserialized = await this.deserializeArrayParallel(delta[1].rows.map((row: any) => ({
                         type: delta[1].name, data: row.data
                     })));
-
-                    if (!deserialized.success) {
-                        throw new Error(deserialized.message);
-                    }
 
                     return [
                         delta[0],
                         {
                             ...delta[1],
                             rows: delta[1].rows.map((row: any, index: number) => ({
-                                ...row, data: deserialized.data[index]
+                                present: !!row.present, data: deserialized[index]
                             }))
                         }
                     ];

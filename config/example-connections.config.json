@@ -2,9 +2,9 @@
   "postgres": {
     "host": "127.0.0.1",
     "port": 5432,
-    "user": "username",
+    "user": "root",
     "password": "changeme",
-    "database": "api-wax-mainnet"
+    "database": "root"
   },
   "redis": {
     "host": "127.0.0.1",
