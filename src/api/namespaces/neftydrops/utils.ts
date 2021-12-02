@@ -144,18 +144,20 @@ export function buildDropFilter(req: express.Request, query: QueryBuilder): void
         query.equalMany('ndrop.collection_name', args.collection_name.split(','));
     }
 
-    //TODO: Manage state filter
     if (args.state) {
         const stateFilters: string[] = [];
-
-        if (args.state.split(',').indexOf(String(DropApiState.CREATED.valueOf())) >= 0) {
-            stateFilters.push(`(ndrop.state = ${DropState.DELETED.valueOf()})`);
-        }
-
         if (args.state.split(',').indexOf(String(DropApiState.ACTIVE.valueOf())) >= 0) {
             stateFilters.push(`(ndrop.state = ${DropState.ACTIVE.valueOf()})`);
         }
+        if (args.state.split(',').indexOf(String(DropApiState.DELETED.valueOf())) >= 0) {
+            stateFilters.push(`(ndrop.state = ${DropState.DELETED.valueOf()})`);
+        }
+        if (args.state.split(',').indexOf(String(DropApiState.HIDDEN.valueOf())) >= 0) {
+            stateFilters.push(`(ndrop.state = ${DropState.HIDDEN.valueOf()})`);
+        }
         query.addCondition('(' + stateFilters.join(' OR ') + ')');
+    } else {
+        query.equal('ndrop.state', DropState.ACTIVE);
     }
 }
 

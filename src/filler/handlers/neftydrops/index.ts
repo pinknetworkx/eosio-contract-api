@@ -22,7 +22,8 @@ export type NeftyDropsArgs = {
 
 export enum DropState {
     ACTIVE = 0,
-    DELETED = 1
+    DELETED = 1,
+    HIDDEN = 2
 }
 
 export enum NeftyDropsUpdatePriority {
@@ -35,9 +36,9 @@ export enum NeftyDropsUpdatePriority {
 }
 
 const views = [
-    'neftydrops_stats_master', 
-    'neftydrops_drop_prices_master', 
-    'neftydrops_drops_master', 
+    'neftydrops_stats_master',
+    'neftydrops_drop_prices_master',
+    'neftydrops_drops_master',
     'neftydrops_claims_master',
     'neftydrops_attribute_filters_master'
 ];
@@ -87,6 +88,13 @@ export default class NeftyDropsHandler extends ContractHandler {
     static async upgrade(client: PoolClient, version: string): Promise<void> {
         if (version === '1.2.51') {
             const viewsToUpdate = ['neftydrops_stats_master'];
+            for (const view of viewsToUpdate) {
+                logger.info(`Refreshing views ${view}`);
+                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
+            }
+        }
+        if (version === '1.2.55') {
+            const viewsToUpdate = ['neftydrops_drops_master'];
             for (const view of viewsToUpdate) {
                 logger.info(`Refreshing views ${view}`);
                 await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));

@@ -71,7 +71,10 @@ ON (drops_contract, drop_id)
     ndrop.start_time,
     ndrop.end_time,
     ndrop.display_data,
-    ndrop.auth_required
+    ndrop.auth_required,
+    ndrop.account_limit,
+    ndrop.account_limit_cooldown,
+    ndrop.max_claimable
 FROM
     neftydrops_drops ndrop LEFT JOIN neftydrops_symbol_pairs pair
 ON (

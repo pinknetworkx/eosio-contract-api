@@ -17,10 +17,9 @@ export type NeftyDropsNamespaceArgs = {
 };
 
 export enum DropApiState {
-    CREATED = 0,
-    ACTIVE = 1,
-    SOLD_OUT = 2,
-    ENDED = 3,
+    ACTIVE = 0,
+    DELETED= 1,
+    HIDDEN = 3,
 }
 
 export class NeftyDropsNamespace extends ApiNamespace {

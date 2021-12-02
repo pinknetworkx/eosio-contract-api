@@ -14,7 +14,6 @@ import {
     primaryBoundaryParameters
 } from '../../../docs';
 import logger from '../../../../utils/winston';
-import {DropState} from '../../../../filler/handlers/neftydrops';
 import {dropDataFilter, dropsFilterParameters} from '../openapi';
 
 export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, router: express.Router): any {
@@ -24,6 +23,7 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                 page: {type: 'int', min: 1, default: 1},
                 limit: {type: 'int', min: 1, max: 100, default: 100},
                 collection_name: {type: 'string', min: 1},
+                state: {type: 'string', min: 0},
                 sort: {
                     type: 'string',
                     values: [
@@ -41,17 +41,24 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                     LEFT JOIN neftydrops_drop_prices price ON (price.drops_contract = ndrop.drops_contract AND price.drop_id = ndrop.drop_id)
             `);
 
-            query.equal('ndrop.state', DropState.ACTIVE);
-
             buildDropFilter(req, query);
 
             if (!args.collection_name) {
                 buildGreylistFilter(req, query, {collectionName: 'ndrop.collection_name'});
             }
 
+            let dateColumn = 'ndrop.created_at_time';
+            if (args.sort === 'updated') {
+                dateColumn = 'ndrop.updated_at_time';
+            } else if (args.sort === 'start_time') {
+                dateColumn = 'ndrop.start_time';
+            } else if (args.sort === 'end_time') {
+                dateColumn = 'ndrop.end_time';
+            }
+
             buildBoundaryFilter(
                 req, query, 'ndrop.drop_id', 'int',
-                args.sort === 'updated' ? 'ndrop.updated_at_time' : 'ndrop.created_at_time'
+                dateColumn
             );
 
             if (req.originalUrl.search('/_count') >= 0) {
@@ -72,7 +79,7 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                 price: {column: 'price.price', nullable: true}
             };
 
-            query.append('ORDER BY ' + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', ndrop.drop_id ASC');
+            query.append('ORDER BY ' + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : ''));
             query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
             const dropQuery = await server.query(query.buildString(), query.buildValues());
@@ -158,7 +165,7 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                 claimer: {column: 'claimer', nullable: false},
             };
 
-            query.append('ORDER BY ' + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : '') + ', claim_id ASC');
+            query.append('ORDER BY ' + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : ''));
             query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
             const claimsQuery = await server.query(query.buildString(), query.buildValues());
@@ -198,10 +205,9 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             name: 'state',
                             in: 'query',
                             description: 'Filter by drop state (' +
-                                DropApiState.CREATED.valueOf() + ': CREATED - The drop is created, ' +
-                                DropApiState.ACTIVE.valueOf() + ': ACTIVE - The drop is active for claiming' +
-                                DropApiState.SOLD_OUT.valueOf() + ': SOLD_OUT - The drop is sold out' +
-                                DropApiState.ENDED.valueOf() + ': ENDED - The drop is already ended' +
+                                DropApiState.ACTIVE.valueOf() + ': ACTIVE - The drop is active, ' +
+                                DropApiState.DELETED.valueOf() + ': DELETE - The drop is deleted' +
+                                DropApiState.HIDDEN.valueOf() + ': HIDDEN - The drop is hidden' +
                                 ') - separate multiple with ","',
                             required: false,
                             schema: {type: 'string'}
