@@ -16,7 +16,8 @@ export type LogCreateDropActionData = {
     account_limit_cooldown: number,
     start_time: number,
     end_time: number,
-    display_data: string
+    display_data: string,
+    is_hidden?: boolean
 };
 
 export type SetDropAuthActionData = {
@@ -42,6 +43,12 @@ export type SetDropMaxActionData = {
     authorized_account: string,
     drop_id: number,
     new_max_claimable: number
+};
+
+export type SetDropHiddenActionData = {
+    authorized_account: string,
+    drop_id: number,
+    is_hidden: boolean
 };
 
 export type SetDropPriceActionData = {

@@ -10,6 +10,7 @@ import {
   LogCreateDropActionData,
   SetDropAuthActionData,
   SetDropDataActionData,
+  SetDropHiddenActionData,
   SetDropLimitActionData,
   SetDropMaxActionData,
   SetDropPriceActionData,
@@ -42,7 +43,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           start_time: trace.act.data.start_time,
           end_time: trace.act.data.end_time,
           display_data: trace.act.data.display_data,
-          state: DropState.ACTIVE.valueOf(),
+          state: trace.act.data.is_hidden ? DropState.HIDDEN.valueOf() : DropState.ACTIVE.valueOf(),
           updated_at_block: block.block_num,
           updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
           created_at_block: block.block_num,
@@ -113,6 +114,20 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
       async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<SetDropMaxActionData>): Promise<void> => {
         await db.update('neftydrops_drops', {
           max_claimable: trace.act.data.new_max_claimable,
+          updated_at_block: block.block_num,
+          updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
+        }, {
+          str: 'drops_contract = $1 AND drop_id = $2',
+          values: [core.args.neftydrops_account, trace.act.data.drop_id]
+        }, ['drops_contract', 'drop_id']);
+      }, NeftyDropsUpdatePriority.ACTION_UPDATE_DROP.valueOf()
+  ));
+
+  destructors.push(processor.onActionTrace(
+      contract, 'setdrophiddn',
+      async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<SetDropHiddenActionData>): Promise<void> => {
+        await db.update('neftydrops_drops', {
+          state: trace.act.data.is_hidden === true ? DropState.HIDDEN.valueOf() : DropState.ACTIVE.valueOf(),
           updated_at_block: block.block_num,
           updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
         }, {
