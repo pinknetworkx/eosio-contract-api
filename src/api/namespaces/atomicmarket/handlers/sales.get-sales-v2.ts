@@ -98,21 +98,7 @@ async function buildSaleFilterV2(values: FilterValues, query: QueryBuilder, ctx:
     buildAggFilterV2(values, query);
     buildListingFilterV2(values, query);
 
-    // if (hasAssetFilter(values, ['collection_name']) || hasDataFilters(values)) {
-    //     const assetQuery = new QueryBuilder(
-    //         'SELECT * FROM atomicassets_offers_assets offer_asset, ' +
-    //         'atomicassets_assets asset LEFT JOIN atomicassets_templates "template" ON ("asset".contract = "template".contract AND "asset".template_id = "template".template_id)',
-    //         query.buildValues()
-    //     );
-    //
-    //     assetQuery.join('asset', 'offer_asset', ['contract', 'asset_id']);
-    //     assetQuery.addCondition(  'offer_asset.offer_id = listing.offer_id AND offer_asset.contract = listing.assets_contract');
-    //
-    //     buildAssetFilter(values, assetQuery, {assetTable: '"asset"', templateTable: '"template"', allowDataFilter: true});
-    //
-    //     query.addCondition('EXISTS(' + assetQuery.buildString() + ')');
-    //     query.setVars(assetQuery.buildValues());
-    // }
+    buildAssetFilterV2(values, query);
 
     if (args.max_assets) {
         query.addCondition(`listing.asset_count <= ${args.max_assets}`);
@@ -143,11 +129,36 @@ async function buildSaleFilterV2(values: FilterValues, query: QueryBuilder, ctx:
     }
 }
 
+export function buildAssetFilterV2(values: FilterValues, query: QueryBuilder): void {
+
+    const args = filterQueryArgs(values, {
+        asset_id: {type: 'string[]', min: 1},
+    });
+
+    // if (options.allowDataFilter !== false) {
+    //     buildDataConditions(values, query, {assetTable: options.assetTable, templateTable: options.templateTable});
+    // }
+
+    if (args.asset_id) {
+        query.addCondition(`listing.asset_ids && ${query.addVariable(args.asset_id)}`);
+    }
+
+}
+
 type AggFilter = {
     buyers?: string[],
     sellers?: string[],
     collection_names?: string[],
+    owners?: string[],
+    flags?: string[],
+    template_ids?: string[],
+    schema_names?: string[],
 };
+
+const SALE_FILTER_FLAG_BURNED = 'b';
+const SALE_FILTER_FLAG_NO_TEMPLATE = 'nt';
+const SALE_FILTER_FLAG_NOT_TRANSFERABLE = 'nx';
+const SALE_FILTER_FLAG_NOT_BURNABLE = 'nb';
 
 export function buildAggFilterV2(values: FilterValues, query: QueryBuilder): void {
     const args = filterQueryArgs(values, {
@@ -159,6 +170,15 @@ export function buildAggFilterV2(values: FilterValues, query: QueryBuilder): voi
         buyer: {type: 'string[]', min: 1},
 
         collection_name: {type: 'string[]', min: 1},
+
+        owner: {type: 'string[]', min: 1, max: 12},
+
+        burned: {type: 'bool'},
+        template_id: {type: 'string[]', min: 1},
+        schema_name: {type: 'string[]', min: 1},
+        is_transferable: {type: 'bool'},
+        is_burnable: {type: 'bool'},
+
     });
 
     let hasInc = 0;
@@ -166,39 +186,69 @@ export function buildAggFilterV2(values: FilterValues, query: QueryBuilder): voi
         buyers: [],
         sellers: [],
         collection_names: [],
+        owners: [],
+        flags: [],
+        template_ids: [],
+        schema_names: [],
     };
 
     let hasExc = 0;
     const exc: AggFilter = {
         buyers: [],
         sellers: [],
+        flags: [],
     };
 
-    if (args.collection_name) {
-        if (args.collection_name.length > 1) {
-            query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(collection_names := ${query.addVariable(args.collection_name)}))`);
-        } else {
-            hasInc = inc.collection_names.push(args.collection_name);
+    function addIncArrayFilter(filter: string): void {
+        if (args[filter]) {
+            if (args[filter].length > 1) {
+                query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(${filter}s := ${query.addVariable(args[filter])}))`);
+            } else {
+                // @ts-ignore
+                hasInc = inc[filter+'s'].push(args[filter]);
+            }
         }
     }
+
+    addIncArrayFilter('owner');
+    addIncArrayFilter('collection_name');
 
     if (args.account) {
         query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(sellers := ${query.addVariable(args.account)}, buyers := ${query.addVariable(args.account)}))`);
     }
 
-    if (args.seller) {
-        if (args.seller.length > 1) {
-            query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(sellers := ${query.addVariable(args.seller)}))`);
+    addIncArrayFilter('seller');
+    addIncArrayFilter('buyer');
+
+    addIncArrayFilter('schema_name');
+
+    if (args.template_id?.map((s: string) => s.toLowerCase()).includes('null')) {
+        hasInc = inc.flags.push(SALE_FILTER_FLAG_NO_TEMPLATE);
+    } else {
+        addIncArrayFilter('template_id');
+    }
+
+    if (typeof args.burned === 'boolean') {
+        if (args.burned) {
+            hasInc = inc.flags.push(SALE_FILTER_FLAG_BURNED);
         } else {
-            hasInc = inc.sellers.push(args.seller);
+            hasExc = exc.flags.push(SALE_FILTER_FLAG_BURNED);
         }
     }
 
-    if (args.buyer) {
-        if (args.buyer.length > 1) {
-            query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(buyers := ${query.addVariable(args.buyer)}))`);
+    if (typeof args.is_transferable === 'boolean') {
+        if (args.is_transferable) {
+            hasExc = exc.flags.push(SALE_FILTER_FLAG_NOT_TRANSFERABLE);
         } else {
-            hasInc = inc.buyers.push(args.buyer);
+            hasInc = inc.flags.push(SALE_FILTER_FLAG_NOT_TRANSFERABLE);
+        }
+    }
+
+    if (typeof args.is_burnable === 'boolean') {
+        if (args.is_burnable) {
+            hasExc = exc.flags.push(SALE_FILTER_FLAG_NOT_BURNABLE);
+        } else {
+            hasInc = inc.flags.push(SALE_FILTER_FLAG_NOT_BURNABLE);
         }
     }
 
@@ -214,12 +264,20 @@ export function buildAggFilterV2(values: FilterValues, query: QueryBuilder): voi
         query.addCondition(`(listing.filter @> create_atomicmarket_sales_filter(
             buyers := ${query.addVariable(inc.buyers)},
             sellers := ${query.addVariable(inc.sellers)},
-            collection_names := ${query.addVariable(inc.collection_names)}
+            collection_names := ${query.addVariable(inc.collection_names)},
+            owners := ${query.addVariable(inc.owners)},
+            flags := ${query.addVariable(inc.flags)},
+            template_ids := ${query.addVariable(inc.template_ids)},
+            schema_names := ${query.addVariable(inc.schema_names)}
         ))`);
     }
 
     if (hasExc) {
-        query.addCondition(`NOT (listing.filter && create_atomicmarket_sales_filter(buyers := ${query.addVariable(exc.buyers)}, sellers := ${query.addVariable(exc.sellers)}))`);
+        query.addCondition(`NOT (listing.filter && create_atomicmarket_sales_filter(
+            buyers := ${query.addVariable(exc.buyers)},
+            sellers := ${query.addVariable(exc.sellers)},
+            flags := ${query.addVariable(exc.flags)}
+        ))`);
     }
 }
 

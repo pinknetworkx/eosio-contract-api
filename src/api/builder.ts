@@ -137,4 +137,9 @@ export default class QueryBuilder {
     buildValues(): any[] {
         return this.values;
     }
+
+    debug(): void {
+        console.log(this.buildString(), this.buildValues());
+    }
+
 }

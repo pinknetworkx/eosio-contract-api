@@ -11,6 +11,7 @@ CREATE TABLE atomicmarket_sales_filters (
 	created_at_time BIGINT NOT NULL,
     sale_state SMALLINT NOT NULL,
     filter TEXT[],
+    asset_ids BIGINT[],
     asset_names TEXT,
     market_contract VARCHAR(12) NOT NULL,
     settlement_symbol VARCHAR(12),
@@ -30,9 +31,10 @@ CREATE OR REPLACE FUNCTION create_atomicmarket_sales_filter(
     collection_names TEXT[] = NULL,
     data TEXT[] = NULL,
     schema_names TEXT [] = NULL,
-    asset_ids BIGINT[] = NULL,
     sellers TEXT[] = NULL,
-    buyers TEXT[] = NULL
+    buyers TEXT[] = NULL,
+    owners TEXT[] = NULL,
+    flags TEXT[] = NULL
 ) RETURNS TEXT []
 LANGUAGE sql
 IMMUTABLE
@@ -43,9 +45,10 @@ SELECT
     || (SELECT ARRAY_AGG(DISTINCT 'c' || unnest) FROM UNNEST(collection_names) WHERE unnest IS NOT NULL)
     || (SELECT ARRAY_AGG(DISTINCT 'd' || unnest) FROM UNNEST(data) WHERE unnest IS NOT NULL)
     || (SELECT ARRAY_AGG(DISTINCT 's' || unnest) FROM UNNEST(schema_names) WHERE unnest IS NOT NULL)
-    || (SELECT ARRAY_AGG(DISTINCT 'a' || unnest) FROM UNNEST(asset_ids) WHERE unnest IS NOT NULL)
     || (SELECT ARRAY_AGG(DISTINCT 'e' || unnest) FROM UNNEST(sellers) WHERE unnest IS NOT NULL)
     || (SELECT ARRAY_AGG(DISTINCT 'b' || unnest) FROM UNNEST(buyers) WHERE unnest IS NOT NULL)
+    || (SELECT ARRAY_AGG(DISTINCT 'o' || unnest) FROM UNNEST(owners) WHERE unnest IS NOT NULL)
+    || (SELECT ARRAY_AGG(DISTINCT 'f' || unnest) FROM UNNEST(flags) WHERE unnest IS NOT NULL)
 $$;
 
 DROP TABLE IF EXISTS atomicmarket_sales_filters_updates;
@@ -86,7 +89,8 @@ BEGIN
         INSERT INTO sales_to_update (sale_id, market_contract)
             SELECT m.sale_id, m.market_contract
             FROM atomicmarket_sales_filters m
-            WHERE m.assets_contract = r.asset_contract AND m.filter && create_atomicmarket_sales_filter(asset_ids := r.asset_ids)
+            WHERE m.assets_contract = r.asset_contract
+            	AND m.asset_ids && r.asset_ids
         ON CONFLICT DO NOTHING
         ;
     END LOOP;
@@ -138,10 +142,16 @@ BEGIN
                 collection_names := ARRAY[listing.collection_name],
                 data := ARRAY_AGG(DISTINCT data_props.ky || ':' || (data_props.val#>> '{}')) FILTER (WHERE data_props.ky NOT IN ('name', 'img') AND LENGTH(data_props.val#>> '{}') < 60),
                 schema_names := ARRAY_AGG(DISTINCT asset.schema_name),
-                asset_ids := ARRAY_AGG(DISTINCT asset.asset_id),
                 sellers := ARRAY[listing.seller],
-                buyers := ARRAY[listing.buyer]
+                buyers := ARRAY[listing.buyer],
+                owners := ARRAY_AGG(DISTINCT asset.owner) FILTER (WHERE asset.owner IS NOT NULL),
+                flags := CASE WHEN COUNT(asset.owner) FILTER (WHERE asset.owner IS NOT NULL) = 0 THEN ARRAY['b'] END -- burned
+                	|| CASE WHEN COUNT(asset.template_id) FILTER (WHERE asset.template_id IS NOT NULL) = 0 THEN ARRAY['nt'] END -- no template
+                	|| CASE WHEN BOOL_AND(template.transferable) IS DISTINCT FROM TRUE THEN ARRAY['nx'] END -- not transferable
+                	|| CASE WHEN BOOL_AND(template.burnable) IS DISTINCT FROM TRUE THEN ARRAY['nb'] END -- not burnable
             ) AS filter,
+
+    		ARRAY_AGG(DISTINCT asset.asset_id) asset_ids,
 
             STRING_AGG(DISTINCT (data_props.val#>> '{}'), e'\n') FILTER (WHERE data_props.ky = 'name') asset_names,
 
@@ -173,13 +183,13 @@ BEGIN
         GROUP BY listing.market_contract, listing.sale_id, sale_state
     ), ins_upd AS (
         INSERT INTO atomicmarket_sales_filters AS m (sale_id, created_at_block, offer_id, price,
-            asset_count, sale_state, filter, asset_names, market_contract,
+            asset_count, sale_state, filter, asset_ids, asset_names, market_contract,
             settlement_symbol, template_mint, assets_contract, seller,
             maker_marketplace, taker_marketplace, updated_at_time, created_at_time
         )
             SELECT
                 sale_id, created_at_block, offer_id, price,
-                asset_count, sale_state, filter, asset_names, market_contract,
+                asset_count, sale_state, filter, asset_ids, asset_names, market_contract,
                 settlement_symbol, template_mint, assets_contract, seller,
                 maker_marketplace, taker_marketplace, updated_at_time, created_at_time
             FROM sales_to_insert_or_update
@@ -190,6 +200,7 @@ BEGIN
                 price = EXCLUDED.price,
                 asset_count = EXCLUDED.asset_count,
                 filter = EXCLUDED.filter,
+                asset_ids = EXCLUDED.asset_ids,
                 asset_names = EXCLUDED.asset_names,
                 settlement_symbol = EXCLUDED.settlement_symbol,
                 seller = EXCLUDED.seller,
@@ -205,6 +216,7 @@ BEGIN
                 OR m.price IS DISTINCT FROM EXCLUDED.price
                 OR m.asset_count IS DISTINCT FROM EXCLUDED.asset_count
                 OR m.filter IS DISTINCT FROM EXCLUDED.filter
+                OR m.asset_ids IS DISTINCT FROM EXCLUDED.asset_ids
                 OR m.asset_names IS DISTINCT FROM EXCLUDED.asset_names
                 OR m.settlement_symbol IS DISTINCT FROM EXCLUDED.settlement_symbol
                 OR m.seller IS DISTINCT FROM EXCLUDED.seller
@@ -336,6 +348,7 @@ SELECT update_atomicmarket_sales_filters();
 
 
 CREATE INDEX atomicmarket_sales_filters_filter_idx ON atomicmarket_sales_filters USING gin(filter);
+CREATE INDEX atomicmarket_sales_filters_asset_ids_idx ON atomicmarket_sales_filters USING gin(asset_ids);
 CREATE INDEX atomicmarket_sales_filters_asset_names_idx ON atomicmarket_sales_filters USING gist(asset_names gist_trgm_ops);
 CREATE INDEX atomicmarket_sales_filters_offer_id_idx ON atomicmarket_sales_filters (offer_id);
 

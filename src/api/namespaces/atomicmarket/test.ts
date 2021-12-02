@@ -56,7 +56,10 @@ export class AtomicMarketTestClient extends AtomicAssetsTestClient {
         const {offer_id} = await this.createOffer(offerValues);
         const {asset_id} = await this.createAsset({...assetValues, collection_name});
         await this.createOfferAsset({...offerAssetValues, offer_id, asset_id});
-        return await this.createSale({...saleValues, offer_id, collection_name});
+        return {
+            ...(await this.createSale({...saleValues, offer_id, collection_name})),
+            asset_id,
+        };
     }
 
 }
