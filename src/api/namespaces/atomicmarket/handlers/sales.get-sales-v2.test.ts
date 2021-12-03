@@ -537,41 +537,41 @@ describe.only('AtomicMarket Sales API', () => {
         //     expect(await getSalesIds({'immutable_data.prop': 'this'}))
         //         .to.deep.equal([sale_id]);
         // });
-        //
-        // txit('filters by match_immutable_name', async () => {
-        //     const offer1 = await client.createOfferAsset();
-        //     await client.createSale({offer_id: offer1.offer_id});
-        //
-        //     const {offer_id} = await client.createOfferAsset({}, {immutable_data: JSON.stringify({name: 'prefix_par%_tial_postfix'})});
-        //     const {sale_id} = await client.createSale({offer_id});
-        //
-        //     expect(await getSalesIds({'match_immutable_name': 'par%_tial'}))
-        //         .to.deep.equal([sale_id]);
-        // });
-        //
-        // txit('filters by match_mutable_name', async () => {
-        //     const offer1 = await client.createOfferAsset();
-        //     await client.createSale({offer_id: offer1.offer_id});
-        //
-        //     const {offer_id} = await client.createOfferAsset({}, {mutable_data: JSON.stringify({name: 'prefix_par%_tial_postfix'})});
-        //     const {sale_id} = await client.createSale({offer_id});
-        //
-        //     expect(await getSalesIds({'match_mutable_name': 'par%_tial'}))
-        //         .to.deep.equal([sale_id]);
-        // });
-        //
-        // txit('filters by match (template name)', async () => {
-        //     const offer1 = await client.createOfferAsset();
-        //     await client.createSale({offer_id: offer1.offer_id});
-        //
-        //     const {template_id} = await client.createTemplate({immutable_data: JSON.stringify({name: 'prefix_par%_tial_postfix'})});
-        //     const {offer_id} = await client.createOfferAsset({}, {template_id});
-        //     const {sale_id} = await client.createSale({offer_id});
-        //
-        //     expect(await getSalesIds({'match': 'par%_tial'}))
-        //         .to.deep.equal([sale_id]);
-        // });
-        //
+
+        txit('filters by match_immutable_name', async () => {
+            await client.createFullSale();
+
+            const {sale_id} = await client.createFullSale({}, {
+                immutable_data: JSON.stringify({name: 'prefix_par%_tial_postfix'}),
+            });
+
+            expect(await getSalesIds({'match_immutable_name': 'par%_tial'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by match_mutable_name', async () => {
+            await client.createFullSale();
+
+            const {sale_id} = await client.createFullSale({}, {
+                mutable_data: JSON.stringify({name: 'prefix_par%_tial_postfix'}),
+            });
+
+            expect(await getSalesIds({'match_mutable_name': 'par%_tial'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by match (template name)', async () => {
+            await client.createFullSale();
+
+            const {template_id} = await client.createTemplate({
+                immutable_data: JSON.stringify({name: 'prefix_par%_tial_postfix'}),
+            });
+            const {sale_id} = await client.createFullSale({}, {template_id});
+
+            expect(await getSalesIds({'match': 'par%_tial'}))
+                .to.deep.equal([sale_id]);
+        });
+
         // txit('filters by collection_whitelist', async () => {
         //     await client.createSale();
         //

@@ -178,7 +178,7 @@ BEGIN
             LEFT JOIN atomicmarket_symbol_pairs pair ON pair.market_contract = listing.market_contract AND pair.listing_symbol = listing.listing_symbol AND pair.settlement_symbol = listing.settlement_symbol
             LEFT JOIN delphioracle_pairs delphi ON pair.delphi_contract = delphi.contract AND pair.delphi_pair_name = delphi.delphi_pair_name
 
-            LEFT OUTER JOIN LATERAL jsonb_each(asset.mutable_data || asset.immutable_data || template.immutable_data) AS data_props(ky, val) ON TRUE
+            LEFT OUTER JOIN LATERAL jsonb_each(COALESCE(asset.mutable_data, '{}') || COALESCE(asset.immutable_data, '{}') || COALESCE(template.immutable_data, '{}')) AS data_props(ky, val) ON TRUE
         WHERE (listing.state != 2) -- exclude cancelled
         GROUP BY listing.market_contract, listing.sale_id, sale_state
     ), ins_upd AS (

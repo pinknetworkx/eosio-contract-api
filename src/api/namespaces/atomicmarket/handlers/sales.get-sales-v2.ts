@@ -129,15 +129,13 @@ async function buildSaleFilterV2(values: FilterValues, query: QueryBuilder, ctx:
     }
 }
 
-export function buildAssetFilterV2(values: FilterValues, query: QueryBuilder): void {
+function buildAssetFilterV2(values: FilterValues, query: QueryBuilder): void {
 
     const args = filterQueryArgs(values, {
         asset_id: {type: 'string[]', min: 1},
     });
 
-    // if (options.allowDataFilter !== false) {
-    //     buildDataConditions(values, query, {assetTable: options.assetTable, templateTable: options.templateTable});
-    // }
+    buildDataConditionsV2(values, query);
 
     if (args.asset_id) {
         query.addCondition(`listing.asset_ids && ${query.addVariable(args.asset_id)}`);
@@ -160,7 +158,7 @@ const SALE_FILTER_FLAG_NO_TEMPLATE = 'nt';
 const SALE_FILTER_FLAG_NOT_TRANSFERABLE = 'nx';
 const SALE_FILTER_FLAG_NOT_BURNABLE = 'nb';
 
-export function buildAggFilterV2(values: FilterValues, query: QueryBuilder): void {
+function buildAggFilterV2(values: FilterValues, query: QueryBuilder): void {
     const args = filterQueryArgs(values, {
         seller_blacklist: {type: 'string[]', min: 1},
         buyer_blacklist: {type: 'string[]', min: 1},
@@ -281,7 +279,7 @@ export function buildAggFilterV2(values: FilterValues, query: QueryBuilder): voi
     }
 }
 
-export function buildListingFilterV2(values: FilterValues, query: QueryBuilder): void {
+function buildListingFilterV2(values: FilterValues, query: QueryBuilder): void {
     const args = filterQueryArgs(values, {
         show_seller_contracts: {type: 'bool', default: true},
         contract_whitelist: {type: 'string[]', min: 1, default: []},
@@ -329,4 +327,63 @@ export function buildListingFilterV2(values: FilterValues, query: QueryBuilder):
             ', \'[]\')'
         );
     }
+}
+
+function buildDataConditionsV2(values: FilterValues, query: QueryBuilder): void {
+    // const keys = Object.keys(values);
+    //
+    // function buildConditionObject(name: string): {[key: string]: string | number | boolean} {
+    //     const searchObject: {[key: string]: string | number} = {};
+    //
+    //     for (const key of keys) {
+    //         if (key.startsWith(name + ':text.')) {
+    //             searchObject[key.substr((name + ':text.').length)] = String(values[key]);
+    //         } else if (key.startsWith(name + ':number.')) {
+    //             searchObject[key.substr((name + ':number.').length)] = parseFloat(values[key]);
+    //         } else if (key.startsWith(name + ':bool.')) {
+    //             searchObject[key.substr((name + ':bool.').length)] = (values[key] === 'true' || values[key] === '1') ? 1 : 0;
+    //         } else if (key.startsWith(name + '.')) {
+    //             searchObject[key.substr((name + '.').length)] = values[key];
+    //         }
+    //     }
+    //
+    //     return searchObject;
+    // }
+    //
+    // const templateCondition = {...buildConditionObject('data'), ...buildConditionObject('template_data')};
+    // const mutableCondition = buildConditionObject('mutable_data');
+    // const immutableCondition = buildConditionObject('immutable_data');
+    //
+    // if (Object.keys(mutableCondition).length > 0) {
+    //     query.addCondition(options.assetTable + '.mutable_data @> ' + query.addVariable(JSON.stringify(mutableCondition)) + '::jsonb');
+    // }
+    //
+    // if (Object.keys(immutableCondition).length > 0) {
+    //     query.addCondition(options.assetTable + '.immutable_data @> ' + query.addVariable(JSON.stringify(immutableCondition)) + '::jsonb');
+    // }
+
+    if (typeof values.match_immutable_name === 'string' && values.match_immutable_name.length > 0) {
+        query.addCondition(
+            'listing.asset_names ILIKE ' +
+            query.addVariable('%' + values.match_immutable_name.replace('%', '\\%').replace('_', '\\_') + '%')
+        );
+    }
+
+    if (typeof values.match_mutable_name === 'string' && values.match_mutable_name.length > 0) {
+        query.addCondition(
+            'listing.asset_names ILIKE ' +
+            query.addVariable('%' + values.match_mutable_name.replace('%', '\\%').replace('_', '\\_') + '%')
+        );
+    }
+
+    if (typeof values.match === 'string' && values.match.length > 0) {
+        query.addCondition(
+            'listing.asset_names ILIKE ' +
+            query.addVariable('%' + values.match.replace('%', '\\%').replace('_', '\\_') + '%')
+        );
+    }
+
+    // if (Object.keys(templateCondition).length > 0) {
+    //     query.addCondition(options.templateTable + '.immutable_data @> ' + query.addVariable(JSON.stringify(templateCondition)) + '::jsonb');
+    // }
 }
