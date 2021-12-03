@@ -290,6 +290,34 @@ export class WebServer {
         };
     }
 
+    logRequest = (): express.Handler => {
+        const log = !!process.env.LOG_REQUESTS;
+
+        return async (req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> => {
+            if (log) {
+                const start = new Date();
+
+                res.on('close', () => {
+                    const time = (new Date()).getTime() - start.getTime();
+
+                    const lo = {
+                        path: req.path,
+                        method: req.method,
+                        query: req.query,
+                        params: req.params,
+                        body: req.body,
+                        time,
+                        error: res.statusCode != 200,
+                    };
+
+                    logger.info(`perf: ${JSON.stringify(lo)}`);
+                });
+            }
+
+            next();
+        };
+    }
+
 }
 
 export class SocketServer {

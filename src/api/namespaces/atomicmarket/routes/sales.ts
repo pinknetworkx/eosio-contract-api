@@ -28,10 +28,10 @@ import {
 } from '../handlers/sales';
 
 export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
-    const {caching, returnAsJSON} = server.web;
+    const {caching, returnAsJSON, logRequest} = server.web;
 
-    router.all('/v1/sales', caching(), returnAsJSON(getSalesAction, core));
-    router.all('/v1/sales/_count', caching(), returnAsJSON(getSalesCountAction, core));
+    router.all('/v1/sales', caching(), logRequest(), returnAsJSON(getSalesAction, core));
+    router.all('/v1/sales/_count', caching(), logRequest(), returnAsJSON(getSalesCountAction, core));
 
     router.all('/v1/sales/templates', caching(), returnAsJSON(getSalesTemplatesAction, core));
 
