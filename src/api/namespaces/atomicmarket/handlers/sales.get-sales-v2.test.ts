@@ -572,26 +572,26 @@ describe.only('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id]);
         });
 
-        // txit('filters by collection_whitelist', async () => {
-        //     await client.createSale();
-        //
-        //     const {collection_name} = await client.createCollection({collection_name: 'x'});
-        //     const {sale_id} = await client.createSale({collection_name});
-        //
-        //     expect(await getSalesIds({collection_name: 'x,abc'}))
-        //         .to.deep.equal([sale_id]);
-        // });
-        //
-        // txit('filters by collection_blacklist', async () => {
-        //     const {collection_name} = await client.createCollection({collection_name: 'x'});
-        //     await client.createSale({collection_name});
-        //
-        //     const {sale_id} = await client.createSale();
-        //
-        //     expect(await getSalesIds({collection_blacklist: 'x,abc'}))
-        //         .to.deep.equal([sale_id]);
-        // });
-        //
+        txit('filters by collection_whitelist', async () => {
+            await client.createFullSale();
+
+            const {collection_name} = await client.createCollection({collection_name: 'x'});
+            const {sale_id} = await client.createFullSale({collection_name});
+
+            expect(await getSalesIds({collection_whitelist: 'x,abc'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by collection_blacklist', async () => {
+            const {collection_name} = await client.createCollection({collection_name: 'x'});
+            await client.createFullSale({collection_name});
+
+            const {sale_id} = await client.createFullSale();
+
+            expect(await getSalesIds({collection_blacklist: 'x,abc'}))
+                .to.deep.equal([sale_id]);
+        });
+
         // txit('filters by id (sale_id)', async () => {
         //     await client.createSale();
         //

@@ -10,7 +10,6 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
-        // collection_name: {type: 'string', min: 1},
         sort: {
             type: 'string',
             values: [
@@ -32,10 +31,6 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
 
     await buildSaleFilterV2(params, query, ctx);
 /*
-    if (!args.collection_name) {
-        buildGreylistFilter(params, query, {collectionName: 'listing.collection_name'});
-    }
-
     buildBoundaryFilter(
         params, query, 'listing.sale_id', 'int',
         args.sort === 'updated' ? 'listing.updated_at_time' : 'listing.created_at_time'
@@ -167,12 +162,14 @@ function buildAggFilterV2(values: FilterValues, query: QueryBuilder): void {
         seller: {type: 'string[]', min: 1},
         buyer: {type: 'string[]', min: 1},
 
-        collection_name: {type: 'string[]', min: 1},
+        collection_name: {type: 'string[]', min: 1, default: []},
+        collection_blacklist: {type: 'string[]', min: 1},
+        collection_whitelist: {type: 'string[]', min: 1, default: []},
 
         owner: {type: 'string[]', min: 1, max: 12},
 
         burned: {type: 'bool'},
-        template_id: {type: 'string[]', min: 1},
+        template_id: {type: 'string[]', min: 1, default: []},
         schema_name: {type: 'string[]', min: 1},
         is_transferable: {type: 'bool'},
         is_burnable: {type: 'bool'},
@@ -194,13 +191,15 @@ function buildAggFilterV2(values: FilterValues, query: QueryBuilder): void {
     const exc: AggFilter = {
         buyers: [],
         sellers: [],
+        collection_names: [],
         flags: [],
     };
 
-    function addIncArrayFilter(filter: string): void {
-        if (args[filter]) {
-            if (args[filter].length > 1) {
-                query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(${filter}s := ${query.addVariable(args[filter])}))`);
+    function addIncArrayFilter(filter: string, value: any = undefined): void {
+        value = value ?? args[filter];
+        if (value?.length) {
+            if (value.length > 1) {
+                query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(${filter}s := ${query.addVariable(value)}))`);
             } else {
                 // @ts-ignore
                 hasInc = inc[filter+'s'].push(args[filter]);
@@ -210,6 +209,7 @@ function buildAggFilterV2(values: FilterValues, query: QueryBuilder): void {
 
     addIncArrayFilter('owner');
     addIncArrayFilter('collection_name');
+    addIncArrayFilter('collection_name', args.collection_whitelist);
 
     if (args.account) {
         query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(sellers := ${query.addVariable(args.account)}, buyers := ${query.addVariable(args.account)}))`);
@@ -220,7 +220,7 @@ function buildAggFilterV2(values: FilterValues, query: QueryBuilder): void {
 
     addIncArrayFilter('schema_name');
 
-    if (args.template_id?.map((s: string) => s.toLowerCase()).includes('null')) {
+    if (args.template_id.find((s: string) => s.toLowerCase() === 'null')) {
         hasInc = inc.flags.push(SALE_FILTER_FLAG_NO_TEMPLATE);
     } else {
         addIncArrayFilter('template_id');
@@ -251,11 +251,15 @@ function buildAggFilterV2(values: FilterValues, query: QueryBuilder): void {
     }
 
     if (args.seller_blacklist) {
-        hasExc = exc.sellers.push(args.seller_blacklist);
+        hasExc = exc.sellers.push(...args.seller_blacklist);
     }
 
     if (args.buyer_blacklist) {
-        hasExc = exc.buyers.push(args.buyer_blacklist);
+        hasExc = exc.buyers.push(...args.buyer_blacklist);
+    }
+
+    if (args.collection_blacklist) {
+        hasExc = exc.collection_names.push(...args.collection_blacklist);
     }
 
     if (hasInc) {
@@ -274,6 +278,7 @@ function buildAggFilterV2(values: FilterValues, query: QueryBuilder): void {
         query.addCondition(`NOT (listing.filter && create_atomicmarket_sales_filter(
             buyers := ${query.addVariable(exc.buyers)},
             sellers := ${query.addVariable(exc.sellers)},
+            collection_names := ${query.addVariable(exc.collection_names)},
             flags := ${query.addVariable(exc.flags)}
         ))`);
     }

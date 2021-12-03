@@ -548,7 +548,7 @@ describe('AtomicMarket Sales API', () => {
             const {collection_name} = await client.createCollection({collection_name: 'x'});
             const {sale_id} = await client.createSale({collection_name});
 
-            expect(await getSalesIds({collection_name: 'x,abc'}))
+            expect(await getSalesIds({collection_whitelist: 'x,abc'}))
                 .to.deep.equal([sale_id]);
         });
 
