@@ -35,7 +35,7 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
         params, query, 'listing.sale_id', 'int',
         args.sort === 'updated' ? 'listing.updated_at_time' : 'listing.created_at_time'
     );
-/*
+
     if (args.count) {
         const countQuery = await ctx.db.query(
             'SELECT COUNT(*) counter FROM (' + query.buildString() + ') x',
@@ -44,7 +44,7 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
 
         return countQuery.rows[0].counter;
     }
-*/
+
     const sortMapping: { [key: string]: { column: string, nullable: boolean, numericIndex: boolean } } = {
         sale_id: {column: 'listing.sale_id', nullable: false, numericIndex: true},
         created: {column: 'listing.created_at_time', nullable: false, numericIndex: true},

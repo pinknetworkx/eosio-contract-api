@@ -629,19 +629,19 @@ describe.only('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id]);
         });
 
-        // txit('returns count', async () => {
-        //     await client.createFullSale();
-        //
-        //     const {sale_id} = await client.createFullSale();
-        //
-        //     const testContext = getTestContext(client);
-        //
-        //     await client.query('SELECT update_atomicmarket_sales_filters()');
-        //
-        //     const result = await getSalesV2Action({ids: `${sale_id}`, count: 'true'}, testContext);
-        //
-        //     expect(result).to.equal('1');
-        // });
+        txit('returns count', async () => {
+            await client.createFullSale();
+
+            const {sale_id} = await client.createFullSale();
+
+            const testContext = getTestContext(client);
+
+            await client.query('SELECT update_atomicmarket_sales_filters()');
+
+            const result = await getSalesV2Action({ids: `${sale_id}`, count: 'true'}, testContext);
+
+            expect(result).to.equal('1');
+        });
 
         txit('orders ascending', async () => {
             const {sale_id: sale_id1} = await client.createFullSale();
