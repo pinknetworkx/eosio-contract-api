@@ -351,5 +351,8 @@ CREATE INDEX atomicmarket_sales_filters_asset_ids_idx ON atomicmarket_sales_filt
 CREATE INDEX atomicmarket_sales_filters_asset_names_idx ON atomicmarket_sales_filters USING gist(asset_names gist_trgm_ops);
 CREATE INDEX atomicmarket_sales_filters_offer_id_idx ON atomicmarket_sales_filters (offer_id);
 
+CREATE INDEX atomicmarket_sales_filters_updated_at_time_idx ON atomicmarket_sales_filters (updated_at_time);
+CREATE INDEX atomicmarket_sales_filters_created_at_time_idx ON atomicmarket_sales_filters (created_at_time);
+
 ANALYSE atomicmarket_sales_filters;
 
