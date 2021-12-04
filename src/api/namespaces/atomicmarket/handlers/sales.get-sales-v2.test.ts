@@ -592,43 +592,43 @@ describe.only('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id]);
         });
 
-        // txit('filters by id (sale_id)', async () => {
-        //     await client.createSale();
-        //
-        //     const {sale_id} = await client.createSale();
-        //
-        //     expect(await getSalesIds({ids: `${sale_id},-1`}))
-        //         .to.deep.equal([sale_id]);
-        // });
-        //
-        // txit('filters by id range (sale_id)', async () => {
-        //     await client.createSale();
-        //
-        //     const lower_bound = `${client.getId()}`;
-        //
-        //     const {sale_id} = await client.createSale();
-        //     const upper_bound = `${client.getId()}`;
-        //
-        //     await client.createSale();
-        //
-        //     expect(await getSalesIds({lower_bound, upper_bound}))
-        //         .to.deep.equal([sale_id]);
-        // });
-        //
-        // txit('filters by date range', async () => {
-        //     await client.createSale();
-        //
-        //     const after = `${client.getId()}`;
-        //
-        //     const {sale_id} = await client.createSale();
-        //     const before = `${client.getId()}`;
-        //
-        //     await client.createSale();
-        //
-        //     expect(await getSalesIds({after, before}))
-        //         .to.deep.equal([sale_id]);
-        // });
-        //
+        txit('filters by id (sale_id)', async () => {
+            await client.createFullSale();
+
+            const {sale_id} = await client.createFullSale();
+
+            expect(await getSalesIds({ids: `${sale_id},-1`}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by id range (sale_id)', async () => {
+            await client.createFullSale();
+
+            const lower_bound = `${client.getId()}`;
+
+            const {sale_id} = await client.createFullSale();
+            const upper_bound = `${client.getId()}`;
+
+            await client.createFullSale();
+
+            expect(await getSalesIds({lower_bound, upper_bound}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by date range', async () => {
+            await client.createFullSale();
+
+            const after = `${client.getId()}`;
+
+            const {sale_id} = await client.createFullSale();
+            const before = `${client.getId()}`;
+
+            await client.createFullSale();
+
+            expect(await getSalesIds({after, before}))
+                .to.deep.equal([sale_id]);
+        });
+
         // txit('returns count', async () => {
         //     await client.createFullSale();
         //

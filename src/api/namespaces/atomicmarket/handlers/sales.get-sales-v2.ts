@@ -1,4 +1,4 @@
-import { filterQueryArgs, FilterValues, RequestValues } from '../../utils';
+import { buildBoundaryFilter, filterQueryArgs, FilterValues, RequestValues } from '../../utils';
 import { AtomicMarketContext } from '../index';
 import QueryBuilder from '../../../builder';
 import { fillSales } from '../filler';
@@ -30,12 +30,12 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
     query.equal('listing.market_contract', ctx.coreArgs.atomicmarket_account);
 
     await buildSaleFilterV2(params, query, ctx);
-/*
+
     buildBoundaryFilter(
         params, query, 'listing.sale_id', 'int',
         args.sort === 'updated' ? 'listing.updated_at_time' : 'listing.created_at_time'
     );
-
+/*
     if (args.count) {
         const countQuery = await ctx.db.query(
             'SELECT COUNT(*) counter FROM (' + query.buildString() + ') x',
