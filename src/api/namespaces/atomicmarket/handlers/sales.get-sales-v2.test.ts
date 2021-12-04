@@ -21,8 +21,7 @@ async function getSalesIds(values: RequestValues): Promise<Array<number>> {
     return result?.map((s: any) => s.sale_id);
 }
 
-// TODO remove only
-describe.only('AtomicMarket Sales API', () => {
+describe('AtomicMarket Sales API', () => {
 
     describe('getSalesAction V2', () => {
 

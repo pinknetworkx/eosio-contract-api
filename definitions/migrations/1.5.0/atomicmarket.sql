@@ -278,7 +278,6 @@ INSERT INTO atomicmarket_sales_filters_updates(market_contract, sale_id)
             WHEN (listing.state = 3) THEN 3
             WHEN (listing.state = 1 AND offer.state != 0) THEN 4
         END IN (0, 1, /*2,*/ 3, 4)
--- limit 100000
 ;
 
 DROP FUNCTION IF EXISTS update_atomicmarket_sales_filters_by_asset CASCADE;
