@@ -146,6 +146,7 @@ type AggFilter = {
     flags?: string[],
     template_ids?: string[],
     schema_names?: string[],
+    data?: string[],
 };
 
 const SALE_FILTER_FLAG_BURNED = 'b';
@@ -185,6 +186,7 @@ function buildAggFilterV2(values: FilterValues, query: QueryBuilder): void {
         flags: [],
         template_ids: [],
         schema_names: [],
+        data: [],
     };
 
     let hasExc = 0;
@@ -262,6 +264,8 @@ function buildAggFilterV2(values: FilterValues, query: QueryBuilder): void {
         hasExc = exc.collection_names.push(...args.collection_blacklist);
     }
 
+    hasInc = inc.data.push(...getDataFilters(values)) || hasInc;
+
     if (hasInc) {
         query.addCondition(`(listing.filter @> create_atomicmarket_sales_filter(
             buyers := ${query.addVariable(inc.buyers)},
@@ -270,7 +274,8 @@ function buildAggFilterV2(values: FilterValues, query: QueryBuilder): void {
             owners := ${query.addVariable(inc.owners)},
             flags := ${query.addVariable(inc.flags)},
             template_ids := ${query.addVariable(inc.template_ids)},
-            schema_names := ${query.addVariable(inc.schema_names)}
+            schema_names := ${query.addVariable(inc.schema_names)},
+            data := ${query.addVariable(inc.data)}
         ))`);
     }
 
@@ -334,39 +339,31 @@ function buildListingFilterV2(values: FilterValues, query: QueryBuilder): void {
     }
 }
 
-function buildDataConditionsV2(values: FilterValues, query: QueryBuilder): void {
-    // const keys = Object.keys(values);
-    //
-    // function buildConditionObject(name: string): {[key: string]: string | number | boolean} {
-    //     const searchObject: {[key: string]: string | number} = {};
-    //
-    //     for (const key of keys) {
-    //         if (key.startsWith(name + ':text.')) {
-    //             searchObject[key.substr((name + ':text.').length)] = String(values[key]);
-    //         } else if (key.startsWith(name + ':number.')) {
-    //             searchObject[key.substr((name + ':number.').length)] = parseFloat(values[key]);
-    //         } else if (key.startsWith(name + ':bool.')) {
-    //             searchObject[key.substr((name + ':bool.').length)] = (values[key] === 'true' || values[key] === '1') ? 1 : 0;
-    //         } else if (key.startsWith(name + '.')) {
-    //             searchObject[key.substr((name + '.').length)] = values[key];
-    //         }
-    //     }
-    //
-    //     return searchObject;
-    // }
-    //
-    // const templateCondition = {...buildConditionObject('data'), ...buildConditionObject('template_data')};
-    // const mutableCondition = buildConditionObject('mutable_data');
-    // const immutableCondition = buildConditionObject('immutable_data');
-    //
-    // if (Object.keys(mutableCondition).length > 0) {
-    //     query.addCondition(options.assetTable + '.mutable_data @> ' + query.addVariable(JSON.stringify(mutableCondition)) + '::jsonb');
-    // }
-    //
-    // if (Object.keys(immutableCondition).length > 0) {
-    //     query.addCondition(options.assetTable + '.immutable_data @> ' + query.addVariable(JSON.stringify(immutableCondition)) + '::jsonb');
-    // }
+function getDataFilters(values: FilterValues): string[] {
+    const result = [];
+    const keys = Object.keys(values);
+    for (const key of keys) {
+        const x = key.match(/^(template_|mutable_|immutable_)?data(:(?<type>text|number|bool))?\.(?<name>.+)$/);
+        if (!x) {
+            continue;
+        }
 
+        switch (x.groups.type) {
+            case 'number':
+                result.push(`${x.groups.name}:${parseFloat(values[key])}`);
+                break;
+            case 'bool':
+                result.push(`${x.groups.name}:${(values[key] === 'true' || values[key] === '1') ? 1 : 0}`);
+                break;
+            default:
+                result.push(`${x.groups.name}:${values[key]}`);
+        }
+    }
+
+    return result;
+}
+
+function buildDataConditionsV2(values: FilterValues, query: QueryBuilder): void {
     if (typeof values.match_immutable_name === 'string' && values.match_immutable_name.length > 0) {
         query.addCondition(
             'listing.asset_names ILIKE ' +
@@ -387,8 +384,4 @@ function buildDataConditionsV2(values: FilterValues, query: QueryBuilder): void 
             query.addVariable('%' + values.match.replace('%', '\\%').replace('_', '\\_') + '%')
         );
     }
-
-    // if (Object.keys(templateCondition).length > 0) {
-    //     query.addCondition(options.templateTable + '.immutable_data @> ' + query.addVariable(JSON.stringify(templateCondition)) + '::jsonb');
-    // }
 }

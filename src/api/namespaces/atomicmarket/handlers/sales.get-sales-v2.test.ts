@@ -492,51 +492,47 @@ describe.only('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id]);
         });
 
-        // txit('filters by text data', async () => {
-        //     const offer1 = await client.createOfferAsset();
-        //     await client.createSale({offer_id: offer1.offer_id});
-        //
-        //     const {template_id} = await client.createTemplate({immutable_data: JSON.stringify({'prop': 'TheValue'})});
-        //     const {offer_id} = await client.createOfferAsset({}, {template_id});
-        //     const {sale_id} = await client.createSale({offer_id});
-        //
-        //     expect(await getSalesIds({'data:text.prop': 'TheValue'}))
-        //         .to.deep.equal([sale_id]);
-        // });
-        //
-        // txit('filters by number template_data', async () => {
-        //     const offer1 = await client.createOfferAsset();
-        //     await client.createSale({offer_id: offer1.offer_id});
-        //
-        //     const {template_id} = await client.createTemplate({immutable_data: JSON.stringify({'prop': 1})});
-        //     const {offer_id} = await client.createOfferAsset({}, {template_id});
-        //     const {sale_id} = await client.createSale({offer_id});
-        //
-        //     expect(await getSalesIds({'template_data:number.prop': 1}))
-        //         .to.deep.equal([sale_id]);
-        // });
-        //
-        // txit('filters by bool mutable_data', async () => {
-        //     const offer1 = await client.createOfferAsset();
-        //     await client.createSale({offer_id: offer1.offer_id});
-        //
-        //     const {offer_id} = await client.createOfferAsset({}, {mutable_data: JSON.stringify({'prop': 1})});
-        //     const {sale_id} = await client.createSale({offer_id});
-        //
-        //     expect(await getSalesIds({'mutable_data:bool.prop': 'true'}))
-        //         .to.deep.equal([sale_id]);
-        // });
-        //
-        // txit('filters by untyped immutable_data', async () => {
-        //     const offer1 = await client.createOfferAsset();
-        //     await client.createSale({offer_id: offer1.offer_id});
-        //
-        //     const {offer_id} = await client.createOfferAsset({}, {immutable_data: JSON.stringify({'prop': 'this'})});
-        //     const {sale_id} = await client.createSale({offer_id});
-        //
-        //     expect(await getSalesIds({'immutable_data.prop': 'this'}))
-        //         .to.deep.equal([sale_id]);
-        // });
+        txit('filters by text data', async () => {
+            await client.createFullSale();
+
+            const {template_id} = await client.createTemplate({immutable_data: JSON.stringify({'prop': 'TheValue'})});
+            const {sale_id} = await client.createFullSale({}, {template_id});
+
+            expect(await getSalesIds({'data:text.prop': 'TheValue'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by number template_data', async () => {
+            await client.createFullSale();
+
+            const {template_id} = await client.createTemplate({immutable_data: JSON.stringify({'prop': 1})});
+            const {sale_id} = await client.createFullSale({}, {template_id});
+
+            expect(await getSalesIds({'template_data:number.prop': '1'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by bool mutable_data', async () => {
+            await client.createFullSale();
+
+            const {sale_id} = await client.createFullSale({}, {
+                mutable_data: JSON.stringify({'prop': 1}),
+            });
+
+            expect(await getSalesIds({'mutable_data:bool.prop': 'true'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by untyped immutable_data', async () => {
+            await client.createFullSale();
+
+            const {sale_id} = await client.createFullSale({}, {
+                immutable_data: JSON.stringify({'prop': 'this'}),
+            });
+
+            expect(await getSalesIds({'immutable_data.prop': 'this'}))
+                .to.deep.equal([sale_id]);
+        });
 
         txit('filters by match_immutable_name', async () => {
             await client.createFullSale();
