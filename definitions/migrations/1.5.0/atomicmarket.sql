@@ -15,7 +15,6 @@ CREATE TABLE atomicmarket_sales_filters (
     asset_names TEXT,
     market_contract VARCHAR(12) NOT NULL,
     settlement_symbol VARCHAR(12),
-    seller VARCHAR(12) NOT NULL,
     template_mint int4range,
     assets_contract VARCHAR(12) NOT NULL,
 	maker_marketplace VARCHAR(12) NOT NULL,
@@ -41,11 +40,11 @@ IMMUTABLE
 AS $$
 SELECT
     ARRAY[]::TEXT[]
-    || (SELECT ARRAY_AGG(DISTINCT 't' || unnest) FROM UNNEST(template_ids) WHERE unnest IS NOT NULL)
     || (SELECT ARRAY_AGG(DISTINCT 'c' || unnest) FROM UNNEST(collection_names) WHERE unnest IS NOT NULL)
+    || (SELECT ARRAY_AGG(DISTINCT 'e' || unnest) FROM UNNEST(sellers) WHERE unnest IS NOT NULL)
+    || (SELECT ARRAY_AGG(DISTINCT 't' || unnest) FROM UNNEST(template_ids) WHERE unnest IS NOT NULL)
     || (SELECT ARRAY_AGG(DISTINCT 'd' || unnest) FROM UNNEST(data) WHERE unnest IS NOT NULL)
     || (SELECT ARRAY_AGG(DISTINCT 's' || unnest) FROM UNNEST(schema_names) WHERE unnest IS NOT NULL)
-    || (SELECT ARRAY_AGG(DISTINCT 'e' || unnest) FROM UNNEST(sellers) WHERE unnest IS NOT NULL)
     || (SELECT ARRAY_AGG(DISTINCT 'b' || unnest) FROM UNNEST(buyers) WHERE unnest IS NOT NULL)
     || (SELECT ARRAY_AGG(DISTINCT 'o' || unnest) FROM UNNEST(owners) WHERE unnest IS NOT NULL)
     || (SELECT ARRAY_AGG(DISTINCT 'f' || unnest) FROM UNNEST(flags) WHERE unnest IS NOT NULL)
@@ -157,7 +156,6 @@ BEGIN
 
             listing.market_contract,
             listing.settlement_symbol,
-            listing.seller,
 
             CASE WHEN MIN(asset.template_mint) IS NULL THEN 'empty'::int4range ELSE int4range(MIN(asset.template_mint), MAX(asset.template_mint), '[]') END AS template_mint,
 
@@ -184,13 +182,13 @@ BEGIN
     ), ins_upd AS (
         INSERT INTO atomicmarket_sales_filters AS m (sale_id, created_at_block, offer_id, price,
             asset_count, sale_state, filter, asset_ids, asset_names, market_contract,
-            settlement_symbol, template_mint, assets_contract, seller,
+            settlement_symbol, template_mint, assets_contract,
             maker_marketplace, taker_marketplace, updated_at_time, created_at_time
         )
             SELECT
                 sale_id, created_at_block, offer_id, price,
                 asset_count, sale_state, filter, asset_ids, asset_names, market_contract,
-                settlement_symbol, template_mint, assets_contract, seller,
+                settlement_symbol, template_mint, assets_contract,
                 maker_marketplace, taker_marketplace, updated_at_time, created_at_time
             FROM sales_to_insert_or_update
         ON CONFLICT (sale_state, market_contract, sale_id)
@@ -203,7 +201,6 @@ BEGIN
                 asset_ids = EXCLUDED.asset_ids,
                 asset_names = EXCLUDED.asset_names,
                 settlement_symbol = EXCLUDED.settlement_symbol,
-                seller = EXCLUDED.seller,
                 template_mint = EXCLUDED.template_mint,
                 assets_contract = EXCLUDED.assets_contract,
                 maker_marketplace = EXCLUDED.maker_marketplace,
@@ -219,7 +216,6 @@ BEGIN
                 OR m.asset_ids IS DISTINCT FROM EXCLUDED.asset_ids
                 OR m.asset_names IS DISTINCT FROM EXCLUDED.asset_names
                 OR m.settlement_symbol IS DISTINCT FROM EXCLUDED.settlement_symbol
-                OR m.seller IS DISTINCT FROM EXCLUDED.seller
                 OR m.template_mint IS DISTINCT FROM EXCLUDED.template_mint
                 OR m.assets_contract IS DISTINCT FROM EXCLUDED.assets_contract
                 OR m.maker_marketplace IS DISTINCT FROM EXCLUDED.maker_marketplace

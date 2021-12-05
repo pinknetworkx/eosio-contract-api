@@ -274,8 +274,7 @@ function buildAggFilterV2(values: FilterValues, query: QueryBuilder): void {
     }
 
     if (exc.collection_names.length > 20) {
-        query.addCondition(`STRPOS(${query.addVariable('\n' + exc.collection_names.join('\n') + '\n')}, (SELECT e'\\n'||SUBSTR(f, 2)||e'\\n' FROM UNNEST(filter) u(f) WHERE f LIKE 'c%' LIMIT 1)) = 0`);
-
+        query.addCondition(`NOT EXISTS (SELECT 1 FROM UNNEST(${query.addVariable([...exc.collection_names])}::TEXT[]) u(collection_name) WHERE SUBSTR(listing.filter[1], 2) = u.collection_name)`);
         exc.collection_names.length = 0;
     }
 
@@ -322,7 +321,7 @@ function buildListingFilterV2(values: FilterValues, query: QueryBuilder): void {
         query.addCondition(
             'NOT EXISTS(' +
             'SELECT * FROM contract_codes code ' +
-            'WHERE code.account = listing.seller AND code.account != ALL(' + query.addVariable(args.contract_whitelist) + ')' +
+            'WHERE code.account = SUBSTR(listing.filter[2], 2) AND code.account != ALL(' + query.addVariable(args.contract_whitelist) + ')' +
             ')'
         );
     }
