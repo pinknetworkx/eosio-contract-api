@@ -108,6 +108,7 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
             SELECT * FROM atomicmarket_sales_master m
                 JOIN UNNEST($2::BIGINT[]) WITH ORDINALITY AS f(sale_id) ON m.sale_id = f.sale_id
             WHERE market_contract = $1
+                AND m.sale_id = ANY($2::BIGINT[])
             ORDER BY f.ordinality`,
         [ctx.coreArgs.atomicmarket_account, saleQuery.rows.map(row => row.sale_id)]
     );
