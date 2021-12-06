@@ -1,4 +1,4 @@
-import { HTTPServer } from '../../server';
+import {DB} from '../../server';
 import {FillerHook} from '../atomicassets/filler';
 import {formatTemplate} from '../atomicassets/format';
 
@@ -6,7 +6,7 @@ export class TemplateFiller {
     private templates: Promise<{[key: string]: any}> | null;
 
     constructor(
-        readonly server: HTTPServer,
+        readonly db: DB,
         readonly contract: string,
         readonly templateIds: string[],
         readonly formatter: (_: any) => any,
@@ -35,12 +35,12 @@ export class TemplateFiller {
             }
 
             try {
-                const query = await this.server.query(
+                const query = await this.db.query(
                     'SELECT * FROM ' + this.view + ' WHERE contract = $1 AND template_id = ANY ($2)',
                     [this.contract, this.templateIds]
                 );
 
-                const rows = this.hook ? await this.hook(this.server, this.contract, query.rows) : query.rows;
+                const rows = this.hook ? await this.hook(this.db, this.contract, query.rows) : query.rows;
                 const result: {[key: string]: any} = {};
 
                 for (const row of rows) {
@@ -55,14 +55,14 @@ export class TemplateFiller {
     }
 }
 
-export async function fillDrops(server: HTTPServer, assetContract: string, drops: any[]): Promise<any[]> {
+export async function fillDrops(db: DB, assetContract: string, drops: any[]): Promise<any[]> {
     const templateIds: string[] = [];
 
     for (const drop of drops) {
         templateIds.push(...drop.templates);
     }
 
-    const filler = new TemplateFiller(server, assetContract, templateIds, formatTemplate, 'atomicassets_templates_master');
+    const filler = new TemplateFiller(db, assetContract, templateIds, formatTemplate, 'atomicassets_templates_master');
 
     return await Promise.all(drops.map(async (drop) => {
         drop.templates = await filler.fill(drop.templates);

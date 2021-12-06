@@ -1,6 +1,4 @@
-import * as express from 'express';
-
-import {filterQueryArgs, mergeRequestData} from '../utils';
+import {filterQueryArgs, FilterValues} from '../utils';
 import {
     buildDataConditions,
     hasDataFilters
@@ -9,8 +7,8 @@ import QueryBuilder from '../../builder';
 import {DropState} from '../../../filler/handlers/neftydrops';
 import {DropApiState} from './index';
 
-export function hasTemplateFilter(req: express.Request, blacklist: string[] = []): boolean {
-    const keys = Object.keys(mergeRequestData(req));
+export function hasTemplateFilter(values: FilterValues, blacklist: string[] = []): boolean {
+    const keys = Object.keys(values);
 
     for (const key of keys) {
         if (
@@ -25,12 +23,12 @@ export function hasTemplateFilter(req: express.Request, blacklist: string[] = []
 }
 
 export function buildTemplateFilter(
-    req: express.Request, query: QueryBuilder,
+    values: FilterValues, query: QueryBuilder,
     options: {templateTable?: string, allowDataFilter?: boolean} = {}
 ): void {
     options = Object.assign({allowDataFilter: true}, options);
 
-    const args = filterQueryArgs(req, {
+    const args = filterQueryArgs(values, {
         template_id: {type: 'string', min: 1},
         schema_name: {type: 'string', min: 1},
         is_transferable: {type: 'bool'},
@@ -38,7 +36,7 @@ export function buildTemplateFilter(
     });
 
     if (options.allowDataFilter !== false) {
-        buildDataConditions(req, query, {assetTable: null, templateTable: options.templateTable});
+        buildDataConditions(values, query, {assetTable: null, templateTable: options.templateTable});
     }
 
     if (args.template_id) {
@@ -66,8 +64,8 @@ export function buildTemplateFilter(
     }
 }
 
-export function buildListingFilter(req: express.Request, query: QueryBuilder): void {
-    const args = filterQueryArgs(req, {
+export function buildListingFilter(values: FilterValues, query: QueryBuilder): void {
+    const args = filterQueryArgs(values, {
         collection_name: {type: 'string', min: 1},
     });
 
@@ -76,8 +74,8 @@ export function buildListingFilter(req: express.Request, query: QueryBuilder): v
     }
 }
 
-export function buildDropFilter(req: express.Request, query: QueryBuilder): void {
-    const args = filterQueryArgs(req, {
+export function buildDropFilter(values: FilterValues, query: QueryBuilder): void {
+    const args = filterQueryArgs(values, {
         state: {type: 'string', min: 0},
 
         max_assets: {type: 'int', min: 1},
@@ -90,9 +88,9 @@ export function buildDropFilter(req: express.Request, query: QueryBuilder): void
         collection_name: {type: 'string', min: 1},
     });
 
-    buildListingFilter(req, query);
+    buildListingFilter(values, query);
 
-    if (hasTemplateFilter(req) || hasDataFilters(req)) {
+    if (hasTemplateFilter(values) || hasDataFilters(values)) {
         const assetQuery = new QueryBuilder(
             'SELECT * FROM neftydrops_drop_assets drop_asset ' +
             'LEFT JOIN atomicassets_templates "template" ON (drop_asset.assets_contract = "template".contract AND drop_asset.template_id = "template".template_id)',
@@ -100,7 +98,7 @@ export function buildDropFilter(req: express.Request, query: QueryBuilder): void
         );
 
         assetQuery.addCondition('drop_asset.drop_id = ndrop.drop_id');
-        buildTemplateFilter(req, assetQuery, {templateTable: '"template"', allowDataFilter: true});
+        buildTemplateFilter(values, assetQuery, {templateTable: '"template"', allowDataFilter: true});
 
         query.addCondition('EXISTS(' + assetQuery.buildString() + ')');
         query.setVars(assetQuery.buildValues());

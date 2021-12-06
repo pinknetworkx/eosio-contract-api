@@ -2,129 +2,19 @@ import * as express from 'express';
 
 import { NeftyDropsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import {FilterDefinition, filterQueryArgs} from '../../utils';
-import {buildRangeCondition} from '../../neftydrops/utils';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters } from '../../../docs';
-import QueryBuilder from '../../../builder';
+import {
+  getClaimersAction, getClaimersCountAction,
+  getCollectionsAction,
+  getCollectionsCountAction
+} from '../handlers/mining';
 
 export function miningEndpoints(core: NeftyDropsNamespace, server: HTTPServer, router: express.Router): any {
-  const sort_collection = {
-    type: 'string',
-    values: [
-      'collection_name', 'sold_wax', 'sold_nefty'
-    ],
-    default: 'collection_name'
-  };
-  const sort_claimer = {
-    type: 'string',
-    values: [
-      'claimer', 'spent_wax', 'spent_nefty'
-    ],
-    default: 'claimer'
-  };
-
-  function miningFilterQueryArgs(sort: any): FilterDefinition {
-    return {
-      before: {type: 'int', min: 1, default: 0},
-      after: {type: 'int', min: 1, default: 0},
-      page: {type: 'int', min: 1, default: 1},
-      limit: {type: 'int', min: 1, max: 1000, default: 100},
-      sort: sort,
-      order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
-    };
-  }
-
-  function buildClaimsQuery(after?: number, before?: number): string {
-    return ` FROM neftydrops_claims
-             WHERE settlement_symbol IS DISTINCT FROM 'NULL'
-                  AND drops_contract = $1
-                  ${buildRangeCondition('"created_at_time"', after, before)}`;
-  }
-  function buildGroupQuery(group_by: string,
-      sort: string, order: string, limit: number, page: number): string {
-    const offset = (page - 1) * limit;
-    return ` GROUP BY ${group_by}
-             ORDER BY ${sort} ${order}
-             LIMIT ${limit}
-             OFFSET ${offset}`;
-  }
-  function buildCountQuery(group_by: string,
-      after?: number, before?: number): string {
-    return 'SELECT COUNT(*) count FROM ('
-          + `SELECT ${group_by} `
-          + buildClaimsQuery(after, before)
-          + ` GROUP BY ${group_by}) AS grouped_claims`;
-  }
-
-  router.get(['/v1/mining/collections', '/v1/mining/collections/_count'], server.web.caching(), async (req, res) => {
-    try {
-      const args = filterQueryArgs(req, miningFilterQueryArgs(sort_collection));
-      const group_by = 'collection_name';
-
-      if (req.originalUrl.search('/_count') >= 0) {
-        const countQuery = await server.query(
-            buildCountQuery(group_by, args.after, args.before),
-            [core.args.neftydrops_account]
-        );
-        return res.json({success: true, data: countQuery.rows[0].count, query_time: Date.now()});
-      }
-
-      const queryString = `SELECT ${group_by},
-      SUM( 
-          CASE COALESCE(spent_symbol, 'NULL') 
-            WHEN 'NULL' THEN (CASE settlement_symbol WHEN 'WAX' THEN final_price ELSE 0 END)
-            WHEN 'NEFTY' THEN 0
-            ELSE core_amount END
-      ) AS sold_wax, 
-      SUM(
-          CASE settlement_symbol 
-            WHEN 'NEFTY' THEN core_amount 
-            ELSE 0 END
-      ) AS sold_nefty `
-        + buildClaimsQuery(args.after, args.before)
-        + buildGroupQuery(group_by, args.sort, args.order, args.limit, args.page);
-      const query = new QueryBuilder(queryString, [core.args.neftydrops_account]);
-      const collectionSales = await server.query(query.buildString(), query.buildValues());
-
-      res.json({success: true, data: collectionSales.rows, query_time: Date.now()});
-    } catch (e) {
-      res.status(500).json({success: false, message: 'Internal Server Error'});
-    }
-  });
-
-  router.get(['/v1/mining/claimers', '/v1/mining/claimers/_count'], server.web.caching(), async (req, res) => {
-    try {
-      const args = filterQueryArgs(req, miningFilterQueryArgs(sort_claimer));
-      const group_by = 'claimer';
-
-      if (req.originalUrl.search('/_count') >= 0) {
-        const countQuery = await server.query(
-            buildCountQuery(group_by, args.after, args.before),
-            [core.args.neftydrops_account]
-        );
-        return res.json({success: true, data: countQuery.rows[0].count, query_time: Date.now()});
-      }
-
-      const queryString = `SELECT ${group_by}, 
-      SUM( 
-          CASE COALESCE(spent_symbol, 'NULL') 
-            WHEN 'NULL' THEN (CASE settlement_symbol WHEN 'WAX' THEN final_price ELSE 0 END)
-            WHEN 'NEFTY' THEN 0
-            ELSE core_amount END
-      ) AS spent_wax, 
-      SUM(
-        CASE spent_symbol WHEN 'NEFTY' THEN core_amount ELSE 0 END
-      ) AS spent_nefty `
-        + buildClaimsQuery(args.after, args.before)
-        + buildGroupQuery(group_by, args.sort, args.order, args.limit, args.page);
-      const query = new QueryBuilder(queryString, [core.args.neftydrops_account]);
-      const userPurchases = await server.query(query.buildString(), query.buildValues());
-
-      res.json({success: true, data: userPurchases.rows, query_time: Date.now()});
-    } catch (e) {
-      res.status(500).json({success: false, message: 'Internal Server Error'});
-    }
-  });
+  const { caching, returnAsJSON } = server.web;
+  router.all('/v1/mining/collections', caching(), returnAsJSON(getCollectionsAction, core));
+  router.all('/v1/mining/collections/_count', caching(), returnAsJSON(getCollectionsCountAction, core));
+  router.all('/v1/mining/claimers', caching(), returnAsJSON(getClaimersAction, core));
+  router.all('/v1/mining/claimers/_count', caching(), returnAsJSON(getClaimersCountAction, core));
 
   return {
     tag: {
