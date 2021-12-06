@@ -317,6 +317,12 @@ export default class AtomicMarketHandler extends ContractHandler {
             );
         }, 30000, true));
 
+        destructors.push(this.filler.registerUpdateJob(async () => {
+            await this.connection.database.query(
+                'SELECT update_atomicmarket_sales_filters()'
+            );
+        }, 59000, true));
+
         const priorityMaterializedViews = ['atomicmarket_sale_prices'];
 
         for (const view of priorityMaterializedViews) {
