@@ -70,11 +70,18 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
         template_mint: {column: 'LOWER(listing.template_mint)', numericIndex: false}
     };
 
-    const preventIndexUsage = search.hasGoodFilter.length > 0;
-
     if (args.sort === 'template_mint') {
         query.addCondition('LOWER(listing.template_mint) IS NOT NULL');
+
+        if (args.order === 'asc' && !search.hasGoodFilter.length) {
+            // TODO find a better solution. when no (collection) filter is set, and the result is ordered by
+            //  template_mint in ascending order, it always takes longer than 10 seconds. I think it's due to lack
+            //  of listings matching whitelisted/blacklisted listings at the lower end of the mints
+            search.hasGoodFilter.push('template_mint_asc_block');
+        }
     }
+
+    const preventIndexUsage = search.hasGoodFilter.length > 0;
 
     query.append(`ORDER BY ${sortMapping[args.sort].column}${preventIndexUsage ? ' + 0' : ''} ${args.order}, listing.sale_id ASC`);
     query.paginate(args.page, args.limit);
@@ -225,7 +232,11 @@ function buildAggFilterV2(search: SearchBuilder): void {
         value = value ?? args[filter];
         if (value?.length) {
             if (value.length > 1) {
-                query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(${filter}s := ${query.addVariable(value)}))`);
+                if (value.length >= 50 && filter === 'collection_name') {
+                    query.addCondition(`EXISTS (SELECT 1 FROM UNNEST(${query.addVariable(value)}::TEXT[]) u(collection_name) WHERE SUBSTR(listing.filter[1], 2) = u.collection_name)`);
+                } else {
+                    query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(${filter}s := ${query.addVariable(value)}))`);
+                }
             } else {
                 // @ts-ignore
                 inc[filter+'s'].push(args[filter]);
