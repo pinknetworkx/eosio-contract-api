@@ -8,6 +8,7 @@ import {statsEndpoints} from './routes/stats';
 import {dropsEndpoints} from './routes/drops';
 import {miningEndpoints} from './routes/mining';
 import {marketplaceEndpoints} from './routes/marketplace';
+import {ActionHandlerContext} from '../../actionhandler';
 
 export type NeftyDropsNamespaceArgs = {
     neftydrops_account: string,
@@ -21,6 +22,8 @@ export enum DropApiState {
     DELETED= 1,
     HIDDEN = 3,
 }
+
+export type NeftyDropsContext = ActionHandlerContext<NeftyDropsNamespaceArgs>;
 
 export class NeftyDropsNamespace extends ApiNamespace {
     static namespaceName = 'neftydrops';

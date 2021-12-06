@@ -4,10 +4,13 @@ import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
 import { filtersEndpoints } from './routes/filters';
 import { neftyMarketComponents } from './openapi';
+import {ActionHandlerContext} from '../../actionhandler';
 
 export type NeftyMarketNamespaceArgs = {
     atomicassets_account: string,
 };
+
+export type NeftyMarketContext = ActionHandlerContext<NeftyMarketNamespaceArgs>;
 
 export class NeftyMarketNamespace extends ApiNamespace {
     static namespaceName = 'neftymarket';
