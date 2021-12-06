@@ -22,7 +22,29 @@ CREATE TABLE atomicmarket_sales_filters (
 )
 PARTITION BY LIST (sale_state);
 
+ALTER TABLE atomicmarket_sales_filters ADD COLUMN variable_price BOOLEAN;
+ALTER TABLE atomicmarket_sales_filters ADD COLUMN b2 BOOLEAN;
+ALTER TABLE atomicmarket_sales_filters ADD COLUMN b3 BOOLEAN;
+ALTER TABLE atomicmarket_sales_filters ADD COLUMN b4 BOOLEAN;
+ALTER TABLE atomicmarket_sales_filters ADD COLUMN b5 BOOLEAN;
+ALTER TABLE atomicmarket_sales_filters ADD COLUMN b6 BOOLEAN;
+ALTER TABLE atomicmarket_sales_filters ADD COLUMN b7 BOOLEAN;
+
 ALTER TABLE atomicmarket_sales_filters ADD CONSTRAINT atomicmarket_sales_filters_pkey PRIMARY KEY (sale_state, market_contract, sale_id);
+
+CREATE OR REPLACE FUNCTION calc_listing_price(final_price BIGINT, listing_price BIGINT, invert_delphi_pair BOOLEAN, delphi_median BIGINT, delphi_quote_precision INT, delphi_base_precision INT, delphi_median_precision INT) RETURNS BIGINT
+LANGUAGE sql
+IMMUTABLE
+AS $$
+-- TODO update atomicmarket_sale_prices_master to use this function?
+    SELECT
+        CASE
+            WHEN final_price IS NOT NULL THEN final_price
+            WHEN invert_delphi_pair THEN LEAST(listing_price::numeric * delphi_median::numeric * power(10.0, (delphi_quote_precision - delphi_base_precision - delphi_median_precision)::numeric), '9223372036854775807'::bigint::numeric)::bigint
+            WHEN NOT invert_delphi_pair THEN LEAST(listing_price::numeric / delphi_median::numeric * power(10.0, (delphi_median_precision + delphi_base_precision - delphi_quote_precision)::numeric), '9223372036854775807'::bigint::numeric)::bigint
+            ELSE listing_price
+        END
+$$;
 
 DROP FUNCTION IF EXISTS create_atomicmarket_sales_filter CASCADE;
 CREATE OR REPLACE FUNCTION create_atomicmarket_sales_filter(
@@ -58,6 +80,16 @@ CREATE TABLE atomicmarket_sales_filters_updates(
     asset_id BIGINT,
     offer_id BIGINT
 );
+
+CREATE OR REPLACE FUNCTION refresh_atomicmarket_sales_filters_price() RETURNS VOID
+LANGUAGE sql
+AS $$
+	INSERT INTO atomicmarket_sales_filters_updates (market_contract, sale_id)
+		SELECT market_contract, sale_id
+		FROM atomicmarket_sales_filters
+		WHERE sale_state = 1 /* listing */
+			AND variable_price
+$$;
 
 DROP FUNCTION IF EXISTS update_atomicmarket_sales_filters;
 CREATE OR REPLACE FUNCTION update_atomicmarket_sales_filters() RETURNS INT
@@ -118,14 +150,8 @@ BEGIN
             listing.sale_id,
             listing.created_at_block,
             listing.offer_id,
-            MIN(
-                CASE -- TODO copied from atomicmarket_sale_prices_master, create inline-able function?
-                    WHEN listing.final_price IS NOT NULL THEN listing.final_price
-                    WHEN pair.invert_delphi_pair IS NOT NULL AND pair.invert_delphi_pair = true THEN LEAST(listing.listing_price::numeric * delphi.median::numeric * power(10.0, (delphi.quote_precision - delphi.base_precision - delphi.median_precision)::numeric), '9223372036854775807'::bigint::numeric)::bigint
-                    WHEN pair.invert_delphi_pair IS NOT NULL AND pair.invert_delphi_pair = false THEN LEAST(listing.listing_price::numeric / delphi.median::numeric * power(10.0, (delphi.median_precision + delphi.base_precision - delphi.quote_precision)::numeric), '9223372036854775807'::bigint::numeric)::bigint
-                    ELSE listing.listing_price
-                END
-            ) AS price,
+            MIN(calc_listing_price(listing.final_price, listing.listing_price, pair.invert_delphi_pair, delphi.median, delphi.quote_precision, delphi.base_precision, delphi.median_precision)) AS price,
+            CASE WHEN BOOL_OR(pair.invert_delphi_pair) IS NOT NULL THEN TRUE END variable_price,
 
             COUNT(DISTINCT asset.asset_id) asset_count,
             CASE
@@ -180,13 +206,13 @@ BEGIN
         WHERE (listing.state != 2) -- exclude cancelled
         GROUP BY listing.market_contract, listing.sale_id, sale_state
     ), ins_upd AS (
-        INSERT INTO atomicmarket_sales_filters AS m (sale_id, created_at_block, offer_id, price,
+        INSERT INTO atomicmarket_sales_filters AS m (sale_id, created_at_block, offer_id, price, variable_price,
             asset_count, sale_state, filter, asset_ids, asset_names, market_contract,
             settlement_symbol, template_mint, assets_contract,
             maker_marketplace, taker_marketplace, updated_at_time, created_at_time
         )
             SELECT
-                sale_id, created_at_block, offer_id, price,
+                sale_id, created_at_block, offer_id, price, variable_price,
                 asset_count, sale_state, filter, asset_ids, asset_names, market_contract,
                 settlement_symbol, template_mint, assets_contract,
                 maker_marketplace, taker_marketplace, updated_at_time, created_at_time
@@ -196,6 +222,7 @@ BEGIN
                 created_at_block = EXCLUDED.created_at_block,
                 offer_id = EXCLUDED.offer_id,
                 price = EXCLUDED.price,
+                variable_price = EXCLUDED.variable_price,
                 asset_count = EXCLUDED.asset_count,
                 filter = EXCLUDED.filter,
                 asset_ids = EXCLUDED.asset_ids,
@@ -211,6 +238,7 @@ BEGIN
                 m.created_at_block IS DISTINCT FROM EXCLUDED.created_at_block
                 OR m.offer_id IS DISTINCT FROM EXCLUDED.offer_id
                 OR m.price IS DISTINCT FROM EXCLUDED.price
+                OR m.variable_price IS DISTINCT FROM EXCLUDED.variable_price
                 OR m.asset_count IS DISTINCT FROM EXCLUDED.asset_count
                 OR m.filter IS DISTINCT FROM EXCLUDED.filter
                 OR m.asset_ids IS DISTINCT FROM EXCLUDED.asset_ids
@@ -247,6 +275,9 @@ ALTER TABLE atomicmarket_sales_filters ATTACH PARTITION atomicmarket_sales_filte
 
 CREATE TABLE atomicmarket_sales_filters_listed (LIKE atomicmarket_sales_filters);
 ALTER TABLE atomicmarket_sales_filters ATTACH PARTITION atomicmarket_sales_filters_listed FOR VALUES IN (1);
+
+CREATE INDEX atomicmarket_sales_filters_listed_variable_price ON atomicmarket_sales_filters_listed(sale_id) WHERE variable_price;
+
 
 /*
 CREATE TABLE atomicmarket_sales_filters_cancelled (LIKE atomicmarket_sales_filters);
