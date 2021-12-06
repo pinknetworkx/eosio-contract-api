@@ -62,19 +62,22 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
         return countQuery.rows[0].counter;
     }
 
-    const sortMapping: { [key: string]: { column: string, nullable: boolean, numericIndex: boolean } } = {
-        sale_id: {column: 'listing.sale_id', nullable: false, numericIndex: true},
-        created: {column: 'listing.created_at_time', nullable: false, numericIndex: true},
-        updated: {column: 'listing.updated_at_time', nullable: false, numericIndex: true},
-        price: {column: 'listing.price', nullable: false, numericIndex: false},
-        template_mint: {column: 'LOWER(listing.template_mint)', nullable: true, numericIndex: false}
+    const sortMapping: { [key: string]: { column: string, numericIndex: boolean } } = {
+        sale_id: {column: 'listing.sale_id', numericIndex: true},
+        created: {column: 'listing.created_at_time', numericIndex: true},
+        updated: {column: 'listing.updated_at_time', numericIndex: true},
+        price: {column: 'listing.price', numericIndex: false},
+        template_mint: {column: 'LOWER(listing.template_mint)', numericIndex: false}
     };
 
     const preventIndexUsage = search.hasGoodFilter.length > 0;
 
-    query.append(`ORDER BY ${sortMapping[args.sort].column} ${preventIndexUsage ? ' + 0' : ''} ${args.order} ${(sortMapping[args.sort].nullable ? 'NULLS LAST' : '')}, listing.sale_id ASC`);
-    query.paginate(args.page, args.limit);
+    if (args.sort === 'template_mint') {
+        query.addCondition('LOWER(listing.template_mint) IS NOT NULL');
+    }
 
+    query.append(`ORDER BY ${sortMapping[args.sort].column}${preventIndexUsage ? ' + 0' : ''} ${args.order}, listing.sale_id ASC`);
+    query.paginate(args.page, args.limit);
     const saleQuery = await ctx.db.query(query.buildString(), query.buildValues());
 
     const result = await ctx.db.query(`

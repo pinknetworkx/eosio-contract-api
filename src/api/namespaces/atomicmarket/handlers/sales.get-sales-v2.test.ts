@@ -697,9 +697,9 @@ describe('AtomicMarket Sales API', () => {
         });
 
         txit('orders by template_mint', async () => {
-            const {sale_id: sale_id1} = await client.createFullSale({template_mint: '[2,3)'});
+            const {sale_id: sale_id1} = await client.createFullSale({}, {template_mint: 2});
 
-            const {sale_id: sale_id2} = await client.createFullSale({template_mint: '[1,2)'});
+            const {sale_id: sale_id2} = await client.createFullSale({}, {template_mint: 1});
 
             expect(await getSalesIds({sort: 'template_mint'}))
                 .to.deep.equal([sale_id1, sale_id2]);

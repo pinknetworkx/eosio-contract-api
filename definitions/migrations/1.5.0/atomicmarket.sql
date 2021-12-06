@@ -349,9 +349,7 @@ CREATE INDEX atomicmarket_sales_filters_offer_id_idx ON atomicmarket_sales_filte
 
 CREATE INDEX atomicmarket_sales_filters_updated_at_time_idx ON atomicmarket_sales_filters (updated_at_time);
 CREATE INDEX atomicmarket_sales_filters_created_at_time_idx ON atomicmarket_sales_filters (created_at_time);
-CREATE INDEX atomicmarket_sales_filters_mint_asc_idx ON atomicmarket_sales_filters (LOWER(template_mint) ASC NULLS LAST);
-CREATE INDEX atomicmarket_sales_filters_mint_desc_idx ON atomicmarket_sales_filters (LOWER(template_mint) DESC NULLS LAST);
+CREATE INDEX atomicmarket_sales_filters_mint_order_idx ON atomicmarket_sales_filters (LOWER(template_mint)) WHERE LOWER(template_mint) IS NOT NULL;
 CREATE INDEX atomicmarket_sales_filters_price_idx ON atomicmarket_sales_filters (price);
 
 ANALYSE atomicmarket_sales_filters;
-
