@@ -93,7 +93,8 @@ function miningFilterQueryArgs(sort: any): FilterDefinition {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 1000, default: 100},
         sort: sort,
-        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'}
+        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+        count: {type: 'bool'}
     };
 }
 

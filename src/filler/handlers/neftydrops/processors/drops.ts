@@ -47,7 +47,8 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           updated_at_block: block.block_num,
           updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
           created_at_block: block.block_num,
-          created_at_time: eosioTimestampToDate(block.timestamp).getTime()
+          created_at_time: eosioTimestampToDate(block.timestamp).getTime(),
+          current_claimed: 0,
         }, ['drops_contract', 'drop_id']);
 
         await db.insert('neftydrops_drop_assets', [
@@ -276,6 +277,9 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
         },
         ['drops_contract', 'claim_id']
     );
+
+    const query = 'UPDATE neftydrops_drops SET current_claimed = current_claimed + $1 WHERE drops_contract = $2 AND drop_id = $3';
+    await db.query(query, [amount, core.args.neftydrops_account, trace.act.data.drop_id]);
   };
 
   destructors.push(processor.onActionTrace(

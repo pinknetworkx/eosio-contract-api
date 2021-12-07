@@ -21,6 +21,7 @@ CREATE TABLE neftydrops_drops
     updated_at_time        bigint                NOT NULL,
     created_at_block       bigint                NOT NULL,
     created_at_time        bigint                NOT NULL,
+    current_claimed        bigint                NOT NULL DEFAULT 0,
 
     CONSTRAINT neftydrops_drops_pkey PRIMARY KEY (drops_contract, drop_id)
 );

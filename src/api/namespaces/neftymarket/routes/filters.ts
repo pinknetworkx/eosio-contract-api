@@ -10,7 +10,7 @@ import {getAttributeFiltersAction} from '../handlers/filters';
 
 export function filtersEndpoints(core: NeftyMarketNamespace, server: HTTPServer, router: express.Router): any {
     const { caching, returnAsJSON } = server.web;
-    router.get('/v1/schemas/:collection_name/attribute_value_filters', caching(), returnAsJSON(getAttributeFiltersAction, core));
+    router.all('/v1/schemas/:collection_name/attribute_value_filters', caching(), returnAsJSON(getAttributeFiltersAction, core));
 
     return {
         tag: {
