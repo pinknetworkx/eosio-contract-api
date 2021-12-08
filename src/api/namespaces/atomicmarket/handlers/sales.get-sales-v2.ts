@@ -5,11 +5,11 @@ import { fillSales } from '../filler';
 import { formatSale } from '../format';
 import { ApiError } from '../../../error';
 
-type SearchBuilder = {
+type SalesSearchOptions = {
     values: FilterValues;
     ctx: AtomicMarketContext;
     query: QueryBuilder;
-    hasGoodFilter: string[];
+    strongFilters: string[];
 }
 
 export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
@@ -36,11 +36,11 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
 
     query.equal('listing.market_contract', ctx.coreArgs.atomicmarket_account);
 
-    const search: SearchBuilder = {
+    const search: SalesSearchOptions = {
         values: params,
         ctx,
         query,
-        hasGoodFilter: [],
+        strongFilters: [],
     };
 
     await buildSaleFilterV2(search);
@@ -50,7 +50,7 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
         args.sort === 'updated' ? 'listing.updated_at_time' : 'listing.created_at_time'
     );
     if (params.ids) {
-        search.hasGoodFilter.push('ids');
+        search.strongFilters.push('ids');
     }
 
     if (args.count) {
@@ -73,15 +73,15 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
     if (args.sort === 'template_mint') {
         query.addCondition('LOWER(listing.template_mint) IS NOT NULL');
 
-        if (args.order === 'asc' && !search.hasGoodFilter.length) {
-            // TODO find a better solution. when no (collection) filter is set, and the result is ordered by
+        if (args.order === 'asc' && !search.strongFilters.length) {
+            // TODO find a better solution. when no strong (collection) filter is set, and the result is ordered by
             //  template_mint in ascending order, it always takes longer than 10 seconds. I think it's due to lack
             //  of listings matching whitelisted/blacklisted listings at the lower end of the mints
-            search.hasGoodFilter.push('template_mint_asc_block');
+            search.strongFilters.push('template_mint_asc_block');
         }
     }
 
-    const preventIndexUsage = search.hasGoodFilter.length > 0;
+    const preventIndexUsage = search.strongFilters.length > 0;
 
     query.append(`ORDER BY ${sortMapping[args.sort].column}${preventIndexUsage ? ' + 0' : ''} ${args.order}, listing.sale_id ASC`);
     query.paginate(args.page, args.limit);
@@ -106,7 +106,7 @@ export async function getSalesCountV2Action(params: RequestValues, ctx: AtomicMa
     return await getSalesV2Action({...params, count: 'true'}, ctx);
 }
 
-async function buildSaleFilterV2(search: SearchBuilder): Promise<void> {
+async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
     const {values, query, ctx} = search;
     const args = filterQueryArgs(values, {
         state: {type: 'string[]', min: 1, default: []},
@@ -119,7 +119,7 @@ async function buildSaleFilterV2(search: SearchBuilder): Promise<void> {
         max_price: {type: 'float', min: 0}
     });
 
-    buildAggFilterV2(search);
+    buildMainFilterV2(search);
     buildListingFilterV2(search);
 
     buildAssetFilterV2(search);
@@ -139,12 +139,12 @@ async function buildSaleFilterV2(search: SearchBuilder): Promise<void> {
 
         if (args.min_price) {
             query.addCondition(`listing.price >= 1.0 * ${query.addVariable(args.min_price)} * POWER(10, ${query.addVariable(token_precision)})`);
-            search.hasGoodFilter.push('price');
+            search.strongFilters.push('price');
         }
 
         if (args.max_price) {
             query.addCondition(`listing.price <= 1.0 * ${query.addVariable(args.max_price)} * POWER(10, ${query.addVariable(token_precision)})`);
-            search.hasGoodFilter.push('price');
+            search.strongFilters.push('price');
         }
     } else if (args.min_price || args.max_price) {
         throw new ApiError('Price range filters require the "symbol" filter');
@@ -155,19 +155,26 @@ async function buildSaleFilterV2(search: SearchBuilder): Promise<void> {
     }
 }
 
-function buildAssetFilterV2(search: SearchBuilder): void {
+function buildAssetFilterV2(search: SalesSearchOptions): void {
+    const {values, query} = search;
 
-    const args = filterQueryArgs(search.values, {
+    const args = filterQueryArgs(values, {
         asset_id: {type: 'string[]', min: 1},
     });
 
-    buildDataConditionsV2(search);
-
     if (args.asset_id) {
-        search.query.addCondition(`listing.asset_ids && ${search.query.addVariable(args.asset_id)}`);
-        search.hasGoodFilter.push('asset_ids');
+        query.addCondition(`listing.asset_ids && ${query.addVariable(args.asset_id)}`);
+        search.strongFilters.push('asset_ids');
     }
 
+    const names = [values.match_immutable_name, values.match_mutable_name, values.match].filter(v => typeof v === 'string' && v.length);
+    for (const name of names) {
+        query.addCondition(
+            'listing.asset_names ILIKE ' +
+            query.addVariable('%' + name.replace('%', '\\%').replace('_', '\\_') + '%')
+        );
+        search.strongFilters.push('name');
+    }
 }
 
 type AggFilter = {
@@ -186,7 +193,7 @@ const SALE_FILTER_FLAG_NO_TEMPLATE = 'nt';
 const SALE_FILTER_FLAG_NOT_TRANSFERABLE = 'nx';
 const SALE_FILTER_FLAG_NOT_BURNABLE = 'nb';
 
-function buildAggFilterV2(search: SearchBuilder): void {
+function buildMainFilterV2(search: SalesSearchOptions): void {
     const {values, query} = search;
     const args = filterQueryArgs(values, {
         seller_blacklist: {type: 'string[]', min: 1},
@@ -228,11 +235,12 @@ function buildAggFilterV2(search: SearchBuilder): void {
         flags: [],
     };
 
-    function addIncArrayFilter(filter: string, isGoodFilter: boolean = false, value: any = undefined): void {
+    function addIncArrayFilter(filter: string, isStrongFilter: boolean = false, value: any = undefined): void {
         value = value ?? args[filter];
         if (value?.length) {
+            // when a single filter has multiple values, search ALL of them
             if (value.length > 1) {
-                if (value.length >= 50 && filter === 'collection_name') {
+                if (value.length > 50 && filter === 'collection_name') {
                     query.addCondition(`EXISTS (SELECT 1 FROM UNNEST(${query.addVariable(value)}::TEXT[]) u(collection_name) WHERE SUBSTR(listing.filter[1], 2) = u.collection_name)`);
                 } else {
                     query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(${filter}s := ${query.addVariable(value)}))`);
@@ -242,8 +250,8 @@ function buildAggFilterV2(search: SearchBuilder): void {
                 inc[filter+'s'].push(args[filter]);
             }
 
-            if (isGoodFilter && value.length <= 50) {
-                search.hasGoodFilter.push(filter);
+            if (isStrongFilter && value.length <= 50) {
+                search.strongFilters.push(filter);
             }
         }
     }
@@ -254,7 +262,7 @@ function buildAggFilterV2(search: SearchBuilder): void {
 
     if (args.account) {
         query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(sellers := ${query.addVariable(args.account)}, buyers := ${query.addVariable(args.account)}))`);
-        search.hasGoodFilter.push('account');
+        search.strongFilters.push('account');
     }
 
     addIncArrayFilter('seller', true);
@@ -306,7 +314,7 @@ function buildAggFilterV2(search: SearchBuilder): void {
 
     inc.data = getDataFilters(values);
     if (inc.data.length) {
-        search.hasGoodFilter.push('data');
+        search.strongFilters.push('data');
     }
 
     if (inc.collection_names.length && exc.collection_names.length) {
@@ -347,7 +355,7 @@ function buildAggFilterV2(search: SearchBuilder): void {
     }
 }
 
-function buildListingFilterV2(search: SearchBuilder): void {
+function buildListingFilterV2(search: SalesSearchOptions): void {
     const {values, query} = search;
     const args = filterQueryArgs(values, {
         show_seller_contracts: {type: 'bool', default: true},
@@ -420,32 +428,4 @@ function getDataFilters(values: FilterValues): string[] {
     }
 
     return result;
-}
-
-function buildDataConditionsV2(search: SearchBuilder): void {
-    const {query, values} = search;
-
-    if (typeof values.match_immutable_name === 'string' && values.match_immutable_name.length > 0) {
-        query.addCondition(
-            'listing.asset_names ILIKE ' +
-            query.addVariable('%' + values.match_immutable_name.replace('%', '\\%').replace('_', '\\_') + '%')
-        );
-        search.hasGoodFilter.push('name');
-    }
-
-    if (typeof values.match_mutable_name === 'string' && values.match_mutable_name.length > 0) {
-        query.addCondition(
-            'listing.asset_names ILIKE ' +
-            query.addVariable('%' + values.match_mutable_name.replace('%', '\\%').replace('_', '\\_') + '%')
-        );
-        search.hasGoodFilter.push('name');
-    }
-
-    if (typeof values.match === 'string' && values.match.length > 0) {
-        query.addCondition(
-            'listing.asset_names ILIKE ' +
-            query.addVariable('%' + values.match.replace('%', '\\%').replace('_', '\\_') + '%')
-        );
-        search.hasGoodFilter.push('name');
-    }
 }

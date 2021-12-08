@@ -62,8 +62,8 @@ IMMUTABLE
 AS $$
 SELECT
     ARRAY[]::TEXT[]
-    || (SELECT ARRAY_AGG(DISTINCT 'c' || unnest) FROM UNNEST(collection_names) WHERE unnest IS NOT NULL)
-    || (SELECT ARRAY_AGG(DISTINCT 'e' || unnest) FROM UNNEST(sellers) WHERE unnest IS NOT NULL)
+    || (SELECT ARRAY_AGG(DISTINCT 'c' || unnest) FROM UNNEST(collection_names) WHERE unnest IS NOT NULL) -- has to be at this position because the collection is accessed by index
+    || (SELECT ARRAY_AGG(DISTINCT 'e' || unnest) FROM UNNEST(sellers) WHERE unnest IS NOT NULL) -- has to be at this position because the seller is accessed by index
     || (SELECT ARRAY_AGG(DISTINCT 't' || unnest) FROM UNNEST(template_ids) WHERE unnest IS NOT NULL)
     || (SELECT ARRAY_AGG(DISTINCT 'd' || unnest) FROM UNNEST(data) WHERE unnest IS NOT NULL)
     || (SELECT ARRAY_AGG(DISTINCT 's' || unnest) FROM UNNEST(schema_names) WHERE unnest IS NOT NULL)
