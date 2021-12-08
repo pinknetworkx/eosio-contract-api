@@ -312,10 +312,8 @@ function buildMainFilterV2(search: SalesSearchOptions): void {
         exc.collection_names.push(...args.collection_blacklist);
     }
 
-    inc.data = getDataFilters(values);
-    if (inc.data.length) {
-        search.strongFilters.push('data');
-    }
+    inc.data = getDataFilters(search);
+
 
     if (inc.collection_names.length && exc.collection_names.length) {
         inc.collection_names = inc.collection_names.filter(c => !exc.collection_names.includes(c));
@@ -406,12 +404,22 @@ function buildListingFilterV2(search: SalesSearchOptions): void {
     }
 }
 
-function getDataFilters(values: FilterValues): string[] {
+function getDataFilters(search: SalesSearchOptions): string[] {
+    const {values, query} = search;
+
     const result = [];
     const keys = Object.keys(values);
     for (const key of keys) {
         const x = key.match(/^(template_|mutable_|immutable_)?data(:(?<type>text|number|bool))?\.(?<name>.+)$/);
         if (!x) {
+            continue;
+        }
+
+        if (x.groups.name) {
+            // name is not stored in data
+            query.equal('listing.asset_names', values[key]);
+            search.strongFilters.push('name');
+
             continue;
         }
 
@@ -425,6 +433,10 @@ function getDataFilters(values: FilterValues): string[] {
             default:
                 result.push(`${x.groups.name}:${values[key]}`);
         }
+    }
+
+    if (result.length) {
+        search.strongFilters.push('data');
     }
 
     return result;

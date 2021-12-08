@@ -533,6 +533,17 @@ describe('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id]);
         });
 
+        txit('filters by data.name', async () => {
+            await client.createFullSale();
+
+            const {sale_id} = await client.createFullSale({}, {
+                immutable_data: JSON.stringify({name: 'Z'}),
+            });
+
+            expect(await getSalesIds({'data.name': 'Z'}))
+                .to.deep.equal([sale_id]);
+        });
+
         txit('filters by match_immutable_name', async () => {
             await client.createFullSale();
 
