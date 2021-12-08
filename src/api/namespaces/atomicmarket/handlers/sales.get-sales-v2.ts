@@ -415,8 +415,8 @@ function getDataFilters(search: SalesSearchOptions): string[] {
             continue;
         }
 
-        if (x.groups.name) {
-            // name is not stored in data
+        if (x.groups.name === 'name') {
+            // name is stored in separate column
             query.equal('listing.asset_names', values[key]);
             search.strongFilters.push('name');
 
