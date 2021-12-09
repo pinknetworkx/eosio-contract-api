@@ -23,7 +23,7 @@ CREATE TABLE atomicmarket_sales_filters (
 PARTITION BY LIST (sale_state);
 
 ALTER TABLE atomicmarket_sales_filters ADD COLUMN variable_price BOOLEAN;
-ALTER TABLE atomicmarket_sales_filters ADD COLUMN b2 BOOLEAN;
+ALTER TABLE atomicmarket_sales_filters ADD COLUMN seller_contract BOOLEAN;
 ALTER TABLE atomicmarket_sales_filters ADD COLUMN b3 BOOLEAN;
 ALTER TABLE atomicmarket_sales_filters ADD COLUMN b4 BOOLEAN;
 ALTER TABLE atomicmarket_sales_filters ADD COLUMN b5 BOOLEAN;
@@ -190,7 +190,8 @@ BEGIN
             listing.maker_marketplace,
             listing.taker_marketplace,
             listing.updated_at_time,
-            listing.created_at_time
+            listing.created_at_time,
+            CASE WHEN cc.account IS NOT NULL THEN TRUE END seller_contract
 
         FROM atomicmarket_sales listing
             JOIN all_sales_to_update stu ON listing.market_contract = stu.market_contract AND listing.sale_id = stu.sale_id
@@ -199,23 +200,27 @@ BEGIN
             JOIN atomicassets_assets asset ON asset.contract = offer_asset.contract AND asset.asset_id = offer_asset.asset_id
             LEFT OUTER JOIN atomicassets_templates template ON asset.template_id = template.template_id AND asset.contract = template.contract
 
-            LEFT JOIN atomicmarket_symbol_pairs pair ON pair.market_contract = listing.market_contract AND pair.listing_symbol = listing.listing_symbol AND pair.settlement_symbol = listing.settlement_symbol
-            LEFT JOIN delphioracle_pairs delphi ON pair.delphi_contract = delphi.contract AND pair.delphi_pair_name = delphi.delphi_pair_name
+            LEFT OUTER JOIN atomicmarket_symbol_pairs pair ON pair.market_contract = listing.market_contract AND pair.listing_symbol = listing.listing_symbol AND pair.settlement_symbol = listing.settlement_symbol
+            LEFT OUTER JOIN delphioracle_pairs delphi ON pair.delphi_contract = delphi.contract AND pair.delphi_pair_name = delphi.delphi_pair_name
+
+            LEFT OUTER JOIN contract_codes cc ON listing.seller = cc.account
 
             LEFT OUTER JOIN LATERAL jsonb_each(COALESCE(asset.mutable_data, '{}') || COALESCE(asset.immutable_data, '{}') || COALESCE(template.immutable_data, '{}')) AS data_props(ky, val) ON TRUE
         WHERE (listing.state != 2) -- exclude cancelled
-        GROUP BY listing.market_contract, listing.sale_id, sale_state
+        GROUP BY listing.market_contract, listing.sale_id, sale_state, cc.account
     ), ins_upd AS (
         INSERT INTO atomicmarket_sales_filters AS m (sale_id, created_at_block, offer_id, price, variable_price,
             asset_count, sale_state, filter, asset_ids, asset_names, market_contract,
             settlement_symbol, template_mint, assets_contract,
-            maker_marketplace, taker_marketplace, updated_at_time, created_at_time
+            maker_marketplace, taker_marketplace, updated_at_time, created_at_time,
+            seller_contract
         )
             SELECT
                 sale_id, created_at_block, offer_id, price, variable_price,
                 asset_count, sale_state, filter, asset_ids, asset_names, market_contract,
                 settlement_symbol, template_mint, assets_contract,
-                maker_marketplace, taker_marketplace, updated_at_time, created_at_time
+                maker_marketplace, taker_marketplace, updated_at_time, created_at_time,
+                seller_contract
             FROM sales_to_insert_or_update
         ON CONFLICT (sale_state, market_contract, sale_id)
             DO UPDATE SET
@@ -233,7 +238,8 @@ BEGIN
                 maker_marketplace = EXCLUDED.maker_marketplace,
                 taker_marketplace = EXCLUDED.taker_marketplace,
                 updated_at_time = EXCLUDED.updated_at_time,
-                created_at_time = EXCLUDED.created_at_time
+                created_at_time = EXCLUDED.created_at_time,
+                seller_contract = EXCLUDED.seller_contract
             WHERE
                 m.created_at_block IS DISTINCT FROM EXCLUDED.created_at_block
                 OR m.offer_id IS DISTINCT FROM EXCLUDED.offer_id
@@ -250,6 +256,7 @@ BEGIN
                 OR m.taker_marketplace IS DISTINCT FROM EXCLUDED.taker_marketplace
                 OR m.updated_at_time IS DISTINCT FROM EXCLUDED.updated_at_time
                 OR m.created_at_time IS DISTINCT FROM EXCLUDED.created_at_time
+                OR m.seller_contract IS DISTINCT FROM EXCLUDED.seller_contract
         RETURNING 1
     ), del AS (
         DELETE FROM atomicmarket_sales_filters
@@ -365,6 +372,27 @@ CREATE TRIGGER atomicmarket_sales_update_atomicmarket_sales_filters_tr
     AFTER UPDATE OR INSERT OR DELETE ON atomicmarket_sales
     FOR EACH ROW
     EXECUTE FUNCTION update_atomicmarket_sales_filters_by_sale();
+
+DROP FUNCTION IF EXISTS update_atomicmarket_sales_filters_by_contract_code CASCADE;
+CREATE OR REPLACE FUNCTION update_atomicmarket_sales_filters_by_contract_code() RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO atomicmarket_sales_filters_updates(market_contract, sale_id)
+    	SELECT market_contract, sale_id
+    	FROM atomicmarket_sales
+    	WHERE seller = ANY(ARRAY[
+    		CASE WHEN TG_OP IN ('INSERT', 'UPDATE') THEN NEW.account END,
+    		CASE WHEN TG_OP IN ('UPDATE', 'DELETE') THEN OLD.account END
+		]);
+
+    RETURN NULL;
+END
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS atomicmarket_contract_update_atomicmarket_sales_filters_tr ON atomicmarket_sales;
+CREATE TRIGGER atomicmarket_contract_update_atomicmarket_sales_filters_tr
+    AFTER UPDATE OR INSERT OR DELETE ON contract_codes
+    FOR EACH ROW
+    EXECUTE FUNCTION update_atomicmarket_sales_filters_by_contract_code();
 
 CREATE INDEX market_sales_updates_sale_id ON atomicmarket_sales_filters_updates (market_contract, sale_id) WHERE sale_id IS NOT NULL;
 CREATE INDEX market_sales_updates_asset_id ON atomicmarket_sales_filters_updates (asset_contract, asset_id) WHERE asset_id IS NOT NULL;

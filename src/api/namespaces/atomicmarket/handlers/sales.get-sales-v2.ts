@@ -368,13 +368,7 @@ function buildListingFilterV2(search: SalesSearchOptions): void {
     });
 
     if (!args.show_seller_contracts) {
-        // TODO replace with flag on filter table? Needs to be updated when contract_codes changes
-        query.addCondition(
-            'NOT EXISTS(' +
-            'SELECT * FROM contract_codes code ' +
-            'WHERE code.account = SUBSTR(listing.filter[2], 2) AND code.account != ALL(' + query.addVariable(args.contract_whitelist) + ')' +
-            ')'
-        );
+        query.addCondition(`seller_contract IS DISTINCT FROM TRUE OR SUBSTR(listing.filter[2], 2) = ANY(${query.addVariable(args.contract_whitelist)})`);
     }
 
     if (args.marketplace) {

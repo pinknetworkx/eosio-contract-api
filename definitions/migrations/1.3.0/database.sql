@@ -1,1 +1,1 @@
-UPDATE dbinfo SET "value" = '1.5.0' WHERE name = 'version';
+UPDATE dbinfo SET "value" = '1.3.0' WHERE name = 'version';
