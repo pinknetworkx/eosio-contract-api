@@ -1,9 +1,11 @@
 import { buildBoundaryFilter, filterQueryArgs, FilterValues, RequestValues } from '../../utils';
-import { AtomicMarketContext } from '../index';
+import { AtomicMarketContext, SaleApiState } from '../index';
 import QueryBuilder from '../../../builder';
 import { fillSales } from '../filler';
 import { formatSale } from '../format';
 import { ApiError } from '../../../error';
+import { toInt } from '../../../../utils';
+import { SaleState } from '../../../../filler/handlers/atomicmarket';
 
 type SalesSearchOptions = {
     values: FilterValues;
@@ -109,7 +111,7 @@ export async function getSalesCountV2Action(params: RequestValues, ctx: AtomicMa
 async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
     const {values, query, ctx} = search;
     const args = filterQueryArgs(values, {
-        state: {type: 'string[]', min: 1, default: []},
+        state: {type: 'string[]', min: 1},
 
         max_assets: {type: 'int', min: 1},
         min_assets: {type: 'int', min: 1},
@@ -150,8 +152,12 @@ async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
         throw new ApiError('Price range filters require the "symbol" filter');
     }
 
-    if (args.state.length) {
-        query.equalMany('listing.sale_state', args.state.map((state: string) => parseInt(state, 10)));
+    if (args.state?.length) {
+        if (args.state.includes(`${SaleApiState.LISTED}`)) {
+            query.appendToBase('JOIN atomicmarket_sales sales ON listing.market_contract = sales.market_contract AND listing.sale_id = sales.sale_id');
+            query.addCondition(`listing.sale_state != ${SaleApiState.LISTED} OR sales.state = ${SaleState.LISTED}`);
+        }
+        query.equalMany('listing.sale_state', args.state.map(toInt));
     }
 }
 

@@ -11,10 +11,12 @@ import { ApiError } from '../../../error';
 
 const {client, txit} = initAtomicMarketTest();
 
-async function getSalesIds(values: RequestValues): Promise<Array<number>> {
+async function getSalesIds(values: RequestValues, options = {refresh: true}): Promise<Array<number>> {
     const testContext = getTestContext(client);
 
-    await client.query('SELECT update_atomicmarket_sales_filters()');
+    if (options.refresh) {
+        await client.query('SELECT update_atomicmarket_sales_filters()');
+    }
 
     const result = await getSalesV2Action(values, testContext);
 
@@ -58,6 +60,23 @@ describe('AtomicMarket Sales API', () => {
             });
 
             expect(await getSalesIds({state: `${SaleApiState.LISTED}`}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by listed state (excluding sales that were unlisted)', async () => {
+            const {sale_id: sale_id2} = await client.createFullSale({
+                state: SaleState.LISTED,
+            });
+
+            const {sale_id} = await client.createFullSale({
+                state: SaleState.LISTED,
+            });
+
+            await client.query('SELECT update_atomicmarket_sales_filters()');
+
+            await client.query(`UPDATE atomicmarket_sales SET state = ${SaleState.SOLD} WHERE sale_id = $1`, [sale_id2]);
+
+            expect(await getSalesIds({state: `${SaleApiState.LISTED}`}, {refresh: false}))
                 .to.deep.equal([sale_id]);
         });
 

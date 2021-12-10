@@ -1,5 +1,5 @@
 export default class QueryBuilder {
-    private  readonly baseQuery: string;
+    private baseQuery: string;
 
     private conditions: string[];
     private aggregations: string[];
@@ -16,7 +16,6 @@ export default class QueryBuilder {
         this.conditions = [];
         this.aggregations = [];
         this.ending = '';
-
     }
 
     addVariable(value: any): string {
@@ -86,7 +85,7 @@ export default class QueryBuilder {
     }
 
     addCondition(text: string): QueryBuilder {
-        this.conditions.push(text);
+        this.conditions.push(`(${text})`);
 
         return this;
     }
@@ -105,6 +104,12 @@ export default class QueryBuilder {
 
     append(text: string): QueryBuilder {
         this.ending += text + ' ';
+
+        return this;
+    }
+
+    appendToBase(text: string): QueryBuilder {
+        this.baseQuery += text + ' ';
 
         return this;
     }
