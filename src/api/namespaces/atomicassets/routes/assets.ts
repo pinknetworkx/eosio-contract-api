@@ -36,7 +36,7 @@ export class AssetApi {
     ) { }
 
     getAssetsAction = async (params: RequestValues, ctx: AtomicAssetsContext): Promise<any> => {
-        const assetIDs = await getRawAssetsAction(params, ctx);
+        const assetIDs = await getRawAssetsAction(params, ctx) as Array<number>;
         return await fillAssets(
             this.server, this.core.args.atomicassets_account,
             assetIDs,

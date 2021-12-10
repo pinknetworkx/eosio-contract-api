@@ -7,7 +7,7 @@ import { getRawAssetsAction } from './assets';
 
 const {client, txit} = initAtomicAssetsTest();
 
-async function getAssetIds(values: RequestValues): Promise<Array<number>> {
+async function getAssetIds(values: RequestValues): Promise<Array<number> | string> {
     const testContext = getTestContext(client);
 
     return await getRawAssetsAction(values, testContext);
@@ -217,10 +217,9 @@ describe('AtomicAssets Assets API', () => {
         txit('filters by schema name', async () => {
             await client.createAsset();
 
-            const {schema_name} = await client.createSchema({schema_name: 'X'});
-            const {asset_id} = await client.createAsset({schema_name});
+            const {asset_id, schema_name} = await client.createAsset();
 
-            expect(await getAssetIds({schema_name: 'X,abc'}))
+            expect(await getAssetIds({schema_name: `${schema_name},abc`}))
                 .to.deep.equal([asset_id]);
         });
 
@@ -385,9 +384,7 @@ describe('AtomicAssets Assets API', () => {
 
             const {asset_id} = await client.createAsset();
 
-            const testContext = getTestContext(client);
-
-            const result = await getRawAssetsAction({ids: `${asset_id}`, count: 'true'}, testContext);
+            const result = await getAssetIds({ids: `${asset_id}`, count: 'true'});
 
             expect(result).to.equal('1');
         });

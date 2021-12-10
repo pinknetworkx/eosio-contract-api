@@ -1,6 +1,9 @@
 import * as express from 'express';
 import QueryBuilder from '../builder';
 
+export type SortColumn = {column: string, nullable?: boolean, numericIndex?: boolean};
+export type SortColumnMapping = {[key: string]: SortColumn};
+
 export type FilterDefinition = {
     [key: string]: {
         type: 'string' | 'int' | 'float' | 'bool',

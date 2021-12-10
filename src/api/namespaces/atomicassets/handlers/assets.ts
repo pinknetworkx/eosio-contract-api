@@ -1,4 +1,11 @@
-import { buildBoundaryFilter, filterQueryArgs, FilterValues, RequestValues } from '../../utils';
+import {
+    buildBoundaryFilter,
+    filterQueryArgs,
+    FilterValues,
+    RequestValues,
+    SortColumn,
+    SortColumnMapping
+} from '../../utils';
 import { AtomicAssetsContext } from '../index';
 import QueryBuilder from '../../../builder';
 import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter, hasAssetFilter, hasDataFilters } from '../utils';
@@ -100,7 +107,7 @@ export function buildAssetQueryCondition(
     }
 }
 
-export async function getRawAssetsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
+export async function getRawAssetsAction(params: RequestValues, ctx: AtomicAssetsContext, options?: {extraTables: string, extraSort: SortColumnMapping}): Promise<Array<number> | string> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 1000, default: 100},
@@ -116,6 +123,9 @@ export async function getRawAssetsAction(params: RequestValues, ctx: AtomicAsset
         'asset.contract = template.contract AND asset.template_id = template.template_id' +
         ') '
     );
+    if (options?.extraTables) {
+        query.appendToBase(options.extraTables);
+    }
 
     query.equal('asset.contract', ctx.coreArgs.atomicassets_account);
 
@@ -134,16 +144,17 @@ export async function getRawAssetsAction(params: RequestValues, ctx: AtomicAsset
         return countQuery.rows[0].counter;
     }
 
-    let sorting: {column: string, nullable: boolean, numericIndex: boolean};
+    let sorting: SortColumn;
 
     if (args.sort) {
-        const sortColumnMapping: {[key: string]: {column: string, nullable: boolean, numericIndex: boolean}} = {
+        const sortColumnMapping: SortColumnMapping = {
             asset_id: {column: 'asset.asset_id', nullable: false, numericIndex: true},
             updated: {column: 'asset.updated_at_time', nullable: false, numericIndex: true},
             transferred: {column: 'asset.transferred_at_time', nullable: false, numericIndex: true},
             minted: {column: 'asset.asset_id', nullable: false, numericIndex: true},
             template_mint: {column: 'asset.template_mint', nullable: true, numericIndex: false},
-            name: {column: '"template".immutable_data->>\'name\'', nullable: true, numericIndex: false}
+            name: {column: '"template".immutable_data->>\'name\'', nullable: true, numericIndex: false},
+            ...options?.extraSort,
         };
 
         sorting = sortColumnMapping[args.sort];
