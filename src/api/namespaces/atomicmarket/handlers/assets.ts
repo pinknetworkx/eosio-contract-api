@@ -67,7 +67,7 @@ export async function getAssetsAction(params: RequestValues, ctx: AtomicMarketCo
         sorting = {column: 'asset.asset_id', nullable: false, numericIndex: true};
     }
 
-    const ignoreIndex = (hasAssetFilter(params) || hasDataFilters(params) || hasListingFilter(params)) && sorting.numericIndex;
+    const ignoreIndex = (hasAssetFilter(params) || hasDataFilters(params)) && sorting.numericIndex;
 
     query.append('ORDER BY ' + sorting.column + (ignoreIndex ? ' + 1 ' : ' ') + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC');
     query.paginate(args.page, args.limit);
