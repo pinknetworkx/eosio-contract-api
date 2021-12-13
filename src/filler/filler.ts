@@ -25,11 +25,17 @@ function estimateSeconds(blocks: number, speed: number, depth: number = 0): numb
     return seconds + estimateSeconds(seconds * 2, speed, depth + 1);
 }
 
+export enum UpdateJobPriority {
+    HIGH = 'HIGH',
+    MEDIUM = 'MEDIUM',
+    LOW = 'LOW'
+}
+
 export default class Filler {
     readonly reader: StateReceiver;
     readonly modules: ModuleLoader;
 
-    private readonly jobs: Array<{fn: () => any, interval: number, updated: number, priority: boolean}>;
+    private readonly jobs: Array<{fn: () => any, interval: number, updated: number, priority: UpdateJobPriority}>;
     private running: boolean;
 
     private readonly handlers: ContractHandler[];
@@ -191,61 +197,37 @@ export default class Filler {
 
         this.running = true;
 
-        (async (): Promise<void> => {
-            await new Promise(resolve => setTimeout(resolve, 5000));
+        const jobQueues = [UpdateJobPriority.HIGH, UpdateJobPriority.MEDIUM, UpdateJobPriority.LOW];
 
-            let counter = 0;
+        for (const queue of jobQueues) {
+            (async (): Promise<void> => {
+                await new Promise(resolve => setTimeout(resolve, 5000));
 
-            while (this.running) {
-                const jobs = this.jobs.filter(row => row.priority);
+                let counter = 0;
 
-                counter = counter >= jobs.length ? 0 : counter;
+                while (this.running) {
+                    const jobs = this.jobs.filter(row => row.priority.valueOf() === queue.valueOf());
 
-                const job = jobs[counter];
+                    counter = counter >= jobs.length ? 0 : counter;
 
-                if (job && job.updated + job.interval < Date.now()) {
-                    try {
-                        await job.fn();
-                    } catch (err){
-                        logger.error('Error while refreshing priority job', err);
-                    } finally {
-                        job.updated = Date.now();
+                    const job = jobs[counter];
+
+                    if (job && job.updated + job.interval < Date.now()) {
+                        try {
+                            await job.fn();
+                        } catch (err){
+                            logger.error('Error while refreshing job of priority ' + job.priority.valueOf(), err);
+                        } finally {
+                            job.updated = Date.now();
+                        }
                     }
+
+                    counter += 1;
+
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
-
-                counter += 1;
-
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-        })().then();
-
-        (async (): Promise<void> => {
-            await new Promise(resolve => setTimeout(resolve, 5000));
-
-            let counter = 0;
-
-            while (this.running) {
-                const jobs = this.jobs.filter(row => !row.priority);
-
-                counter = counter >= jobs.length ? 0 : counter;
-
-                const job = jobs[counter];
-
-                if (job && job.updated + job.interval < Date.now()) {
-                    try {
-                        await job.fn();
-                    } catch (err){
-                        logger.error('Error while refreshing standard job', err);
-                    } finally {
-                        job.updated = Date.now();
-                    }
-                }
-
-                counter += 1;
-
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-        })().then();
+            })().then();
+        }
     }
 
     async stopFiller(): Promise<void> {
@@ -254,7 +236,7 @@ export default class Filler {
         await this.reader.stopProcessing();
     }
 
-    registerUpdateJob(fn: () => any, interval: number, priority = false): () => void {
+    registerUpdateJob(fn: () => any, interval: number, priority: UpdateJobPriority = UpdateJobPriority.LOW): () => void {
         const element = {fn, interval, updated: Date.now(), priority};
 
         this.jobs.push(element);

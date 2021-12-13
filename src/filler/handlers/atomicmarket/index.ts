@@ -4,7 +4,7 @@ import { PoolClient } from 'pg';
 import { ContractHandler } from '../interfaces';
 import logger from '../../../utils/winston';
 import { ConfigTableRow } from './types/tables';
-import Filler from '../../filler';
+import Filler, { UpdateJobPriority } from '../../filler';
 import { DELPHIORACLE_BASE_PRIORITY } from '../delphioracle';
 import { ATOMICASSETS_BASE_PRIORITY } from '../atomicassets';
 import DataProcessor from '../../processor';
@@ -292,7 +292,7 @@ export default class AtomicMarketHandler extends ContractHandler {
                     lastVacuum = Date.now();
                 }
 
-            }, 60000, false));
+            }, 60000, UpdateJobPriority.LOW));
         }
 
 
@@ -301,33 +301,33 @@ export default class AtomicMarketHandler extends ContractHandler {
                 'CALL update_atomicmarket_sale_mints($1, $2)',
                 [this.args.atomicmarket_account, this.filler.reader.lastIrreversibleBlock]
             );
-        }, 30000, true));
+        }, 30000, UpdateJobPriority.MEDIUM));
 
         destructors.push(this.filler.registerUpdateJob(async () => {
             await this.connection.database.query(
                 'CALL update_atomicmarket_buyoffer_mints($1, $2)',
                 [this.args.atomicmarket_account, this.filler.reader.lastIrreversibleBlock]
             );
-        }, 30000, true));
+        }, 30000, UpdateJobPriority.MEDIUM));
 
         destructors.push(this.filler.registerUpdateJob(async () => {
             await this.connection.database.query(
                 'CALL update_atomicmarket_auction_mints($1, $2)',
                 [this.args.atomicmarket_account, this.filler.reader.lastIrreversibleBlock]
             );
-        }, 30000, true));
+        }, 30000, UpdateJobPriority.MEDIUM));
 
         destructors.push(this.filler.registerUpdateJob(async () => {
             await this.connection.database.query(
                 'SELECT update_atomicmarket_sales_filters()'
             );
-        }, 30000, true));
+        }, 30000, UpdateJobPriority.HIGH));
 
         destructors.push(this.filler.registerUpdateJob(async () => {
             await this.connection.database.query(
                 'SELECT refresh_atomicmarket_sales_filters_price()'
             );
-        }, 60000 * 60, false));
+        }, 60000 * 60, UpdateJobPriority.LOW));
 
         const priorityMaterializedViews = ['atomicmarket_sale_prices'];
 
@@ -344,12 +344,8 @@ export default class AtomicMarketHandler extends ContractHandler {
 
                     lastVacuum = Date.now();
                 }
-            }, 60000, true));
+            }, 60000, UpdateJobPriority.MEDIUM));
         }
-
-        destructors.push(this.filler.registerUpdateJob(async () => {
-            await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY atomicmarket_sale_prices;');
-        }, 60000, true));
 
         return (): any => destructors.map(fn => fn());
     }
