@@ -321,7 +321,7 @@ export default class AtomicMarketHandler extends ContractHandler {
             await this.connection.database.query(
                 'SELECT update_atomicmarket_sales_filters()'
             );
-        }, 30000, UpdateJobPriority.HIGH));
+        }, 15000, UpdateJobPriority.HIGH));
 
         destructors.push(this.filler.registerUpdateJob(async () => {
             await this.connection.database.query(
