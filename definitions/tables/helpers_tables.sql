@@ -1,7 +1,7 @@
 CREATE TABLE helpers_collection_list
 (
     assets_contract        character varying(12) NOT NULL,
-    collection_name        character varying(12) NOT NULL,
+    collection_name        character varying(13) NOT NULL,
     contract               character varying(12) NOT NULL,
     list                   character varying(12) NOT NULL,
     updated_at_block       bigint                NOT NULL,

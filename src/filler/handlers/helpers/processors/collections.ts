@@ -37,7 +37,7 @@ export async function initCollections(args: CollectionsListArgs, connection: Con
                 }));
             }),
             ...atomicAccountsTable.rows.filter(list => list.list_name.match(atomicCollectionListRegex)).flatMap((row: AccListTableRow) => {
-                return [...new Set(row.list)].filter(collection => collection.length <= 12).map(collection => ({
+                return [...new Set(row.list)].filter(collection => collection.length <= 13).map(collection => ({
                     assets_contract: args.atomicassets_account,
                     contract: args.hub_tools_account,
                     list: convertCollectionListName(args.hub_tools_account, row.list_name, args),
@@ -110,7 +110,7 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
                 });
 
                 if (delta.present && delta.value.list.length > 0) {
-                    const collections = [...new Set(delta.value.list)];
+                    const collections = [...new Set(delta.value.list)].filter(x => x.length <= 13);
                     await db.insert('helpers_collection_list', collections.map(collection => {
                         return {
                             assets_contract: core.args.atomicassets_account,
