@@ -78,9 +78,10 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
         neftyContract, 'features',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<FeaturesTableRow>): Promise<void> => {
             if (delta.value.list.match(neftyCollectionListRegex)) {
+                const listName = convertCollectionListName(neftyContract, delta.value.list, core.args);
                 await db.delete('helpers_collection_list', {
                     str: 'assets_contract = $1 AND contract = $2 AND list = $3',
-                    values: [core.args.atomicassets_account, neftyContract, delta.value.list]
+                    values: [core.args.atomicassets_account, neftyContract, listName]
                 });
 
                 if (delta.present && delta.value.collections.length > 0) {
@@ -89,7 +90,7 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
                         return {
                             assets_contract: core.args.atomicassets_account,
                             contract: neftyContract,
-                            list: convertCollectionListName(neftyContract, delta.value.list, core.args),
+                            list: listName,
                             collection_name: collection,
                             updated_at_block: block.block_num,
                             updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
@@ -104,9 +105,10 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
         atomicContract, 'acclists',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<AccListTableRow>): Promise<void> => {
             if (delta.value.list_name.match(atomicCollectionListRegex)) {
+                const listName = convertCollectionListName(atomicContract, delta.value.list_name, core.args);
                 await db.delete('helpers_collection_list', {
                     str: 'assets_contract = $1 AND contract = $2 AND list = $3',
-                    values: [core.args.atomicassets_account, atomicContract, delta.value.list_name]
+                    values: [core.args.atomicassets_account, atomicContract, listName]
                 });
 
                 if (delta.present && delta.value.list.length > 0) {
@@ -115,7 +117,7 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
                         return {
                             assets_contract: core.args.atomicassets_account,
                             contract: atomicContract,
-                            list: convertCollectionListName(atomicContract, delta.value.list_name, core.args),
+                            list: listName,
                             collection_name: collection,
                             updated_at_block: block.block_num,
                             updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
