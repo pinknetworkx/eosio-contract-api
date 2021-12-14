@@ -71,7 +71,7 @@ export async function initCollections(args: CollectionsListArgs, connection: Con
 
 export function collectionsProcessor(core: CollectionsListHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
-    const neftyContract = core.args.atomicassets_account;
+    const neftyContract = core.args.features_account;
     const atomicContract = core.args.hub_tools_account;
 
     destructors.push(processor.onContractRow(
