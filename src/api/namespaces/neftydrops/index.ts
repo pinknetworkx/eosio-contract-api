@@ -20,7 +20,7 @@ export type NeftyDropsNamespaceArgs = {
 export enum DropApiState {
     ACTIVE = 0,
     DELETED= 1,
-    HIDDEN = 3,
+    HIDDEN = 2,
 }
 
 export type NeftyDropsContext = ActionHandlerContext<NeftyDropsNamespaceArgs>;

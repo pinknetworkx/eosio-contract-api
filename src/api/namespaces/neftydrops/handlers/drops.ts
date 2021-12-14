@@ -12,7 +12,6 @@ export async function getDropsAction(params: RequestValues, ctx: NeftyDropsConte
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
         collection_name: {type: 'string', min: 1},
-        state: {type: 'string', min: 0},
         sort: {
             type: 'string',
             values: [

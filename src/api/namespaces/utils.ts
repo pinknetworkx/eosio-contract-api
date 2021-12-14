@@ -29,7 +29,7 @@ export function filterQueryArgs(values: FilterValues, filter: FilterDefinition, 
         if (keyType) {
             data = values[keyType] ? values[keyType][key] : undefined;
         } else {
-            data = values[key];
+            data = values[key]?.toString();
         }
 
         if (filter[key].type === 'string' && typeof data !== 'string') {
