@@ -40,8 +40,8 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           account_limit: trace.act.data.account_limit,
           account_limit_cooldown: trace.act.data.account_limit_cooldown,
           max_claimable: trace.act.data.max_claimable,
-          start_time: trace.act.data.start_time,
-          end_time: trace.act.data.end_time,
+          start_time: trace.act.data.start_time * 1000,
+          end_time: trace.act.data.end_time * 1000,
           display_data: trace.act.data.display_data,
           state: trace.act.data.is_hidden ? DropState.HIDDEN.valueOf() : DropState.ACTIVE.valueOf(),
           updated_at_block: block.block_num,
@@ -158,8 +158,8 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
       contract, 'setdroptimes',
       async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<SetDropTimesActionData>): Promise<void> => {
         await db.update('neftydrops_drops', {
-          start_time: trace.act.data.start_time,
-          end_time: trace.act.data.end_time,
+          start_time: trace.act.data.start_time * 1000,
+          end_time: trace.act.data.end_time * 1000,
           updated_at_block: block.block_num,
           updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
         }, {
