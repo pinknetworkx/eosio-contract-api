@@ -25,6 +25,17 @@ export function collectionsEndpoints(core: HelpersNamespace, server: HTTPServer,
                     description:
                         'Get a list of collection identifiers based on the whitelisted status',
                     parameters: [
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                                enum: ['collection_name', 'list'],
+                                default: 'collection_name'
+                            }
+                        },
                         ...paginationParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {

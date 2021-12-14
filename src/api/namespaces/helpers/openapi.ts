@@ -3,7 +3,8 @@ export const neftyMarketComponents = {
         type: 'object',
         properties: {
             collection_name: {type: 'string'},
-            list: {type: 'array'},
+            list: {type: 'string'},
+            contract: {type: 'string'},
         }
     }
 };
