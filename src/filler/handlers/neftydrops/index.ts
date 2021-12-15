@@ -1,16 +1,16 @@
 import * as fs from 'fs';
-import { PoolClient } from 'pg';
+import {PoolClient} from 'pg';
 
-import { ContractHandler } from '../interfaces';
+import {ContractHandler} from '../interfaces';
 import logger from '../../../utils/winston';
-import { ConfigTableRow } from './types/tables';
-import Filler from '../../filler';
-import { DELPHIORACLE_BASE_PRIORITY } from '../delphioracle';
-import { ATOMICASSETS_BASE_PRIORITY } from '../atomicassets';
+import {ConfigTableRow} from './types/tables';
+import Filler, {UpdateJobPriority} from '../../filler';
+import {DELPHIORACLE_BASE_PRIORITY} from '../delphioracle';
+import {ATOMICASSETS_BASE_PRIORITY} from '../atomicassets';
 import DataProcessor from '../../processor';
-import { balanceProcessor } from './processors/balances';
-import { configProcessor } from './processors/config';
-import { dropsProcessor } from './processors/drops';
+import {balanceProcessor} from './processors/balances';
+import {configProcessor} from './processors/config';
+import {dropsProcessor} from './processors/drops';
 
 export const NEFTYDROPS_BASE_PRIORITY = Math.max(ATOMICASSETS_BASE_PRIORITY, DELPHIORACLE_BASE_PRIORITY) + 1000;
 
@@ -213,7 +213,7 @@ export default class NeftyDropsHandler extends ContractHandler {
         for (const view of materializedViews) {
             destructors.push(this.filler.registerUpdateJob(async () => {
                 await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view + ';');
-            }, 60000, false));
+            }, 60000, UpdateJobPriority.MEDIUM));
         }
 
         return (): any => destructors.map(fn => fn());
