@@ -210,7 +210,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
         buyer: {type: 'string[]', min: 1},
 
         collection_name: {type: 'string[]', min: 1, default: []},
-        collection_blacklist: {type: 'string[]', min: 1},
+        collection_blacklist: {type: 'string[]', min: 1, default: []},
         collection_whitelist: {type: 'string[]', min: 1, default: []},
 
         owner: {type: 'string[]', min: 1, max: 12},
@@ -263,8 +263,25 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
     }
 
     await addIncArrayFilter('owner', true);
-    await addIncArrayFilter('collection_name', true);
-    await addIncArrayFilter('collection_name', true, args.collection_whitelist);
+
+    if (args.collection_name.length) {
+        const collectionNames = args.collection_whitelist.length
+            ? args.collection_name
+                .filter((collectionName: string) => args.collection_whitelist.includes(collectionName))
+                .filter((collectionName: string) => !args.collection_blacklist.includes(collectionName))
+            : args.collection_name;
+        if (!collectionNames.length) {
+            collectionNames.push('\nDOES_NOT_EXIST\n');
+        }
+
+        await addIncArrayFilter('collection_name', true, collectionNames);
+    } else {
+        await addIncArrayFilter('collection_name', true, args.collection_whitelist);
+
+        if (args.collection_blacklist.length) {
+            exc.collection_names.push(...args.collection_blacklist);
+        }
+    }
 
     if (args.account) {
         query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(sellers := ${query.addVariable(args.account)}, buyers := ${query.addVariable(args.account)}))`);
@@ -314,20 +331,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
         exc.buyers.push(...args.buyer_blacklist);
     }
 
-    if (args.collection_blacklist) {
-        exc.collection_names.push(...args.collection_blacklist);
-    }
-
     inc.data = getDataFilters(search);
-
-
-    if (inc.collection_names.length && exc.collection_names.length) {
-        inc.collection_names = inc.collection_names.filter(c => !exc.collection_names.includes(c));
-        if (!inc.collection_names.length) {
-            inc.collection_names.push('\nDOES_NOT_EXIST\n');
-        }
-        exc.collection_names.length = 0;
-    }
 
     if (exc.collection_names.length >= 50) {
         query.addCondition(`NOT EXISTS (SELECT 1 FROM UNNEST(${query.addVariable([...exc.collection_names])}::TEXT[]) u(collection_name) WHERE SUBSTR(listing.filter[1], 2) = u.collection_name)`);
