@@ -32,7 +32,7 @@ export function filterQueryArgs(values: FilterValues, filter: FilterDefinition, 
             data = values[key]?.toString();
         }
 
-        if (filter[key].type === 'string' && typeof data !== 'string') {
+        if (typeof data !== 'string') {
             result[key] = filter[key].default;
 
             continue;
