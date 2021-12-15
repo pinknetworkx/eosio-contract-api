@@ -45,3 +45,7 @@ export function compareVersionString(s1: string, s2: string): number {
 
     return 0;
 }
+
+export function toInt(s: string): number {
+    return parseInt(s, 10);
+}

@@ -22,16 +22,18 @@ import { NotificationData } from '../../../../filler/notifier';
 import {
     getSaleAction,
     getSaleLogsAction,
-    getSalesAction,
-    getSalesCountAction,
-    getSalesTemplatesAction
+    getSalesAction, getSalesCountAction, getSalesTemplatesAction
 } from '../handlers/sales';
+import { getSalesCountV2Action, getSalesV2Action } from '../handlers/sales.get-sales-v2';
 
 export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;
 
     router.all('/v1/sales', caching(), returnAsJSON(getSalesAction, core));
     router.all('/v1/sales/_count', caching(), returnAsJSON(getSalesCountAction, core));
+
+    router.all('/v2/sales', caching(), returnAsJSON(getSalesV2Action, core));
+    router.all('/v2/sales/_count', caching(), returnAsJSON(getSalesCountV2Action, core));
 
     router.all('/v1/sales/templates', caching(), returnAsJSON(getSalesTemplatesAction, core));
 
