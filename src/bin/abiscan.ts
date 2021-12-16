@@ -22,7 +22,7 @@ const connection = new ConnectionManager(connectionConfig);
 (async (): Promise<void> => {
     logger.info('Using endpoint ' + endpoint);
 
-    const infoResp = await fetch(endpoint + '/v1/chain/get_info').then((data) => data.json());
+    const infoResp: any = await fetch(endpoint + '/v1/chain/get_info').then((data) => data.json());
 
     if (infoResp.chain_id !== connection.chain.chainId) {
         logger.error('Endpoint chain_id does not match chain_id in config');
@@ -41,7 +41,7 @@ const connection = new ConnectionManager(connectionConfig);
     while (true) {
         logger.info('Fetch ABIs and Codes after ' + timestamp + '...');
 
-        const resp = await fetch(
+        const resp: any = await fetch(
             endpoint + '/v2/history/get_actions?filter=eosio:setabi,eosio:setcode&limit=250&sort=asc&after=' + timestamp
         ).then((data) => data.json());
 

@@ -162,7 +162,7 @@ export default class StateReceiver {
                 this.dsQueue.clear();
                 this.dsQueue.pause();
 
-                logger.error('Consumer queue stopped duo to an error at #' + resp.this_block.block_num, error);
+                logger.error('Consumer queue stopped due to an error at #' + resp.this_block.block_num, error);
 
                 return;
             }

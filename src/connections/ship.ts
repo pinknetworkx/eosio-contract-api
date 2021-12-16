@@ -238,7 +238,7 @@ export default class StateHistoryBlockReader {
                                 deltas: deserializedDeltas
                             });
                         } catch (error) {
-                            logger.error('Ship blocks queue stopped duo to an error at #' + response.this_block.block_num, error);
+                            logger.error('Ship blocks queue stopped due to an error at #' + response.this_block.block_num, error);
 
                             this.blocksQueue.clear();
                             this.blocksQueue.pause();

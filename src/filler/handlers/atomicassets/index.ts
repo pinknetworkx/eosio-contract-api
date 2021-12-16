@@ -14,7 +14,7 @@ import { logProcessor } from './processors/logs';
 import { offerProcessor } from './processors/offers';
 import { schemaProcessor } from './processors/schemas';
 import { templateProcessor } from './processors/templates';
-import Filler from '../../filler';
+import Filler, { UpdateJobPriority } from '../../filler';
 
 export const ATOMICASSETS_BASE_PRIORITY = 0;
 
@@ -262,14 +262,14 @@ export default class AtomicAssetsHandler extends ContractHandler {
                     'HAVING COALESCE(SUM(assets)::INT, 0) != 0;',
                 [this.args.atomicassets_account]
             );
-        }, 60 * 10 * 1000, false));
+        }, 60 * 10 * 1000, UpdateJobPriority.LOW));
 
         destructors.push(this.filler.registerUpdateJob(async () => {
             await this.connection.database.query(
                 'CALL update_atomicassets_mints($1, $2)',
                 [this.args.atomicassets_account, this.filler.reader.lastIrreversibleBlock]
             );
-        }, 30000, true));
+        }, 30000, UpdateJobPriority.MEDIUM));
 
         return (): any => destructors.map(fn => fn());
     }
