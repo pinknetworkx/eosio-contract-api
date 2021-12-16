@@ -26,6 +26,16 @@ export function collectionsEndpoints(core: HelpersNamespace, server: HTTPServer,
                         'Get a list of collection identifiers based on the whitelisted status',
                     parameters: [
                         {
+                            name: 'list',
+                            in: 'query',
+                            description: 'List',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                                enum: ['whitelist', 'blacklist', 'verified', 'nsfw', 'scam'],
+                            }
+                        },
+                        {
                             name: 'sort',
                             in: 'query',
                             description: 'Column to sort',
@@ -36,7 +46,17 @@ export function collectionsEndpoints(core: HelpersNamespace, server: HTTPServer,
                                 default: 'collection_name'
                             }
                         },
-                        ...paginationParameters
+                        {
+                            name: 'order',
+                            in: 'query',
+                            description: 'Order direction',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                                enum: ['asc', 'desc'],
+                                default: 'desc'
+                            }
+                        }
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'array',
