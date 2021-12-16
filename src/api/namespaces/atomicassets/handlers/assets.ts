@@ -1,4 +1,11 @@
-import { buildBoundaryFilter, filterQueryArgs, FilterValues, RequestValues } from '../../utils';
+import {
+    buildBoundaryFilter,
+    filterQueryArgs,
+    FilterValues,
+    RequestValues,
+    SortColumn,
+    SortColumnMapping
+} from '../../utils';
 import { AtomicAssetsContext } from '../index';
 import QueryBuilder from '../../../builder';
 import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter, hasAssetFilter, hasDataFilters } from '../utils';
@@ -11,7 +18,7 @@ export function buildAssetQueryCondition(
 ): void {
     const args = filterQueryArgs(values, {
         authorized_account: {type: 'string', min: 1, max: 12},
-        hide_templates_by_accounts: {type: 'string', min: 1, max: 12},
+        hide_templates_by_accounts: {type: 'string', min: 1},
 
         only_duplicate_templates: {type: 'bool'},
         has_backed_tokens: {type: 'bool'},
@@ -75,22 +82,15 @@ export function buildAssetQueryCondition(
         query.equal(options.assetTable + '.template_mint', args.template_mint);
     }
 
-    if (args.min_template_mint) {
-        let condition = options.assetTable + '.template_mint >= ' + query.addVariable(args.min_template_mint);
-
-        if (args.min_template_mint <= 1) {
-            condition += ' OR ' + options.assetTable + '.template_id IS NULL';
-        }
+    if (args.min_template_mint && args.min_template_mint > 1) {
+        const condition = options.assetTable + '.template_mint >= ' + query.addVariable(args.min_template_mint);
 
         query.addCondition('(' + condition + ')');
     }
 
     if (args.max_template_mint) {
-        let condition = options.assetTable + '.template_mint <= ' + query.addVariable(args.max_template_mint);
-
-        if (args.max_template_mint >= 1) {
-            condition += ' OR ' + options.assetTable + '.template_id IS NULL';
-        }
+        const condition = options.assetTable + '.template_mint <= ' + query.addVariable(args.max_template_mint)
+            + ' OR ' + options.assetTable + '.template_id IS NULL';
 
         query.addCondition('(' + condition + ')');
     }
@@ -99,7 +99,7 @@ export function buildAssetQueryCondition(
     buildGreylistFilter(values, query, {collectionName: options.assetTable + '.collection_name'});
 
     if (args.template_blacklist) {
-        query.notMany(options.assetTable + '.template_id', args.template_blacklist.split(','));
+        query.notMany(`COALESCE(${options.assetTable}.template_id, 9223372036854775807)`, args.template_blacklist.split(','));
     }
 
     if (args.template_whitelist) {
@@ -107,7 +107,7 @@ export function buildAssetQueryCondition(
     }
 }
 
-export async function getRawAssetsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
+export async function getRawAssetsAction(params: RequestValues, ctx: AtomicAssetsContext, options?: {extraTables: string, extraSort: SortColumnMapping}): Promise<Array<number> | string> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 1000, default: 100},
@@ -123,6 +123,9 @@ export async function getRawAssetsAction(params: RequestValues, ctx: AtomicAsset
         'asset.contract = template.contract AND asset.template_id = template.template_id' +
         ') '
     );
+    if (options?.extraTables) {
+        query.appendToBase(options.extraTables);
+    }
 
     query.equal('asset.contract', ctx.coreArgs.atomicassets_account);
 
@@ -141,16 +144,17 @@ export async function getRawAssetsAction(params: RequestValues, ctx: AtomicAsset
         return countQuery.rows[0].counter;
     }
 
-    let sorting: {column: string, nullable: boolean, numericIndex: boolean};
+    let sorting: SortColumn;
 
     if (args.sort) {
-        const sortColumnMapping: {[key: string]: {column: string, nullable: boolean, numericIndex: boolean}} = {
+        const sortColumnMapping: SortColumnMapping = {
             asset_id: {column: 'asset.asset_id', nullable: false, numericIndex: true},
             updated: {column: 'asset.updated_at_time', nullable: false, numericIndex: true},
             transferred: {column: 'asset.transferred_at_time', nullable: false, numericIndex: true},
             minted: {column: 'asset.asset_id', nullable: false, numericIndex: true},
             template_mint: {column: 'asset.template_mint', nullable: true, numericIndex: false},
-            name: {column: '"template".immutable_data->>\'name\'', nullable: true, numericIndex: false}
+            name: {column: '"template".immutable_data->>\'name\'', nullable: true, numericIndex: false},
+            ...options?.extraSort,
         };
 
         sorting = sortColumnMapping[args.sort];
@@ -165,7 +169,8 @@ export async function getRawAssetsAction(params: RequestValues, ctx: AtomicAsset
     query.append('ORDER BY ' + sorting.column + (ignoreIndex ? ' + 1 ' : ' ') + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC');
     query.paginate(args.page, args.limit);
 
-    return await ctx.db.query(query.buildString(), query.buildValues());
+    const result = await ctx.db.query(query.buildString(), query.buildValues());
+    return result.rows.map((row: any) => row.asset_id);
 }
 
 export async function getAssetsCountAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {

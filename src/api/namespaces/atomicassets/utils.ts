@@ -242,7 +242,7 @@ export function buildHideOffersFilter(values: FilterValues, query: QueryBuilder,
             'SELECT * FROM atomicassets_offers offer, atomicassets_offers_assets offer_asset ' +
             'WHERE offer_asset.contract = ' + assetTable + '.contract AND offer_asset.asset_id = ' + assetTable + '.asset_id AND ' +
             'offer.contract = offer_asset.contract AND offer.offer_id = offer_asset.offer_id AND ' +
-            'offer.state = ' + OfferState.PENDING.valueOf() + ' ' +
+            'offer.state = ' + OfferState.PENDING + ' ' +
             ')'
         );
     }
