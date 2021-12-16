@@ -459,7 +459,8 @@ async function isStrongMainFilter(filter: string, values: string[], search: Sale
                 FROM atomicmarket_sales_filters
                 WHERE market_contract = $1
                     AND ((filter @> create_atomicmarket_sales_filter(collection_names => $2)))
-            `, [search.ctx.coreArgs.atomicmarket_account, [collectionName]]);
+                    AND sale_state = $3
+            `, [search.ctx.coreArgs.atomicmarket_account, [collectionName], SaleApiState.LISTED]);
 
             collectionSales[collectionName] = rows[0].ct;
         }
