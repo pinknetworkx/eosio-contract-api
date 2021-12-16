@@ -455,7 +455,7 @@ async function isStrongMainFilter(filter: string, values: string[], search: Sale
     if (filter === 'collection_name') {
         for (const collectionName of values.filter(collectionName => collectionSales[collectionName] === undefined)) {
             const {rows} = await search.ctx.db.query(`
-                SELECT COUNT(*) ct
+                SELECT COUNT(*)::INT ct
                 FROM atomicmarket_sales_filters
                 WHERE market_contract = $1
                     AND ((filter @> create_atomicmarket_sales_filter(collection_names => $2)))
