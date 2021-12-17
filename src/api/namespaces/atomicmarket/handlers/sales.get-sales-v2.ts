@@ -179,7 +179,8 @@ function buildAssetFilterV2(search: SalesSearchOptions): void {
             'listing.asset_names ILIKE ' +
             query.addVariable('%' + name.replace('%', '\\%').replace('_', '\\_') + '%')
         );
-        search.strongFilters.push('name');
+        // postgres makes the right decision on whether to use the asset_names index or the order index based
+        // on how common the keyword is, so wie don't force it to use the asset_names index here
     }
 }
 
