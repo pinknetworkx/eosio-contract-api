@@ -403,7 +403,7 @@ SELECT update_atomicmarket_sales_filters();
 
 CREATE INDEX atomicmarket_sales_filters_filter_idx ON atomicmarket_sales_filters USING gin(filter);
 CREATE INDEX atomicmarket_sales_filters_asset_ids_idx ON atomicmarket_sales_filters USING gin(asset_ids);
-CREATE INDEX atomicmarket_sales_filters_asset_names_idx ON atomicmarket_sales_filters USING gist(asset_names gist_trgm_ops);
+-- 1.3.1 CREATE INDEX atomicmarket_sales_filters_asset_names_idx ON atomicmarket_sales_filters USING gist(asset_names gist_trgm_ops);
 CREATE INDEX atomicmarket_sales_filters_offer_id_idx ON atomicmarket_sales_filters (offer_id);
 
 CREATE INDEX atomicmarket_sales_filters_updated_at_time_idx ON atomicmarket_sales_filters (updated_at_time);

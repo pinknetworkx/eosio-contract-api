@@ -1,0 +1,4 @@
+DROP INDEX atomicmarket_sales_filters_asset_names_idx;
+CREATE INDEX atomicmarket_sales_filters_asset_names_idx ON atomicmarket_sales_filters USING gin(asset_names gin_trgm_ops);
+
+ANALYSE atomicmarket_sales_filters_asset_names_idx;
