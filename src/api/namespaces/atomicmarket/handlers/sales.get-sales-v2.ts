@@ -255,7 +255,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
                 }
             } else {
                 // @ts-ignore
-                inc[filter+'s'].push(value);
+                inc[filter+'s'].push(value[0]);
             }
 
             if (canBeStrongFilter && await isStrongMainFilter(filter, value, search)) {
