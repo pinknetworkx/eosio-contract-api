@@ -12,11 +12,14 @@ type SalesSearchOptions = {
     ctx: AtomicMarketContext;
     query: QueryBuilder;
     strongFilters: string[];
+    saleStates: number[],
 }
 
 export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
 
     const args = filterQueryArgs(params, {
+        state: {type: 'string[]', min: 1, default: []},
+
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
         sort: {
@@ -43,6 +46,7 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
         ctx,
         query,
         strongFilters: [],
+        saleStates: args.state.map(toInt),
     };
 
     await buildSaleFilterV2(search);
@@ -111,8 +115,6 @@ export async function getSalesCountV2Action(params: RequestValues, ctx: AtomicMa
 async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
     const {values, query, ctx} = search;
     const args = filterQueryArgs(values, {
-        state: {type: 'string[]', min: 1},
-
         max_assets: {type: 'int', min: 1},
         min_assets: {type: 'int', min: 1},
 
@@ -152,12 +154,12 @@ async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
         throw new ApiError('Price range filters require the "symbol" filter');
     }
 
-    if (args.state?.length) {
-        if (args.state.includes(`${SaleApiState.LISTED}`)) {
-            query.appendToBase('JOIN atomicmarket_sales sales ON listing.market_contract = sales.market_contract AND listing.sale_id = sales.sale_id');
-            query.addCondition(`listing.sale_state != ${SaleApiState.LISTED} OR sales.state = ${SaleState.LISTED}`);
-        }
-        query.equalMany('listing.sale_state', args.state.map(toInt));
+    if (search.saleStates.length) {
+        query.appendToBase('JOIN atomicmarket_sales sales ON listing.market_contract = sales.market_contract AND listing.sale_id = sales.sale_id');
+        query.appendToBase('JOIN atomicassets_offers offer ON sales.assets_contract = offer.contract AND sales.offer_id = offer.offer_id');
+        query.addCondition(`atomicmarket_get_sale_state(sales.state, offer.state) = ANY(${query.addVariable(search.saleStates)})`);
+
+        query.equalMany('listing.sale_state', search.saleStates);
     }
 }
 
@@ -180,7 +182,7 @@ function buildAssetFilterV2(search: SalesSearchOptions): void {
             query.addVariable('%' + name.replace('%', '\\%').replace('_', '\\_') + '%')
         );
         // postgres makes the right decision on whether to use the asset_names index or the order index based
-        // on how common the keyword is, so wie don't force it to use the asset_names index here
+        // on how common the keyword is, so we don't force it to use the asset_names index here
     }
 }
 
