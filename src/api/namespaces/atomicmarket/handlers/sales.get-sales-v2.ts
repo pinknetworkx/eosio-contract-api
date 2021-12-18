@@ -5,7 +5,6 @@ import { fillSales } from '../filler';
 import { formatSale } from '../format';
 import { ApiError } from '../../../error';
 import { toInt } from '../../../../utils';
-import { SaleState } from '../../../../filler/handlers/atomicmarket';
 
 type SalesSearchOptions = {
     values: FilterValues;
@@ -256,7 +255,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
                 }
             } else {
                 // @ts-ignore
-                inc[filter+'s'].push(args[filter]);
+                inc[filter+'s'].push(value);
             }
 
             if (canBeStrongFilter && await isStrongMainFilter(filter, value, search)) {
@@ -268,11 +267,10 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
     await addIncArrayFilter('owner', true);
 
     if (args.collection_name.length) {
-        const collectionNames = args.collection_whitelist.length
-            ? args.collection_name
-                .filter((collectionName: string) => args.collection_whitelist.includes(collectionName))
-                .filter((collectionName: string) => !args.collection_blacklist.includes(collectionName))
-            : args.collection_name;
+        const collectionNames = args.collection_name
+            .filter((collectionName: string) => !args.collection_whitelist.length || args.collection_whitelist.includes(collectionName))
+            .filter((collectionName: string) => !args.collection_blacklist.includes(collectionName));
+
         if (!collectionNames.length) {
             collectionNames.push('\nDOES_NOT_EXIST\n');
         }

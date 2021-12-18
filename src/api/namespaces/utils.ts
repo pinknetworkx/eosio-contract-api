@@ -38,7 +38,7 @@ export function filterQueryArgs(values: FilterValues, filter: FilterDefinition, 
             continue;
         }
 
-        if (filter[key].type.match(/string(\[])?/)) {
+        if (filter[key].type.match(/^string(\[])?$/)) {
             if (typeof filter[key].min === 'number' && data.length < filter[key].min) {
                 result[key] = filter[key].default;
 
