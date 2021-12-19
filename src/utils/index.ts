@@ -49,3 +49,7 @@ export function compareVersionString(s1: string, s2: string): number {
 export function toInt(s: string): number {
     return parseInt(s, 10);
 }
+
+export function isWeakIntArray(arr: Array<any>): boolean {
+    return arr.every((el: any) => Number.isInteger(el) || String(el).match(/^\d+$/));
+}
