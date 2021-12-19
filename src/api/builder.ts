@@ -1,3 +1,5 @@
+import { isWeakIntArray } from '../utils';
+
 export default class QueryBuilder {
     private baseQuery: string;
 
@@ -54,7 +56,7 @@ export default class QueryBuilder {
         }
 
         if (values.length > 10) {
-            this.conditions.push(`EXISTS (SELECT FROM UNNEST(${this.addVariable(values)}::${typeof values[0] === 'string' ? 'TEXT' : 'BIGINT'}[]) u(c) WHERE u.c = ${column})`);
+            this.conditions.push(`EXISTS (SELECT FROM UNNEST(${this.addVariable(values)}::${isWeakIntArray(values) ? 'BIGINT' : 'TEXT'}[]) u(c) WHERE u.c = ${column})`);
         } else {
             this.conditions.push(`${column} = ANY(${this.addVariable(values)})`);
         }
@@ -72,7 +74,7 @@ export default class QueryBuilder {
         }
 
         if (values.length > 10) {
-            this.conditions.push(`NOT EXISTS (SELECT FROM UNNEST(${this.addVariable(values)}::${typeof values[0] === 'string' ? 'TEXT' : 'BIGINT'}[]) u(c) WHERE u.c = ${column})`);
+            this.conditions.push(`NOT EXISTS (SELECT FROM UNNEST(${this.addVariable(values)}::${isWeakIntArray(values) ? 'BIGINT' : 'TEXT'}[]) u(c) WHERE u.c = ${column})`);
         } else {
             this.conditions.push(`${column} != ALL(${this.addVariable(values)})`);
         }
