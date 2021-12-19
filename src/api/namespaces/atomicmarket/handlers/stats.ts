@@ -29,10 +29,11 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Atom
         throw new ApiError('Symbol not found');
     }
 
-    const statsQuery = new QueryBuilder('SELECT * FROM (' + buildCollectionStatsQuery(args.after, args.before) + ') x ' +
-        'WHERE (volume IS NOT NULL OR listings IS NOT NULL) ',
+    const statsQuery = new QueryBuilder('SELECT * FROM (' + buildCollectionStatsQuery(args.after, args.before) + ') x ',
         [ctx.coreArgs.atomicassets_account, args.symbol]
     );
+
+    statsQuery.addCondition('(volume IS NOT NULL OR listings IS NOT NULL) ');
 
     if (args.match) {
         statsQuery.addCondition(`collection_name ILIKE ${statsQuery.addVariable(`%${args.match}%`)}`);
