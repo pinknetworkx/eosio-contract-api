@@ -15,8 +15,8 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Atom
         before: {type: 'int', min: 1},
         after: {type: 'int', min: 1},
 
-        collection_whitelist: {type: 'string', min: 1},
-        collection_blacklist: {type: 'string', min: 1},
+        collection_whitelist: {type: 'string[]', min: 1},
+        collection_blacklist: {type: 'string[]', min: 1},
 
         sort: {type: 'string', values: ['volume', 'listings', 'sales'], default: 'volume'},
         page: {type: 'int', min: 1, default: 1},
@@ -29,25 +29,21 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Atom
         throw new ApiError('Symbol not found');
     }
 
-    let queryString = 'SELECT * FROM (' + buildCollectionStatsQuery(args.after, args.before) + ') x ' +
-        'WHERE (volume IS NOT NULL OR listings IS NOT NULL) ';
-
-    const queryValues = [ctx.coreArgs.atomicassets_account, args.symbol];
-    let varCounter = queryValues.length;
+    const statsQuery = new QueryBuilder('SELECT * FROM (' + buildCollectionStatsQuery(args.after, args.before) + ') x ' +
+        'WHERE (volume IS NOT NULL OR listings IS NOT NULL) ',
+        [ctx.coreArgs.atomicassets_account, args.symbol]
+    );
 
     if (args.match) {
-        queryString += 'AND collection_name ILIKE $' + ++varCounter + ' ';
-        queryValues.push('%' + args.match + '%');
+        statsQuery.addCondition(`collection_name ILIKE ${statsQuery.addVariable(`%${args.match}%`)}`);
     }
 
     if (args.collection_whitelist) {
-        queryString += 'AND collection_name = ANY ($' + ++varCounter + ') ';
-        queryValues.push(args.collection_whitelist.split(','));
+        statsQuery.equalMany('collection_name', args.collection_whitelist);
     }
 
     if (args.collection_blacklist) {
-        queryString += 'AND NOT (collection_name = ANY ($' + ++varCounter + ')) ';
-        queryValues.push(args.collection_blacklist.split(','));
+        statsQuery.notMany('collection_name', args.collection_blacklist);
     }
 
     const sortColumnMapping = {
@@ -56,12 +52,10 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Atom
     };
 
     // @ts-ignore
-    queryString += 'ORDER BY ' + sortColumnMapping[args.sort] + ' DESC NULLS LAST ' +
-        'LIMIT $' + ++varCounter + ' OFFSET $' + ++varCounter;
-    queryValues.push(args.limit);
-    queryValues.push((args.page - 1) * args.limit);
+    statsQuery.append(`ORDER BY ${sortColumnMapping[args.sort]} DESC NULLS LAST`);
+    statsQuery.paginate(args.page, args.limit);
 
-    const query = await ctx.db.query(queryString, queryValues);
+    const query = await ctx.db.query(statsQuery.buildString(), statsQuery.buildValues());
 
     return {symbol, results: query.rows.map(row => formatCollection(row))};
 }

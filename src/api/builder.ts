@@ -53,7 +53,11 @@ export default class QueryBuilder {
             return this.equal(column, values[0]);
         }
 
-        this.conditions.push(column + ' = ANY(' + this.addVariable(values) + ')');
+        if (values.length > 10) {
+            this.conditions.push(`EXISTS (SELECT FROM UNNEST(${this.addVariable(values)}) u(c) WHERE u.c = ${column}))`);
+        } else {
+            this.conditions.push(`${column} = ANY(${this.addVariable(values)})`);
+        }
 
         return this;
     }
@@ -67,7 +71,11 @@ export default class QueryBuilder {
             return this.unequal(column, values[0]);
         }
 
-        this.conditions.push('NOT (' + column + ' = ANY(' + this.addVariable(values) + '))');
+        if (values.length > 10) {
+            this.conditions.push(`NOT EXISTS (SELECT FROM UNNEST(${this.addVariable(values)}) u(c) WHERE u.c = ${column}))`);
+        } else {
+            this.conditions.push(`${column} != ALL(${this.addVariable(values)})`);
+        }
 
         return this;
     }
