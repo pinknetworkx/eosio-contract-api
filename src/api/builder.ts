@@ -1,3 +1,5 @@
+import { isWeakIntArray } from '../utils';
+
 export default class QueryBuilder {
     private baseQuery: string;
 
@@ -46,28 +48,36 @@ export default class QueryBuilder {
 
     equalMany(column: string, values: any[]): QueryBuilder {
         if (!Array.isArray(values)) {
-            throw new Error('equalMany only accept arrays as value');
+            throw new Error('equalMany only accepts arrays as value');
         }
 
         if (values.length === 1) {
             return this.equal(column, values[0]);
         }
 
-        this.conditions.push(column + ' = ANY(' + this.addVariable(values) + ')');
+        if (values.length > 10) {
+            this.conditions.push(`EXISTS (SELECT FROM UNNEST(${this.addVariable(values)}::${isWeakIntArray(values) ? 'BIGINT' : 'TEXT'}[]) u(c) WHERE u.c = ${column})`);
+        } else {
+            this.conditions.push(`${column} = ANY(${this.addVariable(values)})`);
+        }
 
         return this;
     }
 
     notMany(column: string, values: any[]): QueryBuilder {
         if (!Array.isArray(values)) {
-            throw new Error('notMany only accept arrays as value');
+            throw new Error('notMany only accepts arrays as value');
         }
 
         if (values.length === 1) {
             return this.unequal(column, values[0]);
         }
 
-        this.conditions.push('NOT (' + column + ' = ANY(' + this.addVariable(values) + '))');
+        if (values.length > 10) {
+            this.conditions.push(`NOT EXISTS (SELECT FROM UNNEST(${this.addVariable(values)}::${isWeakIntArray(values) ? 'BIGINT' : 'TEXT'}[]) u(c) WHERE u.c = ${column})`);
+        } else {
+            this.conditions.push(`${column} != ALL(${this.addVariable(values)})`);
+        }
 
         return this;
     }

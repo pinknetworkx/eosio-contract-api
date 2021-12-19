@@ -105,4 +105,15 @@ export class AtomicAssetsTestClient extends TestClient {
         });
     }
 
+    async createAssetBackedToken(values: Record<string, any> = {}): Promise<Record<string, any>> {
+        return await this.insert('atomicassets_assets_backed_tokens', {
+            contract: 'aatest',
+            token_symbol: 'TEST',
+            amount: 1,
+            updated_at_block: this.getId(),
+            updated_at_time: this.getId(),
+            ...values,
+        });
+    }
+
 }

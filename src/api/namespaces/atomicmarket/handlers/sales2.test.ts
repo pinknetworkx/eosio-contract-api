@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { RequestValues } from '../../utils';
 import { initAtomicMarketTest } from '../test';
 import { getTestContext } from '../../../../utils/test';
-import { getSalesV2Action } from './sales.get-sales-v2';
+import { getSalesV2Action } from './sales2';
 import { SaleApiState } from '../index';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';

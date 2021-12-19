@@ -5,18 +5,20 @@ import { fillSales } from '../filler';
 import { formatSale } from '../format';
 import { ApiError } from '../../../error';
 import { toInt } from '../../../../utils';
-import { SaleState } from '../../../../filler/handlers/atomicmarket';
 
 type SalesSearchOptions = {
     values: FilterValues;
     ctx: AtomicMarketContext;
     query: QueryBuilder;
     strongFilters: string[];
+    saleStates: number[],
 }
 
 export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
 
     const args = filterQueryArgs(params, {
+        state: {type: 'string[]', min: 1, default: []},
+
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
         sort: {
@@ -43,6 +45,7 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
         ctx,
         query,
         strongFilters: [],
+        saleStates: args.state.map(toInt),
     };
 
     await buildSaleFilterV2(search);
@@ -111,8 +114,6 @@ export async function getSalesCountV2Action(params: RequestValues, ctx: AtomicMa
 async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
     const {values, query, ctx} = search;
     const args = filterQueryArgs(values, {
-        state: {type: 'string[]', min: 1},
-
         max_assets: {type: 'int', min: 1},
         min_assets: {type: 'int', min: 1},
 
@@ -121,7 +122,7 @@ async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
         max_price: {type: 'float', min: 0}
     });
 
-    buildMainFilterV2(search);
+    await buildMainFilterV2(search);
     buildListingFilterV2(search);
 
     buildAssetFilterV2(search);
@@ -152,12 +153,12 @@ async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
         throw new ApiError('Price range filters require the "symbol" filter');
     }
 
-    if (args.state?.length) {
-        if (args.state.includes(`${SaleApiState.LISTED}`)) {
-            query.appendToBase('JOIN atomicmarket_sales sales ON listing.market_contract = sales.market_contract AND listing.sale_id = sales.sale_id');
-            query.addCondition(`listing.sale_state != ${SaleApiState.LISTED} OR sales.state = ${SaleState.LISTED}`);
-        }
-        query.equalMany('listing.sale_state', args.state.map(toInt));
+    if (search.saleStates.length) {
+        query.appendToBase('JOIN atomicmarket_sales sales ON listing.market_contract = sales.market_contract AND listing.sale_id = sales.sale_id');
+        query.appendToBase('JOIN atomicassets_offers offer ON sales.assets_contract = offer.contract AND sales.offer_id = offer.offer_id');
+        query.addCondition(`atomicmarket_get_sale_state(sales.state, offer.state) = ANY(${query.addVariable(search.saleStates)})`);
+
+        query.equalMany('listing.sale_state', search.saleStates);
     }
 }
 
@@ -179,7 +180,8 @@ function buildAssetFilterV2(search: SalesSearchOptions): void {
             'listing.asset_names ILIKE ' +
             query.addVariable('%' + name.replace('%', '\\%').replace('_', '\\_') + '%')
         );
-        search.strongFilters.push('name');
+        // postgres makes the right decision on whether to use the asset_names index or the order index based
+        // on how common the keyword is, so we don't force it to use the asset_names index here
     }
 }
 
@@ -199,7 +201,7 @@ const SALE_FILTER_FLAG_NO_TEMPLATE = 'nt';
 const SALE_FILTER_FLAG_NOT_TRANSFERABLE = 'nx';
 const SALE_FILTER_FLAG_NOT_BURNABLE = 'nb';
 
-function buildMainFilterV2(search: SalesSearchOptions): void {
+async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
     const {values, query} = search;
     const args = filterQueryArgs(values, {
         seller_blacklist: {type: 'string[]', min: 1},
@@ -210,7 +212,7 @@ function buildMainFilterV2(search: SalesSearchOptions): void {
         buyer: {type: 'string[]', min: 1},
 
         collection_name: {type: 'string[]', min: 1, default: []},
-        collection_blacklist: {type: 'string[]', min: 1},
+        collection_blacklist: {type: 'string[]', min: 1, default: []},
         collection_whitelist: {type: 'string[]', min: 1, default: []},
 
         owner: {type: 'string[]', min: 1, max: 12},
@@ -241,7 +243,7 @@ function buildMainFilterV2(search: SalesSearchOptions): void {
         flags: [],
     };
 
-    function addIncArrayFilter(filter: string, isStrongFilter: boolean = false, value: any = undefined): void {
+    async function addIncArrayFilter(filter: string, canBeStrongFilter: boolean = false, value: any = undefined): Promise<void> {
         value = value ?? args[filter];
         if (value?.length) {
             // when a single filter has multiple values, search ALL of them
@@ -253,33 +255,49 @@ function buildMainFilterV2(search: SalesSearchOptions): void {
                 }
             } else {
                 // @ts-ignore
-                inc[filter+'s'].push(args[filter]);
+                inc[filter+'s'].push(value[0]);
             }
 
-            if (isStrongFilter && value.length <= 50) {
+            if (canBeStrongFilter && await isStrongMainFilter(filter, value, search)) {
                 search.strongFilters.push(filter);
             }
         }
     }
 
-    addIncArrayFilter('owner', true);
-    addIncArrayFilter('collection_name', true);
-    addIncArrayFilter('collection_name', true, args.collection_whitelist);
+    await addIncArrayFilter('owner', true);
+
+    if (args.collection_name.length) {
+        const collectionNames = args.collection_name
+            .filter((collectionName: string) => !args.collection_whitelist.length || args.collection_whitelist.includes(collectionName))
+            .filter((collectionName: string) => !args.collection_blacklist.includes(collectionName));
+
+        if (!collectionNames.length) {
+            collectionNames.push('\nDOES_NOT_EXIST\n');
+        }
+
+        await addIncArrayFilter('collection_name', true, collectionNames);
+    } else {
+        await addIncArrayFilter('collection_name', true, args.collection_whitelist);
+
+        if (args.collection_blacklist.length) {
+            exc.collection_names.push(...args.collection_blacklist);
+        }
+    }
 
     if (args.account) {
         query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(sellers := ${query.addVariable(args.account)}, buyers := ${query.addVariable(args.account)}))`);
         search.strongFilters.push('account');
     }
 
-    addIncArrayFilter('seller', true);
-    addIncArrayFilter('buyer', true);
+    await addIncArrayFilter('seller', true);
+    await addIncArrayFilter('buyer', true);
 
-    addIncArrayFilter('schema_name', true);
+    await addIncArrayFilter('schema_name', true);
 
     if (args.template_id.find((s: string) => s.toLowerCase() === 'null')) {
         inc.flags.push(SALE_FILTER_FLAG_NO_TEMPLATE);
     } else {
-        addIncArrayFilter('template_id', true);
+        await addIncArrayFilter('template_id', true);
     }
 
     if (typeof args.burned === 'boolean') {
@@ -314,20 +332,7 @@ function buildMainFilterV2(search: SalesSearchOptions): void {
         exc.buyers.push(...args.buyer_blacklist);
     }
 
-    if (args.collection_blacklist) {
-        exc.collection_names.push(...args.collection_blacklist);
-    }
-
     inc.data = getDataFilters(search);
-
-
-    if (inc.collection_names.length && exc.collection_names.length) {
-        inc.collection_names = inc.collection_names.filter(c => !exc.collection_names.includes(c));
-        if (!inc.collection_names.length) {
-            inc.collection_names.push('\nDOES_NOT_EXIST\n');
-        }
-        exc.collection_names.length = 0;
-    }
 
     if (exc.collection_names.length >= 50) {
         query.addCondition(`NOT EXISTS (SELECT 1 FROM UNNEST(${query.addVariable([...exc.collection_names])}::TEXT[]) u(collection_name) WHERE SUBSTR(listing.filter[1], 2) = u.collection_name)`);
@@ -440,4 +445,31 @@ function getDataFilters(search: SalesSearchOptions): string[] {
     }
 
     return result;
+}
+
+const collectionSales: {[key: string]: number} = {};
+async function isStrongMainFilter(filter: string, values: string[], search: SalesSearchOptions): Promise<boolean> {
+    if (values.length >= 20) {
+        return false;
+    }
+
+    if (filter === 'collection_name') {
+        for (const collectionName of values.filter(collectionName => collectionSales[collectionName] === undefined)) {
+            const {rows} = await search.ctx.db.query(`
+                SELECT COUNT(*)::INT ct
+                FROM atomicmarket_sales_filters
+                WHERE market_contract = $1
+                    AND ((filter @> create_atomicmarket_sales_filter(collection_names => $2)))
+                    AND sale_state = $3
+            `, [search.ctx.coreArgs.atomicmarket_account, [collectionName], SaleApiState.LISTED]);
+
+            collectionSales[collectionName] = rows[0].ct;
+        }
+
+        if (values.reduce((acc, collectionName) => acc + collectionSales[collectionName], 0) > 9_000) {
+            return false;
+        }
+    }
+
+    return true;
 }
