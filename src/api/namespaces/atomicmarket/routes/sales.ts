@@ -24,7 +24,7 @@ import {
     getSaleLogsAction,
     getSalesAction, getSalesCountAction, getSalesTemplatesAction
 } from '../handlers/sales';
-import { getSalesCountV2Action, getSalesV2Action } from '../handlers/sales.get-sales-v2';
+import { getSalesCountV2Action, getSalesV2Action } from '../handlers/sales2';
 
 export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;
