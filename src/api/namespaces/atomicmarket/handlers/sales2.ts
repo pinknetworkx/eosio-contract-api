@@ -482,8 +482,8 @@ async function isStrongMainFilter(filter: string, values: string[], search: Sale
 
         let expectedSalesCount = 0;
         for (const saleState of saleStates) {
-            for (const collectionName of values) {
-                expectedSalesCount += await getSaleCount(filter, collectionName, saleState, search);
+            for (const value of values) {
+                expectedSalesCount += await getSaleCount(filter, value, saleState, search);
 
                 if (expectedSalesCount > largeSalesResult) {
                     return false;
