@@ -454,6 +454,7 @@ const getSaleCount = moize({
     isPromise: true,
     maxAge: 1000 * 60 * 60 * 24,
     maxArgs: 3,
+    maxSize: 500_000,
 })(async (filter: string, value: string, saleState: number, search: SalesSearchOptions): Promise<number> => {
     const {rows} = await search.ctx.db.query(`
         SELECT COUNT(*)::INT ct
