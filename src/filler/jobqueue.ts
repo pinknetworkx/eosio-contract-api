@@ -20,7 +20,7 @@ export class JobQueue extends EventEmitter {
 
     private pulseID: NodeJS.Timer;
     private readonly pulseInterval: number;
-    private running: Array<JobQueuePriority> = [];
+    private runningPriorities: Array<JobQueuePriority> = [];
 
     constructor(pulseInterval = 1_000) {
         super();
@@ -41,32 +41,33 @@ export class JobQueue extends EventEmitter {
     private pulse(): void {
         const start = Date.now();
         for (const priority of [JobQueuePriority.HIGH, JobQueuePriority.MEDIUM, JobQueuePriority.LOW]) {
-            if (this.running.includes(priority)) {
+            if (this.runningPriorities.includes(priority)) {
                 continue;
             }
 
-            if ((priority !== JobQueuePriority.HIGH) && this.running.filter(r => r !== JobQueuePriority.HIGH).length) {
+            if ((priority !== JobQueuePriority.HIGH) && this.runningPriorities.filter(r => r !== JobQueuePriority.HIGH).length) {
                 return;
             }
 
-            const jobs = this.jobs
+            const job = this.jobs
                 .filter(job => job.priority === priority)
-                .filter(job => job.nextRun <= start);
-            if (jobs.length) {
-                this.run(jobs[0]);
+                .filter(job => job.nextRun <= start)
+                .find(job => job);
+            if (job) {
+                this.runningPriorities.push(job.priority);
+                this.run(job)
+                    .finally(() => this.runningPriorities = this.runningPriorities.filter(r => r !== job.priority));
             }
         }
     }
 
     private async run(job: Job): Promise<void> {
-        this.running.push(job.priority);
         try {
             this.emit('debug', `Started job ${job.name}`, job);
             await job.fn();
         } catch (e) {
             this.emit('error', e, job);
         } finally {
-            this.running = this.running.filter(r => r !== job.priority);
             job.nextRun = Date.now() + job.interval;
             this.emit('debug', `Ended job ${job.name}`, job);
         }
