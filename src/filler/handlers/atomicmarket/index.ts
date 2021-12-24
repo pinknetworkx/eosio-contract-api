@@ -17,6 +17,7 @@ import { marketplaceProcessor } from './processors/marketplaces';
 import { saleProcessor } from './processors/sales';
 import { buyofferProcessor } from './processors/buyoffers';
 import { bonusfeeProcessor } from './processors/bonusfees';
+import { JobQueuePriority } from '../../jobqueue';
 
 export const ATOMICMARKET_BASE_PRIORITY = Math.max(ATOMICASSETS_BASE_PRIORITY, DELPHIORACLE_BASE_PRIORITY) + 1000;
 
@@ -274,50 +275,51 @@ export default class AtomicMarketHandler extends ContractHandler {
             destructors.push(logProcessor(this, processor));
         }
 
-        const standardMaterializedViews = [
-            'atomicmarket_template_prices', 'atomicmarket_stats_prices', 'atomicmarket_stats_markets'
+        const materializedViews: Array<{name: string, priority: JobQueuePriority}> = [
+            {name: 'atomicmarket_template_prices', priority: JobQueuePriority.LOW},
+            {name: 'atomicmarket_stats_prices', priority: JobQueuePriority.LOW},
+            {name: 'atomicmarket_stats_markets', priority: JobQueuePriority.LOW},
+            {name: 'atomicmarket_sale_prices', priority: JobQueuePriority.MEDIUM},
         ];
 
-        for (const view of standardMaterializedViews) {
+        for (const view of materializedViews) {
             let lastVacuum = Date.now();
 
-            destructors.push(this.filler.registerUpdateJob(async () => {
-                await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view + ';');
+            this.filler.jobs.add(`Refresh MV ${view.name}`, 60_000, view.priority, async () => {
+                await this.connection.database.query(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view.name}`);
 
                 if (lastVacuum + 3600 * 24 * 1000 < Date.now()) {
-                    await this.connection.database.query('VACUUM ANALYZE ' + view + ';');
+                    await this.connection.database.query(`VACUUM ANALYZE ${view.name}`);
 
-                    logger.info('Successfully ran vacuum on ' + view);
+                    logger.info(`Successfully ran vacuum on ${view.name}`);
 
                     lastVacuum = Date.now();
                 }
-
-            }, 60000, UpdateJobPriority.LOW));
+            });
         }
 
-
-        destructors.push(this.filler.registerUpdateJob(async () => {
+        this.filler.jobs.add('update_atomicmarket_sale_mints', 30_000, JobQueuePriority.MEDIUM, async () => {
             await this.connection.database.query(
                 'CALL update_atomicmarket_sale_mints($1, $2)',
                 [this.args.atomicmarket_account, this.filler.reader.lastIrreversibleBlock]
             );
-        }, 30000, UpdateJobPriority.MEDIUM));
+        });
 
-        destructors.push(this.filler.registerUpdateJob(async () => {
+        this.filler.jobs.add('update_atomicmarket_buyoffer_mints', 30_000, JobQueuePriority.MEDIUM, async () => {
             await this.connection.database.query(
                 'CALL update_atomicmarket_buyoffer_mints($1, $2)',
                 [this.args.atomicmarket_account, this.filler.reader.lastIrreversibleBlock]
             );
-        }, 30000, UpdateJobPriority.MEDIUM));
+        });
 
-        destructors.push(this.filler.registerUpdateJob(async () => {
+        this.filler.jobs.add('update_atomicmarket_auction_mints', 30_000, JobQueuePriority.MEDIUM, async () => {
             await this.connection.database.query(
                 'CALL update_atomicmarket_auction_mints($1, $2)',
                 [this.args.atomicmarket_account, this.filler.reader.lastIrreversibleBlock]
             );
-        }, 30000, UpdateJobPriority.MEDIUM));
+        });
 
-        destructors.push(this.filler.registerUpdateJob(async () => {
+        this.filler.jobs.add('update_atomicmarket_sales_filters', 20_000, JobQueuePriority.HIGH, async () => {
             await this.connection.database.query(
                 'SELECT update_atomicmarket_sales_filters()'
             );
@@ -325,31 +327,13 @@ export default class AtomicMarketHandler extends ContractHandler {
             await this.connection.database.query(
                 'VACUUM atomicmarket_sales_filters_listed'
             );
-        }, 15000, UpdateJobPriority.HIGH));
+        });
 
-        destructors.push(this.filler.registerUpdateJob(async () => {
+        this.filler.jobs.add('refresh_atomicmarket_sales_filters_price', 60_000 * 60, JobQueuePriority.LOW, async () => {
             await this.connection.database.query(
                 'SELECT refresh_atomicmarket_sales_filters_price()'
             );
-        }, 60000 * 60, UpdateJobPriority.LOW));
-
-        const priorityMaterializedViews = ['atomicmarket_sale_prices'];
-
-        for (const view of priorityMaterializedViews) {
-            let lastVacuum = Date.now();
-
-            destructors.push(this.filler.registerUpdateJob(async () => {
-                await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view + ';');
-
-                if (lastVacuum + 3600 * 24 * 1000 < Date.now()) {
-                    await this.connection.database.query('VACUUM ANALYZE ' + view + ';');
-
-                    logger.info('Successfully ran vacuum on ' + view);
-
-                    lastVacuum = Date.now();
-                }
-            }, 60000, UpdateJobPriority.MEDIUM));
-        }
+        });
 
         return (): any => destructors.map(fn => fn());
     }

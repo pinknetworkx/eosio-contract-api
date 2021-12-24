@@ -6,6 +6,7 @@ import { formatSecondsLeft } from '../utils/time';
 import { getHandlers } from './handlers';
 import { ContractHandler } from './handlers/interfaces';
 import { ModuleLoader } from './modules';
+import { JobQueue, JobQueuePriority } from './jobqueue';
 
 function estimateSeconds(blocks: number, speed: number, depth: number = 0): number {
     if (blocks <= 2) {
@@ -35,8 +36,8 @@ export default class Filler {
     readonly reader: StateReceiver;
     readonly modules: ModuleLoader;
 
-    private readonly jobs: Array<{fn: () => any, interval: number, updated: number, priority: UpdateJobPriority}>;
-    private running: boolean;
+    public readonly jobs: JobQueue;
+    private running: boolean = false;
 
     private readonly handlers: ContractHandler[];
 
@@ -45,8 +46,7 @@ export default class Filler {
         this.modules = new ModuleLoader(config.modules || []);
         this.reader = new StateReceiver(config, connection, this.handlers, this.modules);
 
-        this.jobs = [];
-        this.running = false;
+        this.jobs = new JobQueue();
 
         logger.info(this.handlers.length + ' contract handlers registered');
         for (const handler of this.handlers) {
@@ -142,7 +142,7 @@ export default class Filler {
                 lastBlockSpeeds.shift();
             }
 
-            const queueState = '[DS:' + this.reader.dsQueue.size + '|SH:' + this.reader.ship.blocksQueue.size + ']';
+            const queueState = `[DS:${this.reader.dsQueue.size}|SH:${this.reader.ship.blocksQueue.size}|JQ:${this.jobs.active}]`;
 
             if (lastBlockNum === this.reader.currentBlock && lastBlockNum > 0) {
                 const staleTime = Date.now() - lastBlockTime;
@@ -195,58 +195,21 @@ export default class Filler {
             lastOperations = this.reader.database.stats.operations;
         }, logInterval * 1000);
 
+        this.jobs.on('error', (error: Error, job: any) => {
+            logger.error(`Error running job ${job.name}`, error);
+        });
+
+        setTimeout(() => this.jobs.start(), 5000);
+
         this.running = true;
-
-        const jobQueues = [UpdateJobPriority.HIGH, UpdateJobPriority.MEDIUM, UpdateJobPriority.LOW];
-
-        for (const queue of jobQueues) {
-            (async (): Promise<void> => {
-                await new Promise(resolve => setTimeout(resolve, 5000));
-
-                let counter = 0;
-
-                while (this.running) {
-                    const jobs = this.jobs.filter(row => row.priority.valueOf() === queue.valueOf());
-
-                    counter = counter >= jobs.length ? 0 : counter;
-
-                    const job = jobs[counter];
-
-                    if (job && job.updated + job.interval < Date.now()) {
-                        try {
-                            await job.fn();
-                        } catch (err){
-                            logger.error('Error while refreshing job of priority ' + job.priority.valueOf(), err);
-                        } finally {
-                            job.updated = Date.now();
-                        }
-                    }
-
-                    counter += 1;
-
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-            })().then();
-        }
     }
 
     async stopFiller(): Promise<void> {
         this.running = false;
 
+        this.jobs.stop();
+
         await this.reader.stopProcessing();
     }
 
-    registerUpdateJob(fn: () => any, interval: number, priority: UpdateJobPriority = UpdateJobPriority.LOW): () => void {
-        const element = {fn, interval, updated: Date.now(), priority};
-
-        this.jobs.push(element);
-
-        return (): void => {
-            const index = this.jobs.indexOf(element);
-
-            if (index >= 0) {
-                this.jobs.splice(index, 1);
-            }
-        };
-    }
 }
