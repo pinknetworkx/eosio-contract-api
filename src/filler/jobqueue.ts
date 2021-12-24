@@ -22,6 +22,10 @@ export class JobQueue extends EventEmitter {
     private readonly pulseInterval: number;
     private runningPriorities: Array<JobQueuePriority> = [];
 
+    get active(): number {
+        return this.runningPriorities.length;
+    }
+
     constructor(pulseInterval = 1_000) {
         super();
 

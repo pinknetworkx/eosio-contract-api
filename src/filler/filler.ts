@@ -142,7 +142,7 @@ export default class Filler {
                 lastBlockSpeeds.shift();
             }
 
-            const queueState = '[DS:' + this.reader.dsQueue.size + '|SH:' + this.reader.ship.blocksQueue.size + ']';
+            const queueState = `[DS:${this.reader.dsQueue.size}|SH:${this.reader.ship.blocksQueue.size}|JQ:${this.jobs.active}]`;
 
             if (lastBlockNum === this.reader.currentBlock && lastBlockNum > 0) {
                 const staleTime = Date.now() - lastBlockTime;
@@ -197,11 +197,6 @@ export default class Filler {
 
         this.jobs.on('error', (error: Error, job: any) => {
             logger.error(`Error running job ${job.name}`, error);
-        });
-        this.jobs.on('debug', (message: string, job: any) => {
-            if (job.priority !== JobQueuePriority.HIGH) {
-                logger.info(message);
-            }
         });
 
         setTimeout(() => this.jobs.start(), 5000);

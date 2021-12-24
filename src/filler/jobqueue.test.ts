@@ -2,7 +2,7 @@ import 'mocha';
 import { expect } from 'chai';
 import { JobQueue, JobQueuePriority } from './jobqueue';
 
-describe.only('JobQueue', () => {
+describe('JobQueue', () => {
 
     it('queues job for immediate execution', async () => {
 
@@ -32,6 +32,8 @@ describe.only('JobQueue', () => {
         jq.start();
 
         await new Promise(resolve => setTimeout(resolve, 10));
+
+        expect(jq.active).to.equal(1);
 
         expect(calledJob1).to.equal(true);
         expect(calledJob2).to.equal(false);
