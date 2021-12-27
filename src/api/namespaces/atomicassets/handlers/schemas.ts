@@ -84,12 +84,21 @@ export async function getSchemaAction(params: RequestValues, ctx: AtomicAssetsCo
 }
 
 export async function getSchemaStatsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
-    const query = await ctx.db.query(
-        'SELECT ' +
-        '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND schema_name = $3) assets, ' +
-        '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND schema_name = $3 AND owner IS NULL) burned, ' +
-        '(SELECT COUNT(*) FROM atomicassets_templates WHERE contract = $1 AND collection_name = $2 AND schema_name = $3) templates',
-        [ctx.coreArgs.atomicassets_account, ctx.pathParams.collection_name, ctx.pathParams.schema_name]
+    const query = await ctx.db.query(`
+        WITH asset_counts AS (
+            SELECT
+                COUNT(*) assets,
+                COUNT(*) FILTER (WHERE owner IS NULL) burned
+            FROM atomicassets_assets
+            WHERE contract = $1
+                AND collection_name || '' = $2 -- prevent collection index usage because the schema index is better
+                AND schema_name = $3
+        )
+        SELECT
+            (SELECT assets FROM asset_counts) assets,
+            (SELECT burned FROM asset_counts) burned,
+            (SELECT COUNT(*) FROM atomicassets_templates WHERE contract = $1 AND collection_name = $2 AND schema_name = $3) templates    
+    `, [ctx.coreArgs.atomicassets_account, ctx.pathParams.collection_name, ctx.pathParams.schema_name]
     );
 
     return query.rows[0];
