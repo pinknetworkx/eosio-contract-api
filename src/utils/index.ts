@@ -51,5 +51,5 @@ export function toInt(s: string): number {
 }
 
 export function isWeakIntArray(arr: Array<any>): boolean {
-    return arr.every((el: any) => Number.isInteger(el) || String(el).match(/^\d+$/));
+    return arr.every((el: any) => Number.isInteger(el) || String(el).match(/^-?\d+$/));
 }
