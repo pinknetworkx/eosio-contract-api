@@ -105,7 +105,7 @@ export async function getStatsAccountsAction(params: RequestValues, ctx: AtomicM
         throw new ApiError('Symbol not found');
     }
 
-    let queryString = 'SELECT * FROM (' + buildAccountStatsQuery(args.after, args.before) + ') x ';
+    let queryString = buildAccountStatsQuery(args.after, args.before);
     const queryValues = [
         ctx.coreArgs.atomicmarket_account, args.symbol,
         args.collection_whitelist.split(',').filter((x: string) => !!x),
@@ -143,7 +143,7 @@ export async function getStatsAccountAction(params: RequestValues, ctx: AtomicMa
         throw new ApiError('Symbol not found');
     }
 
-    const queryString = 'SELECT * FROM (' + buildAccountStatsQuery() + ') x WHERE x.account = $5 ';
+    const queryString = buildAccountStatsQuery(null, null, '$5');
     const queryValues = [
         ctx.coreArgs.atomicmarket_account, args.symbol,
         args.collection_whitelist.split(',').filter((x: string) => !!x),
@@ -438,27 +438,18 @@ function buildCollectionStatsQuery(after?: number, before?: number): string {
         `;
 }
 
-function buildAccountStatsQuery(after?: number, before?: number): string {
+function buildAccountStatsQuery(after?: number, before?: number, account?: string): string {
     return `
-        SELECT account, SUM(buy_volume_inner) buy_volume, SUM(sell_volume_inner) sell_volume
-        FROM (
-            (
-                SELECT buyer account, SUM(price) buy_volume_inner, 0 sell_volume_inner 
-                FROM atomicmarket_stats_markets
-                WHERE market_contract = $1 AND symbol = $2 
-                    ${buildRangeCondition('"time"', after, before)}
-                    ${getGreylistCondition('collection_name', 3, 4)}
-                GROUP BY buyer
-            ) UNION ALL (
-                SELECT seller account, 0 buy_volume_inner, SUM(price) sell_volume_inner 
-                FROM atomicmarket_stats_markets
-                WHERE market_contract = $1 AND symbol = $2 
-                    ${buildRangeCondition('"time"', after, before)}
-                    ${getGreylistCondition('collection_name', 3, 4)}
-                GROUP BY seller
-            )
-        ) accounts
-        GROUP BY account
+        SELECT u.account,
+            COALESCE(SUM(CASE WHEN u.account = buyer THEN price END), 0) buy_volume,
+            COALESCE(SUM(CASE WHEN u.account = seller THEN price END), 0) sell_volume
+        FROM atomicmarket_stats_markets
+            CROSS JOIN LATERAL UNNEST(ARRAY[buyer, seller]) u(account)
+        WHERE market_contract = $1 AND symbol = $2
+            ${account ? `AND (seller = ${account} OR buyer = ${account})` :''} 
+            ${buildRangeCondition('"time"', after, before)}
+            ${getGreylistCondition('collection_name', 3, 4)}
+        GROUP BY u.account
         `;
 }
 
