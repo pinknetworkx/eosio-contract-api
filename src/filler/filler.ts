@@ -6,7 +6,7 @@ import { formatSecondsLeft } from '../utils/time';
 import { getHandlers } from './handlers';
 import { ContractHandler } from './handlers/interfaces';
 import { ModuleLoader } from './modules';
-import { JobQueue, JobQueuePriority } from './jobqueue';
+import { JobQueue } from './jobqueue';
 
 function estimateSeconds(blocks: number, speed: number, depth: number = 0): number {
     if (blocks <= 2) {

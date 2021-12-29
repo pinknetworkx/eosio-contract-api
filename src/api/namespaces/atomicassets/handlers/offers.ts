@@ -1,15 +1,16 @@
-import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../utils';
+import { buildBoundaryFilter, RequestValues } from '../../utils';
 import { AtomicAssetsContext } from '../index';
 import QueryBuilder from '../../../builder';
 import { buildAssetFilter, hasAssetFilter } from '../utils';
 import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
+import { filterQueryArgs } from '../../validation';
 
 export async function getRawOffersAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
-        sort: {type: 'string', values: ['created', 'updated'], default: 'created'},
-        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+        sort: {type: 'string', allowedValues: ['created', 'updated'], default: 'created'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
         account: {type: 'string', min: 1},
         sender: {type: 'string', min: 1},
@@ -210,7 +211,7 @@ export async function getOfferLogsCountAction(params: RequestValues, ctx: Atomic
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
-        order: {type: 'string', values: ['asc', 'desc'], default: 'asc'}
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'}
     });
 
     return await getContractActionLogs(

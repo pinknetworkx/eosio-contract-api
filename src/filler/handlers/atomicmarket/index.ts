@@ -4,7 +4,7 @@ import { PoolClient } from 'pg';
 import { ContractHandler } from '../interfaces';
 import logger from '../../../utils/winston';
 import { ConfigTableRow } from './types/tables';
-import Filler, { UpdateJobPriority } from '../../filler';
+import Filler  from '../../filler';
 import { DELPHIORACLE_BASE_PRIORITY } from '../delphioracle';
 import { ATOMICASSETS_BASE_PRIORITY } from '../atomicassets';
 import DataProcessor from '../../processor';

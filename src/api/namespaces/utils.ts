@@ -1,112 +1,14 @@
 import * as express from 'express';
 import QueryBuilder from '../builder';
+import { filterQueryArgs, FilterValues } from './validation';
 
 export type SortColumn = {column: string, nullable?: boolean, numericIndex?: boolean};
 export type SortColumnMapping = {[key: string]: SortColumn};
-
-export type FilterDefinition = {
-    [key: string]: {
-        type: 'string' | 'string[]' | 'int' | 'float' | 'bool',
-        min?: number,
-        max?: number,
-        default?: any,
-        values?: any[]
-    }
-};
 
 export type RequestValues = {[key: string]: any};
 
 export function mergeRequestData(req: express.Request): RequestValues {
     return {...req.query, ...req.body};
-}
-
-export type FilterValues = RequestValues;
-export type FilteredValues = {[key: string]: any};
-
-export function filterQueryArgs(values: FilterValues, filter: FilterDefinition, keyType: string = null): FilteredValues {
-    const keys: string[] = Object.keys(filter);
-    const result: RequestValues = {};
-
-    for (const key of keys) {
-        let data;
-        if (keyType) {
-            data = values[keyType] ? values[keyType][key] : undefined;
-        } else {
-            data = values[key];
-        }
-
-        if (typeof data !== 'string') {
-            result[key] = filter[key].default;
-
-            continue;
-        }
-
-        if (filter[key].type.match(/^string(\[])?$/)) {
-            if (typeof filter[key].min === 'number' && data.length < filter[key].min) {
-                result[key] = filter[key].default;
-
-                continue;
-            }
-
-            if (typeof filter[key].max === 'number' && data.length > filter[key].max) {
-                result[key] = filter[key].default;
-
-                continue;
-            }
-
-            if (Array.isArray(filter[key].values) && !filter[key].values.includes(data)) {
-                result[key] = filter[key].default;
-
-                continue;
-            }
-
-            if (filter[key].type === 'string[]') {
-                result[key] = data.split(',');
-            } else {
-                result[key] = data;
-            }
-        } else if (filter[key].type === 'int' || filter[key].type === 'float') {
-            const n = parseFloat(data);
-
-            if (isNaN(n) || (!Number.isInteger(n) && filter[key].type === 'int')) {
-                result[key] = filter[key].default;
-
-                continue;
-            }
-
-            if (typeof filter[key].min === 'number' && n < filter[key].min) {
-                result[key] = filter[key].min;
-
-                continue;
-            }
-
-            if (typeof filter[key].max === 'number' && n > filter[key].max) {
-                result[key] = filter[key].max;
-
-                continue;
-            }
-
-            if (Array.isArray(filter[key].values) && filter[key].values.indexOf(n) === -1) {
-                result[key] = filter[key].default;
-
-                continue;
-            }
-
-            result[key] = n;
-        } else if (filter[key].type === 'bool') {
-            if (typeof data === 'undefined') {
-                result[key] = filter[key].default;
-            }
-
-            if (data === 'true' || data === '1') {
-                result[key] = true;
-            } else if (data === 'false' || data === '0') {
-                result[key] = false;
-            }
-        }
-    }
-
-    return result;
 }
 
 export function buildBoundaryFilter(

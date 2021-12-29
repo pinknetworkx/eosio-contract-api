@@ -1,11 +1,12 @@
 import { AtomicMarketContext, SaleApiState } from '../index';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
-import { filterQueryArgs, RequestValues } from '../../utils';
+import { RequestValues } from '../../utils';
 import { formatCollection, formatTemplate } from '../../atomicassets/format';
 import { ApiError } from '../../../error';
 import QueryBuilder from '../../../builder';
 import { buildGreylistFilter } from '../../atomicassets/utils';
 import { DB } from '../../../server';
+import { filterQueryArgs } from '../../validation';
 
 export async function getAllCollectionStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
@@ -18,7 +19,7 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
         collection_whitelist: {type: 'string[]', min: 1},
         collection_blacklist: {type: 'string[]', min: 1},
 
-        sort: {type: 'string', values: ['volume', 'listings', 'sales'], default: 'volume'},
+        sort: {type: 'string', allowedValues: ['volume', 'listings', 'sales'], default: 'volume'},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100}
     });
@@ -94,7 +95,7 @@ export async function getAllAccountStatsAction(params: RequestValues, ctx: Atomi
         before: {type: 'int', min: 1},
         after: {type: 'int', min: 1},
 
-        sort: {type: 'string', values: ['sell_volume', 'buy_volume'], default: 'sell_volume'},
+        sort: {type: 'string', allowedValues: ['sell_volume', 'buy_volume'], default: 'sell_volume'},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100}
     });
@@ -105,7 +106,7 @@ export async function getAllAccountStatsAction(params: RequestValues, ctx: Atomi
         throw new ApiError('Symbol not found');
     }
 
-    let queryString = 'SELECT * FROM (' + buildAccountStatsQuery(args.after, args.before) + ') x ';
+    let queryString = buildAccountStatsQuery(args.after, args.before);
     const queryValues = [
         ctx.coreArgs.atomicmarket_account, args.symbol,
         args.collection_whitelist.split(',').filter((x: string) => !!x),
@@ -143,7 +144,7 @@ export async function getAccountStatsAction(params: RequestValues, ctx: AtomicMa
         throw new ApiError('Symbol not found');
     }
 
-    const queryString = 'SELECT * FROM (' + buildAccountStatsQuery() + ') x WHERE x.account = $5 ';
+    const queryString = buildAccountStatsQuery(null, null, '$5');
     const queryValues = [
         ctx.coreArgs.atomicmarket_account, args.symbol,
         args.collection_whitelist.split(',').filter((x: string) => !!x),
@@ -160,7 +161,7 @@ export async function getAccountStatsAction(params: RequestValues, ctx: AtomicMa
     return {symbol, result: query.rows[0]};
 }
 
-export async function getSchemaStatsByCollectionV1Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+export async function getStatsCollectionV1Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
         match: {type: 'string', min: 1},
@@ -168,7 +169,7 @@ export async function getSchemaStatsByCollectionV1Action(params: RequestValues, 
         before: {type: 'int', min: 1},
         after: {type: 'int', min: 1},
 
-        sort: {type: 'string', values: ['volume', 'listings'], default: 'volume'}
+        sort: {type: 'string', allowedValues: ['volume', 'listings'], default: 'volume'}
     });
 
     const symbol = await fetchSymbol(ctx.db, ctx.coreArgs.atomicmarket_account, args.symbol);
@@ -522,27 +523,18 @@ function buildCollectionStatsQuery(after?: number, before?: number): string {
         `;
 }
 
-function buildAccountStatsQuery(after?: number, before?: number): string {
+function buildAccountStatsQuery(after?: number, before?: number, account?: string): string {
     return `
-        SELECT account, SUM(buy_volume_inner) buy_volume, SUM(sell_volume_inner) sell_volume
-        FROM (
-            (
-                SELECT buyer account, SUM(price) buy_volume_inner, 0 sell_volume_inner 
-                FROM atomicmarket_stats_markets
-                WHERE market_contract = $1 AND symbol = $2 
-                    ${buildRangeCondition('"time"', after, before)}
-                    ${getGreylistCondition('collection_name', 3, 4)}
-                GROUP BY buyer
-            ) UNION ALL (
-                SELECT seller account, 0 buy_volume_inner, SUM(price) sell_volume_inner 
-                FROM atomicmarket_stats_markets
-                WHERE market_contract = $1 AND symbol = $2 
-                    ${buildRangeCondition('"time"', after, before)}
-                    ${getGreylistCondition('collection_name', 3, 4)}
-                GROUP BY seller
-            )
-        ) accounts
-        GROUP BY account
+        SELECT u.account,
+            COALESCE(SUM(CASE WHEN u.account = buyer THEN price END), 0) buy_volume,
+            COALESCE(SUM(CASE WHEN u.account = seller THEN price END), 0) sell_volume
+        FROM atomicmarket_stats_markets
+            CROSS JOIN LATERAL UNNEST(ARRAY[buyer, seller]) u(account)
+        WHERE market_contract = $1 AND symbol = $2
+            ${account ? `AND (seller = ${account} OR buyer = ${account})` :''} 
+            ${buildRangeCondition('"time"', after, before)}
+            ${getGreylistCondition('collection_name', 3, 4)}
+        GROUP BY u.account
         `;
 }
 

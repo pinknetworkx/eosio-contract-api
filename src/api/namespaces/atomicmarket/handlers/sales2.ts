@@ -1,10 +1,12 @@
-import { buildBoundaryFilter, filterQueryArgs, FilterValues, RequestValues } from '../../utils';
+import { buildBoundaryFilter, RequestValues } from '../../utils';
 import { AtomicMarketContext, SaleApiState } from '../index';
 import QueryBuilder from '../../../builder';
 import { fillSales } from '../filler';
 import { formatSale } from '../format';
 import { ApiError } from '../../../error';
 import { toInt } from '../../../../utils';
+import moize from 'moize';
+import { filterQueryArgs, FilterValues } from '../../validation';
 
 type SalesSearchOptions = {
     values: FilterValues;
@@ -23,13 +25,13 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
         limit: {type: 'int', min: 1, max: 100, default: 100},
         sort: {
             type: 'string',
-            values: [
+            allowedValues: [
                 'created', 'updated', 'sale_id', 'price',
                 'template_mint'
             ],
             default: 'created'
         },
-        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
         count: {type: 'bool'}
     });
 
@@ -447,27 +449,48 @@ function getDataFilters(search: SalesSearchOptions): string[] {
     return result;
 }
 
-const collectionSales: {[key: string]: number} = {};
+const largeSalesResult = 9_000;
+
+const getSaleCount = moize({
+    isPromise: true,
+    maxAge: 1000 * 60 * 60 * 24,
+    maxArgs: 3,
+    maxSize: 500_000,
+})(async (filter: string, value: string, saleState: number, search: SalesSearchOptions): Promise<number> => {
+    const {rows} = await search.ctx.db.query(`
+        SELECT COUNT(*)::INT ct
+        FROM (
+                SELECT
+                FROM atomicmarket_sales_filters
+                WHERE market_contract = $1
+                    AND ((filter @> create_atomicmarket_sales_filter(${filter}s => $2)))
+                    AND sale_state = $3
+                LIMIT ${largeSalesResult + 1}
+            ) filtered
+            `, [search.ctx.coreArgs.atomicmarket_account, [value], saleState]);
+
+    return rows[0].ct;
+});
+
 async function isStrongMainFilter(filter: string, values: string[], search: SalesSearchOptions): Promise<boolean> {
     if (values.length >= 20) {
         return false;
     }
 
-    if (filter === 'collection_name') {
-        for (const collectionName of values.filter(collectionName => collectionSales[collectionName] === undefined)) {
-            const {rows} = await search.ctx.db.query(`
-                SELECT COUNT(*)::INT ct
-                FROM atomicmarket_sales_filters
-                WHERE market_contract = $1
-                    AND ((filter @> create_atomicmarket_sales_filter(collection_names => $2)))
-                    AND sale_state = $3
-            `, [search.ctx.coreArgs.atomicmarket_account, [collectionName], SaleApiState.LISTED]);
+    if (['collection_name', 'template_id', 'schema_name'].includes(filter)) {
+        const saleStates = search.saleStates.length
+            ? search.saleStates
+            : [SaleApiState.LISTED, SaleApiState.SOLD];
 
-            collectionSales[collectionName] = rows[0].ct;
-        }
+        let expectedSalesCount = 0;
+        for (const saleState of saleStates) {
+            for (const value of values) {
+                expectedSalesCount += await getSaleCount(filter, value, saleState, search);
 
-        if (values.reduce((acc, collectionName) => acc + collectionSales[collectionName], 0) > 9_000) {
-            return false;
+                if (expectedSalesCount > largeSalesResult) {
+                    return false;
+                }
+            }
         }
     }
 

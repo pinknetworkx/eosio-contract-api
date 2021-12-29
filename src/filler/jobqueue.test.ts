@@ -135,8 +135,7 @@ describe('JobQueue', () => {
             logs.push(message);
         });
 
-        let called = false;
-        jq.add('Test1', 100, JobQueuePriority.HIGH, () => called = true);
+        jq.add('Test1', 100, JobQueuePriority.HIGH, () => null);
 
         jq.start();
 
