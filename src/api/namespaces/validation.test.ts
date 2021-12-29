@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { filterQueryArgs } from './validation';
 import { ApiError } from '../error';
 
-describe.only('filterQueryArgs', () => {
+describe('filterQueryArgs', () => {
 
     it('removes values that are not defined in the filter', () => {
 
