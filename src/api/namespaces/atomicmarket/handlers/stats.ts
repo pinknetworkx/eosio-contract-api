@@ -1,13 +1,13 @@
 import { AtomicMarketContext, SaleApiState } from '../index';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
 import { filterQueryArgs, RequestValues } from '../../utils';
-import { formatCollection } from '../../atomicassets/format';
+import { formatCollection, formatTemplate } from '../../atomicassets/format';
 import { ApiError } from '../../../error';
 import QueryBuilder from '../../../builder';
 import { buildGreylistFilter } from '../../atomicassets/utils';
 import { DB } from '../../../server';
 
-export async function getStatsCollectionsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+export async function getAllCollectionStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
         match: {type: 'string', min: 1},
@@ -61,7 +61,7 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Atom
     return {symbol, results: query.rows.map(row => formatCollection(row))};
 }
 
-export async function getStatsCollectionAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+export async function getCollectionStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
     });
@@ -84,7 +84,7 @@ export async function getStatsCollectionAction(params: RequestValues, ctx: Atomi
     return {symbol, result: formatCollection(query.rows[0])};
 }
 
-export async function getStatsAccountsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+export async function getAllAccountStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         collection_whitelist: {type: 'string', min: 1, default: ''},
         collection_blacklist: {type: 'string', min: 1, default: ''},
@@ -129,7 +129,7 @@ export async function getStatsAccountsAction(params: RequestValues, ctx: AtomicM
     return {symbol, results: query.rows};
 }
 
-export async function getStatsAccountAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+export async function getAccountStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         collection_whitelist: {type: 'string', min: 1, default: ''},
         collection_blacklist: {type: 'string', min: 1, default: ''},
@@ -160,7 +160,7 @@ export async function getStatsAccountAction(params: RequestValues, ctx: AtomicMa
     return {symbol, result: query.rows[0]};
 }
 
-export async function getStatsCollectionV1Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+export async function getSchemaStatsByCollectionV1Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
         match: {type: 'string', min: 1},
@@ -199,7 +199,7 @@ export async function getStatsCollectionV1Action(params: RequestValues, ctx: Ato
     return {symbol, results: query.rows};
 }
 
-export async function getStatsCollectionV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+export async function getSchemaStatsByCollectionV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
 
@@ -260,7 +260,91 @@ export async function getStatsCollectionV2Action(params: RequestValues, ctx: Ato
     return {symbol, results: result};
 }
 
-export async function getStatsMarketsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+    const args = filterQueryArgs(params, {
+        symbol: {type: 'string', min: 1},
+
+        collection_name: {type: 'string[]', min: 1},
+        schema_name: {type: 'string[]', min: 1},
+        template_id: {type: 'string[]', min: 1},
+
+        sort: {type: 'string', values: ['volume', 'sales'], default: 'volume'},
+        page: {type: 'int', min: 1, default: 1},
+        limit: {type: 'int', min: 1, max: 1000, default: 100},
+
+        before: {type: 'int', min: 1},
+        after: {type: 'int', min: 1}
+    });
+
+    const symbol = await fetchSymbol(ctx.db, ctx.coreArgs.atomicmarket_account, args.symbol);
+
+    if (!symbol) {
+        throw new ApiError('Symbol not found');
+    }
+
+    const query = new QueryBuilder(
+        'SELECT price.template_id, SUM(price.price) volume, COUNT(*) sales ' +
+        'FROM atomicmarket_stats_prices price '
+    );
+
+    query.equal('price.market_contract', ctx.coreArgs.atomicmarket_account);
+    query.equal('price.assets_contract', ctx.coreArgs.atomicassets_account);
+    query.equal('price.symbol', args.symbol);
+
+    if (args.collection_name.length > 0) {
+        query.equalMany('price.collection_name', args.collection_name);
+    }
+
+    if (args.schema_name.length > 0) {
+        query.equalMany('price.collection_name', args.schema_name);
+    }
+
+    if (args.template_id.length > 0) {
+        query.equalMany('price.template_id', args.template_id);
+    }
+
+    if (args.after) {
+        query.addCondition('price.time > ' + query.addVariable(args.after) + '::BIGINT');
+    }
+
+    if (args.before) {
+        query.addCondition('price.time < ' + query.addVariable(args.before) + '::BIGINT');
+    }
+
+    if (args.sort === 'sales') {
+        query.append('ORDER BY sales DESC');
+    } else {
+        query.append('ORDER BY volume DESC');
+    }
+
+    query.group(['price.assets_contract', 'price.template_id']);
+    query.paginate(args.page, args.limit);
+
+    const templateQuery = await ctx.db.query(query.buildString(), query.buildValues());
+
+    const templateLookup: {[key: string]: any} = {};
+    const result = await ctx.db.query(
+        'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND template_id = ANY ($2)',
+        [ctx.coreArgs.atomicassets_account, templateQuery.rows.map((row: any) => row.template_id)]
+    );
+
+    result.rows.reduce((prev: any, current: any) => {
+        prev[String(current.template_id)] = current;
+
+        return prev;
+    }, templateLookup);
+
+    return {
+        symbol,
+        results: templateQuery.rows.map((row: any) => ({
+            sales: row.sales,
+            volume: row.volume,
+            template: formatTemplate(templateLookup[String(row.template_id)])
+        }))
+    };
+}
+
+export async function getMarketStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         collection_whitelist: {type: 'string', min: 1, default: ''},
         collection_blacklist: {type: 'string', min: 1, default: ''},
