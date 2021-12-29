@@ -1,17 +1,18 @@
-import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../utils';
+import { buildBoundaryFilter, RequestValues } from '../../utils';
 import { AtomicAssetsContext } from '../index';
 import QueryBuilder from '../../../builder';
 import { buildDataConditions, buildGreylistFilter } from '../utils';
 import { formatTemplate } from '../format';
 import { ApiError } from '../../../error';
 import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
+import { filterQueryArgs } from '../../validation';
 
 export async function getTemplatesAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 1000, default: 100},
-        sort: {type: 'string', values: ['created', 'name'], default: 'created'},
-        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+        sort: {type: 'string', allowedValues: ['created', 'name'], default: 'created'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
         collection_name: {type: 'string', min: 1},
         schema_name: {type: 'string', min: 1},
@@ -163,7 +164,7 @@ export async function getTemplateLogsAction(params: RequestValues, ctx: AtomicAs
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
-        order: {type: 'string', values: ['asc', 'desc'], default: 'asc'}
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'}
     });
 
     return await getContractActionLogs(

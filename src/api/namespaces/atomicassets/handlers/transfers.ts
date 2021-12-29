@@ -1,14 +1,15 @@
-import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../utils';
+import { buildBoundaryFilter, RequestValues } from '../../utils';
 import { AtomicAssetsContext } from '../index';
 import QueryBuilder from '../../../builder';
 import { buildAssetFilter, hasAssetFilter } from '../utils';
+import { filterQueryArgs } from '../../validation';
 
 export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
-        sort: {type: 'string', values: ['created'], default: 'created'},
-        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+        sort: {type: 'string', allowedValues: ['created'], default: 'created'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
         asset_id: {type: 'string', min: 1},
 

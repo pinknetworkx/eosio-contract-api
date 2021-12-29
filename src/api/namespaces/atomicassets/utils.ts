@@ -1,6 +1,7 @@
-import { FilterDefinition, filterQueryArgs, FilterValues } from '../utils';
+
 import { OfferState } from '../../../filler/handlers/atomicassets';
 import QueryBuilder from '../../builder';
+import { FiltersDefinition, filterQueryArgs, FilterValues } from '../validation';
 
 export function hasAssetFilter(values: FilterValues, blacklist: string[] = []): boolean {
     return Object.keys(values)
@@ -106,7 +107,7 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
     }
 }
 
-const assetFilters: FilterDefinition = {
+const assetFilters: FiltersDefinition = {
     asset_id: {type: 'string', min: 1},
     owner: {type: 'string', min: 1, max: 12},
     burned: {type: 'bool'},
