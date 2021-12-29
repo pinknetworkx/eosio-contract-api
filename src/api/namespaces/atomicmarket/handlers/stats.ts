@@ -161,7 +161,7 @@ export async function getAccountStatsAction(params: RequestValues, ctx: AtomicMa
     return {symbol, result: query.rows[0]};
 }
 
-export async function getStatsCollectionV1Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+export async function getSchemaStatsByCollectionV1Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
         match: {type: 'string', min: 1},
@@ -269,7 +269,7 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
         schema_name: {type: 'string[]', min: 1},
         template_id: {type: 'string[]', min: 1},
 
-        sort: {type: 'string', values: ['volume', 'sales'], default: 'volume'},
+        sort: {type: 'string', allowedValues: ['volume', 'sales'], default: 'volume'},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 1000, default: 100},
 
