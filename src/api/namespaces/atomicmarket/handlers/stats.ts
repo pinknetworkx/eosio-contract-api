@@ -1,11 +1,12 @@
 import { AtomicMarketContext, SaleApiState } from '../index';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
-import { filterQueryArgs, RequestValues } from '../../utils';
+import { RequestValues } from '../../utils';
 import { formatCollection } from '../../atomicassets/format';
 import { ApiError } from '../../../error';
 import QueryBuilder from '../../../builder';
 import { buildGreylistFilter } from '../../atomicassets/utils';
 import { DB } from '../../../server';
+import { filterQueryArgs } from '../../validation';
 
 export async function getStatsCollectionsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
@@ -18,7 +19,7 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Atom
         collection_whitelist: {type: 'string[]', min: 1},
         collection_blacklist: {type: 'string[]', min: 1},
 
-        sort: {type: 'string', values: ['volume', 'listings', 'sales'], default: 'volume'},
+        sort: {type: 'string', allowedValues: ['volume', 'listings', 'sales'], default: 'volume'},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100}
     });
@@ -94,7 +95,7 @@ export async function getStatsAccountsAction(params: RequestValues, ctx: AtomicM
         before: {type: 'int', min: 1},
         after: {type: 'int', min: 1},
 
-        sort: {type: 'string', values: ['sell_volume', 'buy_volume'], default: 'sell_volume'},
+        sort: {type: 'string', allowedValues: ['sell_volume', 'buy_volume'], default: 'sell_volume'},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100}
     });
@@ -168,7 +169,7 @@ export async function getStatsCollectionV1Action(params: RequestValues, ctx: Ato
         before: {type: 'int', min: 1},
         after: {type: 'int', min: 1},
 
-        sort: {type: 'string', values: ['volume', 'listings'], default: 'volume'}
+        sort: {type: 'string', allowedValues: ['volume', 'listings'], default: 'volume'}
     });
 
     const symbol = await fetchSymbol(ctx.db, ctx.coreArgs.atomicmarket_account, args.symbol);

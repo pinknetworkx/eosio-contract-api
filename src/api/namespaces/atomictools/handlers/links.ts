@@ -1,4 +1,4 @@
-import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../utils';
+import { buildBoundaryFilter, RequestValues } from '../../utils';
 import { AtomicToolsContext } from '../index';
 import QueryBuilder from '../../../builder';
 import { Numeric } from 'eosjs';
@@ -6,6 +6,7 @@ import { fillLinks } from '../filler';
 import { formatLink } from '../format';
 import { ApiError } from '../../../error';
 import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
+import { filterQueryArgs } from '../../validation';
 
 export async function getLinksAction(params: RequestValues, ctx: AtomicToolsContext): Promise<any> {
     const args = filterQueryArgs(params, {
@@ -19,8 +20,8 @@ export async function getLinksAction(params: RequestValues, ctx: AtomicToolsCont
 
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
-        sort: {type: 'string', values: ['created'], default: 'created'},
-        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+        sort: {type: 'string', allowedValues: ['created'], default: 'created'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
         count: {type: 'bool'}
     });
@@ -124,7 +125,7 @@ export async function getLinkLogsAction(params: RequestValues, ctx: AtomicToolsC
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
-        order: {type: 'string', values: ['asc', 'desc'], default: 'asc'}
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'}
     });
 
     return await getContractActionLogs(

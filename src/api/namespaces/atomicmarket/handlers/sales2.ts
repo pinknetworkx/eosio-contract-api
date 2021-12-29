@@ -1,4 +1,4 @@
-import { buildBoundaryFilter, filterQueryArgs, FilterValues, RequestValues } from '../../utils';
+import { buildBoundaryFilter, RequestValues } from '../../utils';
 import { AtomicMarketContext, SaleApiState } from '../index';
 import QueryBuilder from '../../../builder';
 import { fillSales } from '../filler';
@@ -6,6 +6,7 @@ import { formatSale } from '../format';
 import { ApiError } from '../../../error';
 import { toInt } from '../../../../utils';
 import moize from 'moize';
+import { filterQueryArgs, FilterValues } from '../../validation';
 
 type SalesSearchOptions = {
     values: FilterValues;
@@ -24,13 +25,13 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
         limit: {type: 'int', min: 1, max: 100, default: 100},
         sort: {
             type: 'string',
-            values: [
+            allowedValues: [
                 'created', 'updated', 'sale_id', 'price',
                 'template_mint'
             ],
             default: 'created'
         },
-        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
         count: {type: 'bool'}
     });
 

@@ -1,7 +1,5 @@
 import {
     buildBoundaryFilter,
-    filterQueryArgs,
-    FilterValues,
     RequestValues,
     SortColumn,
     SortColumnMapping
@@ -11,6 +9,7 @@ import QueryBuilder from '../../../builder';
 import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter, hasAssetFilter, hasDataFilters } from '../utils';
 import { ApiError } from '../../../error';
 import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
+import { filterQueryArgs, FilterValues } from '../../validation';
 
 export function buildAssetQueryCondition(
     values: FilterValues, query: QueryBuilder,
@@ -112,7 +111,7 @@ export async function getRawAssetsAction(params: RequestValues, ctx: AtomicAsset
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 1000, default: 100},
         sort: {type: 'string', min: 1},
-        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
         count: {type: 'bool'}
     });
@@ -201,7 +200,7 @@ export async function getAssetLogsAction(params: RequestValues, ctx: AtomicAsset
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
-        order: {type: 'string', values: ['asc', 'desc'], default: 'asc'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
         action_whitelist: {type: 'string', min: 1},
         action_blacklist: {type: 'string', min: 1}
     });
