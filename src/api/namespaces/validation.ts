@@ -101,23 +101,26 @@ export function filterQueryArgs(values: FilterValues, filter: FiltersDefinition)
     const result: RequestValues = {};
 
     for (const key of keys) {
-        const value = values[key];
+        const currentValue = values[key];
+        const currentFilter = filter[key];
 
-        if (typeof value !== 'string' || value === '') {
-            result[key] = filter[key].default;
+        const {type, array} = currentFilter.type.match(typeRE).groups;
+
+        if (typeof currentValue !== 'string') {
+            if (array && !Array.isArray(filter[key].default)) {
+                result[key] = [];
+            } else {
+                result[key] = filter[key].default;
+            }
 
             continue;
         }
 
-        const valueFilter = filter[key];
-
-        const {type, array} = valueFilter.type.match(typeRE).groups;
-
         // eslint-disable-next-line no-inner-declarations
         function validateValue(value: string): any {
-            const result = validationTypes[type](value, valueFilter);
+            const result = validationTypes[type](value, currentFilter);
 
-            if (valueFilter.allowedValues && !valueFilter.allowedValues.includes(result)) {
+            if (currentFilter.allowedValues && !currentFilter.allowedValues.includes(result)) {
                 throw new Error();
             }
 
@@ -126,10 +129,10 @@ export function filterQueryArgs(values: FilterValues, filter: FiltersDefinition)
 
         try {
             if (array) {
-                result[key] = value.split(',')
+                result[key] = currentValue.split(',')
                     .map(validateValue);
             } else {
-                result[key] = validateValue(value);
+                result[key] = validateValue(currentValue);
             }
         } catch (e) {
             throw new ApiError(`Invalid value for parameter ${key}`, 400);
