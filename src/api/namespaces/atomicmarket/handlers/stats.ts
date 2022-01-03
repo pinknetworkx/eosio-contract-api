@@ -531,7 +531,7 @@ function buildAccountStatsQuery(after?: number, before?: number, account?: strin
         FROM atomicmarket_stats_markets
             CROSS JOIN LATERAL UNNEST(ARRAY[buyer, seller]) u(account)
         WHERE market_contract = $1 AND symbol = $2
-            ${account ? `AND (seller = ${account} OR buyer = ${account})` :''} 
+            ${account ? `AND (seller = ${account} OR buyer = ${account}) AND u.account = ${account}` :''} 
             ${buildRangeCondition('"time"', after, before)}
             ${getGreylistCondition('collection_name', 3, 4)}
         GROUP BY u.account
