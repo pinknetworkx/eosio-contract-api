@@ -19,7 +19,7 @@ type SalesSearchOptions = {
 export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
 
     const args = filterQueryArgs(params, {
-        state: {type: 'string[]', min: 1, default: []},
+        state: {type: 'string[]', min: 1},
 
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
@@ -171,7 +171,7 @@ function buildAssetFilterV2(search: SalesSearchOptions): void {
         asset_id: {type: 'string[]', min: 1},
     });
 
-    if (args.asset_id) {
+    if (args.asset_id.length) {
         query.addCondition(`listing.asset_ids && ${query.addVariable(args.asset_id)}`);
         search.strongFilters.push('asset_ids');
     }
@@ -213,14 +213,14 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
         seller: {type: 'string[]', min: 1},
         buyer: {type: 'string[]', min: 1},
 
-        collection_name: {type: 'string[]', min: 1, default: []},
-        collection_blacklist: {type: 'string[]', min: 1, default: []},
-        collection_whitelist: {type: 'string[]', min: 1, default: []},
+        collection_name: {type: 'string[]', min: 1},
+        collection_blacklist: {type: 'string[]', min: 1},
+        collection_whitelist: {type: 'string[]', min: 1},
 
         owner: {type: 'string[]', min: 1, max: 12},
 
         burned: {type: 'bool'},
-        template_id: {type: 'string[]', min: 1, default: []},
+        template_id: {type: 'string[]', min: 1},
         schema_name: {type: 'string[]', min: 1},
         is_transferable: {type: 'bool'},
         is_burnable: {type: 'bool'},
@@ -286,7 +286,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
         }
     }
 
-    if (args.account) {
+    if (args.account.length) {
         query.addCondition(`(listing.filter && create_atomicmarket_sales_filter(sellers := ${query.addVariable(args.account)}, buyers := ${query.addVariable(args.account)}))`);
         search.strongFilters.push('account');
     }
@@ -326,11 +326,11 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
         }
     }
 
-    if (args.seller_blacklist) {
+    if (args.seller_blacklist.length) {
         exc.sellers.push(...args.seller_blacklist);
     }
 
-    if (args.buyer_blacklist) {
+    if (args.buyer_blacklist.length) {
         exc.buyers.push(...args.buyer_blacklist);
     }
 
@@ -370,7 +370,7 @@ function buildListingFilterV2(search: SalesSearchOptions): void {
     const {values, query} = search;
     const args = filterQueryArgs(values, {
         show_seller_contracts: {type: 'bool', default: true},
-        contract_whitelist: {type: 'string[]', min: 1, default: []},
+        contract_whitelist: {type: 'string[]', min: 1},
 
         maker_marketplace: {type: 'string[]', min: 1},
         taker_marketplace: {type: 'string[]', min: 1},
@@ -384,15 +384,15 @@ function buildListingFilterV2(search: SalesSearchOptions): void {
         query.addCondition(`seller_contract IS DISTINCT FROM TRUE OR SUBSTR(listing.filter[2], 2) = ANY(${query.addVariable(args.contract_whitelist)})`);
     }
 
-    if (args.marketplace) {
+    if (args.marketplace.length) {
         const varName = query.addVariable(args.marketplace);
         query.addCondition('(listing.maker_marketplace = ANY (' + varName + ') OR listing.taker_marketplace = ANY (' + varName + ')) ');
     } else {
-        if (args.maker_marketplace) {
+        if (args.maker_marketplace.length) {
             query.equalMany('listing.maker_marketplace', args.maker_marketplace);
         }
 
-        if (args.taker_marketplace) {
+        if (args.taker_marketplace.length) {
             query.equalMany('listing.taker_marketplace', args.taker_marketplace);
         }
     }

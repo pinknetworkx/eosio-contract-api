@@ -106,7 +106,7 @@ export function filterQueryArgs(values: FilterValues, filter: FiltersDefinition)
 
         const {type, array} = currentFilter.type.match(typeRE).groups;
 
-        if (typeof currentValue !== 'string') {
+        if (typeof currentValue !== 'string' || (array && currentValue === '')) {
             if (array && !Array.isArray(filter[key].default)) {
                 result[key] = [];
             } else {
