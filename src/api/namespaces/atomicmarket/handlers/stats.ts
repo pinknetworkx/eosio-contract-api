@@ -40,11 +40,11 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
         statsQuery.addCondition(`collection_name ILIKE ${statsQuery.addVariable(`%${args.match}%`)}`);
     }
 
-    if (args.collection_whitelist) {
+    if (args.collection_whitelist.length) {
         statsQuery.equalMany('collection_name', args.collection_whitelist);
     }
 
-    if (args.collection_blacklist) {
+    if (args.collection_blacklist.length) {
         statsQuery.notMany('collection_name', args.collection_blacklist);
     }
 
