@@ -26,11 +26,25 @@ describe('filterQueryArgs', () => {
         expect(result.a).to.equal(1);
     });
 
-    it('returns the default value when the value is an empty string', () => {
+    it('returns the default value for arrays when the value is an empty string', () => {
 
-        const result = filterQueryArgs({a: ''}, {a: {type: 'string', default: 1}});
+        const result = filterQueryArgs({a: ''}, {a: {type: 'string[]', default: [1]}});
 
-        expect(result.a).to.equal(1);
+        expect(result.a).to.deep.equal([1]);
+    });
+
+    it('returns an empty array for arrays when the value is an empty string', () => {
+
+        const result = filterQueryArgs({a: ''}, {a: {type: 'string[]'}});
+
+        expect(result.a).to.deep.equal([]);
+    });
+
+    it('returns an empty array for arrays when the value is not set', () => {
+
+        const result = filterQueryArgs({}, {a: {type: 'int[]'}});
+
+        expect(result.a).to.deep.equal([]);
     });
 
     it('throws error when value is not in allowedValues', () => {
