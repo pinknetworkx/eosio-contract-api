@@ -40,11 +40,11 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
         statsQuery.addCondition(`collection_name ILIKE ${statsQuery.addVariable(`%${args.match}%`)}`);
     }
 
-    if (args.collection_whitelist) {
+    if (args.collection_whitelist.length) {
         statsQuery.equalMany('collection_name', args.collection_whitelist);
     }
 
-    if (args.collection_blacklist) {
+    if (args.collection_blacklist.length) {
         statsQuery.notMany('collection_name', args.collection_blacklist);
     }
 
@@ -531,7 +531,7 @@ function buildAccountStatsQuery(after?: number, before?: number, account?: strin
         FROM atomicmarket_stats_markets
             CROSS JOIN LATERAL UNNEST(ARRAY[buyer, seller]) u(account)
         WHERE market_contract = $1 AND symbol = $2
-            ${account ? `AND (seller = ${account} OR buyer = ${account})` :''} 
+            ${account ? `AND (seller = ${account} OR buyer = ${account}) AND u.account = ${account}` :''} 
             ${buildRangeCondition('"time"', after, before)}
             ${getGreylistCondition('collection_name', 3, 4)}
         GROUP BY u.account
