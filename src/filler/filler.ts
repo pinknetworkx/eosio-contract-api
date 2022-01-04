@@ -26,12 +26,6 @@ function estimateSeconds(blocks: number, speed: number, depth: number = 0): numb
     return seconds + estimateSeconds(seconds * 2, speed, depth + 1);
 }
 
-export enum UpdateJobPriority {
-    HIGH = 'HIGH',
-    MEDIUM = 'MEDIUM',
-    LOW = 'LOW'
-}
-
 export default class Filler {
     readonly reader: StateReceiver;
     readonly modules: ModuleLoader;

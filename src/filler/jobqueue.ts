@@ -20,7 +20,7 @@ export class JobQueue extends EventEmitter {
 
     private pulseID: NodeJS.Timer;
     private readonly pulseInterval: number;
-    private runningPriorities: Array<JobQueuePriority> = [];
+    private runningPriorities: Array<number> = [];
 
     get active(): number {
         return this.runningPriorities.length;
@@ -44,23 +44,22 @@ export class JobQueue extends EventEmitter {
 
     private pulse(): void {
         const start = Date.now();
-        for (const priority of [JobQueuePriority.HIGH, JobQueuePriority.MEDIUM, JobQueuePriority.LOW]) {
+        for (const priority of [JobQueuePriority.HIGH.valueOf(), JobQueuePriority.MEDIUM.valueOf(), JobQueuePriority.LOW.valueOf()]) {
             if (this.runningPriorities.includes(priority)) {
                 continue;
             }
 
-            if ((priority !== JobQueuePriority.HIGH) && this.runningPriorities.filter(r => r !== JobQueuePriority.HIGH).length) {
-                return;
-            }
-
-            const job = this.jobs
-                .filter(job => job.priority === priority)
+            const jobs = this.jobs
+                .filter(job => job.priority.valueOf() === priority)
                 .filter(job => job.nextRun <= start)
-                .find(job => job);
-            if (job) {
-                this.runningPriorities.push(job.priority);
-                this.run(job)
-                    .finally(() => this.runningPriorities = this.runningPriorities.filter(r => r !== job.priority));
+                .sort((a, b) => a.nextRun - b.nextRun);
+
+            if (jobs.length > 0) {
+                this.runningPriorities.push(jobs[0].priority.valueOf());
+
+                this.run(jobs[0]).finally(() => {
+                    this.runningPriorities = this.runningPriorities.filter(r => r !== jobs[0].priority.valueOf());
+                });
             }
         }
     }
