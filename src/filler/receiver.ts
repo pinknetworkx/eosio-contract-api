@@ -125,7 +125,7 @@ export default class StateReceiver {
             this.handlerDestructors.push(await handler.register(this.processor, this.notifier));
         }
 
-        this.currentBlock = startBlock - 1;
+        this.currentBlock = Math.max(startBlock - 1, 2);
         this.lastBlockUpdate = startBlock - 1;
 
         this.ship.startProcessing({
