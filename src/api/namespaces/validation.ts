@@ -74,10 +74,14 @@ const bool = (value: string, _: FilterDefinition): boolean => {
         return false;
     }
 
+    if (value === 'empty') {
+        return undefined;
+    }
+
     throw new Error();
 };
 
-const nameRE = /^[.1-5a-z]{0,12}[.1-5a-j]?$/;
+const nameRE = /^[.1-5a-z]{1,12}[.1-5a-j]?$/;
 const name = (value: string, _: FilterDefinition): string => {
 
     if (!nameRE.test(value)) {
@@ -120,6 +124,10 @@ export function filterQueryArgs(values: FilterValues, filter: FiltersDefinition)
         function validateValue(value: string): any {
             const result = validationTypes[type](value, currentFilter);
 
+            if (typeof result === 'undefined') {
+                return array ? undefined : currentFilter.default;
+            }
+
             if (currentFilter.allowedValues && !currentFilter.allowedValues.includes(result)) {
                 throw new Error();
             }
@@ -130,7 +138,8 @@ export function filterQueryArgs(values: FilterValues, filter: FiltersDefinition)
         try {
             if (array) {
                 result[key] = currentValue.split(',')
-                    .map(validateValue);
+                    .map(validateValue)
+                    .filter(x => typeof x !== 'undefined');
             } else {
                 result[key] = validateValue(currentValue);
             }
