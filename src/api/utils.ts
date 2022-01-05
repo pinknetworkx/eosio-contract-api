@@ -1,13 +1,13 @@
-import { DB, HTTPServer } from './server';
-import { Namespace } from 'socket.io';
-import { NotificationData } from '../filler/notifier';
+import {DB, HTTPServer} from './server';
+import {Namespace} from 'socket.io';
+import {NotificationData} from '../filler/notifier';
+import {ApiError} from './error';
 import express = require('express');
-import { ApiError } from './error';
 
 export async function getContractActionLogs(
-    db: DB, contract: string, actions: string[], condition: {[key: string]: any},
+    db: DB, contract: string, actions: string[], condition: { [key: string]: any },
     offset: number = 0, limit: number = 100, order: 'asc' | 'desc' = 'asc'
-): Promise<Array<{log_id: number, name: string, data: any, txid: string, created_at_block: string, created_at_time: string}>> {
+): Promise<Array<{ log_id: number, name: string, data: any, txid: string, created_at_block: string, created_at_time: string }>> {
     const queryStr = 'SELECT global_sequence log_id, name, metadata "data", encode(txid::bytea, \'hex\') txid, created_at_block, created_at_time ' +
         'FROM contract_traces ' +
         'WHERE account = $1 AND name = ANY($2) AND metadata @> $3::jsonb ' +
@@ -21,7 +21,10 @@ export async function getContractActionLogs(
     }));
 }
 
-export function applyActionGreylistFilters(actions: string[], args: any): string[] {
+export function applyActionGreylistFilters(
+    actions: string[],
+    args: { action_whitelist?: string, action_blacklist?: string },
+): string[] {
     let result = [...actions];
 
     if (args.action_whitelist) {
@@ -75,7 +78,10 @@ export function respondApiError(res: express.Response, error: Error): express.Re
     }
 
     if (error.message && String(error.message).search('canceling statement due to statement timeout') >= 0) {
-        return res.status(500).json({success: false, message: 'Max database query time exceeded. Please try to add more filters to your query.'});
+        return res.status(500).json({
+            success: false,
+            message: 'Max database query time exceeded. Please try to add more filters to your query.'
+        });
     }
 
     return res.status(500).json({success: false, message: 'Internal Server Error'});
