@@ -1,7 +1,8 @@
-import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../utils';
+import { buildBoundaryFilter, RequestValues } from '../../utils';
 import { AtomicMarketContext } from '../index';
 import QueryBuilder from '../../../builder';
 import { buildAssetQueryCondition } from '../../atomicassets/handlers/assets';
+import { filterQueryArgs } from '../../validation';
 
 export async function getPricesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
@@ -70,7 +71,7 @@ export async function getAssetSalesAction(params: RequestValues, ctx: AtomicMark
         buyer: {type: 'string', min: 1},
         symbol: {type: 'string', min: 1},
         limit: {type: 'int', min: 1, default: 100},
-        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
         bundles: {type: 'bool'}
     });
 

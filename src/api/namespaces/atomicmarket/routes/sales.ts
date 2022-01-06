@@ -183,6 +183,20 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
 export function salesSockets(core: AtomicMarketNamespace, server: HTTPServer, notification: ApiNotificationReceiver): void {
     const namespace = createSocketApiNamespace(server, core.path + '/v1/sales');
 
+    namespace.on('connection', (socket) => {
+        socket.on('subscribe', data => {
+            const availableRooms = ['new_sales', 'purchased_sales'];
+
+            for (const room of availableRooms) {
+                if (data && data[room]) {
+                    socket.join(room);
+                } else if (socket.rooms.has(room)) {
+                    socket.leave(room);
+                }
+            }
+        });
+    });
+
     notification.onData('sales', async (notifications: NotificationData[]) => {
         const saleIDs = extractNotificationIdentifiers(notifications, 'sale_id');
         const query = await server.query(
@@ -203,7 +217,15 @@ export function salesSockets(core: AtomicMarketNamespace, server: HTTPServer, no
                 const saleID = (<any>trace.act.data).sale_id;
 
                 if (trace.act.name === 'lognewsale') {
-                    namespace.emit('new_sale', {
+                    namespace.in('new_sales').emit('new_sale', {
+                        transaction: notification.data.tx,
+                        block: notification.data.block,
+                        trace: trace,
+                        sale_id: saleID,
+                        sale: sales.find((row: any) => String(row.sale_id) === String(saleID))
+                    });
+                } else if (trace.act.name === 'purchasesale') {
+                    namespace.in('purchased_sales').emit('purchased_sale', {
                         transaction: notification.data.tx,
                         block: notification.data.block,
                         trace: trace,

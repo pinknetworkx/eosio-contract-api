@@ -1,18 +1,19 @@
-import {FilterDefinition, filterQueryArgs, RequestValues} from '../../utils';
+import { RequestValues} from '../../utils';
 import { NeftyDropsContext } from '../index';
 import {buildRangeCondition} from '../utils';
 import QueryBuilder from '../../../builder';
+import { FiltersDefinition, filterQueryArgs } from '../../validation';
 
 const sort_collection = {
     type: 'string',
-    values: [
+    allowedValues: [
         'collection_name', 'sold_wax', 'sold_nefty'
     ],
     default: 'collection_name'
 };
 const sort_claimer = {
     type: 'string',
-    values: [
+    allowedValues: [
         'claimer', 'spent_wax', 'spent_nefty'
     ],
     default: 'claimer'
@@ -86,14 +87,14 @@ export async function getClaimersCountAction(params: RequestValues, ctx: NeftyDr
     return getClaimersAction({...params, count: 'true'}, ctx);
 }
 
-function miningFilterQueryArgs(sort: any): FilterDefinition {
+function miningFilterQueryArgs(sort: any): FiltersDefinition {
     return {
         before: {type: 'int', min: 1, default: 0},
         after: {type: 'int', min: 1, default: 0},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 1000, default: 100},
         sort: sort,
-        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
         count: {type: 'bool'}
     };
 }

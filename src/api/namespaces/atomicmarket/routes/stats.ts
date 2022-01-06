@@ -5,34 +5,36 @@ import { HTTPServer } from '../../../server';
 import { atomicassetsComponents, greylistFilterParameters } from '../../atomicassets/openapi';
 import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import {
-    getStatsAccountAction,
-    getStatsAccountsAction,
-    getStatsCollectionAction,
-    getStatsCollectionsAction,
-    getStatsCollectionV1Action,
-    getStatsCollectionV2Action,
+    getAccountStatsAction,
+    getAllAccountStatsAction,
+    getCollectionStatsAction,
+    getAllCollectionStatsAction,
+    getSchemaStatsByCollectionV1Action,
+    getSchemaStatsByCollectionV2Action,
     getStatsGraphAction,
-    getStatsMarketsAction, getStatsSalesAction
+    getMarketStatsAction, getStatsSalesAction, getTemplateStatsAction
 } from '../handlers/stats';
 
 export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;
 
-    router.all('/v1/stats/collections', caching(), returnAsJSON(getStatsCollectionsAction, core));
+    router.all('/v1/stats/collections', caching(), returnAsJSON(getAllCollectionStatsAction, core));
 
-    router.all('/v1/stats/collections/:collection_name', caching(), returnAsJSON(getStatsCollectionAction, core));
+    router.all('/v1/stats/collections/:collection_name', caching(), returnAsJSON(getCollectionStatsAction, core));
 
-    router.all('/v1/stats/accounts', caching(), returnAsJSON(getStatsAccountsAction, core));
+    router.all('/v1/stats/accounts', caching(), returnAsJSON(getAllAccountStatsAction, core));
 
-    router.all('/v1/stats/accounts/:account', caching(), returnAsJSON(getStatsAccountAction, core));
+    router.all('/v1/stats/accounts/:account', caching(), returnAsJSON(getAccountStatsAction, core));
 
-    router.all('/v1/stats/schemas/:collection_name', caching(), returnAsJSON(getStatsCollectionV1Action, core));
+    router.all('/v1/stats/templates', caching(), returnAsJSON(getTemplateStatsAction, core));
 
-    router.all('/v2/stats/schemas/:collection_name', caching(), returnAsJSON(getStatsCollectionV2Action, core));
+    router.all('/v1/stats/schemas/:collection_name', caching(), returnAsJSON(getSchemaStatsByCollectionV1Action, core));
 
-    router.all('/v1/stats/markets', caching(), returnAsJSON(getStatsMarketsAction, core));
+    router.all('/v2/stats/schemas/:collection_name', caching(), returnAsJSON(getSchemaStatsByCollectionV2Action, core));
 
-    router.all('/v1/stats/graph', server.web.caching({factor: 60}), returnAsJSON(getStatsGraphAction, core));
+    router.all('/v1/stats/markets', caching(), returnAsJSON(getMarketStatsAction, core));
+
+    router.all('/v1/stats/graph', caching({factor: 60}), returnAsJSON(getStatsGraphAction, core));
 
     router.all('/v1/stats/sales', caching(), returnAsJSON(getStatsSalesAction, core));
 
@@ -69,6 +71,15 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         properties: {
             schema_name: {type: 'string'},
             listings: {type: 'string'},
+            volume: {type: 'string'}
+        }
+    };
+
+    const TemplateResult = {
+        type: 'object',
+        properties: {
+            template: atomicassetsComponents.Template,
+            sales: {type: 'string'},
             volume: {type: 'string'}
         }
     };
@@ -267,6 +278,70 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                         properties: {
                             symbol: SymbolResult,
                             results: {type: 'array', items: SchemaResult}
+                        }
+                    })
+                }
+            },
+            '/v1/stats/templates': {
+                get: {
+                    tags: ['stats'],
+                    summary: 'Get templates ordered by market activity',
+                    parameters: [
+                        {
+                            name: 'symbol',
+                            in: 'query',
+                            description: 'Token Symbol',
+                            required: true,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
+                        {
+                            name: 'collection_name',
+                            in: 'query',
+                            description: 'Collection Name',
+                            required: false,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
+                        {
+                            name: 'schema_name',
+                            in: 'query',
+                            description: 'Schema Name',
+                            required: false,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
+                        {
+                            name: 'template_id',
+                            in: 'query',
+                            description: 'Template Id',
+                            required: false,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
+                        ...dateBoundaryParameters,
+                        ...paginationParameters,
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                                enum: ['volume', 'sales'],
+                                default: 'volume'
+                            }
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'object',
+                        properties: {
+                            symbol: SymbolResult,
+                            results: {type: 'array', items: TemplateResult}
                         }
                     })
                 }

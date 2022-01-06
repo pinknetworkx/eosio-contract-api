@@ -1,4 +1,5 @@
-import {buildBoundaryFilter, filterQueryArgs, RequestValues} from '../../utils';
+import {buildBoundaryFilter, RequestValues} from '../../utils';
+import { filterQueryArgs } from '../../validation';
 import { NeftyDropsContext } from '../index';
 import QueryBuilder from '../../../builder';
 import {buildDropFilter} from '../utils';
@@ -14,13 +15,13 @@ export async function getDropsAction(params: RequestValues, ctx: NeftyDropsConte
         collection_name: {type: 'string', min: 1},
         sort: {
             type: 'string',
-            values: [
+            allowedValues: [
                 'created', 'updated', 'drop_id', 'price',
                 'start_time', 'end_time',
             ],
             default: 'created'
         },
-        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
         count: {type: 'bool'}
     });
 
@@ -116,13 +117,13 @@ export async function getDropClaimsAction(params: RequestValues, ctx: NeftyDrops
         limit: {type: 'int', min: 1, max: 100, default: 100},
         sort: {
             type: 'string',
-            values: [
-                'claim_time', 'price', 'total_price',
+            allowedValues: [
+                'claim_time', 'created_at_time', 'price', 'total_price',
                 'amount', 'claimer',
             ],
             default: 'claim_time'
         },
-        order: {type: 'string', values: ['asc', 'desc'], default: 'asc'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
         count: {type: 'bool'}
     });
 
@@ -142,6 +143,7 @@ export async function getDropClaimsAction(params: RequestValues, ctx: NeftyDrops
 
     const sortMapping: {[key: string]: {column: string, nullable: boolean}}  = {
         claim_time: {column: 'created_at_time', nullable: false},
+        created_at_time: {column: 'created_at_time', nullable: false},
         price: {column: 'final_price', nullable: false},
         total_price: {column: 'total_price', nullable: false},
         amount: {column: 'amount', nullable: false},

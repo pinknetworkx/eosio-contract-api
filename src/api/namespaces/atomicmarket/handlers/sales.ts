@@ -1,4 +1,4 @@
-import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../utils';
+import { buildBoundaryFilter, RequestValues } from '../../utils';
 import { fillSales } from '../filler';
 import { formatSale } from '../format';
 import { ApiError } from '../../../error';
@@ -9,6 +9,7 @@ import { buildSaleFilter, hasListingFilter } from '../utils';
 import { buildAssetFilter, buildGreylistFilter, hasAssetFilter, hasDataFilters } from '../../atomicassets/utils';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
+import { filterQueryArgs } from '../../validation';
 
 export async function getSaleAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const query = await ctx.db.query(
@@ -31,7 +32,7 @@ export async function getSaleLogsAction(params: RequestValues, ctx: AtomicMarket
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
-        order: {type: 'string', values: ['asc', 'desc'], default: 'asc'}
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'}
     });
 
     return await getContractActionLogs(
@@ -50,13 +51,13 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
         state: {type: 'string', min: 1},
         sort: {
             type: 'string',
-            values: [
+            allowedValues: [
                 'created', 'updated', 'sale_id', 'price',
                 'template_mint'
             ],
             default: 'created'
         },
-        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
         count: {type: 'bool'}
     });
 
@@ -135,10 +136,10 @@ export async function getSalesTemplatesAction(params: RequestValues, ctx: Atomic
         limit: {type: 'int', min: 1, max: 100, default: 100},
         sort: {
             type: 'string',
-            values: ['template_id', 'price'],
+            allowedValues: ['template_id', 'price'],
             default: 'template_id'
         },
-        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
     });
 
     if (!args.symbol) {

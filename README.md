@@ -56,7 +56,7 @@ This file is used to configure the filler
 
 ```javascript
 [
-  // Multiple Readers can be defined and each one will run in a seperated thread
+  // Multiple Readers can be defined and each one will run in a separated thread
   {
     "name": "atomic-1", // Name of the reader. Should be unique per chain and should not change after it was started
 

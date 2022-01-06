@@ -6,7 +6,7 @@ import { formatSecondsLeft } from '../utils/time';
 import { getHandlers } from './handlers';
 import { ContractHandler } from './handlers/interfaces';
 import { ModuleLoader } from './modules';
-import { JobQueue, JobQueuePriority } from './jobqueue';
+import { JobQueue } from './jobqueue';
 
 function estimateSeconds(blocks: number, speed: number, depth: number = 0): number {
     if (blocks <= 2) {
@@ -24,12 +24,6 @@ function estimateSeconds(blocks: number, speed: number, depth: number = 0): numb
     const seconds = Math.floor(blocks / speed);
 
     return seconds + estimateSeconds(seconds * 2, speed, depth + 1);
-}
-
-export enum UpdateJobPriority {
-    HIGH = 'HIGH',
-    MEDIUM = 'MEDIUM',
-    LOW = 'LOW'
 }
 
 export default class Filler {
