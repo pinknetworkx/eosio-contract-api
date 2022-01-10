@@ -163,6 +163,7 @@ function getBlendDbRows(blend: BlendTableRow, args: BlendsArgs, blockNumber: num
             max: 0,
             use_count: 0,
             display_data: '',
+            ingredients_count: ingredientDbRows.map(({amount}) => amount).reduce((sum,amount) => sum + amount, 0),
             updated_at_block: blockNumber || 0,
             updated_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
             created_at_block: blockNumber || 0,

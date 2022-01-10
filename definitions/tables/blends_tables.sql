@@ -1,18 +1,19 @@
 CREATE TABLE neftyblends_blends
 (
-    assets_contract  character varying(12) NOT NULL,
-    contract         character varying(12) NOT NULL,
-    collection_name  character varying(13) NOT NULL,
-    blend_id         bigint                NOT NULL,
-    start_time       bigint                NOT NULL,
-    end_time         bigint                NOT NULL,
-    max              bigint                NOT NULL,
-    use_count        bigint                NOT NULL,
-    display_data     text                  NOT NULL,
-    updated_at_block bigint                NOT NULL,
-    updated_at_time  bigint                NOT NULL,
-    created_at_block bigint                NOT NULL,
-    created_at_time  bigint                NOT NULL,
+    assets_contract   character varying(12) NOT NULL,
+    contract          character varying(12) NOT NULL,
+    collection_name   character varying(13) NOT NULL,
+    blend_id          bigint                NOT NULL,
+    start_time        bigint                NOT NULL,
+    end_time          bigint                NOT NULL,
+    max               bigint                NOT NULL,
+    use_count         bigint                NOT NULL,
+    ingredients_count integer               NOT NULL,
+    display_data      text                  NOT NULL,
+    updated_at_block  bigint                NOT NULL,
+    updated_at_time   bigint                NOT NULL,
+    created_at_block  bigint                NOT NULL,
+    created_at_time   bigint                NOT NULL,
     CONSTRAINT neftyblends_blends_pkey PRIMARY KEY (contract, blend_id)
 );
 
@@ -78,7 +79,9 @@ CREATE TABLE neftyblends_blend_roll_outcome_results
     payload         jsonb                 NOT NULL,
     type            character varying(50) NOT NULL,
     result_index    integer               NOT NULL,
-    CONSTRAINT neftyblends_blend_roll_outcome_results_pkey PRIMARY KEY (contract, blend_id, roll_index, outcome_index, result_index)
+    CONSTRAINT neftyblends_blend_roll_outcome_results_pkey PRIMARY KEY (contract, blend_id,
+                                                                        roll_index, outcome_index,
+                                                                        result_index)
 );
 
 ALTER TABLE ONLY neftyblends_blend_ingredients
