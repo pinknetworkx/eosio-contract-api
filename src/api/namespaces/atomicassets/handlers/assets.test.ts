@@ -512,7 +512,9 @@ describe('AtomicAssets Assets API', () => {
             expect(await getAssetIds({after, before}))
                 .to.deep.equal([asset_id]);
         });
-
     });
 
+    after(async () => {
+        await client.end();
+    });
 });
