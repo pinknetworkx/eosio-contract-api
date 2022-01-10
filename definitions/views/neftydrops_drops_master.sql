@@ -62,7 +62,8 @@ ON (drops_contract, drop_id)
     'created_at_time', collection.created_at_time::text
     ) collection,
 
-    ndrop.state drop_state,
+    ndrop.is_deleted is_deleted,
+    ndrop.is_hidden is_hidden,
     ndrop.updated_at_block,
     ndrop.updated_at_time,
     ndrop.created_at_block,

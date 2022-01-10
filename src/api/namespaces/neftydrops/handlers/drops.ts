@@ -82,12 +82,13 @@ export async function getDropsAction(params: RequestValues, ctx: NeftyDropsConte
     const dropLookup: {[key: string]: any} = {};
     result.rows.reduce((prev, current) => {
         prev[String(current.drop_id)] = current;
-
         return prev;
     }, dropLookup);
 
     return fillDrops(
-        ctx.db, ctx.coreArgs.atomicassets_account, dropQuery.rows.map((row) => formatDrop(dropLookup[String(row.drop_id)]))
+        ctx.db,
+        ctx.coreArgs.atomicassets_account,
+        dropQuery.rows.map((row) => formatDrop(dropLookup[String(row.drop_id)])).filter(x => !!x)
     );
 }
 

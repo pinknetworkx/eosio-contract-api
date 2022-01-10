@@ -3,10 +3,11 @@ import {ContractDBTransaction} from '../../../database';
 import {EosioActionTrace, EosioTransaction} from '../../../../types/eosio';
 import {ShipBlock} from '../../../../types/ship';
 import {eosioTimestampToDate} from '../../../../utils/eosio';
-import NeftyDropsHandler, {DropState, NeftyDropsUpdatePriority} from '../index';
+import NeftyDropsHandler, {NeftyDropsUpdatePriority} from '../index';
 import {
   ClaimDropActionData,
-  EraseDropActionData, LogClaimActionData,
+  EraseDropActionData,
+  LogClaimActionData,
   LogCreateDropActionData,
   SetDropAuthActionData,
   SetDropDataActionData,
@@ -43,7 +44,8 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           start_time: trace.act.data.start_time * 1000,
           end_time: trace.act.data.end_time * 1000,
           display_data: trace.act.data.display_data,
-          state: trace.act.data.is_hidden ? DropState.HIDDEN.valueOf() : DropState.ACTIVE.valueOf(),
+          is_hidden: trace.act.data.is_hidden || false,
+          is_deleted: false,
           updated_at_block: block.block_num,
           updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
           created_at_block: block.block_num,
@@ -128,7 +130,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
       contract, 'setdrophiddn',
       async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<SetDropHiddenActionData>): Promise<void> => {
         await db.update('neftydrops_drops', {
-          state: trace.act.data.is_hidden === true ? DropState.HIDDEN.valueOf() : DropState.ACTIVE.valueOf(),
+          is_hidden: trace.act.data.is_hidden,
           updated_at_block: block.block_num,
           updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
         }, {
@@ -174,7 +176,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
       async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<EraseDropActionData>): Promise<void> => {
         try {
           await db.update('neftydrops_drops', {
-            state: DropState.DELETED.valueOf(),
+            is_deleted: true,
             updated_at_block: block.block_num,
             updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
           }, {
@@ -217,7 +219,6 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
     if (drop.rowCount === 0) {
       logger.warn('NeftyDrops: Drops was purchased but could not find drop');
       return;
-      // throw new Error('NeftyDrops: Drop was purchased but was not found');
     }
 
     let finalPrice = null;

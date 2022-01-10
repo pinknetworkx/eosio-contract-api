@@ -20,7 +20,7 @@ export type NeftyDropsNamespaceArgs = {
 export enum DropApiState {
     ACTIVE = 0,
     DELETED= 1,
-    HIDDEN = 2,
+    SOLD_OUT = 2,
 }
 
 export type NeftyDropsContext = ActionHandlerContext<NeftyDropsNamespaceArgs>;
@@ -51,16 +51,7 @@ export class NeftyDropsNamespace extends ApiNamespace {
             this.args.neftydrops_account = query.rows[0].drops_contract;
         }
 
-        const market_query = await this.connection.database.query(
-            'SELECT * FROM atomicmarket_marketplaces WHERE marketplace_name = $1',
-            [this.args.neftymarket_name]
-        );
-
-        if (market_query.rowCount === 0) {
-            throw new Error(`NeftyMarket not found: ${this.args.neftymarket_name}`);
-        } else {
-            this.args.atomicmarket_account = market_query.rows[0].market_contract;
-        }
+        this.args.atomicmarket_account = this.args.neftymarket_name;
     }
 
     async router(server: HTTPServer): Promise<express.Router> {
