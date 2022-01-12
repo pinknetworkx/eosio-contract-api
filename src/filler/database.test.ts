@@ -1,9 +1,9 @@
 import 'mocha';
 import ConnectionManager from '../connections/manager';
-import { ContractDB } from './database';
+import {ContractDB} from './database';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const config = require('../config/connections.config.json');
+const config = require('../../config/connections.config.json');
 
 describe('database tests', () => {
     const connection = new ConnectionManager(config);
@@ -75,5 +75,13 @@ describe('database tests', () => {
         await transaction.rollbackReversibleBlocks(1);
 
         await transaction.commit();
+    });
+
+    after(async () => {
+        await connection.redis.nodeRedis.end(false);
+        await connection.redis.ioRedisSub.disconnect();
+        await connection.redis.ioRedis.disconnect();
+        await connection.redis.nodeRedisSub.end(false);
+        await connection.database.pool.end();
     });
 });

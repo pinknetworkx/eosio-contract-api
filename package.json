@@ -16,7 +16,8 @@
     "start:abiscan": "node ./build/bin/abiscan.js",
     "dev:server": "tsc && node --trace-warnings ./build/bin/server.js",
     "dev:filler": "tsc && node --trace-warnings ./build/bin/filler.js",
-    "dev:test": "mocha -r ts-node/register src/**/*.test.ts --watch --watch-files src/ --reporter min",
+    "dev:test": "mocha -r ts-node/register src/**/*.test.ts --reporter min",
+    "dev:test:watch": "mocha -r ts-node/register src/**/*.test.ts --watch --watch-files src/ --reporter min",
     "dev:init-test-db": "tsc && node --trace-warnings ./build/bin/init-test-db.js"
   },
   "dependencies": {
@@ -24,6 +25,7 @@
     "atomicassets": "^1.4.2",
     "await-lock": "^2.1.0",
     "body-parser": "^1.19.1",
+    "common-tags": "^1.8.2",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "eosjs": "^22.1.0",
@@ -48,6 +50,7 @@
   "devDependencies": {
     "@types/body-parser": "^1.19.2",
     "@types/chai": "^4.3.0",
+    "@types/common-tags": "^1.8.1",
     "@types/cookie-parser": "^1.4.2",
     "@types/cors": "^2.8.12",
     "@types/elliptic": "^6.4.14",

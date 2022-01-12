@@ -1,7 +1,7 @@
-import { createTxIt, TestClient } from '../../../utils/test';
-import { OfferState } from '../../../filler/handlers/atomicassets';
+import {createTxIt, TestClient} from '../../../utils/test';
+import {OfferState} from '../../../filler/handlers/atomicassets';
 
-export function initAtomicAssetsTest(): {client: AtomicAssetsTestClient, txit: any} {
+export function initAtomicAssetsTest(): { client: AtomicAssetsTestClient, txit: any } {
     const client = new AtomicAssetsTestClient();
 
     const txit = createTxIt(client);
@@ -12,7 +12,7 @@ export function initAtomicAssetsTest(): {client: AtomicAssetsTestClient, txit: a
 export class AtomicAssetsTestClient extends TestClient {
 
     async createSchema(values: Record<string, any> = {}): Promise<Record<string, any>> {
-        return await this.insert('atomicassets_schemas', {
+        return this.insert('atomicassets_schemas', {
             contract: 'aatest',
             collection_name: values.collection_name ?? (await this.createCollection()).collection_name,
             schema_name: this.getId(),
@@ -24,9 +24,9 @@ export class AtomicAssetsTestClient extends TestClient {
     }
 
     async createCollection(values: Record<string, any> = {}): Promise<Record<string, any>> {
-        return await this.insert('atomicassets_collections', {
-            contract: 'aatest',
+        return this.insert('atomicassets_collections', {
             collection_name: this.getId(),
+            contract: 'aatest',
             author: 'author',
             allow_notify: false,
             authorized_accounts: [],
@@ -90,7 +90,7 @@ export class AtomicAssetsTestClient extends TestClient {
             ...values,
             collection_name: values.collection_name ?? (await this.createCollection()).collection_name,
         };
-        return await this.insert('atomicassets_assets', {
+        return this.insert('atomicassets_assets', {
             contract: 'aatest',
             asset_id: this.getId(),
             schema_name: values.schema_name ?? (await this.createSchema({collection_name: values.collection_name})).schema_name,
@@ -106,7 +106,7 @@ export class AtomicAssetsTestClient extends TestClient {
     }
 
     async createAssetBackedToken(values: Record<string, any> = {}): Promise<Record<string, any>> {
-        return await this.insert('atomicassets_assets_backed_tokens', {
+        return this.insert('atomicassets_assets_backed_tokens', {
             contract: 'aatest',
             token_symbol: 'TEST',
             amount: 1,

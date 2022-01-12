@@ -6,42 +6,36 @@ import { ApiError } from '../error';
 describe('filterQueryArgs', () => {
 
     it('removes values that are not defined in the filter', () => {
-
         const result = filterQueryArgs({a: 1, b: 2}, {a: {type: 'string'}});
 
         expect(Object.keys(result)).to.deep.equal(['a']);
     });
 
     it('returns the default value when the value is null', () => {
-
         const result = filterQueryArgs({a: null}, {a: {type: 'string', default: 1}});
 
         expect(result.a).to.equal(1);
     });
 
     it('returns the default value when the value is undefined', () => {
-
         const result = filterQueryArgs({a: undefined}, {a: {type: 'string', default: 1}});
 
         expect(result.a).to.equal(1);
     });
 
     it('returns the default value for arrays when the value is an empty string', () => {
-
         const result = filterQueryArgs({a: ''}, {a: {type: 'string[]', default: [1]}});
 
         expect(result.a).to.deep.equal([1]);
     });
 
     it('returns an empty array for arrays when the value is an empty string', () => {
-
         const result = filterQueryArgs({a: ''}, {a: {type: 'string[]'}});
 
         expect(result.a).to.deep.equal([]);
     });
 
     it('returns an empty array for arrays when the value is not set', () => {
-
         const result = filterQueryArgs({}, {a: {type: 'int[]'}});
 
         expect(result.a).to.deep.equal([]);
@@ -271,5 +265,4 @@ describe('filterQueryArgs', () => {
         });
 
     });
-
 });
