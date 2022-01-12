@@ -449,7 +449,7 @@ function getDataFilters(search: SalesSearchOptions): string[] {
     return result;
 }
 
-const largeSalesResult = 9_000;
+const largeSalesResult = 50_000;
 
 const getSaleCount = moize({
     isPromise: true,
