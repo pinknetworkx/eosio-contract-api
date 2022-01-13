@@ -1,6 +1,7 @@
 import { SaleApiState } from './index';
 import { AtomicAssetsTestClient } from '../atomicassets/test';
 import { createTxIt } from '../../../utils/test';
+import {AuctionState} from '../../../filler/handlers/atomicmarket';
 
 export function initAtomicMarketTest(): {client: AtomicMarketTestClient, txit: any} {
     const client = new AtomicMarketTestClient();
@@ -16,6 +17,42 @@ export class AtomicMarketTestClient extends AtomicAssetsTestClient {
         await super.init();
 
         await this.createToken();
+    }
+
+    async createAuctionAssets(values: Record<string, any> = {}): Promise<Record<string, any>> {
+        return this.insert('atomicmarket_auctions_assets', {
+            market_contract: 'amtest',
+            auction_id: values.auction_id ?? (await this.createAuction()).auction_id,
+            assets_contract: 'aatest',
+            index: 1,
+            asset_id: values.asset_id ?? (await this.createAsset()).asset_id,
+            ...values,
+        });
+    }
+
+    async createAuction(values: Record<string, any> = {}): Promise<Record<string, any>> {
+        return this.insert('atomicmarket_auctions', {
+            market_contract: 'amtest',
+            auction_id: this.getId(),
+            seller: 'seller',
+            buyer: 'buyer',
+            price: 1,
+            token_symbol: 'TEST',
+            assets_contract: 'aatest',
+            maker_marketplace: '',
+            taker_marketplace: '',
+            collection_name: values.collection_name ?? (await this.createCollection()).collection_name,
+            collection_fee: 0,
+            claimed_by_buyer: false,
+            claimed_by_seller: false,
+            state: AuctionState.LISTED,
+            end_time: this.getId(),
+            updated_at_block: this.getId(),
+            updated_at_time: this.getId(),
+            created_at_block: this.getId(),
+            created_at_time: this.getId(),
+            ...values,
+        });
     }
 
     async createToken(values: Record<string, any> = {}): Promise<Record<string, any>> {
