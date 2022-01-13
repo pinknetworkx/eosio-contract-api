@@ -133,8 +133,9 @@ export function buildSaleFilter(values: FilterValues, query: QueryBuilder): void
         assetQuery.addCondition('offer_asset.offer_id = listing.offer_id AND offer_asset.contract = listing.assets_contract');
 
         if (args.template_blacklist.length) {
-            assetQuery.notMany('"asset"."template_id"', args.template_blacklist);
+            assetQuery.notMany('COALESCE("asset"."template_id", -1)', args.template_blacklist);
         }
+
 
         buildAssetFilter(values, assetQuery, {
             assetTable: '"asset"',
@@ -240,7 +241,7 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
         assetQuery.join('auction_asset', 'listing', ['market_contract', 'auction_id']);
 
         if (args.template_blacklist.length) {
-            assetQuery.notMany('"asset"."template_id"', args.template_blacklist);
+            assetQuery.notMany('COALESCE("asset"."template_id", -1)', args.template_blacklist);
         }
 
         buildAssetFilter(values, assetQuery, {

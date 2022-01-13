@@ -763,13 +763,15 @@ describe('AtomicMarket Sales API', () => {
                     template_id: included.template_id,
                 });
 
+                const {sale_id: sale_id2} = await client.createFullSale({}, {});
+
                 const excludedTemplate = await client.createTemplate();
                 await client.createFullSale({}, {
                     template_id: excludedTemplate.template_id,
                 });
 
-                expect(await getSalesIds({template_blacklist: [excludedTemplate.template_id].join(',')}))
-                    .to.deep.equal([sale_id1]);
+                expect((await getSalesIds({template_blacklist: [excludedTemplate.template_id].join(',')})).sort())
+                    .to.deep.equal([sale_id1, sale_id2].sort());
             });
         });
     });

@@ -37,6 +37,8 @@ describe('AtomicMarket Sales API', () => {
                 });
                 const {sale_id} = await client.createSale({offer_id: offer1.offer_id});
 
+                const offer4 = await client.createOfferAsset({}, {});
+                const {sale_id: sale_id4} = await client.createSale({offer_id: offer4.offer_id});
 
                 // excluded sales
                 const templateExcluded1 = await client.createTemplate();
@@ -51,9 +53,9 @@ describe('AtomicMarket Sales API', () => {
                 });
                 await client.createSale({offer_id: offer3.offer_id});
 
-                expect(await getSalesIds({
+                expect((await getSalesIds({
                     template_blacklist: [templateExcluded1.template_id, templateExcluded2.template_id].join(',')
-                })).to.deep.equal([sale_id]);
+                })).sort()).to.deep.equal([sale_id, sale_id4].sort());
             });
         });
 
