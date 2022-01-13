@@ -133,4 +133,7 @@ describe('AtomicMarket Assets API', () => {
 
     });
 
+    after(async () => {
+        await client.end();
+    });
 });
