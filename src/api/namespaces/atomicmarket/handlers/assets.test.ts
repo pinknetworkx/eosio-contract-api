@@ -1,10 +1,10 @@
 import 'mocha';
-import { expect } from 'chai';
-import { RequestValues } from '../../utils';
-import { initAtomicMarketTest } from '../test';
-import { getTestContext } from '../../../../utils/test';
-import { getMarketAssetsAction } from './assets';
-import { SaleState } from '../../../../filler/handlers/atomicmarket';
+import {expect} from 'chai';
+import {RequestValues} from '../../utils';
+import {initAtomicMarketTest} from '../test';
+import {getTestContext} from '../../../../utils/test';
+import {getMarketAssetsAction} from './assets';
+import {SaleState} from '../../../../filler/handlers/atomicmarket';
 
 const {client, txit} = initAtomicMarketTest();
 
@@ -20,7 +20,6 @@ describe('AtomicMarket Assets API', () => {
     describe('getMarketAssetsAction V1', () => {
 
         txit('orders by suggested median price', async () => {
-
             const {template_id: template_id1} = await client.createTemplate();
 
             await client.createFullSale({
@@ -49,7 +48,6 @@ describe('AtomicMarket Assets API', () => {
         });
 
         txit('orders by suggested average price', async () => {
-
             const {template_id: template_id1} = await client.createTemplate();
 
             await client.createFullSale({
@@ -78,7 +76,6 @@ describe('AtomicMarket Assets API', () => {
         });
 
         txit('orders by median price', async () => {
-
             const {template_id: template_id1} = await client.createTemplate();
 
             await client.createFullSale({
@@ -107,7 +104,6 @@ describe('AtomicMarket Assets API', () => {
         });
 
         txit('orders by average price', async () => {
-
             const {template_id: template_id1} = await client.createTemplate();
 
             await client.createFullSale({
