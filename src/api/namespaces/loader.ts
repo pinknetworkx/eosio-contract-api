@@ -4,6 +4,7 @@ import { AtomicMarketNamespace } from './atomicmarket';
 import { AtomicToolsNamespace } from './atomictools';
 import { NeftyDropsNamespace } from './neftydrops';
 import { NeftyMarketNamespace } from './neftymarket';
+import { NeftyBlendsNamespace } from './neftyblends';
 import {HelpersNamespace} from './helpers';
 
 export const namespaces: (typeof ApiNamespace)[] = [
@@ -12,5 +13,6 @@ export const namespaces: (typeof ApiNamespace)[] = [
     AtomicToolsNamespace,
     NeftyDropsNamespace,
     NeftyMarketNamespace,
+    NeftyBlendsNamespace,
     HelpersNamespace,
 ];

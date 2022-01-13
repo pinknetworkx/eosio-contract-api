@@ -2,6 +2,7 @@
 build
 docker
 node_modules
+docker.zip
 
 # logs
 logs/*.log
