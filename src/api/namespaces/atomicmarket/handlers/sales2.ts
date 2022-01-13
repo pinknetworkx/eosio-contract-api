@@ -1,12 +1,12 @@
-import { buildBoundaryFilter, RequestValues } from '../../utils';
-import { AtomicMarketContext, SaleApiState } from '../index';
+import {buildBoundaryFilter, RequestValues} from '../../utils';
+import {AtomicMarketContext, SaleApiState} from '../index';
 import QueryBuilder from '../../../builder';
-import { fillSales } from '../filler';
-import { formatSale } from '../format';
-import { ApiError } from '../../../error';
-import { toInt } from '../../../../utils';
+import {fillSales} from '../filler';
+import {formatSale} from '../format';
+import {ApiError} from '../../../error';
+import {toInt} from '../../../../utils';
 import moize from 'moize';
-import { filterQueryArgs, FilterValues } from '../../validation';
+import {filterQueryArgs, FilterValues} from '../../validation';
 
 type SalesSearchOptions = {
     values: FilterValues;
@@ -169,11 +169,18 @@ function buildAssetFilterV2(search: SalesSearchOptions): void {
 
     const args = filterQueryArgs(values, {
         asset_id: {type: 'string[]', min: 1},
+
+        template_blacklist: {type: 'int[]', min: 1},
     });
 
     if (args.asset_id.length) {
         query.addCondition(`listing.asset_ids && ${query.addVariable(args.asset_id)}`);
         search.strongFilters.push('asset_ids');
+    }
+
+    if (args.template_blacklist.length) {
+        const ignore = args.template_blacklist.map((t: number) => `t${t}`);
+        query.addCondition(`NOT(listing.filter && ${query.addVariable(ignore)}::TEXT[])`);
     }
 
     const names = [values.match_immutable_name, values.match_mutable_name, values.match].filter(v => typeof v === 'string' && v.length);
@@ -257,7 +264,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
                 }
             } else {
                 // @ts-ignore
-                inc[filter+'s'].push(value[0]);
+                inc[filter + 's'].push(value[0]);
             }
 
             if (canBeStrongFilter && await isStrongMainFilter(filter, value, search)) {

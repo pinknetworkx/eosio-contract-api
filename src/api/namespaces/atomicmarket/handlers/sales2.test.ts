@@ -1,13 +1,13 @@
 import 'mocha';
-import { expect } from 'chai';
-import { RequestValues } from '../../utils';
-import { initAtomicMarketTest } from '../test';
-import { getTestContext } from '../../../../utils/test';
-import { getSalesV2Action } from './sales2';
-import { SaleApiState } from '../index';
-import { OfferState } from '../../../../filler/handlers/atomicassets';
-import { SaleState } from '../../../../filler/handlers/atomicmarket';
-import { ApiError } from '../../../error';
+import {expect} from 'chai';
+import {RequestValues} from '../../utils';
+import {initAtomicMarketTest} from '../test';
+import {getTestContext} from '../../../../utils/test';
+import {getSalesV2Action} from './sales2';
+import {SaleApiState} from '../index';
+import {OfferState} from '../../../../filler/handlers/atomicassets';
+import {SaleState} from '../../../../filler/handlers/atomicmarket';
+import {ApiError} from '../../../error';
 
 const {client, txit} = initAtomicMarketTest();
 
@@ -24,11 +24,8 @@ async function getSalesIds(values: RequestValues, options = {refresh: true}): Pr
 }
 
 describe('AtomicMarket Sales API', () => {
-
     describe('getSalesAction V2', () => {
-
         txit('works without filters', async () => {
-
             const {sale_id} = await client.createFullSale();
 
             expect(await getSalesIds({})).to.deep.equal([sale_id]);
@@ -759,6 +756,25 @@ describe('AtomicMarket Sales API', () => {
             expect(result).to.haveOwnProperty('collection');
         });
 
+        context('with template_blacklist arg', () => {
+            txit('filters out the sales that contains the template id', async () => {
+                const included = await client.createTemplate();
+                const {sale_id: sale_id1} = await client.createFullSale({}, {
+                    template_id: included.template_id,
+                });
+
+                const excludedTemplate = await client.createTemplate();
+                await client.createFullSale({}, {
+                    template_id: excludedTemplate.template_id,
+                });
+
+                expect(await getSalesIds({template_blacklist: [excludedTemplate.template_id].join(',')}))
+                    .to.deep.equal([sale_id1]);
+            });
+        });
     });
 
+    after(async () => {
+        await client.end();
+    });
 });
