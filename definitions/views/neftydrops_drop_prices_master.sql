@@ -5,8 +5,6 @@ ON (drops_contract, drop_id)
     ndrop.drops_contract,
     ndrop.drop_id,
 
-    ndrop.state,
-
     (CASE
     WHEN pair.invert_delphi_pair IS NOT NULL AND pair.invert_delphi_pair = true THEN
     LEAST(ndrop.listing_price:: decimal * delphi.median * power(10.0, delphi.quote_precision - delphi.base_precision - delphi.median_precision), 9223372036854775807)::bigint

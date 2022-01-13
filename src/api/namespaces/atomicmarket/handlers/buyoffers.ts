@@ -1,4 +1,4 @@
-import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../utils';
+import { buildBoundaryFilter, RequestValues } from '../../utils';
 import { AtomicMarketContext } from '../index';
 import QueryBuilder from '../../../builder';
 import { buildBuyofferFilter, hasListingFilter } from '../utils';
@@ -7,6 +7,7 @@ import { fillBuyoffers } from '../filler';
 import { formatBuyoffer } from '../format';
 import { ApiError } from '../../../error';
 import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
+import { filterQueryArgs } from '../../validation';
 
 export async function getBuyOffersAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
@@ -14,13 +15,13 @@ export async function getBuyOffersAction(params: RequestValues, ctx: AtomicMarke
         limit: {type: 'int', min: 1, max: 100, default: 100},
         sort: {
             type: 'string',
-            values: [
+            allowedValues: [
                 'created', 'updated', 'ending', 'buyoffer_id', 'price',
                 'template_mint'
             ],
             default: 'created'
         },
-        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
         count: {type: 'bool'},
     });
@@ -116,7 +117,7 @@ export async function getBuyOfferLogsAction(params: RequestValues, ctx: AtomicMa
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
-        order: {type: 'string', values: ['asc', 'desc'], default: 'asc'}
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'}
     });
 
     return await getContractActionLogs(

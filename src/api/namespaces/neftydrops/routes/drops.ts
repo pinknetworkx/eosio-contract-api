@@ -41,11 +41,18 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             in: 'query',
                             description: 'Filter by drop state (' +
                                 DropApiState.ACTIVE.valueOf() + ': ACTIVE - The drop is active, ' +
-                                DropApiState.DELETED.valueOf() + ': DELETE - The drop is deleted' +
-                                DropApiState.HIDDEN.valueOf() + ': HIDDEN - The drop is hidden' +
+                                DropApiState.DELETED.valueOf() + ': DELETED - The drop is deleted' +
+                                DropApiState.SOLD_OUT.valueOf() + ': SOLD_OUT - The drop is sold out' +
                                 ') - separate multiple with ","',
                             required: false,
                             schema: {type: 'string'}
+                        },
+                        {
+                            name: 'hidden',
+                            in: 'query',
+                            description: 'Display hidden drops',
+                            required: false,
+                            schema: {type: 'boolean'}
                         },
                         ...primaryBoundaryParameters,
                         ...dropsFilterParameters,

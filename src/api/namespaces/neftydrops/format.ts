@@ -1,4 +1,7 @@
 export function formatDrop(row: any): any {
+    if (!row) {
+        return row;
+    }
     const data = {...row};
 
     data.price.amount = row.raw_price;
@@ -8,7 +11,6 @@ export function formatDrop(row: any): any {
         data.display_data = {};
     }
 
-    delete data.state;
     delete data.raw_price;
     delete data.raw_token_symbol;
     delete data.raw_token_precision;

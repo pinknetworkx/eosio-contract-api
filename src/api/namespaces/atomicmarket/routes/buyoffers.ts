@@ -129,6 +129,20 @@ export function buyoffersEndpoints(core: AtomicMarketNamespace, server: HTTPServ
 export function buyofferSockets(core: AtomicMarketNamespace, server: HTTPServer, notification: ApiNotificationReceiver): void {
     const namespace = createSocketApiNamespace(server, core.path + '/v1/buyoffers');
 
+    namespace.on('connection', (socket) => {
+        socket.on('subscribe', data => {
+            const availableRooms = ['new_buyoffers'];
+
+            for (const room of availableRooms) {
+                if (data && data[room]) {
+                    socket.join(room);
+                } else if (socket.rooms.has(room)) {
+                    socket.leave(room);
+                }
+            }
+        });
+    });
+
     notification.onData('buyoffers', async (notifications: NotificationData[]) => {
         const buyofferIDs = extractNotificationIdentifiers(notifications, 'buyoffer_id');
         const query = await server.query(
@@ -150,7 +164,7 @@ export function buyofferSockets(core: AtomicMarketNamespace, server: HTTPServer,
                 const buyoffer = buyoffers.find(row => String(row.buyoffer_id) === String(buyofferID));
 
                 if (trace.act.name === 'lognewbuyo') {
-                    namespace.emit('new_buyoffer', {
+                    namespace.in('new_buyoffers').emit('new_buyoffer', {
                         transaction: notification.data.tx,
                         block: notification.data.block,
                         trace: notification.data.trace,

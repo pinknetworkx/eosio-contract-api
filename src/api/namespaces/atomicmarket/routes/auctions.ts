@@ -146,6 +146,20 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
 export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer, notification: ApiNotificationReceiver): void {
     const namespace = createSocketApiNamespace(server, core.path + '/v1/auctions');
 
+    namespace.on('connection', (socket) => {
+        socket.on('subscribe', data => {
+            const availableRooms = ['new_auctions', 'new_bids'];
+
+            for (const room of availableRooms) {
+                if (data && data[room]) {
+                    socket.join(room);
+                } else if (socket.rooms.has(room)) {
+                    socket.leave(room);
+                }
+            }
+        });
+    });
+
     notification.onData('auctions', async (notifications: NotificationData[]) => {
         const auctionIDs = extractNotificationIdentifiers(notifications, 'auction_id');
         const query = await server.query(
@@ -167,7 +181,7 @@ export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer, 
                 const auction = auctions.find(row => String(row.auction_id) === String(auctionID));
 
                 if (trace.act.name === 'lognewauct') {
-                    namespace.emit('new_auction', {
+                    namespace.in('new_auctions').emit('new_auction', {
                         transaction: notification.data.tx,
                         block: notification.data.block,
                         trace: notification.data.trace,
@@ -178,7 +192,7 @@ export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer, 
                     const amount = (<any>trace.act.data).bid.split(' ')[0].replace('.', '');
                     const bid = auction.bids.find((bid: any) => String(bid.amount) === String(amount));
 
-                    namespace.emit('new_bid', {
+                    namespace.in('new_bids').emit('new_bid', {
                         transaction: notification.data.tx,
                         block: notification.data.block,
                         trace: notification.data.trace,

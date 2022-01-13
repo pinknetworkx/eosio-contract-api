@@ -1,11 +1,11 @@
-import {filterQueryArgs, FilterValues} from '../utils';
+import {FilterValues} from '../utils';
 import {
     buildDataConditions,
     hasDataFilters
 } from '../atomicassets/utils';
 import QueryBuilder from '../../builder';
-import {DropState} from '../../../filler/handlers/neftydrops';
 import {DropApiState} from './index';
+import {filterQueryArgs} from '../validation';
 
 export function hasTemplateFilter(values: FilterValues, blacklist: string[] = []): boolean {
     const keys = Object.keys(values);
@@ -77,6 +77,7 @@ export function buildListingFilter(values: FilterValues, query: QueryBuilder): v
 export function buildDropFilter(values: FilterValues, query: QueryBuilder): void {
     const args = filterQueryArgs(values, {
         state: {type: 'string', min: 0},
+        hidden: {type: 'bool', default: false},
 
         max_assets: {type: 'int', min: 1},
         min_assets: {type: 'int', min: 1},
@@ -145,17 +146,21 @@ export function buildDropFilter(values: FilterValues, query: QueryBuilder): void
     if (args.state) {
         const stateFilters: string[] = [];
         if (args.state.split(',').indexOf(String(DropApiState.ACTIVE.valueOf())) >= 0) {
-            stateFilters.push(`(ndrop.state = ${DropState.ACTIVE.valueOf()})`);
+            stateFilters.push('(ndrop.is_deleted = FALSE)');
         }
         if (args.state.split(',').indexOf(String(DropApiState.DELETED.valueOf())) >= 0) {
-            stateFilters.push(`(ndrop.state = ${DropState.DELETED.valueOf()})`);
+            stateFilters.push('(ndrop.is_deleted = TRUE');
         }
-        if (args.state.split(',').indexOf(String(DropApiState.HIDDEN.valueOf())) >= 0) {
-            stateFilters.push(`(ndrop.state = ${DropState.HIDDEN.valueOf()})`);
+        if (args.state.split(',').indexOf(String(DropApiState.SOLD_OUT.valueOf())) >= 0) {
+            stateFilters.push('(ndrop.max_claimable > 0 AND ndrop.max_claimable <= ndrop.current_claimed)');
         }
         query.addCondition('(' + stateFilters.join(' OR ') + ')');
     } else {
-        query.equal('ndrop.state', DropState.ACTIVE);
+        query.equal('ndrop.is_deleted', false);
+    }
+
+    if (!args.hidden) {
+        query.equal('ndrop.is_hidden', false);
     }
 }
 

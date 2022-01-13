@@ -1,10 +1,9 @@
 import 'mocha';
-
-import ConnectionManager from '../src/connections/manager';
-import { ContractDB } from '../src/filler/database';
+import ConnectionManager from '../connections/manager';
+import {ContractDB} from './database';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const config = require('../config/connections.config.json');
+const config = require('../../config/connections.config.json');
 
 describe('database tests', () => {
     const connection = new ConnectionManager(config);
@@ -14,7 +13,7 @@ describe('database tests', () => {
         const transaction = await contract.startTransaction(1);
 
         await transaction.insert('contract_abis', {
-            account: 'pinknetworkx',
+            account: 'pink.gg',
             abi: new Uint8Array([0, 0, 2, 128]),
             block_num: 1,
             block_time: 0
@@ -78,17 +77,11 @@ describe('database tests', () => {
         await transaction.commit();
     });
 
-    it('Concurrency', async () => {
-        const transaction = await connection.database.begin();
-
-        const promises = [];
-
-        for (let i = 0; i < 10; i++) {
-            promises.push(transaction.query('SELECT pg_sleep(1)'));
-        }
-
-        await Promise.all(promises);
-
-        await transaction.query('COMMIT');
-    }).timeout(20000);
+    after(async () => {
+        await connection.redis.nodeRedis.end(false);
+        await connection.redis.ioRedisSub.disconnect();
+        await connection.redis.ioRedis.disconnect();
+        await connection.redis.nodeRedisSub.end(false);
+        await connection.database.pool.end();
+    });
 });

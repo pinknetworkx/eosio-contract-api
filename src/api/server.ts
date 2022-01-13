@@ -77,7 +77,7 @@ export class HTTPServer implements DB {
             const duration = Date.now() - startTime;
 
             if (this.config.slow_query_threshold && duration >= this.config.slow_query_threshold) {
-                logger.warn('Query took longer than ' + duration + ' ms', {
+                logger.warn('Query took ' + duration + ' ms', {
                     queryText, values
                 });
             }

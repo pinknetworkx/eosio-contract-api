@@ -1,17 +1,18 @@
-import { buildBoundaryFilter, filterQueryArgs, RequestValues } from '../../utils';
+import { buildBoundaryFilter, RequestValues } from '../../utils';
 import { AtomicAssetsContext } from '../index';
 import QueryBuilder from '../../../builder';
 import { buildGreylistFilter } from '../utils';
 import { formatSchema } from '../format';
 import { ApiError } from '../../../error';
 import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
+import { filterQueryArgs } from '../../validation';
 
 export async function getSchemasAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
-        sort: {type: 'string', values: ['created', 'schema_name'], default: 'created'},
-        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+        sort: {type: 'string', allowedValues: ['created', 'schema_name'], default: 'created'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
         authorized_account: {type: 'string', min: 1, max: 12},
         collection_name: {type: 'string', min: 1},
@@ -84,12 +85,21 @@ export async function getSchemaAction(params: RequestValues, ctx: AtomicAssetsCo
 }
 
 export async function getSchemaStatsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
-    const query = await ctx.db.query(
-        'SELECT ' +
-        '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND schema_name = $3) assets, ' +
-        '(SELECT COUNT(*) FROM atomicassets_assets WHERE contract = $1 AND collection_name = $2 AND schema_name = $3 AND owner IS NULL) burned, ' +
-        '(SELECT COUNT(*) FROM atomicassets_templates WHERE contract = $1 AND collection_name = $2 AND schema_name = $3) templates',
-        [ctx.coreArgs.atomicassets_account, ctx.pathParams.collection_name, ctx.pathParams.schema_name]
+    const query = await ctx.db.query(`
+        WITH asset_counts AS (
+            SELECT
+                COUNT(*) assets,
+                COUNT(*) FILTER (WHERE owner IS NULL) burned
+            FROM atomicassets_assets
+            WHERE contract = $1
+                AND collection_name || '' = $2 -- prevent collection index usage because the schema index is better
+                AND schema_name = $3
+        )
+        SELECT
+            (SELECT assets FROM asset_counts) assets,
+            (SELECT burned FROM asset_counts) burned,
+            (SELECT COUNT(*) FROM atomicassets_templates WHERE contract = $1 AND collection_name = $2 AND schema_name = $3) templates    
+    `, [ctx.coreArgs.atomicassets_account, ctx.pathParams.collection_name, ctx.pathParams.schema_name]
     );
 
     return query.rows[0];
@@ -99,7 +109,7 @@ export async function getSchemaLogsAction(params: RequestValues, ctx: AtomicAsse
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
-        order: {type: 'string', values: ['asc', 'desc'], default: 'asc'}
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'}
     });
 
     return await getContractActionLogs(

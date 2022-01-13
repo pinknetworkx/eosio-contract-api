@@ -1,10 +1,9 @@
 import 'mocha';
 import { expect } from 'chai';
+import { deserializeUInt, serializeUInt } from './binary';
+import { deserializeEosioName, serializeEosioName } from './eosio';
 
-import { deserializeUInt, serializeUInt } from '../src/utils/binary';
-import { deserializeEosioName, serializeEosioName } from '../src/utils/eosio';
-
-describe('binary tests', () => {
+describe('binary utility', () => {
     it('uint serialization', async () => {
         const unsignedNumber = BigInt(0xFF00_0000);
         const signedNumber = BigInt(-16777216);

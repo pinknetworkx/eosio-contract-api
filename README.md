@@ -1,5 +1,6 @@
 # EOSIO Contract API
-The aim of this project is to provide an framework to fill and query state and history for specific
+
+The aim of this project is to provide a framework to fill and query state and history for specific
 contracts on eosio based blockchains. 
 
 This project uses the eosio State History Plugin as data source and PostgreSQL to store / query the data.
@@ -29,7 +30,7 @@ Notes
 chain can use the same database if they are non conflicting
 * Nodeos: nodeos should habe a full state history for the range you are trying to index
 
-```javascript
+```json
 {
   "postgres": {
     "host": "127.0.0.1",
@@ -54,9 +55,9 @@ chain can use the same database if they are non conflicting
 #### readers.config.json
 This file is used to configure the filler
 
-```javascript
+```json5
 [
-  // Multiple Readers can be defined and each one will run in a seperated thread
+  // Multiple Readers can be defined and each one will run in a separated thread
   {
     "name": "atomic-1", // Name of the reader. Should be unique per chain and should not change after it was started
 
@@ -89,7 +90,7 @@ This file is used to configure the filler
 
 #### server.config.json
 
-```javascript
+```json5
 {
   "provider_name": "pink.network", // Provider which is show in the endpoint documentation
   "provider_url": "https://pink.network",
@@ -183,12 +184,12 @@ Readers are used to fill the database for a specific contract.
 
 #### atomicassets
 
-```javascript
+```json5
 {
   "handler": "atomicassets",
   "args": {
-    "atomicassets_account": "atomicassets" // account where the atomicassets contract is deployed
-    "store_transfers": true // store the transfer history  
+    "atomicassets_account": "atomicassets", // account where the atomicassets contract is deployed
+    "store_transfers": true, // store the transfer history  
     "store_logs": true // store data structure logs
   }
 }
@@ -196,12 +197,13 @@ Readers are used to fill the database for a specific contract.
 
 #### atomicmarket
 This reader requires a atomicassets and a delphioracle reader with the same contract as specified here
-```javascript
+
+```json5
 {
   "handler": "atomicmarket",
   "args": {
-    "atomicassets_account": "atomicassets" // account where the atomicassets contract is deployed
-    "atomicmarket_account": "atomicmarket" // account where the atomicmarket contract is deployed
+    "atomicassets_account": "atomicassets", // account where the atomicassets contract is deployed
+    "atomicmarket_account": "atomicmarket", // account where the atomicmarket contract is deployed
     "store_logs": true // Store logs of sales / auctions
   }
 }
@@ -209,7 +211,7 @@ This reader requires a atomicassets and a delphioracle reader with the same cont
 
 #### delphioracle
 
-```javascript
+```json5
 {
   "handler": "delphioracle",
   "args": {
@@ -224,11 +226,11 @@ A namespace provides an API for a specific contract or use case and is based on 
 
 #### atomicassets
 
-```javascript
+```json5
 {
   "handler": "atomicassets",
   "args": {
-    "atomicassets_account": "atomicassets" // account where the atomicassets contract is deployed
+    "atomicassets_account": "atomicassets", // account where the atomicassets contract is deployed
     "connected_reader": "atomic-1" // reader to which the API connects for live data
   }
 }
@@ -236,7 +238,7 @@ A namespace provides an API for a specific contract or use case and is based on 
 
 #### atomicmarket
 
-```javascript
+```json5
 {
   "handler": "atomicmarket",
   "args": {
@@ -245,3 +247,25 @@ A namespace provides an API for a specific contract or use case and is based on 
   }
 }
 ```
+## Testing
+
+To run the test on this project:
+
+1. In the `config` folder, copy the `example-*` files and rename them to `connections.config.json`
+`readers.config.json` and `server.config.json`
+2. Start the redis and postgresql servers, you can do that by using 
+docker compose (`docker compose up eosio-contract-api-redis eosio-contract-api-postgres`)
+or installing them directly into your computer.
+3. Modify the `connection.config.json` to point to your local computer and have the correct credentials.
+4. Execute the init-test-db script using the command `yarn dev:init-test-db`
+5. Run the test using the command `yarn dev:test`
+
+### Developing new features
+
+1. Make sure that everything in our code base is working properly, ej: Test running and application compiling.
+2. Depending on your way of working, develop the feature or the bug fix.
+3. Add some test cases to cover up your code.
+4. Test it manually in using the API.
+5. Create a PR and fix the comments of the reviewer.
+6. Merge and deploy.
+

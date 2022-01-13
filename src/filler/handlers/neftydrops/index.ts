@@ -21,12 +21,6 @@ export type NeftyDropsArgs = {
     delphioracle_account: string
 };
 
-export enum DropState {
-    ACTIVE = 0,
-    DELETED = 1,
-    HIDDEN = 2
-}
-
 export enum NeftyDropsUpdatePriority {
     TABLE_BALANCES = NEFTYDROPS_BASE_PRIORITY + 10,
     TABLE_CONFIG = NEFTYDROPS_BASE_PRIORITY + 10,
@@ -78,18 +72,16 @@ export default class NeftyDropsHandler extends ContractHandler {
     }
 
     static async upgrade(client: PoolClient, version: string): Promise<void> {
-        if (version === '1.2.51') {
-            const viewsToUpdate = ['neftydrops_stats_master'];
+        if (version === '1.3.2') {
+            const viewsToUpdate = ['neftydrops_drops_master', 'neftydrops_drop_prices_master'];
+            const materializedViewsToUpdate = ['neftydrops_drop_prices'];
             for (const view of viewsToUpdate) {
                 logger.info(`Refreshing views ${view}`);
                 await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
             }
-        }
-        if (version === '1.2.56') {
-            const viewsToUpdate = ['neftydrops_drops_master'];
-            for (const view of viewsToUpdate) {
-                logger.info(`Refreshing views ${view}`);
-                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
+            for (const view of materializedViewsToUpdate) {
+                logger.info(`Refreshing materialized views ${view}`);
+                await client.query(fs.readFileSync('./definitions/materialized/' + view + '.sql', {encoding: 'utf8'}));
             }
         }
     }

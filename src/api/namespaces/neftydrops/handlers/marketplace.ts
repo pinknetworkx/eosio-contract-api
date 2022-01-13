@@ -1,14 +1,15 @@
-import {FilterDefinition, filterQueryArgs, RequestValues} from '../../utils';
+import { RequestValues} from '../../utils';
 import { NeftyDropsContext } from '../index';
 import {buildRangeCondition} from '../utils';
 import {SaleState} from '../../../../filler/handlers/atomicmarket';
 import QueryBuilder from '../../../builder';
+import {filterQueryArgs, FiltersDefinition} from '../../validation';
 
 export async function getSellersAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
     const group_by = 'seller';
     const args = filterQueryArgs(params, marketFilterQueryArgs({
         type: 'string',
-        values: [group_by, 'sold_wax'],
+        allowedValues: [group_by, 'sold_wax'],
         default: group_by
     }));
 
@@ -52,7 +53,7 @@ export async function getBuyersAction(params: RequestValues, ctx: NeftyDropsCont
     const group_by = 'buyer';
     const args = filterQueryArgs(params, marketFilterQueryArgs({
         type: 'string',
-        values: [group_by, 'spent_wax'],
+        allowedValues: [group_by, 'spent_wax'],
         default: group_by
     }));
 
@@ -96,7 +97,7 @@ export async function getCollectionsAction(params: RequestValues, ctx: NeftyDrop
     const group_by = 'collection_name';
     const args = filterQueryArgs(params, marketFilterQueryArgs({
         type: 'string',
-        values: [group_by, 'sold_wax'],
+        allowedValues: [group_by, 'sold_wax'],
         default: group_by
     }));
 
@@ -136,7 +137,7 @@ export async function getCollectionsCountAction(params: RequestValues, ctx: Neft
     return getCollectionsAction({...params, count: 'true'}, ctx);
 }
 
-function marketFilterQueryArgs(sort: any): FilterDefinition {
+function marketFilterQueryArgs(sort: any): FiltersDefinition {
     return {
         before: {type: 'int', min: 1, default: 0},
         after: {type: 'int', min: 1, default: 0},
@@ -144,7 +145,7 @@ function marketFilterQueryArgs(sort: any): FilterDefinition {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 1000, default: 100},
         sort: sort,
-        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
         count: {type: 'bool'}
     };
 }

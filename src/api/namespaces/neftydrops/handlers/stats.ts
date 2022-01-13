@@ -1,11 +1,12 @@
 import {NeftyDropsContext} from '../index';
-import { filterQueryArgs, RequestValues } from '../../utils';
+import { RequestValues } from '../../utils';
 import { formatCollection } from '../../atomicassets/format';
 import { ApiError } from '../../../error';
 import QueryBuilder from '../../../builder';
 import { buildGreylistFilter } from '../../atomicassets/utils';
-import {buildRangeCondition} from '../../neftydrops/utils';
+import {buildRangeCondition} from '../utils';
 import { DB } from '../../../server';
+import { filterQueryArgs } from '../../validation';
 
 export async function getStatsCollectionsAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
     const args = filterQueryArgs(params, {
@@ -18,8 +19,8 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Neft
         collection_whitelist: {type: 'string', min: 1},
         collection_blacklist: {type: 'string', min: 1},
 
-        sort: {type: 'string', values: ['volume', 'sales'], default: 'volume'},
-        order: {type: 'string', values: ['desc', 'asc'], default: 'desc'},
+        sort: {type: 'string', allowedValues: ['volume', 'sales'], default: 'volume'},
+        order: {type: 'string', allowedValues: ['desc', 'asc'], default: 'desc'},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100}
     });
@@ -107,7 +108,7 @@ export async function getStatsAccountsAction(params: RequestValues, ctx: NeftyDr
         before: {type: 'int', min: 1},
         after: {type: 'int', min: 1},
 
-        sort: {type: 'string', values: ['sell_volume', 'buy_volume'], default: 'sell_volume'},
+        sort: {type: 'string', allowedValues: ['sell_volume', 'buy_volume'], default: 'sell_volume'},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100}
     });

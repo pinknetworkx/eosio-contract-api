@@ -1,13 +1,14 @@
 import { AtomicMarketContext, SaleApiState } from '../index';
 import { SaleState } from '../../../../filler/handlers/atomicmarket';
-import { filterQueryArgs, RequestValues } from '../../utils';
-import { formatCollection } from '../../atomicassets/format';
+import { RequestValues } from '../../utils';
+import { formatCollection, formatTemplate } from '../../atomicassets/format';
 import { ApiError } from '../../../error';
 import QueryBuilder from '../../../builder';
 import { buildGreylistFilter } from '../../atomicassets/utils';
 import { DB } from '../../../server';
+import { filterQueryArgs } from '../../validation';
 
-export async function getStatsCollectionsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+export async function getAllCollectionStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
         match: {type: 'string', min: 1},
@@ -18,7 +19,7 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Atom
         collection_whitelist: {type: 'string[]', min: 1},
         collection_blacklist: {type: 'string[]', min: 1},
 
-        sort: {type: 'string', values: ['volume', 'listings', 'sales'], default: 'volume'},
+        sort: {type: 'string', allowedValues: ['volume', 'listings', 'sales'], default: 'volume'},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100}
     });
@@ -39,11 +40,11 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Atom
         statsQuery.addCondition(`collection_name ILIKE ${statsQuery.addVariable(`%${args.match}%`)}`);
     }
 
-    if (args.collection_whitelist) {
+    if (args.collection_whitelist.length) {
         statsQuery.equalMany('collection_name', args.collection_whitelist);
     }
 
-    if (args.collection_blacklist) {
+    if (args.collection_blacklist.length) {
         statsQuery.notMany('collection_name', args.collection_blacklist);
     }
 
@@ -61,7 +62,7 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Atom
     return {symbol, results: query.rows.map(row => formatCollection(row))};
 }
 
-export async function getStatsCollectionAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+export async function getCollectionStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
     });
@@ -84,7 +85,7 @@ export async function getStatsCollectionAction(params: RequestValues, ctx: Atomi
     return {symbol, result: formatCollection(query.rows[0])};
 }
 
-export async function getStatsAccountsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+export async function getAllAccountStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         collection_whitelist: {type: 'string', min: 1, default: ''},
         collection_blacklist: {type: 'string', min: 1, default: ''},
@@ -94,7 +95,7 @@ export async function getStatsAccountsAction(params: RequestValues, ctx: AtomicM
         before: {type: 'int', min: 1},
         after: {type: 'int', min: 1},
 
-        sort: {type: 'string', values: ['sell_volume', 'buy_volume'], default: 'sell_volume'},
+        sort: {type: 'string', allowedValues: ['sell_volume', 'buy_volume'], default: 'sell_volume'},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100}
     });
@@ -105,7 +106,7 @@ export async function getStatsAccountsAction(params: RequestValues, ctx: AtomicM
         throw new ApiError('Symbol not found');
     }
 
-    let queryString = 'SELECT * FROM (' + buildAccountStatsQuery(args.after, args.before) + ') x ';
+    let queryString = buildAccountStatsQuery(args.after, args.before);
     const queryValues = [
         ctx.coreArgs.atomicmarket_account, args.symbol,
         args.collection_whitelist.split(',').filter((x: string) => !!x),
@@ -129,7 +130,7 @@ export async function getStatsAccountsAction(params: RequestValues, ctx: AtomicM
     return {symbol, results: query.rows};
 }
 
-export async function getStatsAccountAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+export async function getAccountStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         collection_whitelist: {type: 'string', min: 1, default: ''},
         collection_blacklist: {type: 'string', min: 1, default: ''},
@@ -143,7 +144,7 @@ export async function getStatsAccountAction(params: RequestValues, ctx: AtomicMa
         throw new ApiError('Symbol not found');
     }
 
-    const queryString = 'SELECT * FROM (' + buildAccountStatsQuery() + ') x WHERE x.account = $5 ';
+    const queryString = buildAccountStatsQuery(null, null, '$5');
     const queryValues = [
         ctx.coreArgs.atomicmarket_account, args.symbol,
         args.collection_whitelist.split(',').filter((x: string) => !!x),
@@ -160,7 +161,7 @@ export async function getStatsAccountAction(params: RequestValues, ctx: AtomicMa
     return {symbol, result: query.rows[0]};
 }
 
-export async function getStatsCollectionV1Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+export async function getSchemaStatsByCollectionV1Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
         match: {type: 'string', min: 1},
@@ -168,7 +169,7 @@ export async function getStatsCollectionV1Action(params: RequestValues, ctx: Ato
         before: {type: 'int', min: 1},
         after: {type: 'int', min: 1},
 
-        sort: {type: 'string', values: ['volume', 'listings'], default: 'volume'}
+        sort: {type: 'string', allowedValues: ['volume', 'listings'], default: 'volume'}
     });
 
     const symbol = await fetchSymbol(ctx.db, ctx.coreArgs.atomicmarket_account, args.symbol);
@@ -199,7 +200,7 @@ export async function getStatsCollectionV1Action(params: RequestValues, ctx: Ato
     return {symbol, results: query.rows};
 }
 
-export async function getStatsCollectionV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+export async function getSchemaStatsByCollectionV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
 
@@ -260,7 +261,91 @@ export async function getStatsCollectionV2Action(params: RequestValues, ctx: Ato
     return {symbol, results: result};
 }
 
-export async function getStatsMarketsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+    const args = filterQueryArgs(params, {
+        symbol: {type: 'string', min: 1},
+
+        collection_name: {type: 'string[]', min: 1},
+        schema_name: {type: 'string[]', min: 1},
+        template_id: {type: 'string[]', min: 1},
+
+        sort: {type: 'string', allowedValues: ['volume', 'sales'], default: 'volume'},
+        page: {type: 'int', min: 1, default: 1},
+        limit: {type: 'int', min: 1, max: 1000, default: 100},
+
+        before: {type: 'int', min: 1},
+        after: {type: 'int', min: 1}
+    });
+
+    const symbol = await fetchSymbol(ctx.db, ctx.coreArgs.atomicmarket_account, args.symbol);
+
+    if (!symbol) {
+        throw new ApiError('Symbol not found');
+    }
+
+    const query = new QueryBuilder(
+        'SELECT price.template_id, SUM(price.price) volume, COUNT(*) sales ' +
+        'FROM atomicmarket_stats_prices price '
+    );
+
+    query.equal('price.market_contract', ctx.coreArgs.atomicmarket_account);
+    query.equal('price.assets_contract', ctx.coreArgs.atomicassets_account);
+    query.equal('price.symbol', args.symbol);
+
+    if (args.collection_name.length > 0) {
+        query.equalMany('price.collection_name', args.collection_name);
+    }
+
+    if (args.schema_name.length > 0) {
+        query.equalMany('price.collection_name', args.schema_name);
+    }
+
+    if (args.template_id.length > 0) {
+        query.equalMany('price.template_id', args.template_id);
+    }
+
+    if (args.after) {
+        query.addCondition('price.time > ' + query.addVariable(args.after) + '::BIGINT');
+    }
+
+    if (args.before) {
+        query.addCondition('price.time < ' + query.addVariable(args.before) + '::BIGINT');
+    }
+
+    if (args.sort === 'sales') {
+        query.append('ORDER BY sales DESC');
+    } else {
+        query.append('ORDER BY volume DESC');
+    }
+
+    query.group(['price.assets_contract', 'price.template_id']);
+    query.paginate(args.page, args.limit);
+
+    const templateQuery = await ctx.db.query(query.buildString(), query.buildValues());
+
+    const templateLookup: {[key: string]: any} = {};
+    const result = await ctx.db.query(
+        'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND template_id = ANY ($2)',
+        [ctx.coreArgs.atomicassets_account, templateQuery.rows.map((row: any) => row.template_id)]
+    );
+
+    result.rows.reduce((prev: any, current: any) => {
+        prev[String(current.template_id)] = current;
+
+        return prev;
+    }, templateLookup);
+
+    return {
+        symbol,
+        results: templateQuery.rows.map((row: any) => ({
+            sales: row.sales,
+            volume: row.volume,
+            template: formatTemplate(templateLookup[String(row.template_id)])
+        }))
+    };
+}
+
+export async function getMarketStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         collection_whitelist: {type: 'string', min: 1, default: ''},
         collection_blacklist: {type: 'string', min: 1, default: ''},
@@ -438,27 +523,18 @@ function buildCollectionStatsQuery(after?: number, before?: number): string {
         `;
 }
 
-function buildAccountStatsQuery(after?: number, before?: number): string {
+function buildAccountStatsQuery(after?: number, before?: number, account?: string): string {
     return `
-        SELECT account, SUM(buy_volume_inner) buy_volume, SUM(sell_volume_inner) sell_volume
-        FROM (
-            (
-                SELECT buyer account, SUM(price) buy_volume_inner, 0 sell_volume_inner 
-                FROM atomicmarket_stats_markets
-                WHERE market_contract = $1 AND symbol = $2 
-                    ${buildRangeCondition('"time"', after, before)}
-                    ${getGreylistCondition('collection_name', 3, 4)}
-                GROUP BY buyer
-            ) UNION ALL (
-                SELECT seller account, 0 buy_volume_inner, SUM(price) sell_volume_inner 
-                FROM atomicmarket_stats_markets
-                WHERE market_contract = $1 AND symbol = $2 
-                    ${buildRangeCondition('"time"', after, before)}
-                    ${getGreylistCondition('collection_name', 3, 4)}
-                GROUP BY seller
-            )
-        ) accounts
-        GROUP BY account
+        SELECT u.account,
+            COALESCE(SUM(CASE WHEN u.account = buyer THEN price END), 0) buy_volume,
+            COALESCE(SUM(CASE WHEN u.account = seller THEN price END), 0) sell_volume
+        FROM atomicmarket_stats_markets
+            CROSS JOIN LATERAL UNNEST(ARRAY[buyer, seller]) u(account)
+        WHERE market_contract = $1 AND symbol = $2
+            ${account ? `AND (seller = ${account} OR buyer = ${account}) AND u.account = ${account}` :''} 
+            ${buildRangeCondition('"time"', after, before)}
+            ${getGreylistCondition('collection_name', 3, 4)}
+        GROUP BY u.account
         `;
 }
 

@@ -80,7 +80,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             '/v1/accounts/{account}': {
                 get: {
                     tags: ['accounts'],
-                    summary: 'Get a specific account',
+                    summary: 'Get a specific account stats',
                     parameters: [
                         {
                             name: 'account',
@@ -126,7 +126,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
             '/v1/accounts/{account}/{collection_name}': {
                 get: {
                     tags: ['accounts'],
-                    summary: 'Get templates and schemas count by account',
+                    summary: 'Retrieves the template and schema count for the given account and collection name',
                     parameters: [
                         {
                             name: 'account',
