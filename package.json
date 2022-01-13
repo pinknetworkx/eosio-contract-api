@@ -16,8 +16,8 @@
     "start:abiscan": "node ./build/bin/abiscan.js",
     "dev:server": "tsc && node --trace-warnings ./build/bin/server.js",
     "dev:filler": "tsc && node --trace-warnings ./build/bin/filler.js",
-    "dev:test": "mocha -r ts-node/register src/**/*.test.ts --reporter min",
-    "dev:test:watch": "mocha -r ts-node/register src/**/*.test.ts --watch --watch-files src/ --reporter min",
+    "dev:test": "mocha -r ts-node/register 'src/**/*.test.ts'",
+    "dev:test:watch": "mocha -r ts-node/register 'src/**/*.test.ts' --watch --watch-files src/ --reporter min",
     "dev:init-test-db": "tsc && node --trace-warnings ./build/bin/init-test-db.js"
   },
   "dependencies": {

@@ -121,13 +121,20 @@ async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
 
         symbol: {type: 'string', min: 1},
         min_price: {type: 'float', min: 0},
-        max_price: {type: 'float', min: 0}
+        max_price: {type: 'float', min: 0},
+
+        template_blacklist: {type: 'int[]', min: 1},
     });
 
     await buildMainFilterV2(search);
     buildListingFilterV2(search);
 
     buildAssetFilterV2(search);
+
+    if (args.template_blacklist.length) {
+        const ignore = args.template_blacklist.map((t: number) => `t${t}`);
+        query.addCondition(`NOT(listing.filter && ${query.addVariable(ignore)}::TEXT[])`);
+    }
 
     if (args.max_assets) {
         query.addCondition(`listing.asset_count <= ${args.max_assets}`);
@@ -169,18 +176,11 @@ function buildAssetFilterV2(search: SalesSearchOptions): void {
 
     const args = filterQueryArgs(values, {
         asset_id: {type: 'string[]', min: 1},
-
-        template_blacklist: {type: 'int[]', min: 1},
     });
 
     if (args.asset_id.length) {
         query.addCondition(`listing.asset_ids && ${query.addVariable(args.asset_id)}`);
         search.strongFilters.push('asset_ids');
-    }
-
-    if (args.template_blacklist.length) {
-        const ignore = args.template_blacklist.map((t: number) => `t${t}`);
-        query.addCondition(`NOT(listing.filter && ${query.addVariable(ignore)}::TEXT[])`);
     }
 
     const names = [values.match_immutable_name, values.match_mutable_name, values.match].filter(v => typeof v === 'string' && v.length);
