@@ -21,9 +21,15 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         throw new ApiError( "Missing required query parameter: owned_ingredients_amount");
     }
 
-    // @TODO: distinguish between 'all' and 'one'
+    let amount_to_match;
+    if(args.owned_ingredients_amount === "all"){
+        amount_to_match = 'sub.ingredients_count';
+    }
+    else{
+        amount_to_match = '1';
+    }
+
     // @TODO: use the QueryBuilder (if possible)
-    // @TODO: remove query comments
     // @TODO: add openapi spec
     // @TODO: return relevant blend info, not just the blend_id
     // @TODO: If we don't have a good constant `order by` the distinct on might
@@ -34,8 +40,9 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
             sub.blend_id, 
             sub.ingredients_count,
             count(1) ingredient_requirement_fulfilled
-        FROM(
-            SELECT DISTINCT ON(b.blend_id, a.asset_id) /* ensures that the same asset_id is not "matched" twice in the same blend */ 
+        FROM(\n` + 
+        // The `DISTINCT ON` ensures that the same asset_id is not "matched" twice in the same blend 
+           `SELECT DISTINCT ON(b.blend_id, a.asset_id) 
                 b.blend_id, 
                 a.asset_id, 
                 b.ingredients_count
@@ -47,18 +54,16 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                     (i.ingredient_type = 'TEMPLATE_INGREDIENT' AND a.template_id = i.template_id) OR
                     (i.ingredient_type = 'SCHEMA_INGREDIENT' AND a.schema_name = i.schema_name) OR
                     (i.ingredient_type = 'ATTRIBUTE_INGREDIENT' AND is_ingredient_attribute_match(a.template_id, b.blend_id, i.ingredient_index, i.total_attributes))
-            WHERE 
-                /* Assets the owner owns */
-                a.collection_name = '${args.collection_name}' AND 
-                a.owner = '${args.ingredient_owner_id}' AND
-                /* blends in collection */
-                b.collection_name = '${args.collection_name}' 
+            WHERE\n` +
+                // Assets the owner owns 
+               `a.collection_name = '${args.collection_name}' AND 
+                a.owner = '${args.ingredient_owner_id}' AND\n` +
+                // blends in collection 
+               `b.collection_name = '${args.collection_name}' 
         ) as sub
         group by sub.blend_id, sub.ingredients_count
         HAVING 
-            count(1) >= sub.ingredients_count;
-        -- worse yet: 381ms
-        -- best yet: 170ms
+            count(1) >= ${amount_to_match};
     `);
 
     const result = await ctx.db.query(query.buildString(), query.buildValues());
