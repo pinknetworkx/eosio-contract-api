@@ -55,6 +55,8 @@ export default class BlendsHandler extends ContractHandler {
                 encoding: 'utf8'
             }));
 
+            await client.query(fs.readFileSync('./definitions/functions/nefty_blends_attribute_match.sql', {encoding: 'utf8'}));
+
             logger.info('Blends tables successfully created');
             return true;
         }

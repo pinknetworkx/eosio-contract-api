@@ -27,6 +27,8 @@ CREATE TABLE neftyblends_blend_ingredients
     schema_name                character varying(12),
     amount                     integer               NOT NULL,
     effect                     jsonb,
+    ingredient_type            character varying(50) NOT NULL,
+    total_attributes           integer               NOT NULL default 0,
     updated_at_block           bigint                NOT NULL,
     updated_at_time            bigint                NOT NULL,
     created_at_block           bigint                NOT NULL,

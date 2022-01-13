@@ -178,6 +178,8 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
             amount: ingredient.amount,
             effect: encodeDatabaseJson(ingredient.effect),
             ingredient_index: ingredient.index,
+            ingredient_type: ingredient.type,
+            total_attributes: ingredient.attributes.length || 0,
             updated_at_block: blockNumber || 0,
             updated_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
             created_at_block: blockNumber || 0,
