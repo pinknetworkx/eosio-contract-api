@@ -112,7 +112,6 @@ const assetFilters: FiltersDefinition = {
     burned: {type: 'bool'},
     template_id: {type: 'string', min: 1},
     collection_name: {type: 'string', min: 1},
-    template_blacklist: {type: 'int[]', min: 1},
     schema_name: {type: 'string', min: 1},
     is_transferable: {type: 'bool'},
     is_burnable: {type: 'bool'}
@@ -176,10 +175,6 @@ export function buildAssetFilter(
         } else {
             query.addCondition(options.templateTable + '.burnable = FALSE');
         }
-    }
-
-    if (options.assetTable && args.template_blacklist.length > 0) {
-        query.notMany(`${options.assetTable}."template_id"`, args.template_blacklist);
     }
 }
 

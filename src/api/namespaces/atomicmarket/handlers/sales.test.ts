@@ -30,7 +30,6 @@ describe('AtomicMarket Sales API', () => {
 
         context('with template_blacklist args', () => {
             txit('filter out the given template matching the blacklist', async () => {
-
                 //Included
                 const templateIncluded = await client.createTemplate();
                 const offer1 = await client.createOfferAsset({}, {
