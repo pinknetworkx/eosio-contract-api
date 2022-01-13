@@ -28,6 +28,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
     // @TODO: return relevant blend info, not just the blend_id
     // @TODO: If we don't have a good constant `order by` the distinct on might
     //        return "unexpected results"
+    // @TODO: Add the sql code to create the new function this query uses
     const query = new QueryBuilder(`
         SELECT 
             sub.blend_id, 
