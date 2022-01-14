@@ -77,6 +77,20 @@ export class TransferApi {
                                 schema: {type: 'string'}
                             },
                             {
+                                name: 'memo',
+                                in: 'query',
+                                description: 'Search for exact memo',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
+                            {
+                                name: 'match_memo',
+                                in: 'query',
+                                description: 'Search for text in memo',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
+                            {
                                 name: 'asset_id',
                                 in: 'query',
                                 description: 'only transfers which contain this asset_id - separate multiple with ","',
