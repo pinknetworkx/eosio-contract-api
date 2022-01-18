@@ -104,3 +104,25 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
 
     return result.rows;
 }
+
+export async function getBlendDetails(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
+    const args = filterQueryArgs(params, {
+        ids: {type: 'string', default: ""},
+    });
+
+    // @TODO: Pagination makes more sense here?
+
+    // @TODO: have a different error message for when the query param is not missing 
+    // it has an invalid arg value
+    if(args.ids === ""){
+        throw new ApiError("Missing or invalid required query parameter: ids", 400);
+    }
+
+    let ids = args.ids.split(',');
+
+    console.log(ids);
+
+    //const result = await ctx.db.query(query.buildString(), query.buildValues());
+
+    return ids;
+}
