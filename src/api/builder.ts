@@ -64,20 +64,28 @@ export default class QueryBuilder {
         return this;
     }
 
-    notMany(column: string, values: any[]): QueryBuilder {
+    notMany(column: string, values: any[], includeNull: boolean = false): QueryBuilder {
         if (!Array.isArray(values)) {
             throw new Error('notMany only accepts arrays as value');
         }
+
+        const queryString: string[] = [];
 
         if (values.length === 1) {
             return this.unequal(column, values[0]);
         }
 
         if (values.length > 10) {
-            this.conditions.push(`NOT EXISTS (SELECT FROM UNNEST(${this.addVariable(values)}::${isWeakIntArray(values) ? 'BIGINT' : 'TEXT'}[]) u(c) WHERE u.c = ${column})`);
+            queryString.push(`NOT EXISTS (SELECT FROM UNNEST(${this.addVariable(values)}::${isWeakIntArray(values) ? 'BIGINT' : 'TEXT'}[]) u(c) WHERE u.c = ${column})`);
         } else {
-            this.conditions.push(`${column} != ALL(${this.addVariable(values)})`);
+            queryString.push(`${column} != ALL(${this.addVariable(values)})`);
         }
+
+        if (includeNull) {
+            queryString.push(`${column} IS NULL`);
+        }
+
+        this.conditions.push(`(${queryString.join(' OR ')})`);
 
         return this;
     }

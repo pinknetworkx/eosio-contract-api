@@ -37,6 +37,7 @@ describe('AtomicMarket Sales API', () => {
                 });
                 const {sale_id} = await client.createSale({offer_id: offer1.offer_id});
 
+                // Without template included
                 const offer4 = await client.createOfferAsset({}, {});
                 const {sale_id: sale_id4} = await client.createSale({offer_id: offer4.offer_id});
 
