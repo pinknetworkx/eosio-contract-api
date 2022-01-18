@@ -1,13 +1,13 @@
-import { buildBoundaryFilter, RequestValues } from '../../utils';
-import { AtomicMarketContext } from '../index';
+import {buildBoundaryFilter, RequestValues} from '../../utils';
+import {AtomicMarketContext} from '../index';
 import QueryBuilder from '../../../builder';
-import { buildAuctionFilter, hasListingFilter } from '../utils';
-import { buildGreylistFilter, hasAssetFilter, hasDataFilters } from '../../atomicassets/utils';
-import { fillAuctions } from '../filler';
-import { formatAuction } from '../format';
-import { ApiError } from '../../../error';
-import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
-import { filterQueryArgs } from '../../validation';
+import {buildAuctionFilter, hasListingFilter} from '../utils';
+import {buildGreylistFilter, hasAssetFilter, hasDataFilters} from '../../atomicassets/utils';
+import {fillAuctions} from '../filler';
+import {formatAuction} from '../format';
+import {ApiError} from '../../../error';
+import {applyActionGreylistFilters, getContractActionLogs} from '../../../utils';
+import {filterQueryArgs} from '../../validation';
 
 export async function getAuctionsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
@@ -58,7 +58,7 @@ export async function getAuctionsAction(params: RequestValues, ctx: AtomicMarket
         return countQuery.rows[0].counter;
     }
 
-    const sortMapping: {[key: string]: {column: string, nullable: boolean, numericIndex: boolean}} = {
+    const sortMapping: { [key: string]: { column: string, nullable: boolean, numericIndex: boolean } } = {
         auction_id: {column: 'listing.auction_id', nullable: false, numericIndex: true},
         ending: {column: 'listing.end_time', nullable: false, numericIndex: true},
         created: {column: 'listing.created_at_time', nullable: false, numericIndex: true},
@@ -74,7 +74,7 @@ export async function getAuctionsAction(params: RequestValues, ctx: AtomicMarket
 
     const auctionResult = await ctx.db.query(query.buildString(), query.buildValues());
 
-    const auctionLookup: {[key: string]: any} = {};
+    const auctionLookup: { [key: string]: any } = {};
     const result = await ctx.db.query(
         'SELECT * FROM atomicmarket_auctions_master WHERE market_contract = $1 AND auction_id = ANY ($2)',
         [ctx.coreArgs.atomicmarket_account, auctionResult.rows.map(row => row.auction_id)]

@@ -1,13 +1,13 @@
 import 'mocha';
-import { expect } from 'chai';
-import { getSalesAction } from './sales';
-import { SaleApiState } from '../index';
-import { OfferState } from '../../../../filler/handlers/atomicassets';
-import { SaleState } from '../../../../filler/handlers/atomicmarket';
-import { ApiError } from '../../../error';
-import { RequestValues } from '../../utils';
-import { initAtomicMarketTest } from '../test';
-import { getTestContext } from '../../../../utils/test';
+import {expect} from 'chai';
+import {getSalesAction} from './sales';
+import {SaleApiState} from '../index';
+import {OfferState} from '../../../../filler/handlers/atomicassets';
+import {SaleState} from '../../../../filler/handlers/atomicmarket';
+import {ApiError} from '../../../error';
+import {RequestValues} from '../../utils';
+import {initAtomicMarketTest} from '../test';
+import {getTestContext} from '../../../../utils/test';
 
 const {client, txit} = initAtomicMarketTest();
 
@@ -22,13 +22,44 @@ async function getSalesIds(values: RequestValues): Promise<Array<number>> {
 describe('AtomicMarket Sales API', () => {
 
     describe('getSalesAction V1', () => {
-
         txit('works without filters', async () => {
-
             const {sale_id} = await client.createSale();
 
             expect(await getSalesIds({})).to.deep.equal([sale_id]);
         });
+
+        context('with template_blacklist args', () => {
+            txit('filter out the given template matching the blacklist', async () => {
+                //Included
+                const templateIncluded = await client.createTemplate();
+                const offer1 = await client.createOfferAsset({}, {
+                    template_id: templateIncluded.template_id,
+                });
+                const {sale_id} = await client.createSale({offer_id: offer1.offer_id});
+
+                // Without template included
+                const offer4 = await client.createOfferAsset({}, {});
+                const {sale_id: sale_id4} = await client.createSale({offer_id: offer4.offer_id});
+
+                // excluded sales
+                const templateExcluded1 = await client.createTemplate();
+                const offer2 = await client.createOfferAsset({}, {
+                    template_id: templateExcluded1.template_id,
+                });
+                await client.createSale({offer_id: offer2.offer_id});
+
+                const templateExcluded2 = await client.createTemplate();
+                const offer3 = await client.createOfferAsset({}, {
+                    template_id: templateExcluded2.template_id,
+                });
+                await client.createSale({offer_id: offer3.offer_id});
+
+                expect((await getSalesIds({
+                    template_blacklist: [templateExcluded1.template_id, templateExcluded2.template_id].join(',')
+                })).sort()).to.deep.equal([sale_id, sale_id4].sort());
+            });
+        });
+
 
         txit('filters by waiting state', async () => {
             await client.createSale();
@@ -128,11 +159,9 @@ describe('AtomicMarket Sales API', () => {
         });
 
         txit('filters by maximum asset count', async () => {
-
             const {offer_id} = await client.createOfferAsset();
             await client.createOfferAsset({offer_id});
             await client.createSale({offer_id});
-
             const {sale_id} = await client.createSale();
 
             expect(await getSalesIds({max_assets: '1'}))
@@ -140,34 +169,15 @@ describe('AtomicMarket Sales API', () => {
         });
 
         txit('filters by settlement symbol', async () => {
-
-            await client.createToken({token_symbol: 'NOT_THIS'});
-
-            await client.createSale({
-                settlement_symbol: 'NOT_THIS',
-            });
-
+            await client.createToken({token_symbol: 'TOKEN1'});
+            await client.createSale({settlement_symbol: 'TOKEN1'});
             const {sale_id} = await client.createSale();
 
             expect(await getSalesIds({symbol: 'TEST'}))
                 .to.deep.equal([sale_id]);
         });
 
-        txit('throws error when minimum price filter is set without settlement symbol', async () => {
-
-            let err;
-            try {
-                await getSalesIds({min_price: '1'});
-            } catch (e) {
-                err = e;
-            }
-
-            expect(err).to.be.instanceof(ApiError);
-            expect(err.message).to.equal('Price range filters require the "symbol" filter');
-        });
-
         txit('throws error when maximum price filter is set without settlement symbol', async () => {
-
             let err;
             try {
                 await getSalesIds({max_price: '1'});
@@ -701,7 +711,7 @@ describe('AtomicMarket Sales API', () => {
             expect(result).to.haveOwnProperty('price');
             expect(result).to.haveOwnProperty('collection');
         });
-
     });
 
+    after(async () => await client.end());
 });
