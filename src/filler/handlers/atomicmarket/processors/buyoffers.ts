@@ -15,6 +15,11 @@ export function buyofferProcessor(core: AtomicMarketHandler, processor: DataProc
     destructors.push(processor.onActionTrace(
         contract, 'lognewbuyo',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogNewBuyofferActionData>): Promise<void> => {
+            // fix issue that action could be called by a different account
+            if (trace.act.authorization.find(authorization => authorization.actor !== core.args.atomicmarket_account)) {
+                return;
+            }
+
             await db.insert('atomicmarket_buyoffers', {
                 market_contract: core.args.atomicmarket_account,
                 buyoffer_id: trace.act.data.buyoffer_id,
