@@ -7,6 +7,7 @@ import AtomicMarketHandler, { AtomicMarketUpdatePriority, BuyofferState } from '
 import ApiNotificationSender from '../../../notifier';
 import { AcceptBuyofferActionData, CancelBuyofferActionData, DeclineBuyofferActionData, LogNewBuyofferActionData } from '../types/actions';
 import { preventInt64Overflow } from '../../../../utils/binary';
+import logger from '../../../../utils/winston';
 
 export function buyofferProcessor(core: AtomicMarketHandler, processor: DataProcessor, notifier: ApiNotificationSender): () => any {
     const destructors: Array<() => any> = [];
@@ -15,6 +16,16 @@ export function buyofferProcessor(core: AtomicMarketHandler, processor: DataProc
     destructors.push(processor.onActionTrace(
         contract, 'lognewbuyo',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogNewBuyofferActionData>): Promise<void> => {
+
+            const offer = await db.query(
+                'SELECT buyoffer_id FROM atomicmarket_buyoffers WHERE market_contract = $1 AND buyoffer_id = $2',
+                [core.args.atomicmarket_account, trace.act.data.buyoffer_id]
+            );
+          if (offer.rowCount > 0) {
+            logger.warn('Offer already exists. Ignoring...');
+            return;
+          }
+
             await db.insert('atomicmarket_buyoffers', {
                 market_contract: core.args.atomicmarket_account,
                 buyoffer_id: trace.act.data.buyoffer_id,
