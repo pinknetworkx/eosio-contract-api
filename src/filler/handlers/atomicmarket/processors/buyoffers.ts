@@ -19,7 +19,7 @@ export function buyofferProcessor(core: AtomicMarketHandler, processor: DataProc
             // fix issue that action could be called by a different account
             if (trace.act.authorization.find(authorization => authorization.actor !== core.args.atomicmarket_account)) {
                 logger.warn('Received lognewbuyoffer from invalid authorization');
-                
+
                 return;
             }
 

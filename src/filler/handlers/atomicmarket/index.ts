@@ -142,6 +142,16 @@ export default class AtomicMarketHandler extends ContractHandler {
             await client.query(fs.readFileSync('./definitions/views/atomicmarket_stats_prices_master.sql', {encoding: 'utf8'}));
             await client.query(fs.readFileSync('./definitions/views/atomicmarket_template_prices_master.sql', {encoding: 'utf8'}));
         }
+
+        if (version === '1.3.4') {
+            // hotfix broken filler
+            const data = await client.query('SELECT * FROM atomicmarket_buyoffers_assets WHERE buyoffer_id = 609405 AND asset_id = 1099601520940');
+
+            if (data.rowCount > 0) {
+                await client.query('DELETE FROM atomicmarket_buyoffers_assets WHERE buyoffer_id = 609405;');
+                await client.query('DELETE FROM atomicmarket_buyoffers WHERE buyoffer_id = 609405;');
+            }
+        }
     }
 
     constructor(filler: Filler, args: {[key: string]: any}) {
