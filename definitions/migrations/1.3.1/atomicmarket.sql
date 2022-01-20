@@ -16,7 +16,7 @@ AS $$
 			WHEN (sale_state = 2) THEN 2
 			WHEN (sale_state = 3) THEN 3
 			WHEN (sale_state = 1 AND offer_state != 0) THEN 4
-		END
+		END::SMALLINT
 $$;
 
 CREATE OR REPLACE FUNCTION create_atomicmarket_sales_filter(
