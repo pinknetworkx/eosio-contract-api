@@ -44,7 +44,7 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
     }
 
     if (args.search) {
-        const varName = query.addVariable(`%${args.match.replace('%', '').replace('_', '')}%`);
+        const varName = query.addVariable(`%${args.search.replace('%', '').replace('_', '')}%`);
 
         query.addCondition(`EXISTS(
             SELECT * FROM atomicassets_collections t2 
