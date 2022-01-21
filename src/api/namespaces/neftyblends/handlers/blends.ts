@@ -107,8 +107,15 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
 
 export async function getBlendDetails(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
     const args = filterQueryArgs(params, {
+        page: {type: 'int', min: 1, default: 1},
+        limit: {type: 'int', min: 1, max: 10000, default: 1000},
+        // @TODO
+        sort: {type: 'string', values: ['blend_id', 'collection_name'], default: 'blend_id'},
+        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+
         ids: {type: 'string', default: ""},
     });
+
 
     // @TODO: Pagination makes more sense here?
 
@@ -120,9 +127,154 @@ export async function getBlendDetails(params: RequestValues, ctx: NeftyBlendsCon
 
     let ids = args.ids.split(',');
 
-    console.log(ids);
+    const query = new QueryBuilder(`
+    SELECT 
+	blend.blend_id, 
+	blend.contract, 
+	blend.collection_name,
+ 	jsonb_agg(CASE
+		WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN
+			jsonb_build_object(
+				'ingredient_type', ingredient.ingredient_type,
+				'ingredient_amount', ingredient.amount,
+				'contract', temp_ing_sub.contract,
+				'template_id', temp_ing_sub.template_id,
+				'transferable is_transferable', temp_ing_sub.transferable,
+				'burnable is_burnable', temp_ing_sub.burnable,
+				'issued_supply', temp_ing_sub.issued_supply,
+				'max_supply', temp_ing_sub.max_supply,
+				'collection_name', temp_ing_sub.collection_name,
+				'authorized_accounts', temp_ing_sub.collection_authorized_accounts,
+				'collection', jsonb_build_object(
+					'collection_name', temp_ing_sub.collection_collection_name,
+					'name', temp_ing_sub.collection_data->>'name',
+					'img', temp_ing_sub.collection_data->>'img',
+					'author', temp_ing_sub.collection_author,
+					'allow_notify', temp_ing_sub.collection_allow_notify,
+					'authorized_accounts', temp_ing_sub.collection_authorized_accounts,
+					'notify_accounts', temp_ing_sub.collection_notify_accounts,
+					'market_fee', temp_ing_sub.collection_market_fee,
+					'created_at_block', temp_ing_sub.collection_created_at_block::text,
+					'created_at_time', temp_ing_sub.collection_created_at_time::text
+				),
+				'schema_name', temp_ing_sub.schema_name,
+				'schema', jsonb_build_object(
+					'schema_name', temp_ing_sub.schema_schema_name,
+					'format', temp_ing_sub.schema_format,
+					'created_at_block', temp_ing_sub.schema_created_at_block::text,
+					'created_at_time', temp_ing_sub.schema_created_at_time::text
+				),
+				'immutable_data', temp_ing_sub.immutable_data,
+				'created_at_time', temp_ing_sub.created_at_time,
+				'created_at_block', temp_ing_sub.created_at_block
+			)
+		WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN
+			jsonb_build_object(
+				'ingredient_type', ingredient.ingredient_type,
+				'ingredient_amount', ingredient.amount,
+				'format', schema_ing_sub.collection_name, 
+				'schema_name', schema_ing_sub.schema_name, 
+				'collection_name', schema_ing_sub.format,
+				'collection', jsonb_build_object(
+					'collection_name', schema_ing_sub.collection_collection_name,
+					'name', schema_ing_sub.collection_data->>'name',
+					'img', schema_ing_sub.collection_data->>'img',
+					'author', schema_ing_sub.collection_author,
+					'allow_notify', schema_ing_sub.collection_allow_notify,
+					'authorized_accounts', schema_ing_sub.collection_authorized_accounts,
+					'notify_accounts', schema_ing_sub.collection_notify_accounts,
+					'market_fee', schema_ing_sub.collection_market_fee,
+					'created_at_block', schema_ing_sub.collection_created_at_block::text,
+					'created_at_time', schema_ing_sub.collection_created_at_time::text
+				),
+				'created_at_time', schema_ing_sub.created_at_time, 
+				'created_at_block', schema_ing_sub.created_at_block
+			)
+		WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN
+            jsonb_build_object(
+                'message', 'ATTRIBUTE_INGREDIENT NOT IMPLEMENTED YET'
+            )
+		END
+	) as ingredients
+FROM 
+	neftyblends_blends blend
+	JOIN 
+		neftyblends_blend_ingredients "ingredient" ON
+		ingredient.blend_id = blend.blend_id
+	LEFT JOIN (
+		--- I would hope this * is optimized into just the columns we will use later
+		SELECT
+			template.contract as contract,
+			template_id as template_id,
+			transferable as transferable,
+			burnable as burnable,
+			issued_supply as issued_supply,
+			max_supply as max_supply,
+			"template".collection_name as collection_name,
+			collection.collection_name as collection_collection_name,
+			collection.data as collection_data,
+			collection.author as collection_author,
+			collection.allow_notify as collection_allow_notify,
+			collection.authorized_accounts as collection_authorized_accounts,
+			collection.notify_accounts as collection_notify_accounts,
+			collection.market_fee as collection_market_fee,
+			collection.created_at_block as collection_created_at_block,
+			collection.created_at_time as collection_created_at_time,
+			"template".schema_name as schema_name,
+			"schema".schema_name as schema_schema_name,
+			"schema".format as schema_format,
+			"schema".created_at_block as schema_created_at_block,
+			"schema".created_at_time as schema_created_at_time,
+			immutable_data as immutable_data,
+			"template".created_at_time as created_at_time,
+			"template".created_at_block as created_at_block
+		FROM
+			atomicassets_templates "template" 
+			JOIN 
+				atomicassets_collections collection ON
+					"template".collection_name = collection.collection_name
+			JOIN 
+				atomicassets_schemas "schema" ON
+					"template".collection_name = "schema".collection_name AND
+					"template".schema_name = "schema".schema_name
+	) as temp_ing_sub ON
+		ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' AND 
+		temp_ing_sub.template_id = ingredient.template_id
+	LEFT JOIN (
+		SELECT
+			"schema".collection_name as collection_name,
+			"schema".schema_name as schema_name,
+			"schema".format as format,
+			collection.collection_name as collection_collection_name,
+			collection.data as collection_data,
+			collection.author as collection_author,
+			collection.allow_notify as collection_allow_notify,
+			collection.authorized_accounts as collection_authorized_accounts,
+			collection.notify_accounts as collection_notify_accounts,
+			collection.market_fee as collection_market_fee,
+			collection.created_at_block as collection_created_at_block,
+			collection.created_at_time as collection_created_at_time,
+			"schema".created_at_time as created_at_time,
+			"schema".created_at_block as created_at_block
+		FROM atomicassets_schemas "schema"
+			JOIN 
+				atomicassets_collections collection ON
+					"schema".collection_name = collection.collection_name
+	)as schema_ing_sub ON
+		ingredient.ingredient_type = 'SCHEMA_INGREDIENT' AND 
+		schema_ing_sub.collection_name = ingredient.ingredient_collection_name AND
+		schema_ing_sub.schema_name = ingredient.schema_name
+            `);
+    query.equalMany('blend.blend_id', ids);
+    query.append(`
+        GROUP BY
+            blend.blend_id, 
+            blend.contract, 
+            blend.collection_name
+    `)
 
-    //const result = await ctx.db.query(query.buildString(), query.buildValues());
+    console.log(query.buildString());
 
-    return ids;
+    const result = await ctx.db.query(query.buildString(), query.buildValues());
+    return result.rows;
 }
