@@ -146,17 +146,20 @@ export function buildDropFilter(values: FilterValues, query: QueryBuilder): void
     if (args.state) {
         const stateFilters: string[] = [];
         if (args.state.split(',').indexOf(String(DropApiState.ACTIVE.valueOf())) >= 0) {
-            stateFilters.push('(ndrop.is_deleted = FALSE)');
+            stateFilters.push('(ndrop.is_deleted = FALSE AND (ndrop.end_time = 0::BIGINT OR ndrop.end_time > ' + new Date().getTime() +'::BIGINT))');
         }
         if (args.state.split(',').indexOf(String(DropApiState.DELETED.valueOf())) >= 0) {
-            stateFilters.push('(ndrop.is_deleted = TRUE');
+            stateFilters.push('ndrop.is_deleted = TRUE');
         }
         if (args.state.split(',').indexOf(String(DropApiState.SOLD_OUT.valueOf())) >= 0) {
-            stateFilters.push('(ndrop.max_claimable > 0 AND ndrop.max_claimable <= ndrop.current_claimed)');
+            stateFilters.push('(ndrop.is_deleted = FALSE AND ndrop.max_claimable > 0 AND ndrop.max_claimable <= ndrop.current_claimed)');
+        }
+        if (args.state.split(',').indexOf(String(DropApiState.ENDED.valueOf())) >= 0) {
+            stateFilters.push('(ndrop.is_deleted = FALSE AND ndrop.end_time > 0::BIGINT AND ndrop.end_time < ' + new Date().getTime() +'::BIGINT)');
         }
         query.addCondition('(' + stateFilters.join(' OR ') + ')');
     } else {
-        query.equal('ndrop.is_deleted', false);
+        query.addCondition('(ndrop.is_deleted = FALSE AND (ndrop.end_time = 0::BIGINT OR ndrop.end_time > ' + new Date().getTime() +'::BIGINT))');
     }
 
     if (!args.hidden) {
@@ -177,4 +180,3 @@ export function buildRangeCondition(column: string, after?: number, before?: num
 
     return queryStr;
 }
-
