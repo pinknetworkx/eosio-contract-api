@@ -88,7 +88,7 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
         return prev;
     }, {});
 
-    return {symbol, results: collectionResult.rows.map(row => formatCollection(collectionLookup[row.collection_name]))};
+    return {symbol, results: collectionResult.rows.map(row => formatCollection({...row, ...collectionLookup[row.collection_name]}))};
 }
 
 export async function getCollectionStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
