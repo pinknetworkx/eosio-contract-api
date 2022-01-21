@@ -49,7 +49,7 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
         query.addCondition(`EXISTS(
             SELECT * FROM atomicassets_collections t2 
             WHERE t1.assets_contract = t2.contract AND t1.collection_name = t2.collection_name AND
-            (t2.collection_name ILIKE ${varName} OR t2.data->>'name' ILIKE ${varName})
+                (t2.collection_name ILIKE ${varName} OR t2.data->>'name' ILIKE ${varName})
         )`);
     }
 
