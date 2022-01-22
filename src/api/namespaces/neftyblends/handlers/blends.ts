@@ -128,81 +128,84 @@ export async function getBlendDetails(params: RequestValues, ctx: NeftyBlendsCon
     let ids = args.ids.split(',');
 
     const query = new QueryBuilder(`
-    SELECT 
+SELECT 
 	blend.blend_id, 
 	blend.contract, 
 	blend.collection_name,
- 	jsonb_agg(CASE
-		WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN
-			jsonb_build_object(
-				'ingredient_type', ingredient.ingredient_type,
-				'ingredient_amount', ingredient.amount,
-				'contract', temp_ing_sub.contract,
-				'template_id', temp_ing_sub.template_id,
-				'transferable is_transferable', temp_ing_sub.transferable,
-				'burnable is_burnable', temp_ing_sub.burnable,
-				'issued_supply', temp_ing_sub.issued_supply,
-				'max_supply', temp_ing_sub.max_supply,
-				'collection_name', temp_ing_sub.collection_name,
-				'authorized_accounts', temp_ing_sub.collection_authorized_accounts,
-				'collection', jsonb_build_object(
-					'collection_name', temp_ing_sub.collection_collection_name,
-					'name', temp_ing_sub.collection_data->>'name',
-					'img', temp_ing_sub.collection_data->>'img',
-					'author', temp_ing_sub.collection_author,
-					'allow_notify', temp_ing_sub.collection_allow_notify,
+ 	jsonb_agg(jsonb_build_object(
+		'ingredient_type', ingredient.ingredient_type,
+		'ingredient_amount', ingredient.amount,
+		CASE
+			WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN 'template'
+			WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN 'schema'
+			WHEN ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' THEN 'attributes'
+		END,
+		CASE
+			WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN
+				jsonb_build_object(
+					'contract', temp_ing_sub.contract,
+					'template_id', temp_ing_sub.template_id,
+					'transferable is_transferable', temp_ing_sub.transferable,
+					'burnable is_burnable', temp_ing_sub.burnable,
+					'issued_supply', temp_ing_sub.issued_supply,
+					'max_supply', temp_ing_sub.max_supply,
+					'collection_name', temp_ing_sub.collection_name,
 					'authorized_accounts', temp_ing_sub.collection_authorized_accounts,
-					'notify_accounts', temp_ing_sub.collection_notify_accounts,
-					'market_fee', temp_ing_sub.collection_market_fee,
-					'created_at_block', temp_ing_sub.collection_created_at_block::text,
-					'created_at_time', temp_ing_sub.collection_created_at_time::text
-				),
-				'schema_name', temp_ing_sub.schema_name,
-				'schema', jsonb_build_object(
-					'schema_name', temp_ing_sub.schema_schema_name,
-					'format', temp_ing_sub.schema_format,
-					'created_at_block', temp_ing_sub.schema_created_at_block::text,
-					'created_at_time', temp_ing_sub.schema_created_at_time::text
-				),
-				'immutable_data', temp_ing_sub.immutable_data,
-				'created_at_time', temp_ing_sub.created_at_time,
-				'created_at_block', temp_ing_sub.created_at_block
-			)
-		WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN
-			jsonb_build_object(
-				'ingredient_type', ingredient.ingredient_type,
-				'ingredient_amount', ingredient.amount,
-				'format', schema_ing_sub.collection_name, 
-				'schema_name', schema_ing_sub.schema_name, 
-				'collection_name', schema_ing_sub.format,
-				'collection', jsonb_build_object(
-					'collection_name', schema_ing_sub.collection_collection_name,
-					'name', schema_ing_sub.collection_data->>'name',
-					'img', schema_ing_sub.collection_data->>'img',
-					'author', schema_ing_sub.collection_author,
-					'allow_notify', schema_ing_sub.collection_allow_notify,
-					'authorized_accounts', schema_ing_sub.collection_authorized_accounts,
-					'notify_accounts', schema_ing_sub.collection_notify_accounts,
-					'market_fee', schema_ing_sub.collection_market_fee,
-					'created_at_block', schema_ing_sub.collection_created_at_block::text,
-					'created_at_time', schema_ing_sub.collection_created_at_time::text
-				),
-				'created_at_time', schema_ing_sub.created_at_time, 
-				'created_at_block', schema_ing_sub.created_at_block
-			)
-		WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN
-            jsonb_build_object(
-                'message', 'ATTRIBUTE_INGREDIENT NOT IMPLEMENTED YET'
-            )
+					'collection', jsonb_build_object(
+						'collection_name', temp_ing_sub.collection_collection_name,
+						'name', temp_ing_sub.collection_data->>'name',
+						'img', temp_ing_sub.collection_data->>'img',
+						'author', temp_ing_sub.collection_author,
+						'allow_notify', temp_ing_sub.collection_allow_notify,
+						'authorized_accounts', temp_ing_sub.collection_authorized_accounts,
+						'notify_accounts', temp_ing_sub.collection_notify_accounts,
+						'market_fee', temp_ing_sub.collection_market_fee,
+						'created_at_block', temp_ing_sub.collection_created_at_block::text,
+						'created_at_time', temp_ing_sub.collection_created_at_time::text
+					),
+					'schema_name', temp_ing_sub.schema_name,
+					'schema', jsonb_build_object(
+						'schema_name', temp_ing_sub.schema_schema_name,
+						'format', temp_ing_sub.schema_format,
+						'created_at_block', temp_ing_sub.schema_created_at_block::text,
+						'created_at_time', temp_ing_sub.schema_created_at_time::text
+					),
+					'immutable_data', temp_ing_sub.immutable_data,
+					'created_at_time', temp_ing_sub.created_at_time,
+					'created_at_block', temp_ing_sub.created_at_block
+				)
+		WHEN 
+			ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN
+				jsonb_build_object(
+					'format', schema_ing_sub.collection_name, 
+					'schema_name', schema_ing_sub.schema_name, 
+					'collection_name', schema_ing_sub.format,
+					'collection', jsonb_build_object(
+						'collection_name', schema_ing_sub.collection_collection_name,
+						'name', schema_ing_sub.collection_data->>'name',
+						'img', schema_ing_sub.collection_data->>'img',
+						'author', schema_ing_sub.collection_author,
+						'allow_notify', schema_ing_sub.collection_allow_notify,
+						'authorized_accounts', schema_ing_sub.collection_authorized_accounts,
+						'notify_accounts', schema_ing_sub.collection_notify_accounts,
+						'market_fee', schema_ing_sub.collection_market_fee,
+						'created_at_block', schema_ing_sub.collection_created_at_block::text,
+						'created_at_time', schema_ing_sub.collection_created_at_time::text
+					),
+					'created_at_time', schema_ing_sub.created_at_time, 
+					'created_at_block', schema_ing_sub.created_at_block
+				)
+		WHEN 
+			ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' THEN
+					attribute_ing_sub.attributes
 		END
-	) as ingredients
+	)) as ingredients
 FROM 
 	neftyblends_blends blend
 	JOIN 
 		neftyblends_blend_ingredients "ingredient" ON
 		ingredient.blend_id = blend.blend_id
 	LEFT JOIN (
-		--- I would hope this * is optimized into just the columns we will use later
 		SELECT
 			template.contract as contract,
 			template_id as template_id,
@@ -264,6 +267,22 @@ FROM
 		ingredient.ingredient_type = 'SCHEMA_INGREDIENT' AND 
 		schema_ing_sub.collection_name = ingredient.ingredient_collection_name AND
 		schema_ing_sub.schema_name = ingredient.schema_name
+	LEFT JOIN(
+		SELECT 
+			ing_attribute.blend_id,
+			ing_attribute.ingredient_index,
+			jsonb_agg(jsonb_build_object(
+				'name', ing_attribute.attribute_name,
+				'allowed_values', ing_attribute.allowed_values
+			)) as "attributes"
+		FROM
+			neftyblends_blend_ingredient_attributes ing_attribute
+		GROUP BY
+			ing_attribute.blend_id, ing_attribute.ingredient_index
+	) as attribute_ing_sub ON
+		ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' AND 
+		attribute_ing_sub.blend_id = ingredient.blend_id AND
+		attribute_ing_sub.ingredient_index = ingredient.ingredient_index
             `);
     query.equalMany('blend.blend_id', ids);
     query.append(`
@@ -272,8 +291,6 @@ FROM
             blend.contract, 
             blend.collection_name
     `)
-
-    console.log(query.buildString());
 
     const result = await ctx.db.query(query.buildString(), query.buildValues());
     return result.rows;
