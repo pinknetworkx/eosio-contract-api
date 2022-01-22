@@ -16,6 +16,8 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         sender: {type: 'string', min: 1},
         recipient: {type: 'string', min: 1},
         state: {type: 'string', min: 1},
+        memo: {type: 'string', min: 1},
+        match_memo: {type: 'string', min: 1},
 
         asset_id: {type: 'string', min: 1},
 
@@ -55,6 +57,16 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
 
     if (args.state) {
         query.equalMany('state', args.state.split(','));
+    }
+
+    if (args.memo) {
+        query.equal('memo', args.memo);
+    }
+
+    if (args.match_memo) {
+        query.addCondition(
+            'memo ILIKE ' + query.addVariable('%' + args.match_memo.replace('%', '\\%').replace('_', '\\_') + '%')
+        );
     }
 
     if (args.is_recipient_contract === true) {
