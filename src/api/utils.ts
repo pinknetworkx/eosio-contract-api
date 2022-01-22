@@ -3,6 +3,7 @@ import {Namespace} from 'socket.io';
 import {NotificationData} from '../filler/notifier';
 import {ApiError} from './error';
 import express = require('express');
+import logger from '../utils/winston';
 
 export async function getContractActionLogs(
     db: DB, contract: string, actions: string[], condition: { [key: string]: any },
@@ -82,6 +83,8 @@ export function respondApiError(res: express.Response, error: Error): express.Re
             success: false,
             message: 'Max database query time exceeded. Please try to add more filters to your query.'
         });
+    } else {
+        logger.warn('Error occured while processing request', error);
     }
 
     return res.status(500).json({success: false, message: 'Internal Server Error'});

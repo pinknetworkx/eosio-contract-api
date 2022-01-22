@@ -19,6 +19,8 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
         account: {type: 'string', min: 1},
         sender: {type: 'string', min: 1},
         recipient: {type: 'string', min: 1},
+        memo: {type: 'string', min: 1},
+        match_memo: {type: 'string', min: 1},
 
         hide_contracts: {type: 'bool'},
 
@@ -39,6 +41,16 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
 
     if (args.recipient) {
         query.equalMany('recipient_name', args.recipient.split(','));
+    }
+
+    if (args.memo) {
+        query.equal('memo', args.memo);
+    }
+
+    if (args.match_memo) {
+        query.addCondition(
+            'memo ILIKE ' + query.addVariable('%' + args.match_memo.replace('%', '\\%').replace('_', '\\_') + '%')
+        );
     }
 
     if (hasAssetFilter(params, ['asset_id'])) {
