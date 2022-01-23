@@ -11,7 +11,7 @@ AS $$
 			WHEN (sale_state = 2) THEN 2
 			WHEN (sale_state = 3) THEN 3
 			WHEN (sale_state = 1 AND offer_state != 0) THEN 4
-		END
+		END::SMALLINT
 $$;
 
 DROP FUNCTION IF EXISTS update_atomicmarket_sales_filters;
