@@ -1,8 +1,9 @@
-import {DB, HTTPServer} from './server';
 import {Namespace} from 'socket.io';
+import * as express from 'express';
+
+import {DB, HTTPServer} from './server';
 import {NotificationData} from '../filler/notifier';
 import {ApiError} from './error';
-import express = require('express');
 import logger from '../utils/winston';
 
 export async function getContractActionLogs(
