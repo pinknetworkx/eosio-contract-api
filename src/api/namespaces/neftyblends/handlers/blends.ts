@@ -107,17 +107,8 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
 
 export async function getBlendDetails(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
     const args = filterQueryArgs(params, {
-        page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: 10000, default: 1000},
-        // @TODO
-        sort: {type: 'string', values: ['blend_id', 'collection_name'], default: 'blend_id'},
-        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
-
         ids: {type: 'string', default: ""},
     });
-
-
-    // @TODO: Pagination makes more sense here?
 
     // @TODO: have a different error message for when the query param is not missing 
     // it has an invalid arg value
@@ -156,80 +147,10 @@ FROM
 		neftyblends_blend_ingredients "ingredient" ON
 		ingredient.contract = blend.contract AND
 		ingredient.blend_id = blend.blend_id
-	LEFT JOIN (
-		SELECT
-			"template".template_id as template_id,
-			jsonb_build_object(
-				'contract', "template".contract,
-				'template_id', "template".template_id,
-				'transferable is_transferable', "template".transferable,
-				'burnable is_burnable', "template".burnable,
-				'issued_supply', "template".issued_supply,
-				'max_supply', "template".max_supply,
-				'collection_name', "template".collection_name,
-				'authorized_accounts', collection.authorized_accounts,
-				'collection', jsonb_build_object(
-					'collection_name', collection.collection_name,
-					'name', collection.data->>'name',
-					'img', collection.data->>'img',
-					'author', collection.author,
-					'allow_notify', collection.allow_notify,
-					'authorized_accounts', collection.authorized_accounts,
-					'notify_accounts', collection.notify_accounts,
-					'market_fee', collection.market_fee,
-					'created_at_block', collection.created_at_block::text,
-					'created_at_time', collection.created_at_time::text
-				),
-				'schema_name', "template".schema_name,
-				'schema', jsonb_build_object(
-					'schema_name', "schema".schema_name,
-					'format', "schema".format,
-					'created_at_block', "schema".created_at_block::text,
-					'created_at_time', "schema".created_at_time::text
-				),
-				'immutable_data', "template".immutable_data,
-				'created_at_time', "template".created_at_time,
-				'created_at_block', "template".created_at_block
-			) as template_json_object
-		FROM
-			atomicassets_templates "template" 
-			JOIN 
-				atomicassets_collections collection ON
-					"template".collection_name = collection.collection_name
-			JOIN 
-				atomicassets_schemas "schema" ON
-					"template".collection_name = "schema".collection_name AND
-					"template".schema_name = "schema".schema_name
-	) as temp_ing_sub ON
+	LEFT JOIN neftyblends_template_details_master as temp_ing_sub ON
 		ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' AND 
 		temp_ing_sub.template_id = ingredient.template_id
-	LEFT JOIN (
-		SELECT
-			"schema".collection_name as collection_name,
-			"schema".schema_name as schema_name,
-			jsonb_build_object(
-				'collection_name', collection.collection_name,
-				'format', "schema".format, 
-				'schema_name', "schema".schema_name, 
-				'collection', jsonb_build_object(
-					'collection_name', collection.collection_name,
-					'name', collection.data->>'name',
-					'img', collection.data->>'img',
-					'author', collection.author,
-					'allow_notify', collection.allow_notify,
-					'authorized_accounts', collection.authorized_accounts,
-					'notify_accounts', collection.notify_accounts,
-					'market_fee', collection.market_fee,
-					'created_at_block', collection.created_at_block::text,
-					'created_at_time', collection.created_at_time::text
-				),
-				'created_at_time', "schema".created_at_time, 
-				'created_at_block', "schema".created_at_block) as schema_json_object
-		FROM atomicassets_schemas "schema"
-			JOIN 
-				atomicassets_collections collection ON
-					"schema".collection_name = collection.collection_name
-	)as schema_ing_sub ON
+	LEFT JOIN neftyblends_schema_details_master as schema_ing_sub ON
 		ingredient.ingredient_type = 'SCHEMA_INGREDIENT' AND 
 		schema_ing_sub.collection_name = ingredient.ingredient_collection_name AND
 		schema_ing_sub.schema_name = ingredient.schema_name
@@ -285,51 +206,7 @@ FROM
                     outcome.blend_id = "result".blend_id AND
                     outcome.roll_index = "result".roll_index AND
                     outcome.outcome_index = "result".outcome_index
-                LEFT JOIN (
-                    SELECT
-                        "template".template_id as template_id,
-                        jsonb_build_object(
-                            'contract', "template".contract,
-                            'template_id', "template".template_id,
-                            'transferable is_transferable', "template".transferable,
-                            'burnable is_burnable', "template".burnable,
-                            'issued_supply', "template".issued_supply,
-                            'max_supply', "template".max_supply,
-                            'collection_name', "template".collection_name,
-                            'authorized_accounts', collection.authorized_accounts,
-                            'collection', jsonb_build_object(
-                                'collection_name', collection.collection_name,
-                                'name', collection.data->>'name',
-                                'img', collection.data->>'img',
-                                'author', collection.author,
-                                'allow_notify', collection.allow_notify,
-                                'authorized_accounts', collection.authorized_accounts,
-                                'notify_accounts', collection.notify_accounts,
-                                'market_fee', collection.market_fee,
-                                'created_at_block', collection.created_at_block::text,
-                                'created_at_time', collection.created_at_time::text
-                            ),
-                            'schema_name', "template".schema_name,
-                            'schema', jsonb_build_object(
-                                'schema_name', "schema".schema_name,
-                                'format', "schema".format,
-                                'created_at_block', "schema".created_at_block::text,
-                                'created_at_time', "schema".created_at_time::text
-                            ),
-                            'immutable_data', "template".immutable_data,
-                            'created_at_time', "template".created_at_time,
-                            'created_at_block', "template".created_at_block
-                        ) as template_json_object
-                    FROM
-                        atomicassets_templates "template" 
-                        JOIN 
-                            atomicassets_collections collection ON
-                                "template".collection_name = collection.collection_name
-                        JOIN 
-                            atomicassets_schemas "schema" ON
-                                "template".collection_name = "schema".collection_name AND
-                                "template".schema_name = "schema".schema_name
-                ) as result_template_sub ON
+                LEFT JOIN neftyblends_template_details_master as result_template_sub ON
                     "result"."type" = 'ON_DEMAND_NFT_RESULT' AND
                     cast ("result".payload->>'template_id' as bigint) = result_template_sub.template_id
             GROUP BY
@@ -347,7 +224,7 @@ FROM
     ) as roll_sub ON
         roll_sub.contract = blend.contract AND
         roll_sub.blend_id = blend.blend_id
-            `);
+    `);
     query.equalMany('blend.blend_id', ids);
     query.append(`
         GROUP BY
