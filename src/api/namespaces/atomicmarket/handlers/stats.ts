@@ -44,12 +44,12 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
     }
 
     if (args.search) {
-        const varName = query.addVariable(`%${args.search.replace('%', '').replace('_', '')}%`);
+        const varName = query.addVariable(args.search);
 
         query.addCondition(`EXISTS(
-            SELECT * FROM atomicassets_collections t2 
-            WHERE t1.assets_contract = t2.contract AND t1.collection_name = t2.collection_name AND
-                (t2.collection_name ILIKE ${varName} OR t2.data->>'name' ILIKE ${varName})
+            SELECT FROM atomicassets_collections t2 
+            WHERE t1.assets_contract = t2.contract AND t1.collection_name = t2.collection_name
+                AND ${varName} <% (t2.collection_name || ' ' || COALESCE(t2.data->>'name', ''))
         )`);
     }
 
@@ -331,12 +331,12 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
     }
 
     if (args.search) {
-        const varName = query.addVariable(`%${args.search.replace('%', '').replace('_', '')}%`);
+        const varName = query.addVariable(args.search);
 
         query.addCondition(`EXISTS(
-            SELECT * FROM atomicassets_templates template 
-            WHERE template.contract = price.assets_contract AND template.template_id = price.template_id AND
-                template.immutable_data->>'name' ILIKE ${varName}
+            SELECT FROM atomicassets_templates template 
+            WHERE template.contract = price.assets_contract AND template.template_id = price.template_id
+                AND ${varName} <% (template.immutable_data->>'name')
         )`);
     }
 
