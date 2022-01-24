@@ -118,6 +118,20 @@ export class OfferApi {
                                 schema: {type: 'string'}
                             },
                             {
+                                name: 'memo',
+                                in: 'query',
+                                description: 'Search for exact memo',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
+                            {
+                                name: 'match_memo',
+                                in: 'query',
+                                description: 'Search for text in memo',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
+                            {
                                 name: 'state',
                                 in: 'query',
                                 description: 'Filter by Offer State (' +

@@ -11,12 +11,12 @@ AS $$
 -- TODO update update_atomicmarket_sales_filters to use this function
     SELECT
         CASE
-			WHEN (sale_state = 0) THEN 0::SMALLINT
-			WHEN (sale_state = 1 AND offer_state = 0) THEN 1::SMALLINT
-			WHEN (sale_state = 2) THEN 2::SMALLINT
-			WHEN (sale_state = 3) THEN 3::SMALLINT
-			WHEN (sale_state = 1 AND offer_state != 0) THEN 4::SMALLINT
-		END
+			WHEN (sale_state = 0) THEN 0
+			WHEN (sale_state = 1 AND offer_state = 0) THEN 1
+			WHEN (sale_state = 2) THEN 2
+			WHEN (sale_state = 3) THEN 3
+			WHEN (sale_state = 1 AND offer_state != 0) THEN 4
+		END::SMALLINT
 $$;
 
 CREATE OR REPLACE FUNCTION create_atomicmarket_sales_filter(

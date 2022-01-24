@@ -5,7 +5,6 @@ import { buildAssetFillerHook, formatListingAsset } from '../format';
 import { getRawAssetsAction } from '../../atomicassets/handlers/assets';
 
 export async function getMarketAssetsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
-
     const result = await getRawAssetsAction(params, ctx, {
         extraTables: 'LEFT JOIN atomicmarket_template_prices "price" ON (asset.contract = price.assets_contract AND asset.template_id = price.template_id)',
         extraSort: {

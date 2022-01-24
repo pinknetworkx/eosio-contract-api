@@ -1,7 +1,6 @@
-
-import { OfferState } from '../../../filler/handlers/atomicassets';
+import {OfferState} from '../../../filler/handlers/atomicassets';
 import QueryBuilder from '../../builder';
-import { FiltersDefinition, filterQueryArgs, FilterValues } from '../validation';
+import {filterQueryArgs, FiltersDefinition, FilterValues} from '../validation';
 
 export function hasAssetFilter(values: FilterValues, blacklist: string[] = []): boolean {
     return Object.keys(values)
@@ -37,11 +36,11 @@ export function hasDataFilters(values: FilterValues): boolean {
     return false;
 }
 
-export function buildDataConditions(values: FilterValues, query: QueryBuilder, options: {assetTable?: string, templateTable?: string}): void {
+export function buildDataConditions(values: FilterValues, query: QueryBuilder, options: { assetTable?: string, templateTable?: string }): void {
     const keys = Object.keys(values);
 
-    function buildConditionObject(name: string): {[key: string]: string | number | boolean} {
-        const searchObject: {[key: string]: string | number} = {};
+    function buildConditionObject(name: string): { [key: string]: string | number | boolean } {
+        const searchObject: { [key: string]: string | number } = {};
 
         for (const key of keys) {
             if (key.startsWith(name + ':text.')) {
@@ -120,9 +119,9 @@ const assetFilters: FiltersDefinition = {
 
 export function buildAssetFilter(
     values: FilterValues, query: QueryBuilder,
-    options: {assetTable?: string, templateTable?: string, allowDataFilter?: boolean} = {}
+    options: { assetTable?: string, templateTable?: string, allowDataFilter?: boolean } = {}
 ): void {
-    options = Object.assign({allowDataFilter: true}, options);
+    options = {allowDataFilter: true, ...options};
 
     const args = filterQueryArgs(values, assetFilters);
 
@@ -179,7 +178,7 @@ export function buildAssetFilter(
     }
 }
 
-export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, columns: {collectionName?: string, account?: string[]}): void {
+export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, columns: { collectionName?: string, account?: string[] }): void {
     const args = filterQueryArgs(values, {
         collection_blacklist: {type: 'string', min: 1},
         collection_whitelist: {type: 'string', min: 1},

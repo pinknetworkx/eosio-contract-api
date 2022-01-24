@@ -104,6 +104,15 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
+                        {
+                            name: 'search',
+                            in: 'query',
+                            description: 'Perform a collection search',
+                            required: true,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
                         ...primaryBoundaryParameters,
                         ...dateBoundaryParameters,
                         ...paginationParameters,
@@ -291,6 +300,15 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             name: 'symbol',
                             in: 'query',
                             description: 'Token Symbol',
+                            required: true,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
+                        {
+                            name: 'search',
+                            in: 'query',
+                            description: 'Perform a collection search',
                             required: true,
                             schema: {
                                 type: 'string'
