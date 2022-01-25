@@ -152,6 +152,10 @@ function convertCollectionListName(contract: string, list_name: string, args: Co
             list = 'blacklist';
         } else if (list_name === 'verified') {
             list = 'verified';
+        } else if (list_name === 'nsfw') {
+            list = 'nsfw';
+        } else if (list_name === 'scam') {
+            list = 'scam';
         }
     }
     return list;
