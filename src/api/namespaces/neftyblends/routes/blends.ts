@@ -60,7 +60,7 @@ export function filtersEndpoints(core: NeftyBlendsNamespace, server: HTTPServer,
 export function blendDetailsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, router: express.Router): any {
     const { caching, returnAsJSON } = server.web;
     router.all(
-        '/v1/blends', 
+        '/v1/blends/:contract/:blend_id', 
         caching(), 
         returnAsJSON(getBlendDetails, core)
     );
