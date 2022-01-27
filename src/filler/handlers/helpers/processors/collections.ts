@@ -8,7 +8,7 @@ import ConnectionManager from '../../../../connections/manager';
 import {AccListTableRow, FeaturesTableRow} from '../types/tables';
 
 const atomicCollectionListRegex = /^col\..*$/g;
-const neftyCollectionListRegex = /^whitelist|verified|blacklist$/g;
+const neftyCollectionListRegex = /^whitelist|verified|blacklist|nsfw$/g;
 
 export async function initCollections(args: CollectionsListArgs, connection: ConnectionManager): Promise<void> {
     const featuresQuery = await connection.database.query(

@@ -4,7 +4,7 @@ SELECT DISTINCT t.contract, t.collection_name, t.schema_name, d.key, d.value
 FROM
     atomicassets_templates as t,
     jsonb_each(t.immutable_data) as d
-WHERE length(d.value::TEXT) < 100 AND length(d.key) < 50;
+WHERE length(d.value::TEXT) <= 50 AND length(d.key) <= 50;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS neftydrops_attribute_filters AS
 SELECT * FROM neftydrops_attribute_filters_master;
