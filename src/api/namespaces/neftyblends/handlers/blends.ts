@@ -6,12 +6,15 @@ import { ApiError } from '../../../error';
 
 export async function getIngredientOwnershipBlendFilter(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
     const args = filterQueryArgs(params, {
+        page: {type: 'int', min: 1, default: 1},
+        limit: {type: 'int', min: 1, max: 10000, default: 1000},
+        sort: {type: 'string', values: ['blend_id', 'created_at_time'], default: "blend_id"},
+        order: {type: 'string', values: ['asc', 'desc'], default: "desc"},
+
         contract: {type: 'string', default: ""},
         collection_name: {type: 'string', default: ""},
         ingredient_owner: {type: 'string', default: ""},
         ingredient_match: {type: 'string', values: ['all', 'any'], default: "any"},
-        sort: {type: 'string', values: ['blend_id', 'created_at_time'], default: "blend_id"},
-        order: {type: 'string', values: ['asc', 'desc'], default: "desc"},
         available_only: {type: 'bool', default: false},
     });
 
@@ -65,6 +68,10 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         }
     }
     else{
+        if(args.collection_name === ""){
+            throw new ApiError('Param: \'collection_name\' is required when param \'ingredient_owner\' is sent', 400);
+        }
+
         queryString=`
         SELECT 
             blend_detail.*
@@ -75,7 +82,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                 asset_matches_sub.blend_id, 
                 asset_matches_sub.ingredients_count,
                 count(1) ingredient_requirement_fulfilled
-            FROM(` +
+            FROM(\n` +
                 // The `DISTINCT ON` ensures that the same asset_id is not "matched" twice in the same blend 
     `            SELECT DISTINCT ON(b.blend_id, a.asset_id) 
                     b.contract, 
@@ -97,25 +104,25 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         {
             queryValues.push(args.ingredient_owner);
             queryString += `
-                    a.owner = $${++queryVarCounter}`
+                a.owner = $${++queryVarCounter}`
             ;
-            if(args.collection_name !== ""){
-                // Out of the assets the user owns, we only care about the ones 
-                // belonging to this collection. This assumes that a blends can 
-                // only have ingredients that are from the same collection
-                // This saves an absurd amount of time in the query! 
-                // ~(30 secs to 300ms, for the `asset_matches_sub` subquery!)
-                queryValues.push(args.collection_name);
-                queryString += `
-                    AND a.collection_name = $${++queryVarCounter}`
-                ;
 
-                // blends in collection
-                queryValues.push(args.collection_name);
-                queryString += `
-                    AND b.collection_name = $${++queryVarCounter}`
-                ;
-            }
+            // Out of the assets the user owns, we only care about the ones 
+            // belonging to this collection. This assumes that a blends can 
+            // only have ingredients that are from the same collection
+            // This saves an absurd amount of time in the query! 
+            // ~(30 secs to 300ms, for the `asset_matches_sub` subquery!)
+            queryValues.push(args.collection_name);
+            queryString += `
+                AND a.collection_name = $${++queryVarCounter}`
+            ;
+
+            // blends in collection
+            queryValues.push(args.collection_name);
+            queryString += `
+                AND b.collection_name = $${++queryVarCounter}`
+            ;
+
             if(args.contract !== ""){
                 queryValues.push(args.contract);
                 queryString += `
@@ -164,10 +171,15 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
     // the allowed values in `sort` and `order`
     queryString += `
     ORDER BY
-        blend_detail.${args.sort}
-    ${args.order};
-    `;
+        blend_detail.${args.sort} ${args.order}`;
 
+    queryValues.push(args.limit);
+    queryString += `
+    LIMIT $${++queryVarCounter}`;
+
+    queryValues.push((args.page - 1) * args.limit);
+    queryString += `
+    OFFSET $${++queryVarCounter};`;
 
     const result = await ctx.db.query(queryString, queryValues);
 
@@ -183,5 +195,11 @@ export async function getBlendDetails(params: RequestValues, ctx: NeftyBlendsCon
     query.equal('blend_detail.contract', ctx.pathParams.contract);
 
     const result = await ctx.db.query(query.buildString(), query.buildValues());
-    return result.rows;
+
+    if(result.rows.length < 1){
+        return null;
+    }
+    else{
+        return result.rows[0]
+    }
 }
