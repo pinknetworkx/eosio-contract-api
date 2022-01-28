@@ -39,6 +39,8 @@ export enum BlendsUpdatePriority {
 
 const views = [
     'neftyblends_blend_details_master',
+    'neftyblends_schema_details_master',
+    'neftyblends_templates_details_master',
 ];
 
 export default class BlendsHandler extends ContractHandler {
