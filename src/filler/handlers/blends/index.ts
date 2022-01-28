@@ -37,6 +37,10 @@ export enum BlendsUpdatePriority {
     TABLE_FEATURES = BLENDS_BASE_PRIORITY + 10,
 }
 
+const views = [
+    'neftyblends_blend_details_master',
+];
+
 export default class BlendsHandler extends ContractHandler {
     static handlerName = 'blends';
 
@@ -54,6 +58,10 @@ export default class BlendsHandler extends ContractHandler {
             await client.query(fs.readFileSync('./definitions/tables/blends_tables.sql', {
                 encoding: 'utf8'
             }));
+
+            for (const view of views) {
+                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
+            }
 
             await client.query(fs.readFileSync('./definitions/functions/nefty_blends_attribute_match.sql', {encoding: 'utf8'}));
 
