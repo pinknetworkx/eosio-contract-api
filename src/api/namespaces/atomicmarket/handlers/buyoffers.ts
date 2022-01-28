@@ -12,7 +12,7 @@ import { filterQueryArgs } from '../../validation';
 export async function getBuyOffersAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: 100, default: 100},
+        limit: {type: 'int', min: 1, max: Math.min(ctx.serverConfig.per_page_limits?.market?.buy_offers || 100), default: 100},
         sort: {
             type: 'string',
             allowedValues: [
@@ -116,7 +116,7 @@ export async function getBuyOfferAction(params: RequestValues, ctx: AtomicMarket
 export async function getBuyOfferLogsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: 100, default: 100},
+        limit: {type: 'int', min: 1, max: Math.min(ctx.serverConfig.per_page_limits?.market?.logs || 100), default: 100},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'}
     });
 

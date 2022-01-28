@@ -279,6 +279,7 @@ export class WebServer {
                     pathParams,
                     db: server,
                     coreArgs: core.args,
+                    serverConfig : this.server.config,
                 };
 
                 const result = await handler(params, ctx);

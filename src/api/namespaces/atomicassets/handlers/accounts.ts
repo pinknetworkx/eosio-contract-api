@@ -1,12 +1,10 @@
 import {oneLine} from 'common-tags';
 import {IAccountCollectionStats} from 'atomicassets/build/API/Explorer/Objects';
-
 import {buildBoundaryFilter, RequestValues} from '../../utils';
 import {AtomicAssetsContext} from '../index';
 import QueryBuilder from '../../../builder';
 import {buildGreylistFilter, buildHideOffersFilter} from '../utils';
 import {filterQueryArgs} from '../../validation';
-
 
 export {getAccountAction} from './accounts/getAccountAction';
 
@@ -21,7 +19,7 @@ export async function getAccountsAction(
 ): Promise<any> { // TODO: Use a proper type here - can't be at the moment different return types
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: 5000, default: 100},
+        limit: {type: 'int', min: 1, max: Math.min(ctx.serverConfig.per_page_limits?.assets?.accounts || 5000), default: 100},
 
         collection_name: {type: 'string', min: 1},
         schema_name: {type: 'string', min: 1},

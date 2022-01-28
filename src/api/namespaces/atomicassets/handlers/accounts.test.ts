@@ -44,6 +44,29 @@ describe('Account handler', () => {
                     atomicassets_account: asset['contract'],
                     socket_features: {asset_update: true},
                     connected_reader: 'reader',
+                },
+                serverConfig: {
+                    provider_name: 'provider name',
+                    provider_url: 'provider url',
+                    server_addr: 'server addr',
+                    server_name: 'server name',
+                    server_port: 123,
+                    cache_life: 456,
+                    trust_proxy: false,
+                    ip_whitelist: ['ip'],
+                    slow_query_threshold: 1,
+                    max_query_time_ms: 100,
+                    max_db_connections: 1,
+                    namespaces: [{
+                        name: 'namespace',
+                        path: 'path',
+                        args: {}
+                    }],
+                    per_page_limits: {
+                        assets: {
+                            accounts: 20
+                        }
+                    }
                 }
             });
 
@@ -98,6 +121,24 @@ describe('Account handler', () => {
                     atomicassets_account: asset1['contract'],
                     socket_features: {asset_update: true},
                     connected_reader: 'reader',
+                },
+                serverConfig: {
+                    provider_name: 'provider name',
+                    provider_url: 'provider url',
+                    server_addr: 'server addr',
+                    server_name: 'server name',
+                    server_port: 123,
+                    cache_life: 456,
+                    trust_proxy: false,
+                    ip_whitelist: ['ip'],
+                    slow_query_threshold: 1,
+                    max_query_time_ms: 100,
+                    max_db_connections: 1,
+                    namespaces: [{
+                        name: 'namespace',
+                        path: 'path',
+                        args: {}
+                    }]
                 }
             });
 
@@ -138,6 +179,29 @@ describe('Account handler', () => {
                     atomicassets_account: asset1['contract'],
                     socket_features: {asset_update: true},
                     connected_reader: 'reader',
+                },
+                serverConfig: {
+                    provider_name: 'provider name',
+                    provider_url: 'provider url',
+                    server_addr: 'server addr',
+                    server_name: 'server name',
+                    server_port: 123,
+                    cache_life: 456,
+                    trust_proxy: false,
+                    ip_whitelist: ['ip'],
+                    slow_query_threshold: 1,
+                    max_query_time_ms: 100,
+                    max_db_connections: 1,
+                    namespaces: [{
+                        name: 'namespace',
+                        path: 'path',
+                        args: {}
+                    }],
+                    per_page_limits: {
+                        assets: {
+                            accounts: 20
+                        }
+                    }
                 }
             });
 
@@ -168,6 +232,24 @@ describe('Account handler', () => {
                         atomicassets_account: asset1['contract'],
                         socket_features: {asset_update: true},
                         connected_reader: 'reader',
+                    },
+                    serverConfig: {
+                        provider_name: 'provider name',
+                        provider_url: 'provider url',
+                        server_addr: 'server addr',
+                        server_name: 'server name',
+                        server_port: 123,
+                        cache_life: 456,
+                        trust_proxy: false,
+                        ip_whitelist: ['ip'],
+                        slow_query_threshold: 1,
+                        max_query_time_ms: 100,
+                        max_db_connections: 1,
+                        namespaces: [{
+                            name: 'namespace',
+                            path: 'path',
+                            args: {}
+                        }]
                     }
                 });
 
@@ -200,6 +282,24 @@ describe('Account handler', () => {
                         atomicassets_account: asset1['contract'],
                         socket_features: {asset_update: true},
                         connected_reader: 'reader',
+                    },
+                    serverConfig: {
+                        provider_name: 'provider name',
+                        provider_url: 'provider url',
+                        server_addr: 'server addr',
+                        server_name: 'server name',
+                        server_port: 123,
+                        cache_life: 456,
+                        trust_proxy: false,
+                        ip_whitelist: ['ip'],
+                        slow_query_threshold: 1,
+                        max_query_time_ms: 100,
+                        max_db_connections: 1,
+                        namespaces: [{
+                            name: 'namespace',
+                            path: 'path',
+                            args: {}
+                        }]
                     }
                 });
 
@@ -232,6 +332,24 @@ describe('Account handler', () => {
                         atomicassets_account: asset1['contract'],
                         socket_features: {asset_update: true},
                         connected_reader: 'reader',
+                    },
+                    serverConfig: {
+                        provider_name: 'provider name',
+                        provider_url: 'provider url',
+                        server_addr: 'server addr',
+                        server_name: 'server name',
+                        server_port: 123,
+                        cache_life: 456,
+                        trust_proxy: false,
+                        ip_whitelist: ['ip'],
+                        slow_query_threshold: 1,
+                        max_query_time_ms: 100,
+                        max_db_connections: 1,
+                        namespaces: [{
+                            name: 'namespace',
+                            path: 'path',
+                            args: {}
+                        }]
                     }
                 });
 
@@ -269,6 +387,24 @@ describe('Account handler', () => {
                         atomicassets_account: asset1['contract'],
                         socket_features: {asset_update: true},
                         connected_reader: 'reader',
+                    },
+                    serverConfig: {
+                        provider_name: 'provider name',
+                        provider_url: 'provider url',
+                        server_addr: 'server addr',
+                        server_name: 'server name',
+                        server_port: 123,
+                        cache_life: 456,
+                        trust_proxy: false,
+                        ip_whitelist: ['ip'],
+                        slow_query_threshold: 1,
+                        max_query_time_ms: 100,
+                        max_db_connections: 1,
+                        namespaces: [{
+                            name: 'namespace',
+                            path: 'path',
+                            args: {}
+                        }]
                     }
                 });
 

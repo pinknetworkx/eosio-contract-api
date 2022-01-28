@@ -41,6 +41,42 @@ export interface IServerConfig {
     max_db_connections: number;
 
     namespaces: INamespaceConfig[];
+
+    per_page_limits?: IPerPageLimitsConfig;
+}
+
+export interface IPerPageLimitsConfig {
+    assets?: IAssetsLimitsConfig;
+    market?: IMarketLimitsConfig;
+    tools?: IToolsLimitsConfig;
+}
+
+interface IAssetsLimitsConfig {
+    accounts?: number;
+    raw_assets?: number;
+    assets_accounts?: number;
+    burns?: number;
+    collections?: number;
+    raw_offers?: number;
+    schemas?: number;
+    templates?: number;
+    raw_transfers?: number;
+    logs?: number;
+}
+
+interface IMarketLimitsConfig {
+    auctions?: number;
+    buy_offers?: number;
+    prices_templates?: number;
+    sales?: number;
+    sales_templates?: number;
+    sales_v2?: number;
+    logs?: number;
+}
+
+interface IToolsLimitsConfig {
+    links?: number;
+    logs?: number;
 }
 
 export interface INamespaceConfig {

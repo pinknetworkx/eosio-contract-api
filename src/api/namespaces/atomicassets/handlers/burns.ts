@@ -8,7 +8,7 @@ import { filterQueryArgs } from '../../validation';
 export async function getBurnsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: 5000, default: 100},
+        limit: {type: 'int', min: 1, max: Math.min(ctx.serverConfig.per_page_limits?.assets?.burns || 5000), default: 100},
 
         collection_name: {type: 'string', min: 1},
         schema_name: {type: 'string', min: 1},

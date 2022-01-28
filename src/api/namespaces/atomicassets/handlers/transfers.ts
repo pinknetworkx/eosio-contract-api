@@ -7,7 +7,7 @@ import { filterQueryArgs } from '../../validation';
 export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: 100, default: 100},
+        limit: {type: 'int', min: 1, max: Math.min(ctx.serverConfig.per_page_limits?.assets?.raw_transfers || 100), default: 100},
         sort: {type: 'string', allowedValues: ['created'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 

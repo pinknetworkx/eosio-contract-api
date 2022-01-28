@@ -10,7 +10,7 @@ import { filterQueryArgs } from '../../validation';
 export async function getTemplatesAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: 1000, default: 100},
+        limit: {type: 'int', min: 1, max: Math.min(ctx.serverConfig.per_page_limits?.assets?.templates || 1000), default: 100},
         sort: {type: 'string', allowedValues: ['created', 'name'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
@@ -163,7 +163,7 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicA
 export async function getTemplateLogsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: 100, default: 100},
+        limit: {type: 'int', min: 1, max: Math.min(ctx.serverConfig.per_page_limits?.assets?.accounts || 100), default: 100},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'}
     });
 
