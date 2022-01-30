@@ -2,7 +2,7 @@ import * as express from 'express';
 
 import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
-import { blendDetailsEndpoints, filtersEndpoints } from './routes/blends';
+import {blendsEndpoints} from './routes/blends';
 import { neftyBlendsComponents } from './openapi';
 import { ActionHandlerContext } from '../../actionhandler';
 
@@ -11,13 +11,6 @@ export type NeftyBlendsNamespaceArgs = {
 };
 
 export type NeftyBlendsContext = ActionHandlerContext<NeftyBlendsNamespaceArgs>
-
-export enum NeftyBlendsApiState {
-    CREATED = 0,
-    ACTIVE = 1,
-    SOLD_OUT = 2,
-    ENDED = 3,
-}
 
 export class NeftyBlendsNamespace extends ApiNamespace {
     static namespaceName = 'neftyblends';
@@ -37,8 +30,7 @@ export class NeftyBlendsNamespace extends ApiNamespace {
         }
 
         const endpointsDocs = [];
-        endpointsDocs.push(filtersEndpoints(this, server, router));
-        endpointsDocs.push(blendDetailsEndpoints(this, server, router));
+        endpointsDocs.push(blendsEndpoints(this, server, router));
 
         for (const doc of endpointsDocs) {
             if (doc.tag) {

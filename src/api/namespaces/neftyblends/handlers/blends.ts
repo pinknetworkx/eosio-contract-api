@@ -1,24 +1,23 @@
 import {filterQueryArgs, RequestValues} from '../../utils';
 import {NeftyBlendsContext} from '../index';
 import QueryBuilder from '../../../builder';
-import logger from '../../../../utils/winston';
 import { ApiError } from '../../../error';
 
 export async function getIngredientOwnershipBlendFilter(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: 10000, default: 1000},
-        sort: {type: 'string', values: ['blend_id', 'created_at_time'], default: "blend_id"},
-        order: {type: 'string', values: ['asc', 'desc'], default: "desc"},
+        limit: {type: 'int', min: 1, max: 100, default: 100},
+        sort: {type: 'string', values: ['blend_id', 'created_at_time'], default: 'blend_id'},
+        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
 
-        contract: {type: 'string', default: ""},
-        collection_name: {type: 'string', default: ""},
-        ingredient_owner: {type: 'string', default: ""},
-        ingredient_match: {type: 'string', values: ['all', 'any'], default: "any"},
+        contract: {type: 'string', default: ''},
+        collection_name: {type: 'string', default: ''},
+        ingredient_owner: {type: 'string', default: ''},
+        ingredient_match: {type: 'string', values: ['all', 'any'], default: 'any'},
         available_only: {type: 'bool', default: false},
     });
 
-    // @TODO: dont use default value if arg value is not in `values`, throw error 
+    // @TODO: dont use default value if arg value is not in `values`, throw error
     // instead
 
     // @TODO: add openapi spec
@@ -26,32 +25,32 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
     //        return "unexpected results"
 
     let queryVarCounter:number = 0;
-    let queryValues:any[] = [];
+    const queryValues:any[] = [];
     let queryString:string;
     // If we don't have to figure out if the owner has the assets required to
     // execute the blend the query is a lot simpler, basically just blend_details
     // view
-    if(args.ingredient_owner === ""){
+    if(args.ingredient_owner === ''){
         queryString = `
             SELECT 
                 blend_detail.*
             FROM
                 neftyblends_blend_details_master blend_detail
-            WHERE
+            WHERE 
         `;
 
         // bodge so we can always append `WHERE` to the string, even if no conditions
-        // were sent in `args`. 
+        // were sent in `args`.
         queryString += `
                 TRUE`
         ;
-        if(args.collection_name !== ""){
+        if(args.collection_name !== ''){
             queryValues.push(args.collection_name);
             queryString += `
                 AND blend_detail.collection_name = $${++queryVarCounter}`
             ;
         }
-        if(args.contract !== ""){
+        if(args.contract !== ''){
             queryValues.push(args.contract);
             queryString += `
                 AND blend_detail.contract = $${++queryVarCounter}`
@@ -68,7 +67,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         }
     }
     else{
-        if(args.collection_name === ""){
+        if(args.collection_name === ''){
             throw new ApiError('Param: \'collection_name\' is required when param \'ingredient_owner\' is sent', 400);
         }
 
@@ -83,7 +82,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                 asset_matches_sub.ingredients_count,
                 count(1) ingredient_requirement_fulfilled
             FROM(\n` +
-                // The `DISTINCT ON` ensures that the same asset_id is not "matched" twice in the same blend 
+                // The `DISTINCT ON` ensures that the same asset_id is not "matched" twice in the same blend
     `            SELECT DISTINCT ON(b.blend_id, a.asset_id) 
                     b.contract, 
                     b.blend_id, 
@@ -107,10 +106,10 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                 a.owner = $${++queryVarCounter}`
             ;
 
-            // Out of the assets the user owns, we only care about the ones 
-            // belonging to this collection. This assumes that a blends can 
+            // Out of the assets the user owns, we only care about the ones
+            // belonging to this collection. This assumes that a blends can
             // only have ingredients that are from the same collection
-            // This saves an absurd amount of time in the query! 
+            // This saves an absurd amount of time in the query!
             // ~(30 secs to 300ms, for the `asset_matches_sub` subquery!)
             queryValues.push(args.collection_name);
             queryString += `
@@ -123,7 +122,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                 AND b.collection_name = $${++queryVarCounter}`
             ;
 
-            if(args.contract !== ""){
+            if(args.contract !== ''){
                 queryValues.push(args.contract);
                 queryString += `
                     AND b.contract = $${++queryVarCounter}`
@@ -200,6 +199,6 @@ export async function getBlendDetails(params: RequestValues, ctx: NeftyBlendsCon
         return null;
     }
     else{
-        return result.rows[0]
+        return result.rows[0];
     }
 }

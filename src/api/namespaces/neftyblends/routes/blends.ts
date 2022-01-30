@@ -6,14 +6,19 @@ import {
     getOpenAPI3Responses,
     paginationParameters,
 } from '../../../docs';
-import { getIngredientOwnershipBlendFilter, getBlendDetails } from '../handlers/blends'
+import { getIngredientOwnershipBlendFilter, getBlendDetails } from '../handlers/blends';
 
-export function filtersEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, router: express.Router): any {
+export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, router: express.Router): any {
     const { caching, returnAsJSON } = server.web;
     router.all(
-        '/v1/ingredient_ownership_blend_filter', 
-        caching(), 
+        '/v1/blends',
+        caching(),
         returnAsJSON(getIngredientOwnershipBlendFilter, core)
+    );
+    router.all(
+        '/v1/blends/:contract/:blend_id',
+        caching(),
+        returnAsJSON(getBlendDetails, core)
     );
 
     // @TODO
@@ -23,13 +28,13 @@ export function filtersEndpoints(core: NeftyBlendsNamespace, server: HTTPServer,
             description: 'NeftyBlends'
         },
         paths: {
-            '/v1/ingredient_ownership_blend_filter': {
+            '/v1/blends': {
                 get: {
                     tags: ['neftyblends'],
                     summary: 'Get blends that a given collector has ingredients to',
-                    description: 
+                    description:
                         'Given a collection and an ingredient_owner, returns all ' +
-                        'the blends that both: are in that collection and that the ' + 
+                        'the blends that both: are in that collection and that the ' +
                         'ingredient_owner owns any or all ingredients to',
                     parameters: [
                         {
@@ -76,25 +81,6 @@ export function filtersEndpoints(core: NeftyBlendsNamespace, server: HTTPServer,
                     })
                 }
             },
-        }
-    };
-}
-
-export function blendDetailsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, router: express.Router): any {
-    const { caching, returnAsJSON } = server.web;
-    router.all(
-        '/v1/blends/:contract/:blend_id', 
-        caching(), 
-        returnAsJSON(getBlendDetails, core)
-    );
-
-    // @TODO
-    return {
-        tag: {
-            name: 'neftyblends',
-            description: 'NeftyBlends'
-        },
-        paths: {
             '/v1/blends/{contract}/{blend_id}': {
                 get: {
                     tags: ['neftyblends'],
