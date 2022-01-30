@@ -33,7 +33,7 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
     }
 
     const query = new QueryBuilder(
-        `SELECT collection.contract, collection.collection_name, COALESCE(stats.volume, 0), COALESCE(stats.sales, 0)
+        `SELECT collection.contract, collection.collection_name, COALESCE(stats.volume, 0) volume, COALESCE(stats.sales, 0) sales
         FROM atomicassets_collections collection LEFT JOIN (
             SELECT assets_contract, collection_name, SUM(price) volume, COUNT(*) sales 
             FROM atomicmarket_stats_markets t1
