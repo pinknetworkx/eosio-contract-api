@@ -113,7 +113,7 @@ export default class StateReceiver {
             logger.warn('Reader (' + this.name + ') start block cannot be lower than the last processed block. Ignoring config.');
         }
 
-        startBlock = Math.max(startBlock, this.config.start_block);
+        startBlock = Math.max(startBlock, this.config.start_block, 2);
 
         if (this.config.stop_block > 0 && startBlock > this.config.stop_block) {
             throw new Error('Reader end block cannot be lower than the starting block');
@@ -125,7 +125,7 @@ export default class StateReceiver {
             this.handlerDestructors.push(await handler.register(this.processor, this.notifier));
         }
 
-        this.currentBlock = Math.max(startBlock - 1, 2);
+        this.currentBlock = startBlock - 1;
         this.lastBlockUpdate = startBlock - 1;
 
         this.ship.startProcessing({
