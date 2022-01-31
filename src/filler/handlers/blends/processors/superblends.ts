@@ -17,16 +17,16 @@ import {
     getAllRowsFromTable
 } from '../../../utils';
 
-export async function initSuperBlends(args: BlendsArgs, connection: ConnectionManager): Promise<void> {
+const fillSuperBlends = async (args: BlendsArgs, connection: ConnectionManager, contract: string): Promise<void> => {
     const superBlendsCount = await connection.database.query(
         'SELECT COUNT(*) FROM neftyblends_blends WHERE assets_contract = $1 AND contract = $2',
-        [args.atomicassets_account, args.nefty_blender_account]
+        [args.atomicassets_account, contract]
     );
 
     if (Number(superBlendsCount.rows[0].count) === 0) {
         const superBlendsTable = await getAllRowsFromTable(connection.chain.rpc, {
-            json: true, code: args.nefty_blender_account,
-            scope: args.nefty_blender_account, table: 'blends'
+            json: true, code: contract,
+            scope: contract, table: 'blends'
         }, 1000) as SuperBlendTableRow[];
 
         const dbMaps = superBlendsTable.map(blend => getBlendDbRows(blend, args, null, null));
@@ -63,101 +63,116 @@ export async function initSuperBlends(args: BlendsArgs, connection: ConnectionMa
         await bulkInsert(connection.database, 'neftyblends_blend_roll_outcomes', rollOutcomesRows);
         await bulkInsert(connection.database, 'neftyblends_blend_roll_outcome_results', rollOutcomeResultsRows);
     }
+};
+
+export async function initSuperBlends(args: BlendsArgs, connection: ConnectionManager): Promise<void> {
+    await fillSuperBlends(args, connection, args.nefty_blender_account);
+    await fillSuperBlends(args, connection, args.tag_blender_account);
 }
+
+const superBlendsListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<SuperBlendTableRow>): Promise<void> => {
+    const blend = await db.query(
+        'SELECT blend_id FROM neftyblends_blends WHERE assets_contract = $1 AND contract = $2 AND blend_id = $3',
+        [core.args.atomicassets_account, contract, delta.value.blend_id]
+    );
+
+    if (!delta.present) {
+        const deleteString = 'assets_contract = $1 AND contract = $2 AND blend_id = $3';
+        const deleteValues = [core.args.atomicassets_account, contract, delta.value.blend_id];
+        await db.delete('neftyblends_blend_roll_outcome_results', {
+            str: deleteString,
+            values: deleteValues,
+        });
+        await db.delete('neftyblends_blend_roll_outcomes', {
+            str: deleteString,
+            values: deleteValues,
+        });
+        await db.delete('neftyblends_blend_rolls', {
+            str: deleteString,
+            values: deleteValues,
+        });
+        await db.delete('neftyblends_blend_ingredient_attributes', {
+            str: deleteString,
+            values: deleteValues,
+        });
+        await db.delete('neftyblends_blend_ingredients', {
+            str: deleteString,
+            values: deleteValues,
+        });
+        await db.delete('neftyblends_blends', {
+            str: deleteString,
+            values: deleteValues,
+        });
+    } else if (blend.rowCount === 0) {
+        const {
+            blendDbRow,
+            ingredientDbRows,
+            ingredientAttributesDbRows,
+            rollsDbRows,
+            rollOutcomesDbRows,
+            rollOutcomeResultsDbRows,
+        } = getBlendDbRows(
+            delta.value, core.args, block.block_num, block.timestamp
+        );
+        await db.insert('neftyblends_blends', blendDbRow, ['contract', 'blend_id']);
+        await db.insert(
+            'neftyblends_blend_ingredients',
+            ingredientDbRows,
+            ['contract', 'blend_id', 'ingredient_index']
+        );
+        if (ingredientAttributesDbRows.length > 0) {
+            await db.insert(
+                'neftyblends_blend_ingredient_attributes',
+                ingredientAttributesDbRows,
+                ['contract', 'blend_id', 'ingredient_index', 'attribute_index']
+            );
+        }
+        await db.insert(
+            'neftyblends_blend_rolls',
+            rollsDbRows,
+            ['contract', 'blend_id', 'roll_index']
+        );
+        await db.insert(
+            'neftyblends_blend_roll_outcomes',
+            rollOutcomesDbRows,
+            ['contract', 'blend_id', 'roll_index', 'outcome_index']
+        );
+        await db.insert(
+            'neftyblends_blend_roll_outcome_results',
+            rollOutcomeResultsDbRows,
+            ['contract', 'blend_id', 'roll_index', 'outcome_index', 'result_index']
+        );
+    } else {
+        await db.update('neftyblends_blends', {
+            start_time: delta.value.start_time * 1000,
+            end_time: delta.value.end_time * 1000,
+            max: delta.value.max,
+            use_count: delta.value.use_count,
+            display_data: delta.value.display_data,
+            updated_at_block: block.block_num,
+            updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
+        }, {
+            str: 'contract = $1 AND blend_id = $2',
+            values: [contract, delta.value.blend_id]
+        }, ['contract', 'blend_id']);
+    }
+};
 
 export function superBlendsProcessor(core: CollectionsListHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
     const neftyContract = core.args.nefty_blender_account;
+    const tagContract = core.args.tag_blender_account;
 
     destructors.push(processor.onContractRow(
         neftyContract, 'blends',
-        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<SuperBlendTableRow>): Promise<void> => {
-            const blend = await db.query(
-                'SELECT blend_id FROM neftyblends_blends WHERE assets_contract = $1 AND contract = $2 AND blend_id = $3',
-                [core.args.atomicassets_account, neftyContract, delta.value.blend_id]
-            );
+        superBlendsListener(core, neftyContract),
+        BlendsUpdatePriority.TABLE_FEATURES.valueOf()
+    ));
 
-            if (!delta.present) {
-                const deleteString = 'assets_contract = $1 AND contract = $2 AND blend_id = $3';
-                const deleteValues = [core.args.atomicassets_account, neftyContract, delta.value.blend_id];
-                await db.delete('neftyblends_blend_roll_outcome_results', {
-                    str: deleteString,
-                    values: deleteValues,
-                });
-                await db.delete('neftyblends_blend_roll_outcomes', {
-                    str: deleteString,
-                    values: deleteValues,
-                });
-                await db.delete('neftyblends_blend_rolls', {
-                    str: deleteString,
-                    values: deleteValues,
-                });
-                await db.delete('neftyblends_blend_ingredient_attributes', {
-                    str: deleteString,
-                    values: deleteValues,
-                });
-                await db.delete('neftyblends_blend_ingredients', {
-                    str: deleteString,
-                    values: deleteValues,
-                });
-                await db.delete('neftyblends_blends', {
-                    str: deleteString,
-                    values: deleteValues,
-                });
-            } else if (blend.rowCount === 0) {
-                const {
-                    blendDbRow,
-                    ingredientDbRows,
-                    ingredientAttributesDbRows,
-                    rollsDbRows,
-                    rollOutcomesDbRows,
-                    rollOutcomeResultsDbRows,
-                } = getBlendDbRows(
-                    delta.value, core.args, block.block_num, block.timestamp
-                );
-                await db.insert('neftyblends_blends', blendDbRow, ['contract', 'blend_id']);
-                await db.insert(
-                    'neftyblends_blend_ingredients',
-                    ingredientDbRows,
-                    ['contract', 'blend_id', 'ingredient_index']
-                );
-                if (ingredientAttributesDbRows.length > 0) {
-                    await db.insert(
-                        'neftyblends_blend_ingredient_attributes',
-                        ingredientAttributesDbRows,
-                        ['contract', 'blend_id', 'ingredient_index', 'attribute_index']
-                    );
-                }
-                await db.insert(
-                    'neftyblends_blend_rolls',
-                    rollsDbRows,
-                    ['contract', 'blend_id', 'roll_index']
-                );
-                await db.insert(
-                    'neftyblends_blend_roll_outcomes',
-                    rollOutcomesDbRows,
-                    ['contract', 'blend_id', 'roll_index', 'outcome_index']
-                );
-                await db.insert(
-                    'neftyblends_blend_roll_outcome_results',
-                    rollOutcomeResultsDbRows,
-                    ['contract', 'blend_id', 'roll_index', 'outcome_index', 'result_index']
-                );
-            } else {
-                await db.update('neftyblends_blends', {
-                    start_time: delta.value.start_time * 1000,
-                    end_time: delta.value.end_time * 1000,
-                    max: delta.value.max,
-                    use_count: delta.value.use_count,
-                    display_data: delta.value.display_data,
-                    updated_at_block: block.block_num,
-                    updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
-                }, {
-                    str: 'contract = $1 AND blend_id = $2',
-                    values: [neftyContract, delta.value.blend_id]
-                }, ['contract', 'blend_id']);
-            }
-        }, BlendsUpdatePriority.TABLE_FEATURES.valueOf()
+    destructors.push(processor.onContractRow(
+        neftyContract, 'blends',
+        superBlendsListener(core, tagContract),
+        BlendsUpdatePriority.TABLE_FEATURES.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());
@@ -254,6 +269,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
             updated_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
             created_at_block: blockNumber || 0,
             created_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
+            security_id: blend.security_id || 0,
         },
         ingredientDbRows,
         ingredientAttributesDbRows,

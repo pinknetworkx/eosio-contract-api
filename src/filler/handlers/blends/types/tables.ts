@@ -8,6 +8,7 @@ export type SuperBlendTableRow = {
     max: number,
     use_count: number,
     display_data: string,
+    security_id?: number,
 };
 
 export type Result = {

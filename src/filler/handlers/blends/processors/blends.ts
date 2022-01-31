@@ -170,6 +170,7 @@ function getBlendDbRows(blend: BlendTableRow, args: BlendsArgs, blockNumber: num
             updated_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
             created_at_block: blockNumber || 0,
             created_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
+            security_id: 0,
         },
         ingredientDbRows,
         rollDbRow: {

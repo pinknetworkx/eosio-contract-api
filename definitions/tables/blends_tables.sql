@@ -14,6 +14,7 @@ CREATE TABLE neftyblends_blends
     updated_at_time   bigint                NOT NULL,
     created_at_block  bigint                NOT NULL,
     created_at_time   bigint                NOT NULL,
+    security_id       bigint                NOT NULL,
     CONSTRAINT neftyblends_blends_pkey PRIMARY KEY (contract, blend_id)
 );
 

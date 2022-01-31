@@ -14,6 +14,7 @@ export const BLENDS_BASE_PRIORITY = ATOMICASSETS_BASE_PRIORITY + 3000;
 export type BlendsArgs = {
     atomicassets_account: string,
     nefty_blender_account: string,
+    tag_blender_account: string,
     blenderizer_account: string,
 };
 
