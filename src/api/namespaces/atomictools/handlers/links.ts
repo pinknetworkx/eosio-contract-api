@@ -19,7 +19,7 @@ export async function getLinksAction(params: RequestValues, ctx: AtomicToolsCont
         collection_whitelist: {type: 'string', min: 1},
 
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: Math.min(ctx.serverConfig.per_page_limits?.tools.links || 100), default: 100},
+        limit: {type: 'int', min: 1, max: Math.min(ctx.coreArgs.limits?.links || 100), default: 100},
         sort: {type: 'string', allowedValues: ['created'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
@@ -124,7 +124,7 @@ export async function getLinkAction(params: RequestValues, ctx: AtomicToolsConte
 export async function getLinkLogsAction(params: RequestValues, ctx: AtomicToolsContext): Promise<any> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: Math.min(ctx.serverConfig.per_page_limits?.tools.logs || 100), default: 100},
+        limit: {type: 'int', min: 1, max: Math.min(ctx.coreArgs.limits?.logs || 100), default: 100},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'}
     });
 

@@ -19,7 +19,7 @@ export async function getAccountsAction(
 ): Promise<any> { // TODO: Use a proper type here - can't be at the moment different return types
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: Math.min(ctx.serverConfig.per_page_limits?.assets?.accounts || 5000), default: 100},
+        limit: {type: 'int', min: 1, max: ctx.coreArgs.limits?.accounts || 5000, default: 100},
 
         collection_name: {type: 'string', min: 1},
         schema_name: {type: 'string', min: 1},
@@ -29,7 +29,7 @@ export async function getAccountsAction(
 
         count: {type: 'bool'}
     });
-
+    console.log(args);
     const query = new QueryBuilder('SELECT owner account, COUNT(*) as assets FROM atomicassets_assets asset');
 
     query.equal('contract', ctx.coreArgs.atomicassets_account).notNull('owner');

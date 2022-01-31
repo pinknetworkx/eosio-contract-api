@@ -44,29 +44,6 @@ describe('Account handler', () => {
                     atomicassets_account: asset['contract'],
                     socket_features: {asset_update: true},
                     connected_reader: 'reader',
-                },
-                serverConfig: {
-                    provider_name: 'provider name',
-                    provider_url: 'provider url',
-                    server_addr: 'server addr',
-                    server_name: 'server name',
-                    server_port: 123,
-                    cache_life: 456,
-                    trust_proxy: false,
-                    ip_whitelist: ['ip'],
-                    slow_query_threshold: 1,
-                    max_query_time_ms: 100,
-                    max_db_connections: 1,
-                    namespaces: [{
-                        name: 'namespace',
-                        path: 'path',
-                        args: {}
-                    }],
-                    per_page_limits: {
-                        assets: {
-                            accounts: 20
-                        }
-                    }
                 }
             });
 
@@ -121,24 +98,6 @@ describe('Account handler', () => {
                     atomicassets_account: asset1['contract'],
                     socket_features: {asset_update: true},
                     connected_reader: 'reader',
-                },
-                serverConfig: {
-                    provider_name: 'provider name',
-                    provider_url: 'provider url',
-                    server_addr: 'server addr',
-                    server_name: 'server name',
-                    server_port: 123,
-                    cache_life: 456,
-                    trust_proxy: false,
-                    ip_whitelist: ['ip'],
-                    slow_query_threshold: 1,
-                    max_query_time_ms: 100,
-                    max_db_connections: 1,
-                    namespaces: [{
-                        name: 'namespace',
-                        path: 'path',
-                        args: {}
-                    }]
                 }
             });
 
@@ -179,35 +138,48 @@ describe('Account handler', () => {
                     atomicassets_account: asset1['contract'],
                     socket_features: {asset_update: true},
                     connected_reader: 'reader',
-                },
-                serverConfig: {
-                    provider_name: 'provider name',
-                    provider_url: 'provider url',
-                    server_addr: 'server addr',
-                    server_name: 'server name',
-                    server_port: 123,
-                    cache_life: 456,
-                    trust_proxy: false,
-                    ip_whitelist: ['ip'],
-                    slow_query_threshold: 1,
-                    max_query_time_ms: 100,
-                    max_db_connections: 1,
-                    namespaces: [{
-                        name: 'namespace',
-                        path: 'path',
-                        args: {}
-                    }],
-                    per_page_limits: {
-                        assets: {
-                            accounts: 20
-                        }
-                    }
                 }
             });
 
             expect(response.length).to.equal(2);
             expect(response[0]).to.deep.equal({assets: '1', account: asset1['owner']});
             expect(response[1]).to.deep.equal({assets: '1', account: asset2['owner']});
+        });
+
+        describe('getAccountsAction', () => {
+        txit('asset count by owner of the current contract, limited to 1', async () => {
+            const asset1 = await client.createAsset({
+                owner: 'account1',
+                contract: 'contract1',
+            });
+
+            const asset2 = await client.createAsset({
+                owner: 'account2',
+                contract: asset1['contract'],
+            });
+
+            // Won't appear in the response - Different contract
+            await client.createAsset({
+                owner: asset2['owner'],
+                contract: 'contract2',
+            });
+
+            const response = await getAccountsAction({limit: 1}, {
+                db: client,
+                pathParams: {},
+                coreArgs: {
+                    atomicassets_account: asset1['contract'],
+                    socket_features: {asset_update: true},
+                    connected_reader: 'reader',
+                    limits: {
+                        accounts: 1
+                    }
+                }
+            });
+            console.log(response);
+            expect(response.length).to.equal(1);
+            expect(response[0]).to.deep.equal({assets: '1', account: asset1['owner']});
+        });
         });
 
         context('when filter match argument is given', () => {
@@ -232,24 +204,6 @@ describe('Account handler', () => {
                         atomicassets_account: asset1['contract'],
                         socket_features: {asset_update: true},
                         connected_reader: 'reader',
-                    },
-                    serverConfig: {
-                        provider_name: 'provider name',
-                        provider_url: 'provider url',
-                        server_addr: 'server addr',
-                        server_name: 'server name',
-                        server_port: 123,
-                        cache_life: 456,
-                        trust_proxy: false,
-                        ip_whitelist: ['ip'],
-                        slow_query_threshold: 1,
-                        max_query_time_ms: 100,
-                        max_db_connections: 1,
-                        namespaces: [{
-                            name: 'namespace',
-                            path: 'path',
-                            args: {}
-                        }]
                     }
                 });
 
@@ -282,24 +236,6 @@ describe('Account handler', () => {
                         atomicassets_account: asset1['contract'],
                         socket_features: {asset_update: true},
                         connected_reader: 'reader',
-                    },
-                    serverConfig: {
-                        provider_name: 'provider name',
-                        provider_url: 'provider url',
-                        server_addr: 'server addr',
-                        server_name: 'server name',
-                        server_port: 123,
-                        cache_life: 456,
-                        trust_proxy: false,
-                        ip_whitelist: ['ip'],
-                        slow_query_threshold: 1,
-                        max_query_time_ms: 100,
-                        max_db_connections: 1,
-                        namespaces: [{
-                            name: 'namespace',
-                            path: 'path',
-                            args: {}
-                        }]
                     }
                 });
 
@@ -332,24 +268,6 @@ describe('Account handler', () => {
                         atomicassets_account: asset1['contract'],
                         socket_features: {asset_update: true},
                         connected_reader: 'reader',
-                    },
-                    serverConfig: {
-                        provider_name: 'provider name',
-                        provider_url: 'provider url',
-                        server_addr: 'server addr',
-                        server_name: 'server name',
-                        server_port: 123,
-                        cache_life: 456,
-                        trust_proxy: false,
-                        ip_whitelist: ['ip'],
-                        slow_query_threshold: 1,
-                        max_query_time_ms: 100,
-                        max_db_connections: 1,
-                        namespaces: [{
-                            name: 'namespace',
-                            path: 'path',
-                            args: {}
-                        }]
                     }
                 });
 
@@ -387,24 +305,6 @@ describe('Account handler', () => {
                         atomicassets_account: asset1['contract'],
                         socket_features: {asset_update: true},
                         connected_reader: 'reader',
-                    },
-                    serverConfig: {
-                        provider_name: 'provider name',
-                        provider_url: 'provider url',
-                        server_addr: 'server addr',
-                        server_name: 'server name',
-                        server_port: 123,
-                        cache_life: 456,
-                        trust_proxy: false,
-                        ip_whitelist: ['ip'],
-                        slow_query_threshold: 1,
-                        max_query_time_ms: 100,
-                        max_db_connections: 1,
-                        namespaces: [{
-                            name: 'namespace',
-                            path: 'path',
-                            args: {}
-                        }]
                     }
                 });
 

@@ -278,8 +278,7 @@ export class WebServer {
                 const ctx: ActionHandlerContext<any> = {
                     pathParams,
                     db: server,
-                    coreArgs: core.args,
-                    serverConfig : this.server.config,
+                    coreArgs: core.args
                 };
 
                 const result = await handler(params, ctx);

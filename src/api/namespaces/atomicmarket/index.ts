@@ -18,6 +18,7 @@ import ApiNotificationReceiver from '../../notification';
 import { buyoffersEndpoints, buyofferSockets } from './routes/buyoffers';
 import { assetsEndpoints } from './routes/assets';
 import { ActionHandlerContext } from '../../actionhandler';
+import {ILimits} from "../../../types/config";
 
 export type AtomicMarketNamespaceArgs = {
     atomicmarket_account: string
@@ -29,7 +30,8 @@ export type AtomicMarketNamespaceArgs = {
 
     socket_features: {
         asset_update: boolean
-    }
+    },
+    limits?: ILimits
 };
 
 export enum SaleApiState {

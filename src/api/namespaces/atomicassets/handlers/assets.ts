@@ -112,7 +112,7 @@ export async function getRawAssetsAction(
     options?: {extraTables: string, extraSort: SortColumnMapping}): Promise<Array<number> | string> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: Math.min(ctx.serverConfig.per_page_limits?.assets?.raw_assets || 1000), default: 100},
+        limit: {type: 'int', min: 1, max: Math.min(ctx.coreArgs.limits?.raw_assets || 1000), default: 100},
         sort: {type: 'string', min: 1},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
@@ -202,7 +202,7 @@ export async function getAssetStatsAction(params: RequestValues, ctx: AtomicAsse
 export async function getAssetLogsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: Math.min(ctx.serverConfig.per_page_limits?.assets?.logs || 100), default: 100},
+        limit: {type: 'int', min: 1, max: Math.min(ctx.coreArgs.limits?.logs || 100), default: 100},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
         action_whitelist: {type: 'string', min: 1},
         action_blacklist: {type: 'string', min: 1}

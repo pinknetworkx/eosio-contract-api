@@ -41,14 +41,6 @@ export interface IServerConfig {
     max_db_connections: number;
 
     namespaces: INamespaceConfig[];
-
-    per_page_limits?: IPerPageLimitsConfig;
-}
-
-export interface IPerPageLimitsConfig {
-    assets?: IAssetsLimitsConfig;
-    market?: IMarketLimitsConfig;
-    tools?: IToolsLimitsConfig;
 }
 
 interface IAssetsLimitsConfig {
@@ -63,6 +55,7 @@ interface IAssetsLimitsConfig {
     raw_transfers?: number;
     logs?: number;
 }
+
 
 interface IMarketLimitsConfig {
     auctions?: number;
@@ -82,8 +75,13 @@ interface IToolsLimitsConfig {
 export interface INamespaceConfig {
     name: string;
     path: string;
-    args: {[key: string]: any};
+    args: {
+        [key: string]: any,
+        limits?: ILimits
+    };
 }
+
+export type ILimits = IAssetsLimitsConfig & IMarketLimitsConfig & IToolsLimitsConfig & Record<string, number>
 
 export interface IReaderConfig {
     name: string;
