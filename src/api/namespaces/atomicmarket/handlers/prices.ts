@@ -199,7 +199,7 @@ export async function getPricesTemplatesAction(params: RequestValues, ctx: Atomi
         symbol: {type: 'string', min: 1},
 
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: Math.min(ctx.coreArgs.limits?.prices_templates || 1000), default: 100},
+        limit: {type: 'int', min: 1, max: ctx.coreArgs.limits?.prices_templates || 1000, default: 100},
     });
 
     const query = new QueryBuilder(

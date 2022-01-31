@@ -22,7 +22,7 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
         state: {type: 'string[]', min: 1},
 
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: Math.min(ctx.coreArgs.limits?.sales_v2 || 100), default: 100},
+        limit: {type: 'int', min: 1, max: ctx.coreArgs.limits?.sales_v2 || 100, default: 100},
         sort: {
             type: 'string',
             allowedValues: [

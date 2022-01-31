@@ -10,7 +10,7 @@ import { filterQueryArgs } from '../../validation';
 export async function getSchemasAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: Math.min(ctx.coreArgs.limits?.schemas || 100), default: 100},
+        limit: {type: 'int', min: 1, max: ctx.coreArgs.limits?.schemas || 100, default: 100},
         sort: {type: 'string', allowedValues: ['created', 'schema_name'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
@@ -108,7 +108,7 @@ export async function getSchemaStatsAction(params: RequestValues, ctx: AtomicAss
 export async function getSchemaLogsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: Math.min(ctx.coreArgs.limits?.logs || 100), default: 100},
+        limit: {type: 'int', min: 1, max: ctx.coreArgs.limits?.logs || 100, default: 100},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'}
     });
 
