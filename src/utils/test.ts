@@ -99,6 +99,6 @@ export function getTestContext(db: DB, pathParams: RequestValues = {}): AtomicMa
             socket_features: {
                 asset_update: false,
             },
-        }
+        },
     };
 }

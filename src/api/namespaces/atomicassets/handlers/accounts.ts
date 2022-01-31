@@ -29,7 +29,7 @@ export async function getAccountsAction(
 
         count: {type: 'bool'}
     });
-    console.log(args);
+
     const query = new QueryBuilder('SELECT owner account, COUNT(*) as assets FROM atomicassets_assets asset');
 
     query.equal('contract', ctx.coreArgs.atomicassets_account).notNull('owner');

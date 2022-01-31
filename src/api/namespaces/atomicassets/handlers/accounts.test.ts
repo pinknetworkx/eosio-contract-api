@@ -146,40 +146,74 @@ describe('Account handler', () => {
             expect(response[1]).to.deep.equal({assets: '1', account: asset2['owner']});
         });
 
-        describe('getAccountsAction', () => {
-        txit('asset count by owner of the current contract, limited to 1', async () => {
-            const asset1 = await client.createAsset({
-                owner: 'account1',
-                contract: 'contract1',
-            });
+        describe('getAccountsAction limits', () => {
+            txit('asset count by owner of the current contract, limited to 2', async () => {
+                const asset1 = await client.createAsset({
+                    owner: 'account1',
+                    contract: 'contract',
+                });
 
-            const asset2 = await client.createAsset({
-                owner: 'account2',
-                contract: asset1['contract'],
-            });
+                const asset2 = await client.createAsset({
+                    owner: 'account2',
+                    contract: asset1['contract'],
+                });
 
-            // Won't appear in the response - Different contract
-            await client.createAsset({
-                owner: asset2['owner'],
-                contract: 'contract2',
-            });
+                const asset3 = await client.createAsset({
+                    owner: 'account3',
+                    contract: asset1['contract'],
+                });
 
-            const response = await getAccountsAction({limit: 1}, {
-                db: client,
-                pathParams: {},
-                coreArgs: {
-                    atomicassets_account: asset1['contract'],
-                    socket_features: {asset_update: true},
-                    connected_reader: 'reader',
-                    limits: {
-                        accounts: 1
+                const response = await getAccountsAction({limit: '2'}, {
+                    db: client,
+                    pathParams: {},
+                    coreArgs: {
+                        atomicassets_account: asset1['contract'],
+                        socket_features: {asset_update: true},
+                        connected_reader: 'reader',
+                        limits: {
+                            accounts: 2
+                        }
                     }
-                }
+                });
+                expect(response.length).to.equal(2);
+                expect(response[0]).to.deep.equal({assets: '1', account: asset1['owner']});
             });
-            console.log(response);
-            expect(response.length).to.equal(1);
-            expect(response[0]).to.deep.equal({assets: '1', account: asset1['owner']});
-        });
+
+            txit('limit bigger than set max', async () => {
+                const asset1 = await client.createAsset({
+                    owner: 'account1',
+                    contract: 'contract',
+                });
+
+                const asset2 = await client.createAsset({
+                    owner: 'account2',
+                    contract: asset1['contract'],
+                });
+
+                const asset3 = await client.createAsset({
+                    owner: 'account3',
+                    contract: asset1['contract'],
+                });
+                let response;
+                try {
+                    response = await getAccountsAction({limit: '3'}, {
+                        db: client,
+                        pathParams: {},
+                        coreArgs: {
+                            atomicassets_account: asset1['contract'],
+                            socket_features: {asset_update: true},
+                            connected_reader: 'reader',
+                            limits: {
+                                accounts: 2
+                            }
+                        }
+                    });
+                } catch (error) {
+                    response = error;
+                }
+                expect(response.code).to.equal(400);
+                expect(response.message).to.contain('Invalid value for parameter limit');
+            });
         });
 
         context('when filter match argument is given', () => {

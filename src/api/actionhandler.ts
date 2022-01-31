@@ -1,6 +1,5 @@
 import { DB } from './server';
 import { RequestValues } from './namespaces/utils';
-import { IServerConfig } from "../types/config";
 
 export interface ActionHandlerContext<T> {
     pathParams: RequestValues,
