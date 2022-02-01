@@ -19,18 +19,22 @@ import { buyoffersEndpoints, buyofferSockets } from './routes/buyoffers';
 import { assetsEndpoints } from './routes/assets';
 import { ActionHandlerContext } from '../../actionhandler';
 
-export type AtomicMarketNamespaceArgs = {
-    atomicmarket_account: string
+export interface AtomicMarketNamespaceArgs {
+    connected_reader: string;
+
+    atomicmarket_account: string;
     // optional
-    atomicassets_account: string,
-    delphioracle_account: string,
+    atomicassets_account: string;
+    delphioracle_account: string;
 
-    connected_reader: string,
+    socket_features?: {
+        asset_update?: boolean;
+    };
 
-    socket_features: {
-        asset_update: boolean
-    }
-};
+    api_features?: {
+        disable_v1_sales?: boolean;
+    };
+}
 
 export enum SaleApiState {
     WAITING = 0,

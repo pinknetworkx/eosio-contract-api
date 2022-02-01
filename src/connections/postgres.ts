@@ -24,7 +24,7 @@ export default class PostgresConnection {
         this.name = host + '::' + port + '::' + database;
     }
 
-    async init(): Promise<void> {
+    async connect(): Promise<void> {
         if (this.initialized) {
             return;
         }
@@ -43,13 +43,13 @@ export default class PostgresConnection {
     }
 
     async query(queryText: string, values: any[] = []): Promise<QueryResult> {
-        await this.init();
+        await this.connect();
 
         return await this.pool.query(queryText, values);
     }
 
     async begin(): Promise<PoolClient> {
-        await this.init();
+        await this.connect();
 
         const client = await this.pool.connect();
 

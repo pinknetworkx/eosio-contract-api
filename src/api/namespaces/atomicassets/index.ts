@@ -17,10 +17,12 @@ import { burnEndpoints } from './routes/burns';
 import { ActionHandlerContext } from '../../actionhandler';
 
 export type AtomicAssetsNamespaceArgs = {
-    atomicassets_account: string,
     connected_reader: string,
-    socket_features: {
-        asset_update: boolean
+
+    atomicassets_account: string,
+
+    socket_features?: {
+        asset_update?: boolean
     }
 };
 
