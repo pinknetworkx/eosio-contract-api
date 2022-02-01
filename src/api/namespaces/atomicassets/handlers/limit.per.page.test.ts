@@ -4,27 +4,25 @@ import {initAtomicAssetsTest} from "../test";
 
 describe('getAccountsAction limits', () => {
     const {client, txit} = initAtomicAssetsTest();
-    let asset1:Record<string, any>;
-    let asset2:Record<string, any>;
-    let asset3:Record<string, any>;
-    before( async () => {
-        asset1 = await client.createAsset({
-            owner: 'account1',
-            contract: 'contract',
-        });
-
-        asset2 = await client.createAsset({
-            owner: 'account2',
-            contract: asset1['contract'],
-        });
-
-        asset3 = await client.createAsset({
-            owner: 'account3',
-            contract: asset1['contract'],
-        });
-
+    after(async () => {
+        await client.end();
     });
+
     txit('asset count by owner of the current contract, limited to 2', async () => {
+        const asset1 = await client.createAsset({
+            owner: 'accountlim1',
+            contract: 'contractlim',
+        });
+
+        const asset2 = await client.createAsset({
+            owner: 'accountlim2',
+            contract: asset1['contract'],
+        });
+
+        const asset3 = await client.createAsset({
+            owner: 'accountlim3',
+            contract: asset1['contract'],
+        });
         const response = await getAccountsAction({limit: '2'}, {
             db: client,
             pathParams: {},
@@ -41,6 +39,20 @@ describe('getAccountsAction limits', () => {
     });
 
     txit('limit bigger than set max', async () => {
+        const asset1 = await client.createAsset({
+            owner: 'accountlim1',
+            contract: 'contractlim',
+        });
+
+        const asset2 = await client.createAsset({
+            owner: 'accountlim2',
+            contract: asset1['contract'],
+        });
+
+        const asset3 = await client.createAsset({
+            owner: 'accountlim3',
+            contract: asset1['contract'],
+        });
         let response;
         try {
             response = await getAccountsAction({limit: '3'}, {
@@ -63,6 +75,20 @@ describe('getAccountsAction limits', () => {
     });
 
     txit('set max smaller than default', async () => {
+        const asset1 = await client.createAsset({
+            owner: 'accountlim1',
+            contract: 'contractlim',
+        });
+
+        const asset2 = await client.createAsset({
+            owner: 'accountlim2',
+            contract: asset1['contract'],
+        });
+
+        const asset3 = await client.createAsset({
+            owner: 'accountlim3',
+            contract: asset1['contract'],
+        });
         const response = await getAccountsAction({}, {
             db: client,
             pathParams: {},
