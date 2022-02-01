@@ -1,28 +1,22 @@
-import {filterQueryArgs, RequestValues} from '../../utils';
+import {RequestValues} from '../../utils';
 import {NeftyBlendsContext} from '../index';
 import QueryBuilder from '../../../builder';
 import { ApiError } from '../../../error';
+import {filterQueryArgs} from '../../validation';
 
 export async function getIngredientOwnershipBlendFilter(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: 100, default: 100},
-        sort: {type: 'string', values: ['blend_id', 'created_at_time'], default: 'blend_id'},
-        order: {type: 'string', values: ['asc', 'desc'], default: 'desc'},
+        limit: {type: 'int', min: 1, max: 1000, default: 100},
+        sort: {type: 'string', allowedValues: ['blend_id', 'created_at_time'], default: 'blend_id'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
         contract: {type: 'string', default: ''},
         collection_name: {type: 'string', default: ''},
         ingredient_owner: {type: 'string', default: ''},
-        ingredient_match: {type: 'string', values: ['all', 'any'], default: 'any'},
+        ingredient_match: {type: 'string', allowedValues: ['all', 'any'], default: 'any'},
         available_only: {type: 'bool', default: false},
     });
-
-    // @TODO: dont use default value if arg value is not in `values`, throw error
-    // instead
-
-    // @TODO: add openapi spec
-    // @TODO: If we don't have a good constant `order by` the `distinct on` might
-    //        return "unexpected results"
 
     let queryVarCounter:number = 0;
     const queryValues:any[] = [];

@@ -21,7 +21,6 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
         returnAsJSON(getBlendDetails, core)
     );
 
-    // @TODO
     return {
         tag: {
             name: 'neftyblends',
