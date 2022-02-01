@@ -8,9 +8,10 @@ import { applyActionGreylistFilters, getContractActionLogs } from '../../../util
 import { filterQueryArgs } from '../../validation';
 
 export async function getCollectionsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
+    const maxLimit = ctx.coreArgs.limits?.collections || 100;
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: ctx.coreArgs.limits?.collections || 100, default: 100},
+        limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         sort: {type: 'string', allowedValues: ['created', 'collection_name'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
@@ -125,9 +126,10 @@ export async function getCollectionSchemasAction(params: RequestValues, ctx: Ato
 }
 
 export async function getCollectionLogsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
+    const maxLimit = ctx.coreArgs.limits?.logs || 100;
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: ctx.coreArgs.limits?.logs || 100, default: 100},
+        limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'}
     });
 

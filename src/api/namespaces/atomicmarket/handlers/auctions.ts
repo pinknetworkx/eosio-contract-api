@@ -10,9 +10,10 @@ import {applyActionGreylistFilters, getContractActionLogs} from '../../../utils'
 import {filterQueryArgs} from '../../validation';
 
 export async function getAuctionsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+    const maxLimit = ctx.coreArgs.limits?.auctions || 100;
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: ctx.coreArgs.limits?.auctions || 100, default: 100},
+        limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         sort: {
             type: 'string',
             allowedValues: [
@@ -113,9 +114,10 @@ export async function getAuctionAction(params: RequestValues, ctx: AtomicMarketC
 }
 
 export async function getAuctionLogsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+    const maxLimit = ctx.coreArgs.limits?.logs || 100;
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: ctx.coreArgs.limits?.logs || 100, default: 100},
+        limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'}
     });
 

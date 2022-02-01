@@ -29,9 +29,10 @@ export async function getSaleAction(params: RequestValues, ctx: AtomicMarketCont
 }
 
 export async function getSaleLogsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+    const maxLimit = ctx.coreArgs.limits?.logs || 100;
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: ctx.coreArgs.limits?.logs || 100, default: 100},
+        limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'}
     });
 
@@ -44,9 +45,10 @@ export async function getSaleLogsAction(params: RequestValues, ctx: AtomicMarket
 }
 
 export async function getSalesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+    const maxLimit = ctx.coreArgs.limits?.sales || 100;
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: ctx.coreArgs.limits?.sales || 100, default: 100},
+        limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         collection_name: {type: 'string', min: 1},
         state: {type: 'string', min: 1},
         sort: {
@@ -124,6 +126,7 @@ export async function getSalesCountAction(params: RequestValues, ctx: AtomicMark
 }
 
 export async function getSalesTemplatesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+    const maxLimit = ctx.coreArgs.limits?.sales_templates || 100;
     const args = filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
         collection_name: {type: 'string', min: 1},
@@ -133,7 +136,7 @@ export async function getSalesTemplatesAction(params: RequestValues, ctx: Atomic
         max_price: {type: 'float', min: 0},
 
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: ctx.coreArgs.limits?.sales_templates || 100, default: 100},
+        limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         sort: {
             type: 'string',
             allowedValues: ['template_id', 'price'],

@@ -17,12 +17,12 @@ type SalesSearchOptions = {
 }
 
 export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
-
+    const maxLimit = ctx.coreArgs.limits?.sales_v2 || 100;
     const args = filterQueryArgs(params, {
         state: {type: 'string[]', min: 1},
 
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: ctx.coreArgs.limits?.sales_v2 || 100, default: 100},
+        limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         sort: {
             type: 'string',
             allowedValues: [
