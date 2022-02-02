@@ -6,7 +6,7 @@ import { applyActionGreylistFilters, getContractActionLogs } from '../../../util
 import { filterQueryArgs } from '../../validation';
 
 export async function getRawOffersAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
-    const maxLimit = ctx.coreArgs.limits?.raw_offers || 100;
+    const maxLimit = ctx.coreArgs.limits?.offers || 100;
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},

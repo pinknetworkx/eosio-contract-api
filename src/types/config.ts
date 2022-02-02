@@ -45,21 +45,21 @@ export interface IServerConfig {
 
 interface IAssetsLimitsConfig {
     accounts?: number;
-    raw_assets?: number;
+    assets?: number;
     assets_accounts?: number;
     burns?: number;
     collections?: number;
-    raw_offers?: number;
+    offers?: number;
     schemas?: number;
     templates?: number;
-    raw_transfers?: number;
+    transfers?: number;
     logs?: number;
 }
 
 
 interface IMarketLimitsConfig {
     auctions?: number;
-    buy_offers?: number;
+    buyoffers?: number;
     prices_templates?: number;
     sales?: number;
     sales_templates?: number;
