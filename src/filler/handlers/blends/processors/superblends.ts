@@ -170,7 +170,7 @@ export function superBlendsProcessor(core: CollectionsListHandler, processor: Da
     ));
 
     destructors.push(processor.onContractRow(
-        neftyContract, 'blends',
+        tagContract, 'blends',
         superBlendsListener(core, tagContract),
         BlendsUpdatePriority.TABLE_FEATURES.valueOf()
     ));
