@@ -29,7 +29,7 @@ const fillSuperBlends = async (args: BlendsArgs, connection: ConnectionManager, 
             scope: contract, table: 'blends'
         }, 1000) as SuperBlendTableRow[];
 
-        const dbMaps = superBlendsTable.map(blend => getBlendDbRows(blend, args, null, null));
+        const dbMaps = superBlendsTable.map(blend => getBlendDbRows(blend, args, null, null, contract));
 
         const blendRows = [];
         let ingredientRows: any[] = [];
@@ -112,7 +112,7 @@ const superBlendsListener = (core: CollectionsListHandler, contract: string) => 
             rollOutcomesDbRows,
             rollOutcomeResultsDbRows,
         } = getBlendDbRows(
-            delta.value, core.args, block.block_num, block.timestamp
+            delta.value, core.args, block.block_num, block.timestamp, contract
         );
         await db.insert('neftyblends_blends', blendDbRow, ['contract', 'blend_id']);
         await db.insert(
@@ -178,14 +178,14 @@ export function superBlendsProcessor(core: CollectionsListHandler, processor: Da
     return (): any => destructors.map(fn => fn());
 }
 
-function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber: number, blockTimeStamp: string): any {
+function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber: number, blockTimeStamp: string, contract: string): any {
     const ingredients = getSuperBlendIngredients(blend);
     const ingredientDbRows = [];
     const ingredientAttributesDbRows = [];
     for (const ingredient of ingredients) {
         ingredientDbRows.push({
             assets_contract: args.atomicassets_account,
-            contract: args.nefty_blender_account,
+            contract,
             blend_id: blend.blend_id,
             ingredient_collection_name: ingredient.collection_name,
             template_id: ingredient.template_id,
@@ -205,7 +205,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
         for (const attribute of ingredient.attributes) {
             ingredientAttributesDbRows.push({
                 assets_contract: args.atomicassets_account,
-                contract: args.nefty_blender_account,
+                contract,
                 blend_id: blend.blend_id,
                 ingredient_collection_name: ingredient.collection_name,
                 ingredient_index: ingredient.index,
@@ -224,7 +224,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
     for (const roll of rolls) {
         rollsDbRows.push({
             assets_contract: args.atomicassets_account,
-            contract: args.nefty_blender_account,
+            contract,
             blend_id: blend.blend_id,
             total_odds: roll.total_odds,
             roll_index: roll.roll_index,
@@ -232,7 +232,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
         for (const outcome of roll.outcomes) {
             rollOutcomesDbRows.push({
                 assets_contract: args.atomicassets_account,
-                contract: args.nefty_blender_account,
+                contract,
                 blend_id: blend.blend_id,
                 roll_index: roll.roll_index,
                 odds: outcome.odds,
@@ -241,7 +241,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
             for (const result of outcome.results) {
                 rollOutcomeResultsDbRows.push({
                     assets_contract: args.atomicassets_account,
-                    contract: args.nefty_blender_account,
+                    contract,
                     blend_id: blend.blend_id,
                     roll_index: roll.roll_index,
                     outcome_index: outcome.outcome_index,
@@ -256,7 +256,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
     return {
         blendDbRow: {
             assets_contract: args.atomicassets_account,
-            contract: args.nefty_blender_account,
+            contract,
             collection_name: blend.collection_name,
             blend_id: blend.blend_id,
             start_time: blend.start_time * 1000,
