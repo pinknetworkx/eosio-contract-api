@@ -32,14 +32,14 @@
         },
         "limits": {
           "accounts": 5000,
-          "raw_assets": 1000,
+          "assets": 1000,
           "assets_accounts": 5000,
           "burns": 5000,
           "collections": 100,
-          "raw_offers": 100,
+          "offers": 100,
           "schemas": 100,
           "templates": 1000,
-          "raw_transfers": 100,
+          "transfers": 100,
           "logs": 100
         }
       }
@@ -56,7 +56,7 @@
       },
       "limits": {
         "auctions": 100,
-        "buy_offers": 100,
+        "buyoffers": 100,
         "prices_templates": 1000,
         "sales": 100,
         "sales_templates": 100,
