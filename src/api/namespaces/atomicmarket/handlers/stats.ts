@@ -33,46 +33,46 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
     }
 
     const query = new QueryBuilder(
-        'SELECT assets_contract contract, collection_name, SUM(price) volume, COUNT(*) sales FROM atomicmarket_stats_markets t1',
+        `SELECT collection.contract, collection.collection_name, COALESCE(stats.volume, 0) volume, COALESCE(stats.sales, 0) sales
+        FROM atomicassets_collections collection LEFT JOIN (
+            SELECT assets_contract, collection_name, SUM(price) volume, COUNT(*) sales 
+            FROM atomicmarket_stats_markets t1
+            WHERE t1.market_contract = $2 AND t1.symbol = $3 ${buildRangeCondition('"time"', args.after, args.before)}
+            GROUP BY t1.assets_contract, t1.collection_name
+        ) stats ON (collection.contract = stats.assets_contract AND collection.collection_name = stats.collection_name)`,
         [ctx.coreArgs.atomicassets_account, ctx.coreArgs.atomicmarket_account, args.symbol]
     );
 
-    query.addCondition(`assets_contract = $1 AND market_contract = $2 AND symbol = $3 ${buildRangeCondition('"time"', args.after, args.before)}`);
+    query.addCondition('collection.contract = $1');
 
     if (args.match) {
-        query.addCondition(`collection_name ILIKE ${query.addVariable(`%${args.match.replace('%', '').replace('_', '')}%`)}`);
+        query.addCondition(`collection.collection_name ILIKE ${query.addVariable(`%${args.match.replace('%', '').replace('_', '')}%`)}`);
     }
 
     if (args.search) {
         const varName = query.addVariable(`%${args.search.replace('%', '').replace('_', '')}%`);
 
-        query.addCondition(`EXISTS(
-            SELECT * FROM atomicassets_collections t2 
-            WHERE t1.assets_contract = t2.contract AND t1.collection_name = t2.collection_name AND
-                (t2.collection_name ILIKE ${varName} OR t2.data->>'name' ILIKE ${varName})
-        )`);
+        query.addCondition(`(collection.collection_name ILIKE ${varName} OR collection.data->>'name' ILIKE ${varName})`);
     }
 
     if (args.collection_name) {
-        query.equal('collection_name', args.collection_name);
+        query.equal('collection.collection_name', args.collection_name);
     }
 
     if (args.collection_whitelist.length) {
-        query.equalMany('collection_name', args.collection_whitelist);
+        query.equalMany('collection.collection_name', args.collection_whitelist);
     }
 
     if (args.collection_blacklist.length) {
-        query.notMany('collection_name', args.collection_blacklist);
+        query.notMany('collection.collection_name', args.collection_blacklist);
     }
 
     const sortColumnMapping: {[key: string]: string} = {
-        volume: 'volume',
-        sales: 'sales'
+        volume: 'stats.volume',
+        sales: 'stats.sales'
     };
 
-    query.group(['assets_contract', 'collection_name']);
-
-    query.append(`ORDER BY ${sortColumnMapping[args.sort] || 'volume'} DESC NULLS LAST`);
+    query.append(`ORDER BY ${sortColumnMapping[args.sort] || 'stats.volume'} DESC NULLS LAST, collection_name ASC`);
     query.paginate(args.page, args.limit);
 
     const collectionResult = await ctx.db.query(query.buildString(), query.buildValues());
