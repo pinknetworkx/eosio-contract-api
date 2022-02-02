@@ -2,8 +2,8 @@ import * as express from 'express';
 import {Server} from 'socket.io';
 import * as http from 'http';
 
-import * as expressRateLimit from 'express-rate-limit';
-import * as expressRedisStore from 'rate-limit-redis';
+import rateLimit from 'express-rate-limit';
+import RedisStore from 'rate-limit-redis';
 
 import * as bodyParser from 'body-parser';
 import * as cors from 'cors';
@@ -20,6 +20,7 @@ import { respondApiError } from './utils';
 import { ActionHandler, ActionHandlerContext } from './actionhandler';
 import { ApiNamespace } from './namespaces/interfaces';
 import { mergeRequestData } from './namespaces/utils';
+import { Send } from 'express-serve-static-core';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson: any = require('../../package.json');
@@ -96,7 +97,7 @@ export class HTTPServer implements DB {
 export class WebServer {
     readonly express: express.Application;
 
-    readonly limiter: expressRateLimit.RateLimit;
+    readonly limiter: express.Handler;
     readonly caching: ExpressRedisCacheHandler;
 
     constructor(readonly server: HTTPServer) {
@@ -115,27 +116,55 @@ export class WebServer {
         }));
 
         if (this.server.config.rate_limit) {
-            this.limiter = expressRateLimit({
+            const client = this.server.connection.redis.nodeRedis;
+
+            const store = new RedisStore({
+                sendCommand: (...args: string[]): any => client.sendCommand(args),
+                prefix: 'eosio-contract-api:' + server.connection.chain.name + ':rate-limit:'
+            });
+
+            const keyGenerator = (req: express.Request): string => req.ip;
+
+            this.limiter = rateLimit({
                 windowMs: this.server.config.rate_limit.interval * 1000,
                 max: this.server.config.rate_limit.requests,
-                handler: (req: express.Request, res: express.Response, next: express.NextFunction): any => {
-                    if (this.server.config.ip_whitelist.indexOf(req.ip) >= 0) {
-                        return next();
-                    }
 
+                keyGenerator, store,
+
+                skip: (req: express.Request) => this.server.config.ip_whitelist.indexOf(req.ip) >= 0,
+                handler: (req: express.Request, res: express.Response): any => {
                     res.status(429).json({success: false, message: 'Rate limit'});
                 },
-                keyGenerator(req: express.Request): string {
-                    return req.ip;
-                },
-                store: new expressRedisStore({
-                    client: this.server.connection.redis.nodeRedis,
-                    prefix: 'eosio-contract-api:' + server.connection.chain.name + ':rate-limit:',
-                    expiry: this.server.config.rate_limit.interval
-                })
-            });
-        }
 
+                legacyHeaders: true,
+                standardHeaders: true
+            });
+
+            if (this.server.config.rate_limit.bill_execution_time) {
+                const limiter = this.limiter;
+
+                this.limiter = async (req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> => {
+                    const requestTime = Date.now();
+
+                    const sendFn: Send = res.send.bind(res);
+
+                    res.send = (data): express.Response => {
+                        (async (): Promise<void> => {
+                            const limitExceeded = Math.ceil((Date.now() - requestTime) / 1000) - 1;
+                            const key = keyGenerator(req);
+
+                            for (let i = 0; i < limitExceeded; i++) {
+                                await store.increment(key);
+                            }
+                        })();
+
+                        return sendFn(data);
+                    };
+
+                    limiter(req, res, next);
+                };
+            }
+        }
 
         this.caching = expressRedisCache(
             this.server.connection.redis.nodeRedis,

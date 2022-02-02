@@ -1,9 +1,10 @@
 import * as express from 'express';
-import * as NodeRedis from 'redis';
 import * as crypto from 'crypto';
+import { RedisClientType } from 'redis';
 
 import logger from './winston';
 import { mergeRequestData } from '../api/namespaces/utils';
+
 
 export type ExpressRedisCacheOptions = {
     expire?: number,
@@ -15,7 +16,7 @@ export type ExpressRedisCacheOptions = {
 export type ExpressRedisCacheHandler = (options?: ExpressRedisCacheOptions) => express.RequestHandler;
 
 export function expressRedisCache(
-    redis: NodeRedis.RedisClient, prefix: string, expire: number, whitelistedIPs?: string[]
+    redis: RedisClientType<any, any>, prefix: string, expire: number, whitelistedIPs?: string[]
 ): ExpressRedisCacheHandler {
     return (options: ExpressRedisCacheOptions = {}) => {
         return (req: express.Request, res: express.Response, next: express.NextFunction): void => {
@@ -49,7 +50,7 @@ export function expressRedisCache(
                 key = prefix + ':' + req.baseUrl + req.path + ':' + hash.digest().toString('hex');
             }
 
-            redis.get(key, (_, reply) => {
+            redis.get(key).then(reply => {
                 let expire = 0;
                 if (reply) {
                     const split = reply.split('::');
@@ -63,10 +64,10 @@ export function expressRedisCache(
                     const sendFn = res.send.bind(res);
 
                     res.send = (data: Buffer | string): express.Response => {
-                        sendFn(data);
+                        const result = sendFn(data);
 
                         if (res.statusCode !== 200) {
-                            return res;
+                            return result;
                         }
 
                         let content;
@@ -77,13 +78,13 @@ export function expressRedisCache(
                         }
 
                         expire = Date.now() + Math.round(cacheLife) * 1000;
-                        redis.set(key, res.getHeader('content-type') + '::' + res.statusCode + '::' + content + '::' + expire, () => {
-                            redis.expire(key, Math.round(cacheLife));
+                        redis.set(key, res.getHeader('content-type') + '::' + res.statusCode + '::' + content + '::' + expire).then(async () => {
+                            await redis.expire(key, Math.round(cacheLife));
 
                             logger.debug('Cache request ' + key + ' for ' + cacheLife + ' seconds', mergeRequestData(req));
                         });
 
-                        return res;
+                        return result;
                     };
 
                     next();
