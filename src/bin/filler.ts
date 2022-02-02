@@ -33,6 +33,8 @@ if (cluster.isPrimary || cluster.isMaster) {
     const connection = new ConnectionManager(connectionConfig);
 
     (async (): Promise<void> => {
+        await connection.connect();
+
         if (!(await connection.chain.checkChainId())) {
             logger.error('Chain Id in config mismatches node chain id');
 

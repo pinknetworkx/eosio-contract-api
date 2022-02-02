@@ -20,6 +20,8 @@ logger.info('Connecting to databases...');
 const connection = new ConnectionManager(connectionConfig);
 
 (async (): Promise<void> => {
+    await connection.connect();
+
     logger.info('Using endpoint ' + endpoint);
 
     const infoResp: any = await fetch(endpoint + '/v1/chain/get_info').then((data) => data.json());

@@ -11,7 +11,8 @@
 
   "rate_limit": {
     "interval": 60,
-    "requests": 240
+    "requests": 240,
+    "bill_execution_time": true
   },
 
   "ip_whitelist": [],
@@ -52,6 +53,9 @@
         "connected_reader": "atomic-1",
         "socket_features": {
           "asset_update": false
+        },
+        "api_features": {
+          "disable_v1_sales": true
         }
       },
       "limits": {

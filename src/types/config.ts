@@ -31,7 +31,8 @@ export interface IServerConfig {
 
     rate_limit?: {
         interval: number,
-        requests: number
+        requests: number,
+        bill_execution_time?: boolean
     };
 
     ip_whitelist: string[];
