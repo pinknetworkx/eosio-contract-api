@@ -93,7 +93,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                         (i.ingredient_type = 'ATTRIBUTE_INGREDIENT' AND is_ingredient_attribute_match(a.template_id, b.blend_id, i.ingredient_index, i.total_attributes))
                 WHERE`
             ;
-        // add `WHERE` conditions:
+        // add `WHERE` conditions in filter subquery:
         {
             queryValues.push(args.ingredient_owner);
             queryString += `
@@ -157,6 +157,12 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         JOIN neftyblends_blend_details_master as blend_detail ON
             blend_filter_sub.contract = blend_detail.contract AND
             blend_filter_sub.blend_id = blend_detail.blend_id
+        `;
+
+        queryValues.push(args.collection_name);
+        queryString += `
+        WHERE
+            blend_detail.collection_name = $${++queryVarCounter}
         `;
     }
 
