@@ -46,7 +46,7 @@ export class AtomicToolsNamespace extends ApiNamespace {
         server.docs.addSchemas(atomictoolsComponents);
 
         if (server.web.limiter) {
-            server.web.express.use(this.path + '/v1', server.web.limiter);
+            server.web.express.use(this.path, server.web.limiter);
         }
 
         const endpointsDocs = [];

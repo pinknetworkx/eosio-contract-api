@@ -99,9 +99,8 @@ export class AtomicMarketNamespace extends ApiNamespace {
 
         server.docs.addSchemas(atomicmarketComponents);
 
-
-        if (this.path + '/v1', server.web.limiter) {
-            server.web.express.use(this.path + '/v1', server.web.limiter);
+        if (server.web.limiter) {
+            server.web.express.use(this.path, server.web.limiter);
         }
 
         const endpointsDocs = [];

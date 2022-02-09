@@ -54,7 +54,7 @@ export class AtomicAssetsNamespace extends ApiNamespace {
         server.docs.addSchemas(atomicassetsComponents);
 
         if (server.web.limiter) {
-            server.web.express.use(this.path + '/v1', server.web.limiter);
+            server.web.express.use(this.path, server.web.limiter);
         }
 
         const endpointsDocs: any[] = [];
