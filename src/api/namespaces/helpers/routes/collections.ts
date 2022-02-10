@@ -26,13 +26,12 @@ export function collectionsEndpoints(core: HelpersNamespace, server: HTTPServer,
                         'Get a list of collection identifiers based on the whitelisted status',
                     parameters: [
                         {
-                            name: 'list',
+                            name: 'lists',
                             in: 'query',
-                            description: 'List',
+                            description: "Comma separated set of lists, allowed values of each list: ['whitelist', 'blacklist', 'verified', 'nsfw', 'scam']",
                             required: false,
                             schema: {
-                                type: 'string',
-                                enum: ['whitelist', 'blacklist', 'verified', 'nsfw', 'scam'],
+                                type: 'string'
                             }
                         },
                         {
