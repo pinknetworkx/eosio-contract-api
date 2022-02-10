@@ -1,6 +1,7 @@
 import {filterQueryArgs, RequestValues} from '../../utils';
 import {NeftyMarketContext} from '../index';
 import QueryBuilder from '../../../builder';
+import { ApiError } from '../../../error';
 
 export async function getCollectionsAction(params: RequestValues, ctx: NeftyMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
@@ -16,7 +17,17 @@ export async function getCollectionsAction(params: RequestValues, ctx: NeftyMark
 
     query.equal('v.assets_contract', ctx.coreArgs.atomicassets_account);
     if (args.lists) {
-        query.equalMany('v.list', args.lists.split(','));
+        const lists = args.lists.split(',');
+        for(const list of lists){
+            if(
+                list !== 'whitelist' && list !== 'blacklist' &&
+                list !== 'verified' && list !== 'nsfw' &&
+                list !== 'scam'
+            ){
+                throw new ApiError(`Invalid value ${list} for parameter lists`, 400);
+            }
+        }
+        query.equalMany('v.list', lists);
     }
     query.append(`
                 ORDER BY
