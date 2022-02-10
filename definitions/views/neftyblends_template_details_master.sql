@@ -1,6 +1,7 @@
 CREATE OR REPLACE VIEW neftyblends_template_details_master AS
 SELECT
 	"template".template_id as template_id,
+	collection.collection_name,
 	jsonb_build_object(
 		'contract', "template".contract,
 		'template_id', "template".template_id,

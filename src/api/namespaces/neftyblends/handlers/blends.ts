@@ -29,21 +29,27 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
             SELECT 
                 blend_detail.*
             FROM
-                neftyblends_blend_details_master blend_detail
-            WHERE 
         `;
+        // If we have collection_name we use the function because it is a lot
+        // faster
+        if(args.collection_name !== ''){
+            queryValues.push(args.collection_name);
+            queryString += `
+                neftyblends_blend_details_func($${++queryVarCounter}) blend_detail
+            `;
+        }
+        else{
+            queryString += `
+                neftyblends_blend_details_master blend_detail
+            `;
+        }
 
         // bodge so we can always append `WHERE` to the string, even if no conditions
         // were sent in `args`.
         queryString += `
+            WHERE 
                 TRUE`
         ;
-        if(args.collection_name !== ''){
-            queryValues.push(args.collection_name);
-            queryString += `
-                AND blend_detail.collection_name = $${++queryVarCounter}`
-            ;
-        }
         if(args.contract !== ''){
             queryValues.push(args.contract);
             queryString += `
