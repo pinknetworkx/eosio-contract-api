@@ -8,9 +8,10 @@ import { applyActionGreylistFilters, getContractActionLogs } from '../../../util
 import { filterQueryArgs } from '../../validation';
 
 export async function getTemplatesAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
+    const maxLimit = ctx.coreArgs.limits?.templates || 1000;
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: 1000, default: 100},
+        limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         sort: {type: 'string', allowedValues: ['created', 'name'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
@@ -161,9 +162,10 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicA
 }
 
 export async function getTemplateLogsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
+    const maxLimit = ctx.coreArgs.limits?.logs || 100;
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: 100, default: 100},
+        limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'}
     });
 

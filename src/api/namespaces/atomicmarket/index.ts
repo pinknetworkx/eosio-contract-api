@@ -18,19 +18,24 @@ import ApiNotificationReceiver from '../../notification';
 import { buyoffersEndpoints, buyofferSockets } from './routes/buyoffers';
 import { assetsEndpoints } from './routes/assets';
 import { ActionHandlerContext } from '../../actionhandler';
+import {ILimits} from "../../../types/config";
 
-export type AtomicMarketNamespaceArgs = {
-    atomicmarket_account: string
+export interface AtomicMarketNamespaceArgs {
+    connected_reader: string;
+
+    atomicmarket_account: string;
     // optional
-    atomicassets_account: string,
-    delphioracle_account: string,
+    atomicassets_account: string;
+    delphioracle_account: string;
 
-    connected_reader: string,
-
-    socket_features: {
-        asset_update: boolean
-    }
-};
+    socket_features?: {
+        asset_update?: boolean;
+    };
+    api_features?: {
+        disable_v1_sales?: boolean;
+    };
+    limits?: ILimits;
+}
 
 export enum SaleApiState {
     WAITING = 0,
@@ -94,9 +99,8 @@ export class AtomicMarketNamespace extends ApiNamespace {
 
         server.docs.addSchemas(atomicmarketComponents);
 
-
-        if (this.path + '/v1', server.web.limiter) {
-            server.web.express.use(this.path + '/v1', server.web.limiter);
+        if (server.web.limiter) {
+            server.web.express.use(this.path, server.web.limiter);
         }
 
         const endpointsDocs = [];
