@@ -8,7 +8,7 @@ import { applyActionGreylistFilters, getContractActionLogs } from '../../../util
 import { filterQueryArgs } from '../../validation';
 
 export async function getSchemasAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
-    const maxLimit = ctx.coreArgs.limits?.schemas;
+    const maxLimit = ctx.coreArgs.limits?.schemas || 1000;
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
