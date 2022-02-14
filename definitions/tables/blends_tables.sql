@@ -156,3 +156,8 @@ CREATE
     INDEX neftyblends_blend_ingredient_attributes_allowed_values ON neftyblends_blend_ingredient_attributes USING gin (allowed_values);
 CREATE
     INDEX neftyblends_blend_ingredient_attributes_ingredient_collection ON neftyblends_blend_ingredient_attributes USING btree (ingredient_collection_name);
+
+CREATE
+    INDEX neftyblends_blend_ingredients_type ON neftyblends_blend_ingredients USING btree (ingredient_type);
+CREATE
+    INDEX neftyblends_blend_roll_outcome_results_type ON neftyblends_blend_roll_outcome_results USING btree ("type");
