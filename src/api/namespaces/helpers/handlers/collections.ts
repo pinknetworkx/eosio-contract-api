@@ -10,8 +10,9 @@ export async function getCollectionsAction(params: RequestValues, ctx: NeftyMark
         order: {type: 'string', values: ['asc', 'desc'], default: 'asc'},
     });
 
+    // @TODO: index (collection_name, list)
     const query = new QueryBuilder(`
-                SELECT collection_name, contract, list
+                SELECT collection_name, list
                 FROM helpers_collection_list as v
             `);
 
@@ -30,6 +31,7 @@ export async function getCollectionsAction(params: RequestValues, ctx: NeftyMark
         query.equalMany('v.list', lists);
     }
     query.append(`
+                GROUP BY collection_name, list
                 ORDER BY
                     v.${args.sort} ${args.order}
             `);
