@@ -50,9 +50,9 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
     }
 
     if (args.search) {
-        const varName = query.addVariable(`%${args.search.replace('%', '').replace('_', '')}%`);
+        const varName = query.addVariable(args.search);
 
-        query.addCondition(`(collection.collection_name ILIKE ${varName} OR collection.data->>'name' ILIKE ${varName})`);
+        query.addCondition(`${varName} <% (collection.collection_name || ' ' || COALESCE(collection.data->>'name', ''))`);
     }
 
     if (args.collection_name) {
@@ -331,12 +331,12 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
     }
 
     if (args.search) {
-        const varName = query.addVariable(`%${args.search.replace('%', '').replace('_', '')}%`);
+        const varName = query.addVariable(args.search);
 
         query.addCondition(`EXISTS(
-            SELECT * FROM atomicassets_templates template 
-            WHERE template.contract = price.assets_contract AND template.template_id = price.template_id AND
-                template.immutable_data->>'name' ILIKE ${varName}
+            SELECT FROM atomicassets_templates template 
+            WHERE template.contract = price.assets_contract AND template.template_id = price.template_id
+                AND ${varName} <% (template.immutable_data->>'name')
         )`);
     }
 
