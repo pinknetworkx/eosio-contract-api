@@ -44,7 +44,7 @@ INSERT INTO dbinfo ("name", "value", updated) VALUES ('version', '1.0.0', extrac
 CREATE SEQUENCE reversible_queries_id_seq;
 CREATE TABLE reversible_queries
 (
-    id integer NOT NULL DEFAULT nextval('reversible_queries_id_seq'::regclass),
+    id bigint NOT NULL DEFAULT nextval('reversible_queries_id_seq'::regclass),
     reader character varying(64) NOT NULL,
     operation character varying(64) NOT NULL,
     "table" character varying(64) NOT NULL,
