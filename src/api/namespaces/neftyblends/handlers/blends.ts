@@ -158,17 +158,12 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
             `;
         }
 
-        queryString += `
-        ) as blend_filter_sub 
-        JOIN neftyblends_blend_details_master as blend_detail ON
-            blend_filter_sub.contract = blend_detail.contract AND
-            blend_filter_sub.blend_id = blend_detail.blend_id
-        `;
-
         queryValues.push(args.collection_name);
         queryString += `
-        WHERE
-            blend_detail.collection_name = $${++queryVarCounter}
+        ) as blend_filter_sub 
+        JOIN neftyblends_blend_details_func($${++queryVarCounter}) as blend_detail ON
+            blend_filter_sub.contract = blend_detail.contract AND
+            blend_filter_sub.blend_id = blend_detail.blend_id
         `;
     }
 
