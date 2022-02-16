@@ -359,6 +359,16 @@ describe('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id]);
         });
 
+        txit('filters by minimum template mint (excludes empty mints)', async () => {
+            await client.createFullSale();
+            await client.createFullSale({});
+
+            const {sale_id} = await client.createFullSale({}, {template_mint: 1});
+
+            expect(await getSalesIds({min_template_mint: '1'}))
+                .to.deep.equal([sale_id]);
+        });
+
         txit('filters by asset_id', async () => {
             await client.createFullSale();
 

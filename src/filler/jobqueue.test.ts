@@ -5,8 +5,8 @@ import {JobQueue, JobQueuePriority} from './jobqueue';
 
 describe('JobQueue', () => {
 
-    const executeTestWithQueue = async (plusInterval: number, callback: (jq: JobQueue) => Promise<void>): Promise<void> => {
-        const jq = new JobQueue(plusInterval);
+    const executeTestWithQueue = async (pulseInterval: number, callback: (jq: JobQueue) => Promise<void>): Promise<void> => {
+        const jq = new JobQueue(pulseInterval);
         try {
             await callback(jq);
         } catch (e: unknown) {

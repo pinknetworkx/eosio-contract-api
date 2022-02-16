@@ -67,7 +67,7 @@ export async function upgradeDb(database: PostgresConnection): Promise<void> {
         logger.info('Found ' + upgradeVersions.length + ' available upgrades. Starting to upgradeDB...');
 
         for (const version of upgradeVersions) {
-            const versionDir = `./definitions/migrations/${version}/`;
+            const versionDir = `${__dirname}/../../definitions/migrations/${version}/`;
 
             logger.info('Upgrade to ' + version + ' ...');
 
