@@ -405,7 +405,7 @@ function buildListingFilterV2(search: SalesSearchOptions): void {
     }
 
     if (args.min_template_mint || args.max_template_mint) {
-        if ((args.min_template_mint && args.min_template_mint > 1) || (args.max_template_mint && args.max_template_mint < 1)) {
+        if (args.min_template_mint) {
             query.addCondition('listing.template_mint != \'empty\'');
         }
 
