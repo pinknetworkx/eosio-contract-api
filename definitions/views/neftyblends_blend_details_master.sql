@@ -32,8 +32,7 @@ SELECT
         )) as rolls
 FROM
     neftyblends_blends blend
-        JOIN
-    neftyblends_blend_ingredients "ingredient" ON
+        JOIN neftyblends_blend_ingredients "ingredient" ON
                 ingredient.contract = blend.contract
             AND ingredient.blend_id = blend.blend_id
         LEFT JOIN neftyblends_template_details_master as temp_ing_sub ON
@@ -44,19 +43,19 @@ FROM
                 schema_ing_sub.collection_name = ingredient.ingredient_collection_name AND
                 schema_ing_sub.schema_name = ingredient.schema_name
         LEFT JOIN(
-        SELECT
-            ing_attribute.contract,
-            ing_attribute.blend_id,
-            ing_attribute.ingredient_index,
-            jsonb_agg(jsonb_build_object(
-                    'name', ing_attribute.attribute_name,
-                    'allowed_values', ing_attribute.allowed_values
-                )) as "attributes"
-        FROM
-            neftyblends_blend_ingredient_attributes ing_attribute
-        GROUP BY
-            ing_attribute.contract, ing_attribute.blend_id, ing_attribute.ingredient_index
-    ) as attribute_ing_sub ON
+            SELECT
+                ing_attribute.contract,
+                ing_attribute.blend_id,
+                ing_attribute.ingredient_index,
+                jsonb_agg(jsonb_build_object(
+                        'name', ing_attribute.attribute_name,
+                        'allowed_values', ing_attribute.allowed_values
+                    )) as "attributes"
+            FROM
+                neftyblends_blend_ingredient_attributes ing_attribute
+            GROUP BY
+                ing_attribute.contract, ing_attribute.blend_id, ing_attribute.ingredient_index
+        ) as attribute_ing_sub ON
                 ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' AND
                 attribute_ing_sub.contract = ingredient.contract AND
                 attribute_ing_sub.blend_id = ingredient.blend_id AND
@@ -90,6 +89,7 @@ FROM
                                  when "result"."type" = 'ON_DEMAND_NFT_RESULT' then result_template_sub.template_json_object
                                  when "result"."type" = 'ON_DEMAND_NFT_RESULT_WITH_ATTRIBUTES' then result_template_sub.template_json_object
                                 end
+                            -- @TODO: add the mutable_data in result.payload when result type is 'ON_DEMAND_NFT_RESULT_WITH_ATTRIBUTES' 
                         )) as results
                 FROM
                     neftyblends_blend_roll_outcomes as outcome
@@ -99,7 +99,7 @@ FROM
                                 outcome.roll_index = "result".roll_index AND
                                 outcome.outcome_index = "result".outcome_index
                         LEFT JOIN neftyblends_template_details_master as result_template_sub ON
-                                "result"."type" = 'ON_DEMAND_NFT_RESULT' AND
+                                ("result"."type" = 'ON_DEMAND_NFT_RESULT' OR  "result"."type" = 'ON_DEMAND_NFT_RESULT_WITH_ATTRIBUTES') AND
                                 cast ("result".payload->>'template_id' as bigint) = result_template_sub.template_id
                 GROUP BY
                     outcome.contract,

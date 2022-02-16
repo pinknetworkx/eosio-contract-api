@@ -59,10 +59,9 @@ $body$
                         )) as "attributes"
                 FROM
                     neftyblends_blend_ingredient_attributes ing_attribute
-    
                 GROUP BY
                     ing_attribute.contract, ing_attribute.blend_id, ing_attribute.ingredient_index
-        ) as attribute_ing_sub ON
+            ) as attribute_ing_sub ON
                     ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' AND
                     attribute_ing_sub.contract = ingredient.contract AND
                     attribute_ing_sub.blend_id = ingredient.blend_id AND
@@ -96,6 +95,7 @@ $body$
                                     when "result"."type" = 'ON_DEMAND_NFT_RESULT' then result_template_sub.template_json_object
                                     when "result"."type" = 'ON_DEMAND_NFT_RESULT_WITH_ATTRIBUTES' then result_template_sub.template_json_object
                                     end
+                                -- @TODO: add the mutable_data in result.payload when result type is 'ON_DEMAND_NFT_RESULT_WITH_ATTRIBUTES' 
                             )) as results
                     FROM
                         neftyblends_blend_roll_outcomes as outcome
@@ -105,11 +105,9 @@ $body$
                                     outcome.roll_index = "result".roll_index AND
                                     outcome.outcome_index = "result".outcome_index
                             LEFT JOIN neftyblends_template_details_master as result_template_sub ON
-                                    "result"."type" = 'ON_DEMAND_NFT_RESULT' AND
+                                    ("result"."type" = 'ON_DEMAND_NFT_RESULT' OR  "result"."type" = 'ON_DEMAND_NFT_RESULT_WITH_ATTRIBUTES') AND
                                     cast ("result".payload->>'template_id' as bigint) = result_template_sub.template_id AND
                                     result_template_sub.collection_name = $1
-                    WHERE
-                        result_template_sub.collection_name = $1
                     GROUP BY
                         outcome.contract,
                         outcome.blend_id,
