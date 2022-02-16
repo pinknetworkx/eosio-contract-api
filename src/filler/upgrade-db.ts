@@ -77,12 +77,6 @@ export async function upgradeDb(database: PostgresConnection): Promise<void> {
                 encoding: 'utf8'
             }));
 
-            const scriptFilename = `${versionDir}script.js`;
-            if (fs.existsSync(scriptFilename)) {
-                // eslint-disable-next-line @typescript-eslint/no-var-requires
-                require(scriptFilename)(client);
-            }
-
             for (const handlerName of availableContracts) {
                 const handler = availableHandlers.find(row => row.handlerName === handlerName);
 
