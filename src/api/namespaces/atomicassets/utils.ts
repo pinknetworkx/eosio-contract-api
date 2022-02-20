@@ -103,6 +103,13 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
                 query.addVariable('%' + values.match.replace('%', '\\%').replace('_', '\\_') + '%')
             );
         }
+
+        if (typeof values.search === 'string' && values.search.length > 0) {
+            query.addCondition(
+                `${options.templateTable}.immutable_data->>'name' IS NOT NULL AND 
+                ${query.addVariable(values.search)} <% (${options.templateTable}.immutable_data->>'name')`
+            );
+        }
     }
 }
 
