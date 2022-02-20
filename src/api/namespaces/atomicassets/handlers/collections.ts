@@ -20,6 +20,7 @@ export async function getCollectionsAction(params: RequestValues, ctx: AtomicAss
         notify_account: {type: 'string', min: 1, max: 12},
 
         match: {type: 'string', min: 1},
+        search: {type: 'string', min: 1},
 
         count: {type: 'bool'}
     });
@@ -40,6 +41,10 @@ export async function getCollectionsAction(params: RequestValues, ctx: AtomicAss
 
     if (args.match) {
         query.addCondition('POSITION(' + query.addVariable(args.match.toLowerCase()) + ' IN collection_name) > 0');
+    }
+
+    if (args.search) {
+        query.addCondition(`${query.addVariable(args.search)} <% (collection.collection_name || ' ' || COALESCE(collection.data->>'name', ''))`);
     }
 
     buildBoundaryFilter(params, query, 'collection_name', 'string', 'created_at_time');
