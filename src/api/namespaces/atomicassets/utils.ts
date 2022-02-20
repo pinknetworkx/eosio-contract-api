@@ -107,7 +107,7 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
         if (typeof values.search === 'string' && values.search.length > 0) {
             query.addCondition(
                 `${options.templateTable}.immutable_data->>'name' IS NOT NULL AND 
-                ${query.addVariable(query.addVariable(values.search))} <% (${options.templateTable}.immutable_data->>'name')`
+                ${query.addVariable(values.search)} <% (${options.templateTable}.immutable_data->>'name')`
             );
         }
     }
