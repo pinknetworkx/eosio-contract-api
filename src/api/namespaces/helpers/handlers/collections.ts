@@ -3,8 +3,6 @@ import {NeftyMarketContext} from '../index';
 import QueryBuilder from '../../../builder';
 import { ApiError } from '../../../error';
 
-let cached:any = null;
-
 export async function getCollectionsAction(params: RequestValues, ctx: NeftyMarketContext): Promise<any> {
 
     const query = new QueryBuilder(`

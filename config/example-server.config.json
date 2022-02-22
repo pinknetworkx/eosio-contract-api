@@ -64,6 +64,13 @@
         "neftymarket_name": "neftyblocksm",
         "atomicassets_account": "atomicassets"
       }
+    },
+    {
+      "name": "neftyblends",
+      "path": "/neftyblends",
+      "args": {
+        "atomicassets_account": "atomicassets"
+      }
     }
   ]
 }
