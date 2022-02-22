@@ -3,39 +3,32 @@ import {NeftyMarketContext} from '../index';
 import QueryBuilder from '../../../builder';
 import { ApiError } from '../../../error';
 
+let cached:any = null;
+
 export async function getCollectionsAction(params: RequestValues, ctx: NeftyMarketContext): Promise<any> {
-    const args = filterQueryArgs(params, {
-        lists: {type: 'string' },
-        sort: {type: 'string', values: ['collection_name', 'list'], default: 'collection_name'},
-        order: {type: 'string', values: ['asc', 'desc'], default: 'asc'},
-    });
 
-    // @TODO: index (collection_name, list)
     const query = new QueryBuilder(`
-                SELECT collection_name, list
-                FROM helpers_collection_list as v
-            `);
-
-    query.equal('v.assets_contract', ctx.coreArgs.atomicassets_account);
-    if (args.lists) {
-        const lists = args.lists.split(',');
-        for(const list of lists){
-            if(
-                list !== 'whitelist' && list !== 'blacklist' &&
-                list !== 'verified' && list !== 'nsfw' &&
-                list !== 'scam'
-            ){
-                throw new ApiError(`Invalid value ${list} for parameter lists`, 400);
-            }
-        }
-        query.equalMany('v.list', lists);
-    }
-    query.append(`
-                GROUP BY collection_name, list
-                ORDER BY
-                    v.${args.sort} ${args.order}
-            `);
+        SELECT collection_name, jsonb_agg(jsonb_build_object('contract', contract, 'list_name', list)) as lists
+        FROM helpers_collection_list as v
+        GROUP BY collection_name
+    `);
 
     const result = await ctx.db.query(query.buildString(), query.buildValues());
-    return result.rows;
+    let rows = result.rows;
+    // If a collection is in a 'blacklist' or in 'scam' we remove all the other
+    // lists it is in
+    for(let row of rows){
+        let newLists = [];
+        for(let list of row.lists){
+            if(list.list_name === 'blacklist' || list.list_name === 'scam'){
+                newLists.push(list);
+            }
+        }
+        // it means it had at leas one blacklist or scam
+        if(newLists.length > 0){
+            row.lists = newLists;
+        }
+    }
+
+    return rows;
 }
