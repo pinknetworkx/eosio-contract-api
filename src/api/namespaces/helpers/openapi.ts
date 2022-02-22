@@ -5,7 +5,7 @@ export const neftyMarketComponents = {
             collection_name: {type: 'string'},
             lists: {
                 type: 'array',
-                elements: {
+                items: {
                     type: 'object',
                     properties: {
                         contract: {type: 'string'},
