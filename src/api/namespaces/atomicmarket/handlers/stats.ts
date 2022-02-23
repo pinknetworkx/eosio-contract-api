@@ -307,6 +307,7 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
     query.equal('price.market_contract', ctx.coreArgs.atomicmarket_account);
     query.equal('price.assets_contract', ctx.coreArgs.atomicassets_account);
     query.equal('price.symbol', args.symbol);
+    query.notNull('price.template_id');
 
     if (args.collection_name.length > 0) {
         query.equalMany('price.collection_name', args.collection_name);
@@ -353,11 +354,9 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
         [ctx.coreArgs.atomicassets_account, templateQuery.rows.map((row: any) => row.template_id)]
     );
 
-    result.rows.reduce((prev: any, current: any) => {
-        prev[String(current.template_id)] = current;
-
-        return prev;
-    }, templateLookup);
+    result.rows.forEach((row: any) => {
+        templateLookup[String(row.template_id)] = row;
+    });
 
     return {
         symbol,

@@ -32,7 +32,8 @@ export function formatTemplate(row: any): any {
 
     data.collection = formatCollection(data.collection);
 
-    data.name = data.immutable_data.name;
+    data.immutable_data = data.immutable_data || {};
+    data.name = data.immutable_data?.name;
 
     delete data['schema_name'];
     delete data['collection_name'];
