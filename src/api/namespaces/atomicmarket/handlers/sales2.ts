@@ -232,6 +232,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
         is_transferable: {type: 'bool'},
         is_burnable: {type: 'bool'},
 
+        search: {type: 'string', min: 1},
     });
 
     const inc: AggFilter = {
@@ -307,6 +308,10 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
         inc.flags.push(SALE_FILTER_FLAG_NO_TEMPLATE);
     } else {
         await addIncArrayFilter('template_id', true);
+    }
+
+    if (args.search?.length) {
+        await addIncArrayFilter('template_id', true, await getTemplateIDsForPartialName(args.search, search));
     }
 
     if (typeof args.burned === 'boolean') {
@@ -502,4 +507,15 @@ async function isStrongMainFilter(filter: string, values: string[], search: Sale
     }
 
     return true;
+}
+
+async function getTemplateIDsForPartialName(name: string, search: SalesSearchOptions): Promise<number[]> {
+    const {rows} = await search.ctx.db.query(`
+        SELECT template_id
+        FROM atomicassets_templates
+        WHERE contract = $1
+            AND (immutable_data->>'name') %> $2
+     `, [search.ctx.coreArgs.atomicassets_account, name]);
+
+    return rows.length ? rows.map(r => r.template_id) : [-1];
 }
