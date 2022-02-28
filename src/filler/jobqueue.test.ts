@@ -50,7 +50,7 @@ describe('JobQueue', () => {
         });
     });
 
-    it('does not run medium and low priority jobs at the same time', async () => {
+    it('does run medium and low priority jobs at the same time', async () => {
         await executeTestWithQueue(1, async (jq) => {
             const promiseJob1 = new Promise(() => null);
             const now = new Date();
@@ -63,7 +63,8 @@ describe('JobQueue', () => {
 
             await new Promise(resolve => setTimeout(resolve, 10));
 
-            expect(calledJob1At > now && calledJob1At < calledJob2At).to.equal(true);
+            expect(calledJob1At).to.be.greaterThan(now);
+            expect(calledJob1At).to.be.lessThanOrEqual(calledJob2At);
         });
     });
 

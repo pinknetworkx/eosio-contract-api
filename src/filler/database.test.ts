@@ -78,10 +78,7 @@ describe('database tests', () => {
     });
 
     after(async () => {
-        await connection.redis.nodeRedis.disconnect();
-        await connection.redis.ioRedisSub.disconnect();
-        await connection.redis.ioRedis.disconnect();
-        await connection.redis.nodeRedisSub.disconnect();
+        await connection.redis.disconnect();
         await connection.database.pool.end();
     });
 });
