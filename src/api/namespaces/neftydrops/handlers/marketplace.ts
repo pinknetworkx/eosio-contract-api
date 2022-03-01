@@ -137,6 +137,83 @@ export async function getCollectionsCountAction(params: RequestValues, ctx: Neft
     return getCollectionsAction({...params, count: 'true'}, ctx);
 }
 
+// @TODO: document how you get the trading volume and average reward
+export async function getTradingVolumeAndAverage(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
+    const args = filterQueryArgs(params, {
+        before: {type: 'int', min: 1, default: 0},
+        after: {type: 'int', min: 1, default: 0},
+        total_nefty_reward: {type: 'float', min: 1, default: 10000}
+    });
+    
+    // @NOTE: both: dropsTradingVolumeQuery and marketTradingVolumeQuery could be
+    // executed in the same ctx.db.query, but the `pg` library won't let us because
+    // it throws: 'cannot insert multiple commands into a prepared statement'
+
+    const rangeCondition = buildRangeCondition('updated_at_time', args.after, args.before);
+
+    let dropsTradingVolumesQueryString = `
+        SELECT claimer, 
+            SUM( 
+                CASE COALESCE(spent_symbol, 'NULL') 
+                    WHEN 'NULL' THEN (CASE settlement_symbol WHEN 'WAX' THEN final_price ELSE 0 END)
+                    WHEN 'NEFTY' THEN 0
+                    ELSE core_amount END
+            ) AS sold_wax, 
+            SUM(
+                CASE settlement_symbol 
+                    WHEN 'NEFTY' THEN core_amount 
+                    ELSE 0 END
+            ) AS sold_nefty
+        FROM neftydrops_claims
+        WHERE 
+            settlement_symbol IS DISTINCT FROM 'NULL'
+            AND drops_contract = $1
+            ${rangeCondition}
+        GROUP BY claimer;`
+    const dropsTradingVolumes = (await ctx.db.query(dropsTradingVolumesQueryString, [ctx.coreArgs.neftydrops_account])).rows;
+
+    let marketTradingVolumesQueryString = `
+        SELECT 
+            seller, 
+            buyer,
+            maker_marketplace,
+            taker_marketplace,
+            final_price
+        FROM atomicmarket_sales
+        WHERE 
+            state = ${SaleState.SOLD}
+            AND settlement_symbol = 'WAX'
+            AND market_contract = $1
+            AND (maker_marketplace = $2 OR taker_marketplace = $2)
+            ${rangeCondition}
+    `;
+    const marketTradingVolumes = (await ctx.db.query(marketTradingVolumesQueryString, [ctx.coreArgs.atomicmarket_account, ctx.coreArgs.neftymarket_name])).rows;
+
+    let totalTradingVolume:number = 0;
+    let beneficiaries = new Set<string>();
+
+    for(let dropTradingVolume of dropsTradingVolumes){
+        totalTradingVolume += parseFloat(dropTradingVolume.sold_wax);
+        totalTradingVolume += parseFloat(dropTradingVolume.sold_nefty);
+        beneficiaries.add(dropTradingVolume.claimer);
+    }
+    for(let marketTradingVolume of marketTradingVolumes){
+        if(marketTradingVolume.maker_marketplace === ctx.coreArgs.neftymarket_name){
+            totalTradingVolume += parseFloat(marketTradingVolume.final_price);
+            beneficiaries.add(marketTradingVolume.seller);
+        }
+        if(marketTradingVolume.taker_marketplace === ctx.coreArgs.neftymarket_name){
+            totalTradingVolume += parseFloat(marketTradingVolume.final_price);
+            beneficiaries.add(marketTradingVolume.buyer);
+        }
+    }
+
+    return { 
+        trading_volume: totalTradingVolume, 
+        averageReward:  args.total_nefty_reward / beneficiaries.size
+    };
+}
+
 function marketFilterQueryArgs(sort: any): FiltersDefinition {
     return {
         before: {type: 'int', min: 1, default: 0},
