@@ -137,13 +137,22 @@ export async function getCollectionsCountAction(params: RequestValues, ctx: Neft
     return getCollectionsAction({...params, count: 'true'}, ctx);
 }
 
-// @TODO: document how you get the trading volume and average reward
+// To get the trading volume we need to add (converted to wax):
+//   * All drop_claims that were bought with WAX
+//   * All drop_claims that were bought with NEFTY
+//   * All sold market_sales that were bought in our market_place
+//   * All sold market_sales that were listed in our market_place
+// 
+// To get average NEFTY reward we only need to know the total NEFTY to be
+// distributed and the total number of distinct beneficiaries
+// (total_nefty_reward / number_of_distinct_beneficiaries)
 export async function getTradingVolumeAndAverage(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
     const args = filterQueryArgs(params, {
         before: {type: 'int', min: 1, default: 0},
         after: {type: 'int', min: 1, default: 0},
         total_nefty_reward: {type: 'float', min: 1, default: 10000}
     });
+    
     
     // @NOTE: both: dropsTradingVolumeQuery and marketTradingVolumeQuery could be
     // executed in the same ctx.db.query, but the `pg` library won't let us because
@@ -210,7 +219,10 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
     }
 
     return { 
-        trading_volume: totalTradingVolume, 
+        // In the db we store token amounts as their integer representation, 
+        // because all token amounts have 8 decimal places, we need to divide by
+        // 100000000 to get the real amount
+        trading_volume: totalTradingVolume / 100000000, 
         averageReward:  args.total_nefty_reward / beneficiaries.size
     };
 }
