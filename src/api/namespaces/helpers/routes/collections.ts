@@ -21,10 +21,43 @@ export function collectionsEndpoints(core: HelpersNamespace, server: HTTPServer,
             '/v1/collections': {
                 get: {
                     tags: ['helpers'],
-                    summary: 'Get collections and the lists they are on',
+                    summary: 'Get list of collections based on status',
                     description:
-                        'Get all collections that are in any list, and the lists they are in.',
-                    parameters: [],
+                        'Get a list of collection identifiers based on the whitelisted status',
+                    parameters: [
+                        {
+                            name: 'list',
+                            in: 'query',
+                            description: 'List',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                                enum: ['whitelist', 'blacklist', 'verified', 'nsfw', 'scam'],
+                            }
+                        },
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                                enum: ['collection_name', 'list'],
+                                default: 'collection_name'
+                            }
+                        },
+                        {
+                            name: 'order',
+                            in: 'query',
+                            description: 'Order direction',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                                enum: ['asc', 'desc'],
+                                default: 'desc'
+                            }
+                        }
+                    ],
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'array',
                         items: {'$ref': '#/components/schemas/CollectionStatus'}
