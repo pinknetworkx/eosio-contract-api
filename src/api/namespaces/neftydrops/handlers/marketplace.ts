@@ -149,7 +149,8 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
     // executed in the same ctx.db.query, but the `pg` library won't let us because
     // it throws: 'cannot insert multiple commands into a prepared statement'
 
-    const rangeCondition = buildRangeCondition('updated_at_time', args.after, args.before);
+    const dropsRangeCondition = buildRangeCondition('created_at_time', args.after, args.before);
+    const marketRangeCondition = buildRangeCondition('updated_at_time', args.after, args.before);
 
     let dropsTradingVolumesQueryString = `
         SELECT claimer, 
@@ -168,7 +169,7 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
         WHERE 
             settlement_symbol IS DISTINCT FROM 'NULL'
             AND drops_contract = $1
-            ${rangeCondition}
+            ${dropsRangeCondition}
         GROUP BY claimer;`
     const dropsTradingVolumes = (await ctx.db.query(dropsTradingVolumesQueryString, [ctx.coreArgs.neftydrops_account])).rows;
 
@@ -185,7 +186,7 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
             AND settlement_symbol = 'WAX'
             AND market_contract = $1
             AND (maker_marketplace = $2 OR taker_marketplace = $2)
-            ${rangeCondition}
+            ${marketRangeCondition}
     `;
     const marketTradingVolumes = (await ctx.db.query(marketTradingVolumesQueryString, [ctx.coreArgs.atomicmarket_account, ctx.coreArgs.neftymarket_name])).rows;
 
