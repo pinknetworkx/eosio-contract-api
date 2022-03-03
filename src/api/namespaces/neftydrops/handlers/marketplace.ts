@@ -218,12 +218,20 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
         }
     }
 
+    // In the db we store token amounts as their integer representation, 
+    // because all token amounts have 8 decimal places, we need to divide by
+    // 100000000 to get the real amount
+    let trading_volume = totalTradingVolume / 100000000;
+
+    let averageReward;
+    if(beneficiaries.size === 0)
+        averageReward = 0;
+    else
+        averageReward =  args.total_nefty_reward / beneficiaries.size;
+
     return { 
-        // In the db we store token amounts as their integer representation, 
-        // because all token amounts have 8 decimal places, we need to divide by
-        // 100000000 to get the real amount
-        trading_volume: totalTradingVolume / 100000000, 
-        averageReward:  args.total_nefty_reward / beneficiaries.size
+        trading_volume,
+        averageReward
     };
 }
 

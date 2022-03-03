@@ -148,10 +148,11 @@ export function marketplaceEndpoints(core: NeftyDropsNamespace, server: HTTPServ
         get: {
           tags: ['marketplace'],
           summary: 'Get total trading volume and reward average',
-          description: 'Get total trading volume and reward average\n' +
+          description: 'Get total trading volume and reward average.\n' +
             "Total trading volume is 'amount of wax spent in nefty market' + " + 
             "'amount of wax sold in nefty market' + 'amount of wax and nefty spent buying drops'\n" + 
-            "Reward average is the average NEFTY reward per wallet",
+            "Reward average is the average NEFTY reward per wallet (0 if no wallets " +
+            "were rewarded in that period of time)",
           parameters: [
             {
               name: 'total_nefty_reward',
