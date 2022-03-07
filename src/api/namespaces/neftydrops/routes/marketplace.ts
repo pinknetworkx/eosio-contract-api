@@ -9,7 +9,8 @@ import {
   getCollectionsAction,
   getCollectionsCountAction,
   getSellersAction,
-  getSellersCountAction
+  getSellersCountAction,
+  getTradingVolumeAndAverage
 } from '../handlers/marketplace';
 
 export function marketplaceEndpoints(core: NeftyDropsNamespace, server: HTTPServer, router: express.Router): any {
@@ -21,6 +22,7 @@ export function marketplaceEndpoints(core: NeftyDropsNamespace, server: HTTPServ
   router.all('/v1/marketplace/buyers/_count', caching(), returnAsJSON(getBuyersCountAction, core));
   router.all('/v1/marketplace/collections', caching(), returnAsJSON(getCollectionsAction, core));
   router.all('/v1/marketplace/collections/_count', caching(), returnAsJSON(getCollectionsCountAction, core));
+  router.all('/v1/marketplace/trading/volume-and-average', caching(), returnAsJSON(getTradingVolumeAndAverage, core));
 
   return {
     tag: {
@@ -135,6 +137,33 @@ export function marketplaceEndpoints(core: NeftyDropsNamespace, server: HTTPServ
                 default: 'collection_name'
               }
             }
+          ],
+          responses: getOpenAPI3Responses([200, 500], {
+            type: 'array',
+            items: {'$ref': '#/components/schemas/CollectionsBalance'}
+          })
+        }
+      },
+      '/v1/marketplace/trading/volume-and-average': {
+        get: {
+          tags: ['marketplace'],
+          summary: 'Get total trading volume and reward average',
+          description: 'Get total trading volume and reward average.\n' +
+            "Total trading volume is 'amount of wax spent in nefty market' + " + 
+            "'amount of wax sold in nefty market' + 'amount of wax and nefty spent buying drops'\n" + 
+            "Reward average is the average NEFTY reward per wallet (0 if no wallets " +
+            "were rewarded in that period of time)",
+          parameters: [
+            {
+              name: 'total_nefty_reward',
+              in: 'query',
+              description: 'How much nefty will be rewarded in the given time range, used to calculate the Reward average',
+              required: false,
+              schema: {
+                type: 'float'
+              }
+            },
+            ...dateBoundaryParameters,
           ],
           responses: getOpenAPI3Responses([200, 500], {
             type: 'array',
