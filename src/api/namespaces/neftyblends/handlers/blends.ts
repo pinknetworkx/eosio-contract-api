@@ -3,6 +3,7 @@ import {NeftyBlendsContext} from '../index';
 import QueryBuilder from '../../../builder';
 import { ApiError } from '../../../error';
 import {filterQueryArgs} from '../../validation';
+import {fillBlends} from '../filler';
 
 export async function getIngredientOwnershipBlendFilter(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
     const args = filterQueryArgs(params, {
@@ -182,8 +183,11 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
     OFFSET $${++queryVarCounter};`;
 
     const result = await ctx.db.query(queryString, queryValues);
-
-    return result.rows;
+    return await fillBlends(
+        ctx.db,
+        ctx.coreArgs.atomicassets_account,
+        result.rows
+    );
 }
 
 export async function getBlendDetails(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
@@ -195,11 +199,15 @@ export async function getBlendDetails(params: RequestValues, ctx: NeftyBlendsCon
     query.equal('blend_detail.contract', ctx.pathParams.contract);
 
     const result = await ctx.db.query(query.buildString(), query.buildValues());
-
     if(result.rows.length < 1){
         return null;
     }
     else{
-        return result.rows[0];
+        const filledBlends = await fillBlends(
+            ctx.db,
+            ctx.coreArgs.atomicassets_account,
+            result.rows
+        );
+        return filledBlends[0];
     }
 }
