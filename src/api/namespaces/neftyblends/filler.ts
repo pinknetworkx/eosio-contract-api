@@ -88,10 +88,10 @@ export class SchemaFiller {
 
             try {
                 const valuesToJoin = this.schemaIds
-                    .map(({collectionName, schemaName}) => `(${collectionName},${schemaName})`)
+                    .map(({collectionName, schemaName}) => `('${collectionName}','${schemaName}')`)
                     .join(',');
                 const query = await this.db.query(
-                    'SELECT * FROM ' + this.view + ' JOIN(VALUES(' + valuesToJoin + ')) ' +
+                    'SELECT * FROM ' + this.view + ' JOIN(VALUES' + valuesToJoin + ') ' +
                     'AS ids (c,s) ON c = collection_name AND s = schema_name ' +
                     'WHERE contract = $1',
                     [this.contract]
