@@ -2,7 +2,7 @@ import * as express from 'express';
 
 import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
-import {blendsEndpoints} from './routes/blends';
+import { blendsEndpoints } from './routes/blends';
 import { neftyBlendsComponents } from './openapi';
 import { ActionHandlerContext } from '../../actionhandler';
 

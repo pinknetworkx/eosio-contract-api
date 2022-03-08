@@ -92,7 +92,7 @@ export class SchemaFiller {
                     .join(',');
                 const query = await this.db.query(
                     'SELECT * FROM ' + this.view + ' JOIN(VALUES(' + valuesToJoin + ')) ' +
-                    'AS ids (c,s) ON c = collection_name AND s = schema_name' +
+                    'AS ids (c,s) ON c = collection_name AND s = schema_name ' +
                     'WHERE contract = $1',
                     [this.contract]
                 );
