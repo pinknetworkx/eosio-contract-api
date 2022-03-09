@@ -119,7 +119,7 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
     for (const blend of blends) {
         for (const ingredient of blend.ingredients) {
             const templateId = ingredient.template?.template_id;
-            const schema = ingredient.schema;
+            const schema = ingredient.schema || ingredient.attributes;
             if (templateId) {
                 templateIds.push(templateId);
             } else if (schema) {
@@ -151,14 +151,15 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
 
         for (const ingredient of blend.ingredients) {
             const templateId = ingredient.template?.template_id;
-            const schemaName = ingredient.schema?.schema_name;
+            const schema = ingredient.schema || ingredient.attributes;
+            const schemaName = schema?.schema_name;
             if (templateId) {
                 filledIngredients.push({
                     ...ingredient,
                     template: (await templateFiller.fill(templateId)),
                 });
             } else if (schemaName) {
-                const collectionName = ingredient.schema?.collection_name;
+                const collectionName = schema?.collection_name;
                 filledIngredients.push({
                     ...ingredient,
                     schema: (await schemaFiller.fill(collectionName, schemaName)),

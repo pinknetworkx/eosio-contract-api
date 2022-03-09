@@ -30,6 +30,7 @@ SELECT
                     )
                 WHEN ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' THEN jsonb_build_object(
                         'attributes', attribute_ing_sub.attributes,
+                        'schema_name', ingredient.schema_name,
                         'collection_name', ingredient.ingredient_collection_name
                     )
                 END

@@ -81,7 +81,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                 asset_matches_sub.contract, 
                 asset_matches_sub.blend_id, 
                 asset_matches_sub.ingredients_count,
-                count(1) ingredient_requirement_fulfilled
+                count(DISTINCT ingredient_index) ingredient_requirement_fulfilled
             FROM(\n` +
                 // The `DISTINCT ON` ensures that the same asset_id is not "matched" twice in the same blend
     `            SELECT DISTINCT ON(b.blend_id, a.asset_id) 
@@ -89,6 +89,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                     b.blend_id, 
                     a.asset_id, 
                     b.ingredients_count,
+                    i.ingredient_index,
                     b.created_at_time 
                 FROM
                     neftyblends_blends b 
@@ -150,12 +151,12 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         `;
         if(args.ingredient_match === 'all'){
             queryString += `
-                count(1) >= asset_matches_sub.ingredients_count
+                count(DISTINCT ingredient_index) >= asset_matches_sub.ingredients_count
             `;
         }
         else{
             queryString += `
-                count(1) >= 1
+                count(DISTINCT ingredient_index) >= 1
             `;
         }
 
