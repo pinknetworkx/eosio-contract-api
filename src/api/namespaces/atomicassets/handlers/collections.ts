@@ -8,9 +8,10 @@ import { applyActionGreylistFilters, getContractActionLogs } from '../../../util
 import { filterQueryArgs } from '../../validation';
 
 export async function getCollectionsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
+    const maxLimit = ctx.coreArgs.limits?.collections || 100;
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: 100, default: 100},
+        limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         sort: {type: 'string', allowedValues: ['created', 'collection_name'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
@@ -19,30 +20,37 @@ export async function getCollectionsAction(params: RequestValues, ctx: AtomicAss
         notify_account: {type: 'string', min: 1, max: 12},
 
         match: {type: 'string', min: 1},
+        search: {type: 'string', min: 1},
 
         count: {type: 'bool'}
     });
 
-    const query = new QueryBuilder('SELECT * FROM atomicassets_collections_master');
+    const query = new QueryBuilder('SELECT collection_name FROM atomicassets_collections collection');
+
+    query.equal('contract', ctx.coreArgs.atomicassets_account);
 
     if (args.author) {
         query.equalMany('author', args.author.split(','));
     }
 
     if (args.authorized_account) {
-        query.addCondition(query.addVariable(args.authorized_account) + ' = ANY(authorized_accounts)');
+        query.addCondition(query.addVariable(args.authorized_account) + ' = ANY(collection.authorized_accounts)');
     }
 
     if (args.notify_account) {
-        query.addCondition(query.addVariable(args.notify_account) + ' = ANY(notify_accounts)');
+        query.addCondition(query.addVariable(args.notify_account) + ' = ANY(collection.notify_accounts)');
     }
 
     if (args.match) {
-        query.addCondition('POSITION(' + query.addVariable(args.match.toLowerCase()) + ' IN collection_name) > 0');
+        query.addCondition('POSITION(' + query.addVariable(args.match.toLowerCase()) + ' IN collection.collection_name) > 0');
     }
 
-    buildBoundaryFilter(params, query, 'collection_name', 'string', 'created_at_time');
-    buildGreylistFilter(params, query, {collectionName: 'collection_name'});
+    if (args.search) {
+        query.addCondition(`${query.addVariable(args.search)} <% (collection.collection_name || ' ' || COALESCE(collection.data->>'name', ''))`);
+    }
+
+    buildBoundaryFilter(params, query, 'collection.collection_name', 'string', 'collection.created_at_time');
+    buildGreylistFilter(params, query, {collectionName: 'collection.collection_name'});
 
     if (args.count) {
         const countQuery = await ctx.db.query(
@@ -61,9 +69,20 @@ export async function getCollectionsAction(params: RequestValues, ctx: AtomicAss
     query.append('ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', collection_name ASC');
     query.paginate(args.page, args.limit);
 
-    const result = await ctx.db.query(query.buildString(), query.buildValues());
+    const collectionResult = await ctx.db.query(query.buildString(), query.buildValues());
 
-    return result.rows.map((row) => formatCollection(row));
+    const result = await ctx.db.query(
+        'SELECT * FROM atomicassets_collections_master WHERE contract = $1 AND collection_name = ANY($2)',
+        [ctx.coreArgs.atomicassets_account, collectionResult.rows.map(row => row.collection_name)]
+    );
+
+    const collectionLookup: {[key: string]: any} = result.rows.reduce((prev, current) => {
+        prev[String(current.collection_name)] = current;
+
+        return prev;
+    }, {});
+
+    return collectionResult.rows.map(row => formatCollection(collectionLookup[row.collection_name]));
 }
 
 export async function getCollectionsCountAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
@@ -125,9 +144,10 @@ export async function getCollectionSchemasAction(params: RequestValues, ctx: Ato
 }
 
 export async function getCollectionLogsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
+    const maxLimit = ctx.coreArgs.limits?.logs || 100;
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: 100, default: 100},
+        limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'}
     });
 

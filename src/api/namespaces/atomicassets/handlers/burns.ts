@@ -6,9 +6,10 @@ import { formatCollection } from '../format';
 import { filterQueryArgs } from '../../validation';
 
 export async function getBurnsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
+    const maxLimit = ctx.coreArgs.limits?.burns || 5000;
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: 5000, default: 100},
+        limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
 
         collection_name: {type: 'string', min: 1},
         schema_name: {type: 'string', min: 1},

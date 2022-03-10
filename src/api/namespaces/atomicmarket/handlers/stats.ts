@@ -50,9 +50,7 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
     }
 
     if (args.search) {
-        const varName = query.addVariable(`%${args.search.replace('%', '').replace('_', '')}%`);
-
-        query.addCondition(`(collection.collection_name ILIKE ${varName} OR collection.data->>'name' ILIKE ${varName})`);
+        query.addCondition(`${query.addVariable(args.search)} <% (collection.collection_name || ' ' || COALESCE(collection.data->>'name', ''))`);
     }
 
     if (args.collection_name) {
@@ -309,6 +307,7 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
     query.equal('price.market_contract', ctx.coreArgs.atomicmarket_account);
     query.equal('price.assets_contract', ctx.coreArgs.atomicassets_account);
     query.equal('price.symbol', args.symbol);
+    query.notNull('price.template_id');
 
     if (args.collection_name.length > 0) {
         query.equalMany('price.collection_name', args.collection_name);
@@ -331,12 +330,10 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
     }
 
     if (args.search) {
-        const varName = query.addVariable(`%${args.search.replace('%', '').replace('_', '')}%`);
-
         query.addCondition(`EXISTS(
-            SELECT * FROM atomicassets_templates template 
-            WHERE template.contract = price.assets_contract AND template.template_id = price.template_id AND
-                template.immutable_data->>'name' ILIKE ${varName}
+            SELECT FROM atomicassets_templates template 
+            WHERE template.contract = price.assets_contract AND template.template_id = price.template_id
+                AND ${query.addVariable(args.search)} <% (template.immutable_data->>'name')
         )`);
     }
 
@@ -357,11 +354,9 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
         [ctx.coreArgs.atomicassets_account, templateQuery.rows.map((row: any) => row.template_id)]
     );
 
-    result.rows.reduce((prev: any, current: any) => {
-        prev[String(current.template_id)] = current;
-
-        return prev;
-    }, templateLookup);
+    result.rows.forEach((row: any) => {
+        templateLookup[String(row.template_id)] = row;
+    });
 
     return {
         symbol,
