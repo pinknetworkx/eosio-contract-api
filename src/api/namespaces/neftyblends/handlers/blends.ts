@@ -81,17 +81,18 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
             SELECT 
                 asset_matches_sub.contract, 
                 asset_matches_sub.blend_id, 
-                asset_matches_sub.ingredients_count,
-                count(DISTINCT ingredient_index) ingredient_requirement_fulfilled
+                asset_matches_sub.ingredients_count AS "required",
+                sum(asset_matches_sub.fulfilled) AS "fulfilled"
             FROM(\n` +
                 // The `DISTINCT ON` ensures that the same asset_id is not "matched" twice in the same blend
-    `            SELECT DISTINCT ON(b.blend_id, a.asset_id) 
-                    b.contract, 
-                    b.blend_id, 
-                    a.asset_id, 
+`               SELECT 
+                    b.contract,
+                    b.blend_id,
                     b.ingredients_count,
                     i.ingredient_index,
-                    b.created_at_time 
+                    i.amount AS "required",
+                    count(DISTINCT a.asset_id) AS "owned",
+                    least(i.amount, count(DISTINCT a.asset_id)) AS fulfilled
                 FROM
                     neftyblends_blends b 
                     JOIN neftyblends_blend_ingredients i ON
@@ -143,8 +144,14 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         }
 
         queryString += `
+                GROUP BY
+                    b.contract,
+                    b.blend_id,
+                    b.ingredients_count,
+                    i.ingredient_index,
+                    i.amount
             ) as asset_matches_sub
-            group by 
+            GROUP BY
                 asset_matches_sub.contract, 
                 asset_matches_sub.blend_id,
                 asset_matches_sub.ingredients_count
@@ -152,15 +159,15 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         `;
         if (args.ingredient_match === 'all') {
             queryString += `
-                count(DISTINCT ingredient_index) >= asset_matches_sub.ingredients_count
+                SUM(asset_matches_sub.fulfilled) >= asset_matches_sub.ingredients_count
             `;
         } else if (args.ingredient_match === 'missing_x') {
             queryString += `
-                count(DISTINCT ingredient_index) >= asset_matches_sub.ingredients_count - ${args.missing_ingredients}
+                SUM(asset_matches_sub.fulfilled) >= asset_matches_sub.ingredients_count - ${args.missing_ingredients}
             `;
         } else { // Have at least one
             queryString += `
-                count(DISTINCT ingredient_index) >= 1
+                SUM(asset_matches_sub.fulfilled) >= 1
             `;
         }
 
