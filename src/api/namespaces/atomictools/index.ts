@@ -6,10 +6,12 @@ import { atomictoolsComponents } from './openapi';
 import { configEndpoints } from './routes/config';
 import { linksEndpoints } from './routes/links';
 import { ActionHandlerContext } from '../../actionhandler';
+import { ILimits } from "../../../types/config";
 
 export type AtomicToolsNamespaceArgs = {
     atomictools_account: string,
-    atomicassets_account: string
+    atomicassets_account: string,
+    limits?: ILimits
 };
 
 export type AtomicToolsContext = ActionHandlerContext<AtomicToolsNamespaceArgs>;
@@ -44,7 +46,7 @@ export class AtomicToolsNamespace extends ApiNamespace {
         server.docs.addSchemas(atomictoolsComponents);
 
         if (server.web.limiter) {
-            server.web.express.use(this.path + '/v1', server.web.limiter);
+            server.web.express.use(this.path, server.web.limiter);
         }
 
         const endpointsDocs = [];

@@ -359,6 +359,16 @@ describe('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id]);
         });
 
+        txit('filters by minimum template mint (excludes empty mints)', async () => {
+            await client.createFullSale();
+            await client.createFullSale({});
+
+            const {sale_id} = await client.createFullSale({}, {template_mint: 1});
+
+            expect(await getSalesIds({min_template_mint: '1'}))
+                .to.deep.equal([sale_id]);
+        });
+
         txit('filters by asset_id', async () => {
             await client.createFullSale();
 
@@ -557,6 +567,18 @@ describe('AtomicMarket Sales API', () => {
             });
 
             expect(await getSalesIds({'data.name': 'Z'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by search (template name filter)', async () => {
+            await client.createFullSale({}, {
+                template_id: (await client.createTemplate()).template_id,
+            });
+
+            const {template_id} = await client.createTemplate({immutable_data: JSON.stringify({name: 'aTEST'})});
+            const {sale_id} = await client.createFullSale({}, {template_id});
+
+            expect(await getSalesIds({'search': 'test'}))
                 .to.deep.equal([sale_id]);
         });
 

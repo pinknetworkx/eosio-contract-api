@@ -67,26 +67,22 @@ export async function upgradeDb(database: PostgresConnection): Promise<void> {
         logger.info('Found ' + upgradeVersions.length + ' available upgrades. Starting to upgradeDB...');
 
         for (const version of upgradeVersions) {
+            const versionDir = `${__dirname}/../../definitions/migrations/${version}/`;
+
             logger.info('Upgrade to ' + version + ' ...');
 
             await client.query('BEGIN');
 
-            await client.query(fs.readFileSync('./definitions/migrations/' + version + '/database.sql', {
+            await client.query(fs.readFileSync(`${versionDir}database.sql`, {
                 encoding: 'utf8'
             }));
-
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            const migrateFn = require('../../definitions/migrations/' + version + '/script');
-
-            migrateFn(client);
 
             for (const handlerName of availableContracts) {
                 const handler = availableHandlers.find(row => row.handlerName === handlerName);
 
-                const filename = './definitions/migrations/' + version + '/' + handlerName + '.sql';
-
-                if (fs.existsSync(filename)) {
-                    await client.query(fs.readFileSync(filename, {encoding: 'utf8'}));
+                const handlerFilename = `${versionDir}${handlerName}.sql`;
+                if (fs.existsSync(handlerFilename)) {
+                    await client.query(fs.readFileSync(handlerFilename, {encoding: 'utf8'}));
                 }
 
                 await handler.upgrade(client, version);

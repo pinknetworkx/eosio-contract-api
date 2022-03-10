@@ -192,6 +192,7 @@ export async function getPricesSalesDaysAction(params: RequestValues, ctx: Atomi
 }
 
 export async function getPricesTemplatesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+    const maxLimit = ctx.coreArgs.limits?.prices_templates || 1000;
     const args = filterQueryArgs(params, {
         collection_name: {type: 'string', min: 1},
         template_id: {type: 'string', min: 1},
@@ -199,7 +200,7 @@ export async function getPricesTemplatesAction(params: RequestValues, ctx: Atomi
         symbol: {type: 'string', min: 1},
 
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: 1000, default: 100},
+        limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
     });
 
     const query = new QueryBuilder(

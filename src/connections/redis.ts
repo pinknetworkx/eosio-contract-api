@@ -28,4 +28,17 @@ export default class RedisConnection {
 
         this.initialized = true;
     }
+
+    async disconnect(): Promise<void> {
+        if (this.nodeRedis.isOpen) {
+            await this.nodeRedis.disconnect();
+        }
+        if (this.nodeRedisSub.isOpen) {
+            await this.nodeRedisSub.disconnect();
+        }
+
+        await this.ioRedis.disconnect();
+        await this.ioRedisSub.disconnect();
+    }
+
 }

@@ -18,6 +18,7 @@ import ApiNotificationReceiver from '../../notification';
 import { buyoffersEndpoints, buyofferSockets } from './routes/buyoffers';
 import { assetsEndpoints } from './routes/assets';
 import { ActionHandlerContext } from '../../actionhandler';
+import {ILimits} from "../../../types/config";
 
 export interface AtomicMarketNamespaceArgs {
     connected_reader: string;
@@ -30,10 +31,10 @@ export interface AtomicMarketNamespaceArgs {
     socket_features?: {
         asset_update?: boolean;
     };
-
     api_features?: {
         disable_v1_sales?: boolean;
     };
+    limits?: ILimits;
 }
 
 export enum SaleApiState {
@@ -98,9 +99,8 @@ export class AtomicMarketNamespace extends ApiNamespace {
 
         server.docs.addSchemas(atomicmarketComponents);
 
-
-        if (this.path + '/v1', server.web.limiter) {
-            server.web.express.use(this.path + '/v1', server.web.limiter);
+        if (server.web.limiter) {
+            server.web.express.use(this.path, server.web.limiter);
         }
 
         const endpointsDocs = [];

@@ -103,18 +103,26 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
                 query.addVariable('%' + values.match.replace('%', '\\%').replace('_', '\\_') + '%')
             );
         }
+
+        if (typeof values.search === 'string' && values.search.length > 0) {
+            query.addCondition(
+                `${options.templateTable}.immutable_data->>'name' IS NOT NULL AND 
+                ${query.addVariable(values.search)} <% (${options.templateTable}.immutable_data->>'name')`
+            );
+        }
     }
 }
 
 const assetFilters: FiltersDefinition = {
     asset_id: {type: 'string', min: 1},
-    owner: {type: 'string', min: 1, max: 12},
+    owner: {type: 'string', min: 1},
     burned: {type: 'bool'},
     template_id: {type: 'string', min: 1},
     collection_name: {type: 'string', min: 1},
     schema_name: {type: 'string', min: 1},
     is_transferable: {type: 'bool'},
-    is_burnable: {type: 'bool'}
+    is_burnable: {type: 'bool'},
+    minter: {type: 'name[]'}
 };
 
 export function buildAssetFilter(
@@ -151,6 +159,14 @@ export function buildAssetFilter(
 
     if (args.schema_name) {
         query.equalMany(options.assetTable + '.schema_name', args.schema_name.split(','));
+    }
+
+    if (args.minter && args.minter.length > 0) {
+        query.addCondition(`EXISTS (
+            SELECT * FROM atomicassets_mints mint_table 
+            WHERE ${options.assetTable}.contract = mint_table.contract AND ${options.assetTable}.asset_id = mint_table.asset_id
+                AND mint_table.minter = ANY(${query.addVariable(args.minter)})
+        )`);
     }
 
     if (typeof args.burned === 'boolean') {
