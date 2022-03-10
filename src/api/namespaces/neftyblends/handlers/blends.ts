@@ -163,7 +163,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
             `;
         } else if (args.ingredient_match === 'missing_x') {
             queryString += `
-                SUM(asset_matches_sub.fulfilled) >= asset_matches_sub.ingredients_count - ${args.missing_ingredients}
+                SUM(asset_matches_sub.fulfilled) = asset_matches_sub.ingredients_count - ${args.missing_ingredients}
             `;
         } else { // Have at least one
             queryString += `
