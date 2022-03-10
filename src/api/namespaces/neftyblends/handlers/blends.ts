@@ -15,7 +15,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         contract: {type: 'string', default: ''},
         collection_name: {type: 'string', default: ''},
         ingredient_owner: {type: 'string', default: ''},
-        ingredient_match: {type: 'string', allowedValues: ['all', 'any'], default: 'any'},
+        ingredient_match: {type: 'string', allowedValues: ['all', 'missing_one', 'any'], default: 'any'},
         available_only: {type: 'bool', default: false},
     });
 
@@ -149,12 +149,15 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                 asset_matches_sub.ingredients_count
             HAVING 
         `;
-        if(args.ingredient_match === 'all'){
+        if (args.ingredient_match === 'all') {
             queryString += `
                 count(DISTINCT ingredient_index) >= asset_matches_sub.ingredients_count
             `;
-        }
-        else{
+        } else if (args.ingredient_match === 'missing_one') {
+            queryString += `
+                count(DISTINCT ingredient_index) >= asset_matches_sub.ingredients_count - 1
+            `;
+        } else { // Have at least one
             queryString += `
                 count(DISTINCT ingredient_index) >= 1
             `;

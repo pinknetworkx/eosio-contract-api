@@ -24,6 +24,8 @@ BEGIN
                                         neftyblends_blend_ingredient_attributes ia
                                             JOIN atomicassets_templates t ON
                                                 t.template_id = _template_id
+                                                AND t.transferable IS DISTINCT FROM FALSE
+                                                AND t.burnable IS DISTINCT FROM FALSE
                                     WHERE
                                             ia.blend_id = _blend_id AND
                                             ia.ingredient_index = _ingredient_index AND
