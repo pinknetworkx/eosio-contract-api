@@ -75,7 +75,8 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
 
         queryString=`
         SELECT 
-            blend_detail.*
+            blend_detail.*,
+            blend_filter_sub.fulfilled
         FROM
         (
             SELECT 
