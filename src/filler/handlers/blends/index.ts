@@ -44,6 +44,11 @@ const views = [
     'neftyblends_blend_details_master'
 ];
 
+const functions = [
+    'neftyblends_blend_details_func',
+    'nefty_blends_attribute_match',
+];
+
 export default class BlendsHandler extends ContractHandler {
     static handlerName = 'blends';
 
@@ -66,7 +71,9 @@ export default class BlendsHandler extends ContractHandler {
                 await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
             }
 
-            await client.query(fs.readFileSync('./definitions/functions/nefty_blends_attribute_match.sql', {encoding: 'utf8'}));
+            for (const fn of functions) {
+                await client.query(fs.readFileSync('./definitions/functions/' + fn + '.sql', {encoding: 'utf8'}));
+            }
 
             logger.info('Blends tables successfully created');
             return true;
