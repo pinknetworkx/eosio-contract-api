@@ -145,7 +145,7 @@ export function buyofferSockets(core: AtomicMarketNamespace, server: HTTPServer,
 
     notification.onData('buyoffers', async (notifications: NotificationData[]) => {
         const buyofferIDs = extractNotificationIdentifiers(notifications, 'buyoffer_id');
-        const query = await server.query(
+        const query = await server.database.query(
             'SELECT * FROM atomicmarket_buyoffers_master WHERE market_contract = $1 AND buyoffer_id = ANY($2)',
             [core.args.atomicmarket_account, buyofferIDs]
         );

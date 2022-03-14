@@ -153,7 +153,7 @@ export class TransferApi {
 
         notification.onData('transfers', async (notifications: NotificationData[]) => {
             const transferIDs = notifications.filter(row => row.type === 'trace').map(row => row.data.trace.global_sequence);
-            const query = await this.server.query(
+            const query = await this.server.database.query(
                 'SELECT * FROM ' + this.transferView + ' WHERE contract = $1 AND transfer_id = ANY($2)',
                 [this.core.args.atomicassets_account, transferIDs]
             );

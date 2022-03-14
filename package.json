@@ -1,6 +1,6 @@
 {
   "name": "eosio-contract-api",
-  "version": "1.3.9",
+  "version": "1.3.10",
   "description": "EOSIO Contract API",
   "author": "pink.gg",
   "license": "AGPL-3.0",

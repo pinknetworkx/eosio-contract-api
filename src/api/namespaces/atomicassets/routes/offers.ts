@@ -298,7 +298,7 @@ export class OfferApi {
 
         notification.onData('offers', async (notifications: NotificationData[]) => {
             const offerIDs = extractNotificationIdentifiers(notifications, 'offer_id');
-            const query = await this.server.query(
+            const query = await this.server.database.query(
                 'SELECT * FROM ' + this.offerView + ' WHERE contract = $1 AND offer_id = ANY($2)',
                 [this.core.args.atomicassets_account, offerIDs]
             );
