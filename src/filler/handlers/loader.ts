@@ -7,6 +7,7 @@ import DelphiOracleHandler from './delphioracle';
 import SimpleAssetsHandler from './simpleassets';
 import NeftyDropsHandler from './neftydrops';
 import CollectionsListHandler from './helpers';
+import BlendsHandler from './blends';
 
 export const handlers: (typeof ContractHandler)[] = [
     AtomicAssetsHandler,
@@ -16,4 +17,5 @@ export const handlers: (typeof ContractHandler)[] = [
     SimpleAssetsHandler,
     NeftyDropsHandler,
     CollectionsListHandler,
+    BlendsHandler,
 ];

@@ -110,6 +110,7 @@ export async function getRawAssetsAction(
     params: RequestValues,
     ctx: AtomicAssetsContext,
     options?: {extraTables: string, extraSort: SortColumnMapping}): Promise<Array<number> | string> {
+
     const maxLimit = ctx.coreArgs.limits?.assets || 1000;
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
