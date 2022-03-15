@@ -1,5 +1,5 @@
 CREATE OR REPLACE FUNCTION neftyblends_blend_details_func(collection_name character varying(13))
-  RETURNS TABLE (blend_id bigint, contract character varying(12), collection_name character varying(13), start_time bigint, end_time bigint, max bigint, use_count bigint, display_data text, created_at_time bigint, ingredients_count integer, security_id bigint, ingredients jsonb, rolls jsonb)
+  RETURNS TABLE (blend_id bigint, contract character varying(12), collection_name character varying(13), start_time bigint, end_time bigint, max bigint, use_count bigint, display_data text, created_at_time bigint, ingredients_count integer, security_id bigint, is_hidden boolean, ingredients jsonb, rolls jsonb)
 AS
 $body$
 
@@ -15,6 +15,7 @@ $body$
         blend.created_at_time,
         blend.ingredients_count,
         blend.security_id,
+        blend.is_hidden,
         jsonb_agg(jsonb_build_object(
                 'type', ingredient.ingredient_type,
                 'effect', ingredient.effect,

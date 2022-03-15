@@ -1,6 +1,6 @@
 import DataProcessor from '../../../processor';
 import { ContractDBTransaction } from '../../../database';
-import { EosioContractRow } from '../../../../types/eosio';
+import { EosioContractRow, EosioActionTrace, EosioTransaction } from '../../../../types/eosio';
 import { ShipBlock } from '../../../../types/ship';
 import { eosioTimestampToDate } from '../../../../utils/eosio';
 import CollectionsListHandler, {
@@ -16,6 +16,7 @@ import {
     encodeDatabaseJson,
     getAllRowsFromTable
 } from '../../../utils';
+import { SetBlendHiddenActionData } from '../types/actions';
 
 const fillSuperBlends = async (args: BlendsArgs, connection: ConnectionManager, contract: string): Promise<void> => {
     const superBlendsCount = await connection.database.query(
@@ -151,6 +152,7 @@ const superBlendsListener = (core: CollectionsListHandler, contract: string) => 
             display_data: delta.value.display_data,
             updated_at_block: block.block_num,
             updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
+            is_hidden: delta.value.is_hidden || false,
         }, {
             str: 'contract = $1 AND blend_id = $2',
             values: [contract, delta.value.blend_id]
@@ -175,6 +177,20 @@ export function superBlendsProcessor(core: CollectionsListHandler, processor: Da
         BlendsUpdatePriority.TABLE_FEATURES.valueOf()
     ));
 
+    destructors.push(processor.onActionTrace(
+        neftyContract, 'setblendhide',
+        async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<SetBlendHiddenActionData>): Promise<void> => {
+          await db.update('neftyblends_blends', {
+            is_hidden: trace.act.data.is_hidden,
+            updated_at_block: block.block_num,
+            updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
+          }, {
+            str: 'contract = $1 AND blend_id = $2',
+            values: [neftyContract, trace.act.data.blend_id]
+          }, ['contract', 'blend_id']);
+        }, BlendsUpdatePriority.ACTION_UPDATE_BLEND.valueOf()
+    ));
+  
     return (): any => destructors.map(fn => fn());
 }
 
@@ -270,6 +286,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
             created_at_block: blockNumber || 0,
             created_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
             security_id: blend.security_id || 0,
+            is_hidden: blend.is_hidden || false,
         },
         ingredientDbRows,
         ingredientAttributesDbRows,

@@ -36,6 +36,7 @@ export enum IngredientEffectType {
 
 export enum BlendsUpdatePriority {
     TABLE_FEATURES = BLENDS_BASE_PRIORITY + 10,
+    ACTION_UPDATE_BLEND = BLENDS_BASE_PRIORITY + 20,
 }
 
 const views = [
