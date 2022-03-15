@@ -55,7 +55,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             description: 'Sales'
         },
         paths: {
-            '/v1/sales': {
+            '/v2/sales': {
                 get: {
                     tags: ['sales'],
                     summary: 'Get all sales. ',
