@@ -36,10 +36,10 @@ export async function getAccountsAction(
         'LEFT JOIN atomicassets_templates template ON (asset.contract = template.contract AND asset.template_id = template.template_id)'
     );
 
-    query.equal('contract', ctx.coreArgs.atomicassets_account).notNull('owner');
+    query.equal('asset.contract', ctx.coreArgs.atomicassets_account).notNull('asset.owner');
 
     if (args.match_owner) {
-        query.addCondition('POSITION(' + query.addVariable(args.match_owner.toLowerCase()) + ' IN owner) > 0');
+        query.addCondition('POSITION(' + query.addVariable(args.match_owner.toLowerCase()) + ' IN asset.owner) > 0');
     }
 
     buildAssetFilter(params, query,  {assetTable: 'asset', templateTable: 'template', allowDataFilter: true});
@@ -48,7 +48,7 @@ export async function getAccountsAction(
     buildHideOffersFilter(params, query, 'asset');
     buildBoundaryFilter(params, query, 'owner', 'string', null);
 
-    query.group(['owner']);
+    query.group(['asset.owner']);
 
     if (args.count) {
         const countQuery = await ctx.db.query('SELECT COUNT(*) counter FROM (' + query.buildString() + ') x', query.buildValues());
