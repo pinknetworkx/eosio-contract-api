@@ -21,6 +21,7 @@ import { ActionHandler, ActionHandlerContext } from './actionhandler';
 import { ApiNamespace } from './namespaces/interfaces';
 import { mergeRequestData } from './namespaces/utils';
 import { Send } from 'express-serve-static-core';
+import { GetInfoResult } from 'eosjs/dist/eosjs-rpc-interfaces';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson: any = require('../../package.json');
@@ -194,11 +195,21 @@ export class WebServer {
     private routes(): void {
         const router = express.Router();
 
-        let infoRequest = this.server.connection.chain.rpc.get_info();
+        const running = true;
 
-        setInterval(() => {
-            infoRequest = this.server.connection.chain.rpc.get_info();
-        }, 500);
+        let info: GetInfoResult | undefined;
+
+        (async (): Promise<void> => {
+            while (running) {
+                try {
+                    info = await this.server.connection.chain.rpc.get_info();
+                } catch (error) {
+                    logger.warn('Failed to fetch chain info', error);
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        })();
 
         const server = this.server;
 
@@ -218,9 +229,9 @@ export class WebServer {
             let chainHealth;
 
             try {
-                const info = await infoRequest;
-
-                if (Date.now() - 20 * 1000 < new Date(info.head_block_time + '+0000').getTime()) {
+                if (!info) {
+                    chainHealth = {status: 'ERROR', head_block: 0, head_time: 0};
+                } else if (Date.now() - 20 * 1000 < new Date(info.head_block_time + '+0000').getTime()) {
                     chainHealth = {
                         status: 'OK',
                         head_block: info.head_block_num,

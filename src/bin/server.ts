@@ -28,10 +28,14 @@ const connection = new ConnectionManager(connectionConfig);
 (async (): Promise<void> => {
     await connection.connect();
 
-    if (!(await connection.chain.checkChainId())) {
-        logger.error('Chain Id in config mismatches node chain id. Stopping API...');
+    try {
+        if (!(await connection.chain.checkChainId())) {
+            logger.error('Chain Id in config mismatches node chain id. Stopping API...');
 
-        process.exit(1);
+            process.exit(1);
+        }
+    } catch {
+        logger.error('Failed to query chain id on startup. Ignoring it but please check the config for the correct endpoint');
     }
 
     if (!(await connection.database.tableExists('dbinfo'))) {
