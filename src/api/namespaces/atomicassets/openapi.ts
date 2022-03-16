@@ -272,20 +272,6 @@ export const baseAssetFilterParameters = [
         schema: {type: 'integer'}
     },
     {
-        name: 'is_transferable',
-        in: 'query',
-        description: 'Filter for transferable assets',
-        required: false,
-        schema: {type: 'boolean'}
-    },
-    {
-        name: 'is_burnable',
-        in: 'query',
-        description: 'Filter for burnable assets',
-        required: false,
-        schema: {type: 'boolean'}
-    },
-    {
         name: 'burned',
         in: 'query',
         description: 'Filter for burned assets',
@@ -303,16 +289,16 @@ export const extendedAssetFilterParameters = [
         schema: {type: 'string'}
     },
     {
-        name: 'burned',
-        in: 'query',
-        description: 'Filter by burned',
-        required: false,
-        schema: {type: 'boolean'}
-    },
-    {
         name: 'match',
         in: 'query',
         description: 'Search for input in asset name on template data',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'search',
+        in: 'query',
+        description: 'Fuzzy search for input in asset name on template data',
         required: false,
         schema: {type: 'string'}
     },

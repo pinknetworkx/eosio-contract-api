@@ -3,7 +3,7 @@ import * as express from 'express';
 import { getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { greylistFilterParameters, hideOffersParameters } from '../openapi';
+import { baseAssetFilterParameters, greylistFilterParameters, hideOffersParameters } from '../openapi';
 import { getBurnsAccountAction, getBurnsAction } from '../handlers/burns';
 
 export function burnEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
@@ -25,26 +25,13 @@ export function burnEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, r
                     summary: 'Get accounts which own atomicassets NFTs',
                     parameters: [
                         {
-                            name: 'collection_name',
+                            name: 'match_owner',
                             in: 'query',
-                            description: 'Filter for specific collection',
+                            description: 'Search for partial account name',
                             required: false,
                             schema: {type: 'string'}
                         },
-                        {
-                            name: 'schema_name',
-                            in: 'query',
-                            description: 'Filter for specific schema',
-                            required: false,
-                            schema: {type: 'string'}
-                        },
-                        {
-                            name: 'template_id',
-                            in: 'query',
-                            description: 'Filter for specific template',
-                            required: false,
-                            schema: {type: 'string'}
-                        },
+                        ...baseAssetFilterParameters,
                         ...greylistFilterParameters,
                         ...primaryBoundaryParameters,
                         ...paginationParameters

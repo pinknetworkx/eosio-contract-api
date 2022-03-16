@@ -1,7 +1,7 @@
 import { buildBoundaryFilter, RequestValues } from '../../utils';
 import { AtomicAssetsContext } from '../index';
 import QueryBuilder from '../../../builder';
-import { buildGreylistFilter, buildHideOffersFilter } from '../utils';
+import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter } from '../utils';
 import { formatCollection } from '../format';
 import { filterQueryArgs } from '../../validation';
 
@@ -18,32 +18,24 @@ export async function getBurnsAction(params: RequestValues, ctx: AtomicAssetsCon
         match: {type: 'string', min: 1}
     });
 
-    const query = new QueryBuilder('SELECT burned_by_account account, COUNT(*) as assets FROM atomicassets_assets asset');
+    const query = new QueryBuilder(
+        'SELECT burned_by_account account, COUNT(*) as assets FROM atomicassets_assets asset ' +
+        'LEFT JOIN atomicassets_templates template ON (asset.contract = template.contract AND asset.template_id = template.template_id)'
+    );
 
-    query.equal('contract', ctx.coreArgs.atomicassets_account).notNull('burned_by_account');
+    query.equal('asset.contract', ctx.coreArgs.atomicassets_account).notNull('asset.burned_by_account');
 
-    if (args.match) {
-        query.addCondition('POSITION(' + query.addVariable(args.match.toLowerCase()) + ' IN burned_by_account) > 0');
+    if (args.match_owner) {
+        query.addCondition('POSITION(' + query.addVariable(args.match_owner.toLowerCase()) + ' IN asset.burned_by_account) > 0');
     }
 
+    buildAssetFilter(params, query,  {assetTable: 'asset', templateTable: 'template', allowDataFilter: true});
     buildGreylistFilter(params, query, {collectionName: 'asset.collection_name'});
-
-    if (args.collection_name) {
-        query.equalMany('asset.collection_name', args.collection_name.split(','));
-    }
-
-    if (args.schema_name) {
-        query.equalMany('asset.schema_name', args.schema_name.split(','));
-    }
-
-    if (args.template_id) {
-        query.equalMany('asset.template_id', args.template_id.split(','));
-    }
 
     buildHideOffersFilter(params, query, 'asset');
     buildBoundaryFilter(params, query, 'burned_by_account', 'string', null);
 
-    query.group(['burned_by_account']);
+    query.group(['asset.burned_by_account']);
 
     query.append('ORDER BY assets DESC, account ASC');
     query.paginate(args.page, args.limit);

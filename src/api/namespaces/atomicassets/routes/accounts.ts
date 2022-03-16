@@ -3,7 +3,7 @@ import * as express from 'express';
 import { getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { greylistFilterParameters, hideOffersParameters } from '../openapi';
+import { baseAssetFilterParameters, greylistFilterParameters, hideOffersParameters } from '../openapi';
 import {
     getAccountAction,
     getAccountCollectionAction,
@@ -33,33 +33,13 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                     summary: 'Get accounts which own atomicassets NFTs',
                     parameters: [
                         {
-                            name: 'match',
+                            name: 'match_owner',
                             in: 'query',
                             description: 'Search for partial account name',
                             required: false,
                             schema: {type: 'string'}
                         },
-                        {
-                            name: 'collection_name',
-                            in: 'query',
-                            description: 'Filter for specific collection',
-                            required: false,
-                            schema: {type: 'string'}
-                        },
-                        {
-                            name: 'schema_name',
-                            in: 'query',
-                            description: 'Filter for specific schema',
-                            required: false,
-                            schema: {type: 'string'}
-                        },
-                        {
-                            name: 'template_id',
-                            in: 'query',
-                            description: 'Filter for specific template',
-                            required: false,
-                            schema: {type: 'string'}
-                        },
+                        ...baseAssetFilterParameters,
                         ...hideOffersParameters,
                         ...greylistFilterParameters,
                         ...primaryBoundaryParameters,

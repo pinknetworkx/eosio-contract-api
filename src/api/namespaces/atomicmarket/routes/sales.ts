@@ -55,7 +55,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
             description: 'Sales'
         },
         paths: {
-            '/v1/sales': {
+            '/v2/sales': {
                 get: {
                     tags: ['sales'],
                     summary: 'Get all sales. ',
@@ -207,7 +207,7 @@ export function salesSockets(core: AtomicMarketNamespace, server: HTTPServer, no
 
     notification.onData('sales', async (notifications: NotificationData[]) => {
         const saleIDs = extractNotificationIdentifiers(notifications, 'sale_id');
-        const query = await server.query(
+        const query = await server.database.query(
             'SELECT * FROM atomicmarket_sales_master WHERE market_contract = $1 AND sale_id = ANY($2)',
             [core.args.atomicmarket_account, saleIDs]
         );

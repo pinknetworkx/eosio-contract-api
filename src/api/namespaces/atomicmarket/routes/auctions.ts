@@ -162,7 +162,7 @@ export function auctionSockets(core: AtomicMarketNamespace, server: HTTPServer, 
 
     notification.onData('auctions', async (notifications: NotificationData[]) => {
         const auctionIDs = extractNotificationIdentifiers(notifications, 'auction_id');
-        const query = await server.query(
+        const query = await server.database.query(
             'SELECT * FROM atomicmarket_auctions_master WHERE market_contract = $1 AND auction_id = ANY($2)',
             [core.args.atomicmarket_account, auctionIDs]
         );

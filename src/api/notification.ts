@@ -38,7 +38,11 @@ export default class ApiNotificationReceiver {
                     promises.push(listener.callback(filteredNotifications));
                 }
 
-                await Promise.all(promises);
+                try {
+                    await Promise.all(promises);
+                } catch (error) {
+                    logger.error('Error while processing api notification', error);
+                }
             });
         });
     }

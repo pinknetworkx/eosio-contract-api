@@ -182,7 +182,7 @@ export class AssetApi {
 
         notification.onData('assets', async (notifications: NotificationData[]) => {
             const assetIDs = extractNotificationIdentifiers(notifications, 'asset_id');
-            const query = await this.server.query(
+            const query = await this.server.database.query(
                 'SELECT * FROM ' + this.assetView + ' WHERE contract = $1 AND asset_id = ANY($2)',
                 [this.core.args.atomicassets_account, assetIDs]
             );
