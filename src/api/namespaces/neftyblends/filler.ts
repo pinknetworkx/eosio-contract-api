@@ -175,9 +175,13 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
                 for (const result of outcome.results) {
                     const templateId = result.template?.template_id;
                     if (templateId) {
+                        const mutable_data = result.template?.mutable_data;
                         filledResults.push({
                             ...result,
-                            template: (await templateFiller.fill(templateId)),
+                            template: {
+                                ...(await templateFiller.fill(templateId))
+                            },
+                            mutable_data,
                         });
                     } else {
                         filledResults.push(result);
