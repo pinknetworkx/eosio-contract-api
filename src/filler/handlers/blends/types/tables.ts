@@ -9,6 +9,7 @@ export type SuperBlendTableRow = {
     use_count: number,
     display_data: string,
     security_id?: number,
+    is_hidden?: boolean,
 };
 
 export type Result = {
