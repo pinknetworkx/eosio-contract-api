@@ -200,6 +200,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
             updated_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
             created_at_block: blockNumber || 0,
             created_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
+            display_data: ingredient.display_data,
         });
 
         let index = 0;

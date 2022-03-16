@@ -21,6 +21,7 @@ $body$
                 'effect', ingredient.effect,
                 'amount', ingredient.amount,
                 'index', ingredient.ingredient_index,
+                'display_data', ingredient.display_data,
                 CASE
                     WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN 'template'
                     WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN 'schema'
