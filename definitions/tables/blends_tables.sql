@@ -15,6 +15,7 @@ CREATE TABLE neftyblends_blends
     created_at_block  bigint                NOT NULL,
     created_at_time   bigint                NOT NULL,
     security_id       bigint                NOT NULL,
+    is_hidden         boolean               NOT NULL DEFAULT FALSE,
     CONSTRAINT neftyblends_blends_pkey PRIMARY KEY (contract, blend_id)
 );
 
@@ -35,6 +36,7 @@ CREATE TABLE neftyblends_blend_ingredients
     created_at_block           bigint                NOT NULL,
     created_at_time            bigint                NOT NULL,
     ingredient_index           integer               NOT NULL,
+    display_data               text,
     CONSTRAINT neftyblends_blend_ingredients_pkey PRIMARY KEY (contract, blend_id, ingredient_index)
 );
 
