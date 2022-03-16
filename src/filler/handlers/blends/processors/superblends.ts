@@ -151,6 +151,7 @@ const superBlendsListener = (core: CollectionsListHandler, contract: string) => 
             display_data: delta.value.display_data,
             updated_at_block: block.block_num,
             updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
+            is_hidden: delta.value.is_hidden || false,
         }, {
             str: 'contract = $1 AND blend_id = $2',
             values: [contract, delta.value.blend_id]
@@ -199,6 +200,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
             updated_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
             created_at_block: blockNumber || 0,
             created_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
+            display_data: ingredient.display_data,
         });
 
         let index = 0;
@@ -270,6 +272,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
             created_at_block: blockNumber || 0,
             created_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
             security_id: blend.security_id || 0,
+            is_hidden: blend.is_hidden || false,
         },
         ingredientDbRows,
         ingredientAttributesDbRows,

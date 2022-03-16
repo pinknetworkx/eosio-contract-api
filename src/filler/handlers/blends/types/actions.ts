@@ -8,6 +8,7 @@ export type LogNewBlendAction = {
     end_time: number,
     display_data: string,
     security_id: string,
+    is_hidden?: boolean
 };
 
 export type DeleteBlendAction = {
@@ -40,3 +41,8 @@ export type SetBlendTimeAction = {
     end_time: string,
 };
 
+export type SetBlendHiddenActionData = {
+    authorized_account: string,
+    blend_id: number,
+    is_hidden: boolean,
+};
