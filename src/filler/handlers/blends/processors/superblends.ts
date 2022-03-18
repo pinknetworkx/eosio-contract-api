@@ -152,6 +152,7 @@ const superBlendsListener = (core: CollectionsListHandler, contract: string) => 
             updated_at_block: block.block_num,
             updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
             is_hidden: delta.value.is_hidden || false,
+            security_id: delta.value.security_id || 0,
         }, {
             str: 'contract = $1 AND blend_id = $2',
             values: [contract, delta.value.blend_id]
