@@ -56,16 +56,16 @@
         },
         "api_features": {
           "disable_v1_sales": true
+        },
+        "limits": {
+          "auctions": 100,
+          "buyoffers": 100,
+          "prices_templates": 1000,
+          "sales": 100,
+          "sales_templates": 100,
+          "sales_v2": 100,
+          "logs": 100
         }
-      },
-      "limits": {
-        "auctions": 100,
-        "buyoffers": 100,
-        "prices_templates": 1000,
-        "sales": 100,
-        "sales_templates": 100,
-        "sales_v2": 100,
-        "logs": 100
       }
     },
     {
@@ -74,11 +74,11 @@
       "args": {
         "atomictools_account": "atomictoolsx",
         "atomicassets_account": "atomicassets",
-        "connected_reader": "atomic-1"
-      },
-      "limits": {
-        "links": 100,
-        "logs": 100
+        "connected_reader": "atomic-1",
+        "limits": {
+          "links": 100,
+          "logs": 100
+        }
       }
     }
   ]
