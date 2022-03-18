@@ -1,27 +1,30 @@
+import * as os from 'os';
 import * as express from 'express';
 import {Server} from 'socket.io';
 import * as http from 'http';
 
 import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
+import {Registry} from 'prom-client';
 
 import * as bodyParser from 'body-parser';
 import * as cors from 'cors';
-import { Pool, QueryResult } from 'pg';
+import {Pool, QueryResult} from 'pg';
 
 import ConnectionManager from '../connections/manager';
-import { IServerConfig } from '../types/config';
+import {IServerConfig} from '../types/config';
 import logger from '../utils/winston';
-import { expressRedisCache, ExpressRedisCacheHandler } from '../utils/cache';
-import { eosioTimestampToDate } from '../utils/eosio';
+import {expressRedisCache, ExpressRedisCacheHandler} from '../utils/cache';
+import {eosioTimestampToDate} from '../utils/eosio';
 import * as swagger from 'swagger-ui-express';
-import { getOpenApiDescription, LogSchema } from './docs';
-import { respondApiError } from './utils';
-import { ActionHandler, ActionHandlerContext } from './actionhandler';
-import { ApiNamespace } from './namespaces/interfaces';
-import { mergeRequestData } from './namespaces/utils';
-import { Send } from 'express-serve-static-core';
-import { GetInfoResult } from 'eosjs/dist/eosjs-rpc-interfaces';
+import {getOpenApiDescription, LogSchema} from './docs';
+import {respondApiError} from './utils';
+import {ActionHandler, ActionHandlerContext} from './actionhandler';
+import {ApiNamespace} from './namespaces/interfaces';
+import {mergeRequestData} from './namespaces/utils';
+import {Send} from 'express-serve-static-core';
+import {GetInfoResult} from 'eosjs/dist/eosjs-rpc-interfaces';
+import {MetricsCollectorHandler} from '../metrics/handler';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson: any = require('../../package.json');
@@ -178,9 +181,32 @@ export class WebServer {
         this.routes();
     }
 
+    returnAsJSON = (handler: ActionHandler, core: ApiNamespace): express.Handler => {
+        const server = this.server;
+
+        return async (req: express.Request, res: express.Response): Promise<void> => {
+            try {
+                const params = mergeRequestData(req);
+                const pathParams = req.params || {};
+
+                const ctx: ActionHandlerContext<any> = {
+                    pathParams,
+                    db: server,
+                    coreArgs: core.args
+                };
+
+                const result = await handler(params, ctx);
+
+                res.json({success: true, data: result, query_time: Date.now()});
+            } catch (error) {
+                respondApiError(res, error);
+            }
+        };
+    }
+
     private middleware(): void {
         this.express.use(bodyParser.json({limit: '10MB'}));
-        this.express.use(bodyParser.urlencoded({ extended: false, limit: '10MB' }));
+        this.express.use(bodyParser.urlencoded({extended: false, limit: '10MB'}));
         this.express.use(cors({allowedHeaders: '*'}));
 
         this.express.use((req, res, next) => {
@@ -264,10 +290,15 @@ export class WebServer {
             res.json(await buildHealthResponse());
         });
 
+        router.all('/metrics', async (_req, res) => {
+            const metricsHandler = new MetricsCollectorHandler(this.server.connection, 'api', os.hostname());
+            res.send(await metricsHandler.getMetrics(new Registry()));
+        });
+
         router.get(['/alive', '/eosio-contract-api/alive'], async (_: express.Request, res: express.Response) => {
             const health = await buildHealthResponse();
 
-            if(!health.success) {
+            if (!health.success) {
                 return res.status(500).send('internal server error');
             }
 
@@ -305,29 +336,6 @@ export class WebServer {
         });
 
         this.express.use(router);
-    }
-
-    returnAsJSON = (handler: ActionHandler, core: ApiNamespace): express.Handler => {
-        const server = this.server;
-
-        return async (req: express.Request, res: express.Response): Promise<void> => {
-            try {
-                const params = mergeRequestData(req);
-                const pathParams = req.params || {};
-
-                const ctx: ActionHandlerContext<any> = {
-                    pathParams,
-                    db: server,
-                    coreArgs: core.args
-                };
-
-                const result = await handler(params, ctx);
-
-                res.json({success: true, data: result, query_time: Date.now()});
-            } catch (error) {
-                respondApiError(res, error);
-            }
-        };
     }
 
 }
