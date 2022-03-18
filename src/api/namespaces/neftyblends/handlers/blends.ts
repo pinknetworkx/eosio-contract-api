@@ -18,6 +18,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         ingredient_match: {type: 'string', allowedValues: ['all', 'missing_x', 'any'], default: 'any'},
         missing_ingredients: {type: 'int', min: 1, default: 1},
         available_only: {type: 'bool', default: false},
+        visibility: {type: 'string', allowedValues: ['all', 'visible', 'hidden'], default: 'all'},
     });
 
     let queryVarCounter:number = 0;
@@ -66,6 +67,15 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                     (blend_detail.max = 0 OR blend_detail.max > blend_detail.use_count)
                 )`
             ;
+        }
+        if (args.visibility === 'visible') {
+            queryString += `
+                AND blend_detail.is_hidden = FALSE
+            `;
+        } else if (args.visibility === 'hidden') {
+            queryString += `
+                AND blend_detail.is_hidden = TRUE
+            `;
         }
     }
     else{
@@ -141,6 +151,15 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                         (b.max = 0 OR b.max > b.use_count)
                     )`
                 ;
+            }
+            if (args.visibility === 'visible') {
+                queryString += `
+                    AND b.is_hidden = FALSE
+                `;
+            } else if (args.visibility === 'hidden') {
+                queryString += `
+                    AND b.is_hidden = TRUE
+                `;
             }
         }
 
