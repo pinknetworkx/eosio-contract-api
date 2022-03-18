@@ -71,6 +71,13 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
                             required: false,
                             schema: {type: 'string'}
                         },
+                        {
+                            name: 'visibility',
+                            in: 'query',
+                            description: 'Filter visibility',
+                            required: false,
+                            schema: {type: 'string', enum: ['visible', 'hidden'], default: ''}
+                        },
 
                         ...paginationParameters
                     ],
