@@ -86,6 +86,7 @@ export class MetricsCollectorHandler {
     private async collectPSQlState(): Promise<void> {
         try {
             await this.connections.database.query('SELECT 1;');
+
             this.metrics.psql_connection.labels(this.process, this.hostname).set(1);
         } catch (e) {
             this.metrics.psql_connection.labels(this.process, this.hostname).set(0);
@@ -121,9 +122,7 @@ export class MetricsCollectorHandler {
                 );
             });
         } catch (e) {
-            console.log(e);
             logger.debug('Error reading the readers state', e);
         }
-
     }
 }

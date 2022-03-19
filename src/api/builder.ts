@@ -160,21 +160,4 @@ export default class QueryBuilder {
     buildValues(): any[] {
         return this.values;
     }
-
-    debug(plain: boolean = false): void {
-        if (plain) {
-            const sql = this.buildValues().reduce((s, val, i) => {
-                if (Array.isArray(val)) {
-                    val = `ARRAY[${val.map(s => `'${s}'`).join(',')}]`;
-                } else if (typeof val === 'string') {
-                    val = `'${val}'`;
-                }
-                return s.replace(`$${i + 1}`, val);
-            }, this.buildString());
-            console.log(sql);
-        } else {
-            console.log(this.buildString(), this.buildValues());
-        }
-    }
-
 }

@@ -32,7 +32,7 @@ describe('FillerMetricCollector', () => {
             'eos_contract_api_redis_live',
         ];
         const res = await handler.getMetrics(new Registry());
-        console.log(res);
+
         expect(metrics.every(s => res.includes(s))).to.be.true;
     });
 
