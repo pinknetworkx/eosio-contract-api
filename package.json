@@ -38,6 +38,7 @@
     "p-queue": "^6.6.2",
     "pg": "^8.7.1",
     "pm2": "^5.1.2",
+    "prom-client": "^14.0.1",
     "rate-limit-redis": "^3.0.0",
     "redis": "^4.0.3",
     "socket.io": "^4.4.1",

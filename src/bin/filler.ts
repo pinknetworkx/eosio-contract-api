@@ -1,11 +1,15 @@
+import * as os from 'os';
+
 import * as cluster from 'cluster';
 import * as express from 'express';
 
 import Filler from '../filler/filler';
 import ConnectionManager from '../connections/manager';
 import logger from '../utils/winston';
-import { IConnectionsConfig, IReaderConfig } from '../types/config';
-import { upgradeDb } from '../filler/upgrade-db';
+import {IConnectionsConfig, IReaderConfig} from '../types/config';
+import {upgradeDb} from '../filler/upgrade-db';
+import {MetricsCollectorHandler} from '../metrics/handler';
+import {Registry} from 'prom-client';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const readerConfigs: IReaderConfig[] = require('../../config/readers.config.json');
@@ -63,6 +67,16 @@ if (cluster.isPrimary || cluster.isMaster) {
         } else {
             res.status(500).send('error');
         }
+    });
+
+    app.all('/metrics', async (_req, res) => {
+        const metricsHandler = new MetricsCollectorHandler(
+            connection,
+            'filler',
+            os.hostname(),
+            { psql_pool: false },
+        );
+        res.send(await metricsHandler.getMetrics(new Registry()));
     });
 
     app.listen(readerConfigs[0].server_port || 9001, readerConfigs[0].server_addr || '0.0.0.0');

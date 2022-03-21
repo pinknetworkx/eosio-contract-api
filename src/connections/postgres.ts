@@ -42,7 +42,7 @@ export default class PostgresConnection {
         });
     }
 
-    async query(queryText: string, values: any[] = []): Promise<QueryResult> {
+    async query<T = any>(queryText: string, values: any[] = []): Promise<QueryResult<T>> {
         await this.connect();
 
         return await this.pool.query(queryText, values);
@@ -65,5 +65,9 @@ export default class PostgresConnection {
         );
 
         return existsQuery.rows[0].exists;
+    }
+
+    async end(): Promise<void> {
+        await this.pool.end();
     }
 }
