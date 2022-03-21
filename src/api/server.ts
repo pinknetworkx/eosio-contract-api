@@ -292,7 +292,6 @@ export class WebServer {
 
         router.all('/metrics', async (_req, res) => {
             const metricsHandler = new MetricsCollectorHandler(this.server.connection, 'api', os.hostname(), {
-                readers: false,
                 psql_pool: false
             });
             res.send(await metricsHandler.getMetrics(new Registry()));
