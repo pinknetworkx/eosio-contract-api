@@ -63,6 +63,10 @@ export default class NeftyDropsHandler extends ContractHandler {
                 await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
             }
 
+            for (const view of materializedViews) {
+                await client.query(fs.readFileSync('./definitions/materialized/' + view + '.sql', {encoding: 'utf8'}));
+            }
+
             logger.info('NeftyDrops tables successfully created');
 
             return true;
