@@ -6,8 +6,8 @@ import * as express from 'express';
 import Filler from '../filler/filler';
 import ConnectionManager from '../connections/manager';
 import logger from '../utils/winston';
-import { IConnectionsConfig, IReaderConfig } from '../types/config';
-import { upgradeDb } from '../filler/upgrade-db';
+import {IConnectionsConfig, IReaderConfig} from '../types/config';
+import {upgradeDb} from '../filler/upgrade-db';
 import {MetricsCollectorHandler} from '../metrics/handler';
 import {Registry} from 'prom-client';
 
@@ -69,8 +69,13 @@ if (cluster.isPrimary || cluster.isMaster) {
         }
     });
 
-    app.all('/metrics', async (_req, res) =>  {
-        const metricsHandler = new MetricsCollectorHandler(connection, 'filler', os.hostname());
+    app.all('/metrics', async (_req, res) => {
+        const metricsHandler = new MetricsCollectorHandler(
+            connection,
+            'filler',
+            os.hostname(),
+            { psql_pool: false },
+        );
         res.send(await metricsHandler.getMetrics(new Registry()));
     });
 
