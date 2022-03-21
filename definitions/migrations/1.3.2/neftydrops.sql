@@ -19,8 +19,8 @@ FROM
     ) drop_stats
 WHERE drop_stats.drop_id = neftydrops_drops.drop_id;
 
-DROP MATERIALIZED VIEW neftydrops_drop_prices;
-DROP VIEW neftydrops_drop_prices_master;
-DROP VIEW neftydrops_drops_master;
+DROP MATERIALIZED VIEW IF EXISTS neftydrops_drop_prices;
+DROP VIEW IF EXISTS neftydrops_drop_prices_master;
+DROP VIEW IF EXISTS neftydrops_drops_master;
 
 ALTER TABLE neftydrops_drops DROP COLUMN IF EXISTS state;
