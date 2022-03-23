@@ -42,6 +42,8 @@ export interface IServerConfig {
     max_db_connections: number;
 
     namespaces: INamespaceConfig[];
+
+    metrics_port?: number;
 }
 
 interface IAssetsLimitsConfig {

@@ -5,7 +5,6 @@ import * as http from 'http';
 
 import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
-import {Registry} from 'prom-client';
 
 import * as bodyParser from 'body-parser';
 import * as cors from 'cors';
@@ -24,7 +23,6 @@ import {ApiNamespace} from './namespaces/interfaces';
 import {mergeRequestData} from './namespaces/utils';
 import {Send} from 'express-serve-static-core';
 import {GetInfoResult} from 'eosjs/dist/eosjs-rpc-interfaces';
-import {MetricsCollectorHandler} from '../metrics/handler';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson: any = require('../../package.json');
@@ -288,13 +286,6 @@ export class WebServer {
 
         router.get(['/health', '/eosio-contract-api/health'], async (_: express.Request, res: express.Response) => {
             res.json(await buildHealthResponse());
-        });
-
-        router.all('/metrics', async (_req, res) => {
-            const metricsHandler = new MetricsCollectorHandler(this.server.connection, 'api', os.hostname(), {
-                psql_pool: false
-            });
-            res.send(await metricsHandler.getMetrics(new Registry()));
         });
 
         router.get(['/alive', '/eosio-contract-api/alive'], async (_: express.Request, res: express.Response) => {
