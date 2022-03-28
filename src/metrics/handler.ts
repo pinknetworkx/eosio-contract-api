@@ -12,7 +12,7 @@ interface IMetrics {
     readers_time_behind_chain_sec?: Gauge<any>,
 }
 
-interface ICollectOptions {
+export interface ICollectOptions {
     psql_connection?: boolean;
     redis_connection?: boolean;
     psql_pool?: boolean;
