@@ -119,7 +119,7 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
     const schemaIds: any[] = [];
     for (const blend of blends) {
         for (const ingredient of blend.ingredients) {
-            const templateId = ingredient.payload?.template_id;
+            const templateId = ingredient.template?.template_id;
             const schema = ingredient.schema || ingredient.attributes;
             if (templateId) {
                 templateIds.push(templateId);
