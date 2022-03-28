@@ -27,6 +27,7 @@ export enum BlendIngredientType {
 export enum BlendResultType {
     POOL_NFT_RESULT = 'POOL_NFT_RESULT',
     ON_DEMAND_NFT_RESULT = 'ON_DEMAND_NFT_RESULT',
+    ON_DEMAND_NFT_RESULT_WITH_ATTRIBUTES = 'ON_DEMAND_NFT_RESULT_WITH_ATTRIBUTES',
 }
 
 export enum IngredientEffectType {
@@ -82,8 +83,19 @@ export default class BlendsHandler extends ContractHandler {
         return false;
     }
 
-    static async upgrade(): Promise<void> {
-
+    static async upgrade(client: PoolClient, version: string): Promise<void> {
+        if (version === '1.3.11') {
+            const viewsToUpdate = ['neftyblends_blend_details_master'];
+            const functionsToUpdate = ['neftyblends_blend_details_func'];
+            for (const view of viewsToUpdate) {
+                logger.info(`Refreshing views ${view}`);
+                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
+            }
+            for (const fn of functionsToUpdate) {
+                logger.info(`Update function ${fn}`);
+                await client.query(fs.readFileSync('./definitions/functions/' + fn + '.sql', {encoding: 'utf8'}));
+            }
+        }
     }
 
     constructor(filler: Filler, args: {[key: string]: any}) {

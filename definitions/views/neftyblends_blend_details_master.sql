@@ -25,7 +25,7 @@ SELECT
                 END,
             CASE
                 WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN jsonb_build_object(
-                    'template_id', ingredient.template_id
+                        'template_id', ingredient.template_id
                     )
                 WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN jsonb_build_object(
                         'schema_name', ingredient.schema_name,
@@ -38,7 +38,8 @@ SELECT
                     )
                 END
         )) as ingredients,
-    jsonb_agg(jsonb_build_object(
+    jsonb_agg(DISTINCT jsonb_build_object(
+            'index', roll_sub.roll_index,
             'total_odds', roll_sub.total_odds,
             'outcomes', roll_sub.outcomes
         )) as rolls
@@ -48,19 +49,19 @@ FROM
                 ingredient.contract = blend.contract
             AND ingredient.blend_id = blend.blend_id
         LEFT JOIN(
-            SELECT
-                ing_attribute.contract,
-                ing_attribute.blend_id,
-                ing_attribute.ingredient_index,
-                jsonb_agg(jsonb_build_object(
-                        'name', ing_attribute.attribute_name,
-                        'allowed_values', ing_attribute.allowed_values
-                    )) as "attributes"
-            FROM
-                neftyblends_blend_ingredient_attributes ing_attribute
-            GROUP BY
-                ing_attribute.contract, ing_attribute.blend_id, ing_attribute.ingredient_index
-        ) as attribute_ing_sub ON
+        SELECT
+            ing_attribute.contract,
+            ing_attribute.blend_id,
+            ing_attribute.ingredient_index,
+            jsonb_agg(jsonb_build_object(
+                    'name', ing_attribute.attribute_name,
+                    'allowed_values', ing_attribute.allowed_values
+                )) as "attributes"
+        FROM
+            neftyblends_blend_ingredient_attributes ing_attribute
+        GROUP BY
+            ing_attribute.contract, ing_attribute.blend_id, ing_attribute.ingredient_index
+    ) as attribute_ing_sub ON
                 ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' AND
                 attribute_ing_sub.contract = ingredient.contract AND
                 attribute_ing_sub.blend_id = ingredient.blend_id AND
@@ -84,21 +85,10 @@ FROM
                     outcome.roll_index,
                     outcome.outcome_index,
                     outcome.odds,
-                    jsonb_agg(jsonb_build_object(
-                            'type', "result"."type",
-                            case when "result"."type" = 'POOL_NFT_RESULT' then 'pool'
-                                 when "result"."type" = 'ON_DEMAND_NFT_RESULT' then 'template'
-                                 when "result"."type" = 'ON_DEMAND_NFT_RESULT_WITH_ATTRIBUTES' then 'template'
-                                end,
-                            case when "result"."type" = 'POOL_NFT_RESULT' then "result".payload
-                                 when "result"."type" = 'ON_DEMAND_NFT_RESULT' then "result".payload
-                                 when "result"."type" = 'ON_DEMAND_NFT_RESULT_WITH_ATTRIBUTES' then "result".payload
-                                end
-                            -- @TODO: add the mutable_data in result.payload when result type is 'ON_DEMAND_NFT_RESULT_WITH_ATTRIBUTES'
-                        )) as results
+                    COALESCE(jsonb_agg("result") filter (where "type" IS NOT NULL), '[]'::jsonb) as results
                 FROM
                     neftyblends_blend_roll_outcomes as outcome
-                        JOIN neftyblends_blend_roll_outcome_results as "result" ON
+                        LEFT JOIN neftyblends_blend_roll_outcome_results as "result" ON
                                 outcome.contract = "result".contract AND
                                 outcome.blend_id = "result".blend_id AND
                                 outcome.roll_index = "result".roll_index AND

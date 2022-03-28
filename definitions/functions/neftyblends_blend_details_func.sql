@@ -42,7 +42,8 @@ $body$
                         )
                     END
             )) as ingredients,
-        jsonb_agg(jsonb_build_object(
+        jsonb_agg(DISTINCT jsonb_build_object(
+                'index', roll_sub.roll_index,
                 'total_odds', roll_sub.total_odds,
                 'outcomes', roll_sub.outcomes
             )) as rolls
@@ -88,21 +89,10 @@ $body$
                         outcome.roll_index,
                         outcome.outcome_index,
                         outcome.odds,
-                        jsonb_agg(jsonb_build_object(
-                                'type', "result"."type",
-                                case when "result"."type" = 'POOL_NFT_RESULT' then 'pool'
-                                    when "result"."type" = 'ON_DEMAND_NFT_RESULT' then 'template'
-                                    when "result"."type" = 'ON_DEMAND_NFT_RESULT_WITH_ATTRIBUTES' then 'template'
-                                    end,
-                                case when "result"."type" = 'POOL_NFT_RESULT' then "result".payload
-                                    when "result"."type" = 'ON_DEMAND_NFT_RESULT' then "result".payload
-                                    when "result"."type" = 'ON_DEMAND_NFT_RESULT_WITH_ATTRIBUTES' then "result".payload
-                                    end
-                                -- @TODO: add the mutable_data in result.payload when result type is 'ON_DEMAND_NFT_RESULT_WITH_ATTRIBUTES'
-                            )) as results
+                        COALESCE(jsonb_agg("result") filter (where "type" IS NOT NULL), '[]'::jsonb) as results
                     FROM
                         neftyblends_blend_roll_outcomes as outcome
-                            JOIN neftyblends_blend_roll_outcome_results as "result" ON
+                            LEFT JOIN neftyblends_blend_roll_outcome_results as "result" ON
                                     outcome.contract = "result".contract AND
                                     outcome.blend_id = "result".blend_id AND
                                     outcome.roll_index = "result".roll_index AND
