@@ -1,6 +1,6 @@
 import DataProcessor from '../../../processor';
 import { ContractDBTransaction } from '../../../database';
-import { EosioContractRow } from '../../../../types/eosio';
+import {EosioActionTrace, EosioContractRow, EosioTransaction} from '../../../../types/eosio';
 import { ShipBlock } from '../../../../types/ship';
 import { eosioTimestampToDate } from '../../../../utils/eosio';
 import CollectionsListHandler, {
@@ -16,6 +16,7 @@ import {
     encodeDatabaseJson,
     getAllRowsFromTable
 } from '../../../utils';
+import {SetBlendRollsActionData} from '../types/actions';
 
 const fillSuperBlends = async (args: BlendsArgs, connection: ConnectionManager, contract: string): Promise<void> => {
     const superBlendsCount = await connection.database.query(
@@ -70,7 +71,7 @@ export async function initSuperBlends(args: BlendsArgs, connection: ConnectionMa
     await fillSuperBlends(args, connection, args.tag_blender_account);
 }
 
-const superBlendsListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<SuperBlendTableRow>): Promise<void> => {
+const superBlendsTableListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<SuperBlendTableRow>): Promise<void> => {
     const blend = await db.query(
         'SELECT blend_id FROM neftyblends_blends WHERE assets_contract = $1 AND contract = $2 AND blend_id = $3',
         [core.args.atomicassets_account, contract, delta.value.blend_id]
@@ -79,18 +80,7 @@ const superBlendsListener = (core: CollectionsListHandler, contract: string) => 
     if (!delta.present) {
         const deleteString = 'assets_contract = $1 AND contract = $2 AND blend_id = $3';
         const deleteValues = [core.args.atomicassets_account, contract, delta.value.blend_id];
-        await db.delete('neftyblends_blend_roll_outcome_results', {
-            str: deleteString,
-            values: deleteValues,
-        });
-        await db.delete('neftyblends_blend_roll_outcomes', {
-            str: deleteString,
-            values: deleteValues,
-        });
-        await db.delete('neftyblends_blend_rolls', {
-            str: deleteString,
-            values: deleteValues,
-        });
+        await deleteBlendRolls(db, core.args.atomicassets_account, delta.value.blend_id, contract);
         await db.delete('neftyblends_blend_ingredient_attributes', {
             str: deleteString,
             values: deleteValues,
@@ -127,20 +117,11 @@ const superBlendsListener = (core: CollectionsListHandler, contract: string) => 
                 ['contract', 'blend_id', 'ingredient_index', 'attribute_index']
             );
         }
-        await db.insert(
-            'neftyblends_blend_rolls',
+        await insertBlendRolls(
+            db,
             rollsDbRows,
-            ['contract', 'blend_id', 'roll_index']
-        );
-        await db.insert(
-            'neftyblends_blend_roll_outcomes',
             rollOutcomesDbRows,
-            ['contract', 'blend_id', 'roll_index', 'outcome_index']
-        );
-        await db.insert(
-            'neftyblends_blend_roll_outcome_results',
             rollOutcomeResultsDbRows,
-            ['contract', 'blend_id', 'roll_index', 'outcome_index', 'result_index']
         );
     } else {
         await db.update('neftyblends_blends', {
@@ -160,6 +141,32 @@ const superBlendsListener = (core: CollectionsListHandler, contract: string) => 
     }
 };
 
+const superBlendsRollsListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<SetBlendRollsActionData>): Promise<void> => {
+    const {
+        rollsDbRows,
+        rollOutcomesDbRows,
+        rollOutcomeResultsDbRows,
+    } = getRollsDbRows(
+        trace.act.data.blend_id,
+        trace.act.data.rolls,
+        core.args, block.block_num,
+        block.timestamp,
+        contract,
+    );
+    await deleteBlendRolls(
+        db,
+        core.args.atomicassets_account,
+        trace.act.data.blend_id,
+        contract,
+    );
+    await insertBlendRolls(
+        db,
+        rollsDbRows,
+        rollOutcomesDbRows,
+        rollOutcomeResultsDbRows,
+    );
+};
+
 export function superBlendsProcessor(core: CollectionsListHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
     const neftyContract = core.args.nefty_blender_account;
@@ -167,17 +174,74 @@ export function superBlendsProcessor(core: CollectionsListHandler, processor: Da
 
     destructors.push(processor.onContractRow(
         neftyContract, 'blends',
-        superBlendsListener(core, neftyContract),
-        BlendsUpdatePriority.TABLE_FEATURES.valueOf()
+        superBlendsTableListener(core, neftyContract),
+        BlendsUpdatePriority.TABLE_BLENDS.valueOf()
+    ));
+
+    destructors.push(processor.onActionTrace(
+        neftyContract, 'setrolls',
+        superBlendsRollsListener(core, neftyContract),
+        BlendsUpdatePriority.SET_ROLLS.valueOf()
     ));
 
     destructors.push(processor.onContractRow(
         tagContract, 'blends',
-        superBlendsListener(core, tagContract),
-        BlendsUpdatePriority.TABLE_FEATURES.valueOf()
+        superBlendsTableListener(core, tagContract),
+        BlendsUpdatePriority.TABLE_BLENDS.valueOf()
+    ));
+
+    destructors.push(processor.onActionTrace(
+        tagContract, 'setblendroll',
+        superBlendsRollsListener(core, tagContract),
+        BlendsUpdatePriority.SET_ROLLS.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());
+}
+
+async function insertBlendRolls(
+    db: ContractDBTransaction,
+    rollsDbRows: any[],
+    rollOutcomesDbRows: any[],
+    rollOutcomeResultsDbRows: any[]
+): Promise<void> {
+    await db.insert(
+        'neftyblends_blend_rolls',
+        rollsDbRows,
+        ['contract', 'blend_id', 'roll_index']
+    );
+    await db.insert(
+        'neftyblends_blend_roll_outcomes',
+        rollOutcomesDbRows,
+        ['contract', 'blend_id', 'roll_index', 'outcome_index']
+    );
+    await db.insert(
+        'neftyblends_blend_roll_outcome_results',
+        rollOutcomeResultsDbRows,
+        ['contract', 'blend_id', 'roll_index', 'outcome_index', 'result_index']
+    );
+}
+
+async function deleteBlendRolls(
+    db: ContractDBTransaction,
+    atomicAssetsAccount: string,
+    blendId: number,
+    contract: string,
+): Promise<void> {
+    const deleteString = 'assets_contract = $1 AND contract = $2 AND blend_id = $3';
+    const deleteValues = [atomicAssetsAccount, contract, blendId];
+    await db.delete('neftyblends_blend_roll_outcome_results', {
+        str: deleteString,
+        values: deleteValues,
+    });
+    await db.delete('neftyblends_blend_roll_outcomes', {
+        str: deleteString,
+        values: deleteValues,
+    });
+    await db.delete('neftyblends_blend_rolls', {
+        str: deleteString,
+        values: deleteValues,
+    });
 }
 
 function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber: number, blockTimeStamp: string, contract: string): any {
@@ -220,42 +284,6 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
         }
     }
 
-    const rolls = getSuperBlendRolls(blend);
-    const rollsDbRows = [];
-    const rollOutcomesDbRows = [];
-    const rollOutcomeResultsDbRows = [];
-    for (const roll of rolls) {
-        rollsDbRows.push({
-            assets_contract: args.atomicassets_account,
-            contract,
-            blend_id: blend.blend_id,
-            total_odds: roll.total_odds,
-            roll_index: roll.roll_index,
-        });
-        for (const outcome of roll.outcomes) {
-            rollOutcomesDbRows.push({
-                assets_contract: args.atomicassets_account,
-                contract,
-                blend_id: blend.blend_id,
-                roll_index: roll.roll_index,
-                odds: outcome.odds,
-                outcome_index: outcome.outcome_index,
-            });
-            for (const result of outcome.results) {
-                rollOutcomeResultsDbRows.push({
-                    assets_contract: args.atomicassets_account,
-                    contract,
-                    blend_id: blend.blend_id,
-                    roll_index: roll.roll_index,
-                    outcome_index: outcome.outcome_index,
-                    payload: encodeDatabaseJson(result.payload),
-                    type: result.type,
-                    result_index: result.result_index,
-                });
-            }
-        }
-    }
-
     return {
         blendDbRow: {
             assets_contract: args.atomicassets_account,
@@ -277,6 +305,48 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
         },
         ingredientDbRows,
         ingredientAttributesDbRows,
+        ...getRollsDbRows(blend.blend_id, blend.rolls, args, blockNumber, blockTimeStamp, contract),
+    };
+}
+
+function getRollsDbRows(blendId: number, rollsArray: any[], args: BlendsArgs, blockNumber: number, blockTimeStamp: string, contract: string): any {
+    const rolls = getSuperBlendRolls(rollsArray);
+    const rollsDbRows = [];
+    const rollOutcomesDbRows = [];
+    const rollOutcomeResultsDbRows = [];
+    for (const roll of rolls) {
+        rollsDbRows.push({
+            assets_contract: args.atomicassets_account,
+            contract,
+            blend_id: blendId,
+            total_odds: roll.total_odds,
+            roll_index: roll.roll_index,
+        });
+        for (const outcome of roll.outcomes) {
+            rollOutcomesDbRows.push({
+                assets_contract: args.atomicassets_account,
+                contract,
+                blend_id: blendId,
+                roll_index: roll.roll_index,
+                odds: outcome.odds,
+                outcome_index: outcome.outcome_index,
+            });
+            for (const result of outcome.results) {
+                rollOutcomeResultsDbRows.push({
+                    assets_contract: args.atomicassets_account,
+                    contract,
+                    blend_id: blendId,
+                    roll_index: roll.roll_index,
+                    outcome_index: outcome.outcome_index,
+                    payload: encodeDatabaseJson(result.payload),
+                    type: result.type,
+                    result_index: result.result_index,
+                });
+            }
+        }
+    }
+
+    return {
         rollsDbRows,
         rollOutcomesDbRows,
         rollOutcomeResultsDbRows,
@@ -330,8 +400,8 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
     });
 }
 
-function getSuperBlendRolls(row: SuperBlendTableRow): Roll[] {
-    return row.rolls.map(({ outcomes, total_odds}, roll_index) => ({
+function getSuperBlendRolls(rolls: any[]): Roll[] {
+    return rolls.map(({ outcomes, total_odds}, roll_index) => ({
         total_odds,
         roll_index,
         outcomes: outcomes.map(({odds, results}: {odds: number, results: any[]}, outcome_index: number) => ({
