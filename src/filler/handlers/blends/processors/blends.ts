@@ -125,7 +125,7 @@ export function blendsProcessor(core: CollectionsListHandler, processor: DataPro
                     ['contract', 'blend_id', 'roll_index', 'outcome_index', 'result_index']
                 );
             }
-        }, BlendsUpdatePriority.TABLE_FEATURES.valueOf()
+        }, BlendsUpdatePriority.TABLE_BLENDS.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());
