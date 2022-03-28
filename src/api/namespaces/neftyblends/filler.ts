@@ -179,7 +179,6 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
                         if (templateId) {
                             filledResults.push({
                                 type: result.type,
-                                payload: result.payload,
                                 template: (await templateFiller.fill(templateId)),
                             });
                         }
@@ -189,7 +188,6 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
                             const mutable_data = result.payload?.mutable_data;
                             filledResults.push({
                                 type: result.type,
-                                payload: result.payload,
                                 template: {
                                     ...(await templateFiller.fill(templateId))
                                 },
@@ -199,7 +197,6 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
                     } else if (result.type === BlendResultType.POOL_NFT_RESULT) {
                         filledResults.push({
                             type: result.type,
-                            payload: result.payload,
                             pool: result.payload,
                         });
                     }
