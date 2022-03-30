@@ -5,7 +5,7 @@ SELECT rank() OVER (ORDER BY experience DESC) "rank",
        total_bought,
        items_sold,
        items_bought,
-       (total_collected / {{total_to_collect}}) completion_percentage,
+       (total_collected / {{total_to_collect}}::numeric) completion_percentage,
        experience,
        tokens.token_symbol symbol,
        tokens.token_precision symbol_precision
