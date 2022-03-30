@@ -1,6 +1,6 @@
 import {buildBoundaryFilter, RequestValues} from '../../utils';
-import { filterQueryArgs } from '../../validation';
-import { NeftyDropsContext } from '../index';
+import {filterQueryArgs} from '../../validation';
+import {NeftyDropsContext} from '../index';
 import QueryBuilder from '../../../builder';
 import {buildDropFilter} from '../utils';
 import {buildGreylistFilter} from '../../atomicassets/utils';

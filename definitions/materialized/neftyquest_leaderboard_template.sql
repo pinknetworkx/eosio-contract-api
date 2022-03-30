@@ -6,7 +6,9 @@ SELECT rank() OVER (ORDER BY experience DESC) "rank",
        items_sold,
        items_bought,
        (total_collected / {{total_to_collect}}) completion_percentage,
-       experience
+       experience,
+       tokens.token_symbol symbol,
+       tokens.token_precision symbol_precision
 FROM (
      SELECT
        COALESCE(seller, buyer) account,
@@ -15,6 +17,7 @@ FROM (
         COALESCE(nefty_sells.sold_items, 0) items_sold,
         COALESCE(nefty_buys.bought_items, 0) items_bought,
         COALESCE(templates_owned.total, 0) total_collected,
+        COALESCE(nefty_sells.symbol, nefty_buys.symbol) AS symbol,
         (
                 (CASE COALESCE(templates_owned.total, 0) WHEN {{total_to_collect}} THEN {{completion_multiplier}} ELSE 1 END) * 100 *
                 (
@@ -62,9 +65,10 @@ FROM (
     ON nefty_buys.buyer = templates_owned.owner
     WHERE COALESCE(seller, buyer) IS NOT NULL
     ) AS leaderboard
+    JOIN atomicmarket_tokens AS tokens ON tokens.token_symbol = leaderboard.symbol
 WHERE (total_sold + total_bought) > {{min_volume}};
 
 CREATE UNIQUE INDEX nefy_quest_leaderboard_pkey ON nefy_quest_leaderboard_{{quest_id}} (rank);
 
-CREATE INDEX nefy_quest_leaderboard_owner ON nefy_quest_leaderboard_{{quest_id}} USING btree (account);
+CREATE INDEX nefy_quest_leaderboard_account ON nefy_quest_leaderboard_{{quest_id}} USING btree (account);
 CREATE INDEX nefy_quest_leaderboard_experience ON nefy_quest_leaderboard_{{quest_id}} USING btree (experience);
