@@ -11,13 +11,12 @@ import {configProcessor} from './processors/config';
 import {JobQueuePriority} from '../../jobqueue';
 import {preventInt64Overflow} from '../../../utils/binary';
 import {initQuests, questsProcessor} from './processors/quests';
-import {initBlends} from '../blends/processors/blends';
-import {initSuperBlends} from '../blends/processors/superblends';
 
 export const NEFTYQUEST_BASE_PRIORITY = Math.max(ATOMICASSETS_BASE_PRIORITY) + 1000;
 
 export type NeftyQuestArgs = {
     neftyquest_account: string,
+    market_name: string,
 };
 
 export enum NeftyQuestUpdatePriority {
@@ -73,6 +72,10 @@ export default class NeftyQuestHandler extends ContractHandler {
 
         if (typeof args.neftyquest_account !== 'string') {
             throw new Error('NeftyQuest: Argument missing in neftyquest handler: neftyquest_account');
+        }
+
+        if (typeof args.market_name !== 'string') {
+            throw new Error('NeftyQuest: Argument missing in neftyquest handler: market_name');
         }
     }
 
@@ -155,11 +158,45 @@ export default class NeftyQuestHandler extends ContractHandler {
         destructors.push(configProcessor(this, processor));
         destructors.push(questsProcessor(this, processor));
 
-        for (const view of materializedViews) {
-            this.filler.jobs.add(`Refresh NeftyDrops View ${view}`, 60000, JobQueuePriority.MEDIUM, (async () => {
-                await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view + ';');
-            }));
-        }
+        this.filler.jobs.add('Refresh NeftyQuest leaderboards', 60000, JobQueuePriority.MEDIUM, (async () => {
+            const now = new Date().getTime();
+            const questsResult = await this.connection.database.query(
+                'SELECT * FROM neftyquest_quests WHERE start_time < $1 AND end_time > $2',
+                [now, now + 60_000]
+            );
+            for (let i = 0; i < questsResult.rows.length; i+= 1) {
+                const quest = questsResult.rows[i];
+                const viewName = `nefy_quest_leaderboard_${quest.quest_id}`;
+                const matView = await this.connection.database.query('SELECT * FROM pg_matviews WHERE matviewname = $1;', [viewName]);
+                if (matView.rowCount === 0) {
+                    let materializedViewQuery = fs.readFileSync('./definitions/materialized/neftyquest_leaderboard_template.sql', { encoding: 'utf8' });
+                    const questTemplates = quest.bonus
+                        .filter(({ element }: any) => element.type === 'TEMPLATE')
+                        .map(({ element}:  any) => element.template_id);
+                    const tokens: { [key: string]: string } = {
+                        '{{quest_id}}': quest.quest_id,
+                        '{{marketplace}}': this.args.market_name,
+                        '{{state}}': '3',
+                        '{{start_time}}': quest.start_time.toString(),
+                        '{{end_time}}': quest.end_time.toString(),
+                        '{{total_to_collect}}': questTemplates.length.toString(),
+                        '{{completion_multiplier}}': quest.completion_multiplier,
+                        '{{templates}}': questTemplates.join(','),
+                        '{{volume_threshold}}': quest.volume_threshold,
+                        '{{min_asset_value}}': quest.min_asset_value,
+                        '{{points_per_asset}}': quest.points_per_asset,
+                        '{{min_volume}}': quest.minimum_volume,
+                    };
+                    const expression = new RegExp(Object.keys(tokens).join('|'),'gi');
+                    materializedViewQuery = materializedViewQuery.replace(expression, function(matched: string){
+                        return tokens[matched];
+                    });
+                    await this.connection.database.query(materializedViewQuery);
+                } else {
+                    await this.connection.database.query(`REFRESH MATERIALIZED VIEW CONCURRENTLY nefy_quest_leaderboard_${quest.quest_id};`);
+                }
+            }
+        }));
 
         return (): any => destructors.map(fn => fn());
     }
