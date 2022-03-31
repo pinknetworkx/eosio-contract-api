@@ -67,7 +67,7 @@ const questsTableListener = (core: CollectionsListHandler) => async (db: Contrac
 export function questsProcessor(core: CollectionsListHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
     destructors.push(processor.onContractRow(
-        core.args.neftyquest_account, 'blends',
+        core.args.neftyquest_account, 'quests',
         questsTableListener(core),
         NeftyQuestUpdatePriority.TABLE_QUEST.valueOf()
     ));
