@@ -141,7 +141,7 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
         contract, 'logsetdata',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogSetDataActionData>): Promise<void> => {
             await db.update('atomicassets_assets', {
-                mutable_data: convertAttributeMapToObject(trace.act.data.new_data),
+                mutable_data: encodeDatabaseJson(convertAttributeMapToObject(trace.act.data.new_data)),
                 updated_at_block: block.block_num,
                 updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
             }, {
