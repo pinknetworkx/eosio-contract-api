@@ -45,6 +45,17 @@ export const neftyQuestComponents = {
                     },
                 },
             },
+            prizes: {
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        percent: { type: 'number' },
+                        balance: { type: 'number' },
+                        template_id: { type: 'number' },
+                    },
+                },
+            },
             completion_multiplier: {type: 'number'},
         }
     }

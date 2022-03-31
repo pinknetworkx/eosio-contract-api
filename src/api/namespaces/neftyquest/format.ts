@@ -17,6 +17,7 @@ export function formatQuest(row: any): any {
         minimum_volume: +row.minimum_volume,
         minimum_volume_symbol: row.minimum_volume_symbol,
         bonus: row.bonus,
+        prizes: row.prizes,
     };
 }
 

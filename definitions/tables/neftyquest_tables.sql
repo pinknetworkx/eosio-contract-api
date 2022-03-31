@@ -31,6 +31,7 @@ CREATE TABLE neftyquest_quests
     minimum_volume          bigint                NOT NULL,
     minimum_volume_symbol   character varying(12) NOT NULL,
     bonus                   jsonb,
+    prizes                  jsonb,
     completion_multiplier   bigint                NOT NULL,
     CONSTRAINT neftyquest_quests_pkey PRIMARY KEY (contract, quest_id)
 );

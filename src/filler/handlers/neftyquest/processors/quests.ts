@@ -99,5 +99,6 @@ function getQuestRow(quest: QuestsTableRow, args: NeftyQuestArgs): any {
         minimum_volume_symbol: quest.minimum_volume.split(' ')[1],
         completion_multiplier: quest.completion_multiplier,
         bonus: encodeDatabaseJson(bonus),
+        prizes: encodeDatabaseJson(quest.prizes),
     };
 }

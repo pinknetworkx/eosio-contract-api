@@ -13,6 +13,7 @@ export type QuestsTableRow = {
         element: Array<any>,
     }>,
     completion_multiplier: number,
+    prizes: Array<unknown>,
 };
 
 export type ConfigTableRow = {
