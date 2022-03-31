@@ -688,8 +688,13 @@ export class ContractDBTransaction {
     private async clientQuery(queryText: string, values: any[] = []): Promise<QueryResult> {
         try {
             logger.debug('contract db query: ' + queryText, values);
-
-            return await this.client.query(queryText, values);
+            const sanitizedValues = values.map(value => {
+                if (typeof value === 'string') {
+                    return value.replace(/\\u0000/g, '');
+                }
+                return value;
+            });
+            return await this.client.query(queryText, sanitizedValues);
         } catch (error) {
             logger.error('Failed to execute SQL query ', {queryText, values, error});
 
