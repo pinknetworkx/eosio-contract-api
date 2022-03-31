@@ -16,18 +16,18 @@ export function configProcessor(core: NeftyQuestHandler, processor: DataProcesso
             if (!delta.present) {
                 await db.query(
                     'DELETE FROM neftyquest_config WHERE contract = $1',
-                    [this.args.neftyquest_account]
+                    [contract]
                 );
             }
 
             const config = await db.query(
                 'SELECT * FROM neftyquest_config WHERE contract = $1',
-                [core.args.neftyquest_account]
+                [contract]
             );
 
             if (config.rows.length > 0) {
                 await db.update('neftyquest_config', {
-                    contract: this.args.neftyquest_account,
+                    contract: contract,
                     collection_name: delta.value.collection_name,
                     template_id: delta.value.template_id,
                     balance_attribute_name: delta.value.balance_attribute_name,
@@ -42,7 +42,7 @@ export function configProcessor(core: NeftyQuestHandler, processor: DataProcesso
                     minimum_volume_symbol: delta.value.minimum_volume.split(' ')[1],
                 }, {
                     str: 'contract = $1',
-                    values: [core.args.neftyquest_account]
+                    values: [contract]
                 }, ['contract']);
             } else {
                 await db.query(
@@ -55,7 +55,7 @@ export function configProcessor(core: NeftyQuestHandler, processor: DataProcesso
                     ') ' +
                     'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
                     [
-                        this.args.neftyquest_account,
+                        contract,
                         delta.value.collection_name,
                         delta.value.template_id,
                         delta.value.balance_attribute_name,
