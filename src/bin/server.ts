@@ -2,6 +2,7 @@ import ConnectionManager from '../connections/manager';
 import logger from '../utils/winston';
 import { IConnectionsConfig, IServerConfig } from '../types/config';
 import Api from '../api/api';
+import {MetricsServer} from '../metrics/server';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const serverConfig: IServerConfig = require('../../config/server.config.json');
@@ -46,7 +47,9 @@ const connection = new ConnectionManager(connectionConfig);
 
     try {
         const server = new Api(serverConfig, connection);
-
+        if (serverConfig.metrics_port) {
+            new MetricsServer(serverConfig.metrics_port, connection, 'api').serve();
+        }
         await server.listen();
     } catch (e) {
         logger.error('Failed to start server', e);

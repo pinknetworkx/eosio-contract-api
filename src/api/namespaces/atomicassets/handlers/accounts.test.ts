@@ -146,7 +146,7 @@ describe('Account handler', () => {
             expect(response[1]).to.deep.equal({assets: '1', account: asset2['owner']});
         });
 
-        context('when filter match argument is given', () => {
+        context('when filter match_owner argument is given', () => {
             txit('returns asset count filtered by owner', async () => {
                 const asset1 = await client.createAsset({
                     owner: 'account1',
@@ -160,7 +160,7 @@ describe('Account handler', () => {
                 });
 
                 const response = await getAccountsAction({
-                    match: asset1['owner'],
+                    match_owner: asset1['owner'],
                 }, {
                     db: client,
                     pathParams: {},

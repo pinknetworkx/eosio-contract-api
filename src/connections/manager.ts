@@ -36,6 +36,11 @@ export default class ConnectionManager {
         await this.redis.connect();
     }
 
+    async disconnect(): Promise<void> {
+        await this.database.end();
+        await this.redis.disconnect();
+    }
+
     async alive(): Promise<boolean> {
         try {
             await this.redis.ioRedis.ping();
