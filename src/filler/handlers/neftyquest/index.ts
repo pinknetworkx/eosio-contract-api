@@ -158,11 +158,11 @@ export default class NeftyQuestHandler extends ContractHandler {
         destructors.push(configProcessor(this, processor));
         destructors.push(questsProcessor(this, processor));
 
-        this.filler.jobs.add('Refresh NeftyQuest leaderboards', 60000, JobQueuePriority.MEDIUM, (async () => {
+        this.filler.jobs.add('Refresh NeftyQuest leaderboards', 60000, JobQueuePriority.HIGH, (async () => {
             const now = new Date().getTime();
             const questsResult = await this.connection.database.query(
                 'SELECT * FROM neftyquest_quests WHERE start_time < $1 AND end_time > $2',
-                [now, now + 61_000]
+                [now, now + 300_000]
             );
             for (let i = 0; i < questsResult.rows.length; i+= 1) {
                 const quest = questsResult.rows[i];
