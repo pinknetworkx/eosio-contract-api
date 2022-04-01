@@ -1,8 +1,4 @@
 export function formatQuest(row: any): any {
-    if (!row) {
-        return row;
-    }
-
     return {
         contract: row.contract,
         quest_id: +row.quest_id,
