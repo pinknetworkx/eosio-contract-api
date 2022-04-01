@@ -9,6 +9,7 @@ import { eosioTimestampToDate } from '../utils/eosio';
 import { arrayChunk, arraysEqual } from '../utils';
 import logger from '../utils/winston';
 import { EosioActionTrace, EosioTransaction } from '../types/eosio';
+import { encodeDatabaseJson } from './utils';
 
 export type Condition = {
     str: string,
@@ -630,7 +631,7 @@ export class ContractDBTransaction {
             global_sequence: trace.global_sequence,
             account: trace.act.account,
             name: trace.act.name,
-            metadata: JSON.stringify(metadata),
+            metadata: encodeDatabaseJson(metadata),
             txid: Buffer.from(tx.id, 'hex'),
             created_at_block: block.block_num,
             created_at_time: eosioTimestampToDate(block.timestamp).getTime()
