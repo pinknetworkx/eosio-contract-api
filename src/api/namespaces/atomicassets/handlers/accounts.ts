@@ -26,7 +26,7 @@ export async function getAccountsAction(
         schema_name: {type: 'string', min: 1},
         template_id: {type: 'string', min: 1},
 
-        match: {type: 'string', min: 1},
+        match_owner: {type: 'string', min: 1},
 
         count: {type: 'bool'}
     });

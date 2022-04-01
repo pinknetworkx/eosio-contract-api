@@ -9,7 +9,7 @@ import { eosioTimestampToDate } from '../utils/eosio';
 import { arrayChunk, arraysEqual } from '../utils';
 import logger from '../utils/winston';
 import { EosioActionTrace, EosioTransaction } from '../types/eosio';
-import {encodeDatabaseJson} from './utils';
+import { encodeDatabaseJson } from './utils';
 
 export type Condition = {
     str: string,
@@ -689,6 +689,7 @@ export class ContractDBTransaction {
     private async clientQuery(queryText: string, values: any[] = []): Promise<QueryResult> {
         try {
             logger.debug('contract db query: ' + queryText, values);
+
             return await this.client.query(queryText, values);
         } catch (error) {
             logger.error('Failed to execute SQL query ', {queryText, values, error});

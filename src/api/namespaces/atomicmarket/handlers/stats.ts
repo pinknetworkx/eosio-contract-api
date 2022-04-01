@@ -1,12 +1,13 @@
-import { AtomicMarketContext, SaleApiState } from '../index';
-import { SaleState } from '../../../../filler/handlers/atomicmarket';
-import { RequestValues } from '../../utils';
-import { formatCollection, formatTemplate } from '../../atomicassets/format';
-import { ApiError } from '../../../error';
+import {AtomicMarketContext, SaleApiState} from '../index';
+import {SaleState} from '../../../../filler/handlers/atomicmarket';
+import {RequestValues} from '../../utils';
+import {formatCollection, formatTemplate} from '../../atomicassets/format';
+import {ApiError} from '../../../error';
 import QueryBuilder from '../../../builder';
-import { buildGreylistFilter } from '../../atomicassets/utils';
-import { DB } from '../../../server';
-import { filterQueryArgs } from '../../validation';
+import {buildGreylistFilter} from '../../atomicassets/utils';
+import {DB} from '../../../server';
+import {filterQueryArgs} from '../../validation';
+import {oneLine} from 'common-tags';
 
 export async function getAllCollectionStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
@@ -65,7 +66,7 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
         query.notMany('collection.collection_name', args.collection_blacklist);
     }
 
-    const sortColumnMapping: {[key: string]: string} = {
+    const sortColumnMapping: { [key: string]: string } = {
         volume: 'stats.volume',
         sales: 'stats.sales'
     };
@@ -80,13 +81,16 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
         [ctx.coreArgs.atomicassets_account, collectionResult.rows.map(row => row.collection_name)]
     );
 
-    const collectionLookup: {[key: string]: any} = result.rows.reduce((prev, current) => {
+    const collectionLookup: { [key: string]: any } = result.rows.reduce((prev, current) => {
         prev[String(current.collection_name)] = current;
 
         return prev;
     }, {});
 
-    return {symbol, results: collectionResult.rows.map(row => formatCollection({...row, ...collectionLookup[row.collection_name]}))};
+    return {
+        symbol,
+        results: collectionResult.rows.map(row => formatCollection({...row, ...collectionLookup[row.collection_name]}))
+    };
 }
 
 export async function getCollectionStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
@@ -249,8 +253,8 @@ export async function getSchemaStatsByCollectionV2Action(params: RequestValues, 
 
     query.group(['template.contract', 'template.collection_name', 'template.schema_name']);
 
-    const statsQuery = await ctx.db.query<{schema_name: string, volume: string, sales: string}>(query.buildString(), query.buildValues());
-    const schemasQuery = await ctx.db.query<{schema_name: string}>(
+    const statsQuery = await ctx.db.query<{ schema_name: string, volume: string, sales: string }>(query.buildString(), query.buildValues());
+    const schemasQuery = await ctx.db.query<{ schema_name: string }>(
         'SELECT schema_name ' +
         'FROM atomicassets_schemas "schema" WHERE contract = $1 AND collection_name = $2 AND EXISTS ( ' +
         'SELECT * FROM atomicassets_assets asset ' +
@@ -300,55 +304,53 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
     }
 
     const query = new QueryBuilder(
-        'SELECT price.template_id, SUM(price.price) volume, COUNT(*) sales ' +
-        'FROM atomicmarket_stats_prices price '
+        oneLine`
+            SELECT 
+                "templates"."template_id" as "template_id", 
+                COALESCE("stats"."volume", 0) "volume", 
+                COALESCE("stats"."sales", 0) "sales" 
+            FROM "atomicassets_templates" AS "templates" 
+            LEFT JOIN (
+                SELECT "assets_contract", "template_id", SUM(price) "volume", COUNT(*) "sales" FROM "atomicmarket_stats_prices" AS "asp"
+                WHERE 
+                    "asp"."assets_contract" = $1 
+                    AND "asp"."market_contract" = $2 
+                    AND "asp"."symbol" = $3 ${buildRangeCondition('"time', args.after, args.before)}
+                GROUP BY "asp"."assets_contract", "asp"."template_id" 
+            ) AS "stats" 
+            ON "stats"."template_id" = "templates"."template_id" AND "stats"."assets_contract" = "templates"."contract" AND "templates".contract = $1
+        `, [ctx.coreArgs.atomicassets_account, ctx.coreArgs.atomicmarket_account, args.symbol]
     );
 
-    query.equal('price.market_contract', ctx.coreArgs.atomicmarket_account);
-    query.equal('price.assets_contract', ctx.coreArgs.atomicassets_account);
-    query.equal('price.symbol', args.symbol);
-    query.notNull('price.template_id');
+    query.addCondition('templates.contract = $1');
 
     if (args.collection_name.length > 0) {
-        query.equalMany('price.collection_name', args.collection_name);
+        query.equalMany('templates.collection_name', args.collection_name);
     }
 
     if (args.schema_name.length > 0) {
-        query.equalMany('price.collection_name', args.schema_name);
+        query.equalMany('templates.schema_name', args.schema_name);
     }
 
     if (args.template_id.length > 0) {
-        query.equalMany('price.template_id', args.template_id);
-    }
-
-    if (args.after) {
-        query.addCondition('price.time > ' + query.addVariable(args.after) + '::BIGINT');
-    }
-
-    if (args.before) {
-        query.addCondition('price.time < ' + query.addVariable(args.before) + '::BIGINT');
+        query.equalMany('templates.template_id', args.template_id);
     }
 
     if (args.search) {
-        query.addCondition(`EXISTS(
-            SELECT FROM atomicassets_templates template 
-            WHERE template.contract = price.assets_contract AND template.template_id = price.template_id
-                AND ${query.addVariable(args.search)} <% (template.immutable_data->>'name')
-        )`);
+        query.addCondition(`${query.addVariable(args.search)} <% (templates.immutable_data->>'name')`);
     }
 
     if (args.sort === 'sales') {
-        query.append('ORDER BY sales DESC');
+        query.append('ORDER BY sales DESC NULLS LAST, template_id ASC');
     } else {
-        query.append('ORDER BY volume DESC');
+        query.append('ORDER BY volume DESC NULLS LAST, template_id ASC');
     }
 
-    query.group(['price.assets_contract', 'price.template_id']);
     query.paginate(args.page, args.limit);
 
     const templateQuery = await ctx.db.query(query.buildString(), query.buildValues());
 
-    const templateLookup: {[key: string]: any} = {};
+    const templateLookup: { [key: string]: any } = {};
     const result = await ctx.db.query(
         'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND template_id = ANY ($2)',
         [ctx.coreArgs.atomicassets_account, templateQuery.rows.map((row: any) => row.template_id)]
@@ -448,7 +450,15 @@ export async function getStatsGraphAction(params: RequestValues, ctx: AtomicMark
 
     const query = await ctx.db.query(queryString, queryValues);
 
-    return {symbol, results: query.rows.map(row => ({sales: row.sales, volume: row.volume, max: row.max, time: String(row.time_block * 3600 * 24 * 1000)}))};
+    return {
+        symbol,
+        results: query.rows.map(row => ({
+            sales: row.sales,
+            volume: row.volume,
+            max: row.max,
+            time: String(row.time_block * 3600 * 24 * 1000)
+        }))
+    };
 }
 
 export async function getStatsSalesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
@@ -475,7 +485,7 @@ export async function getStatsSalesAction(params: RequestValues, ctx: AtomicMark
     return {symbol, result: result.rows[0]};
 }
 
-function getSaleSubCondition (state: SaleApiState, table: string, after?: number, before?: number, filterState: boolean = true): string {
+function getSaleSubCondition(state: SaleApiState, table: string, after?: number, before?: number, filterState: boolean = true): string {
     if (state.valueOf() === SaleApiState.LISTED.valueOf()) {
         let queryString = '';
 
@@ -513,7 +523,7 @@ function getSaleSubCondition (state: SaleApiState, table: string, after?: number
     throw new Error('Sale State not supported');
 }
 
-function getGreylistCondition (column: string, whitelistVar: number, blacklistVar: number): string {
+function getGreylistCondition(column: string, whitelistVar: number, blacklistVar: number): string {
     return 'AND (' + column + ' = ANY ($' + whitelistVar + ') OR CARDINALITY($' + whitelistVar + ') = 0) AND ' +
         '(NOT (' + column + '  = ANY ($' + blacklistVar + ')) OR CARDINALITY($' + blacklistVar + ') = 0) ';
 }
@@ -522,11 +532,11 @@ function buildRangeCondition(column: string, after?: number, before?: number): s
     let queryStr = '';
 
     if (typeof after === 'number') {
-        queryStr += 'AND ' + column + ' > ' + after + ' ';
+        queryStr += `AND ${column} > ${after}`;
     }
 
     if (typeof before === 'number') {
-        queryStr += 'AND ' + column + ' < ' + before + ' ';
+        queryStr += `AND ${column} < ${before}`;
     }
 
     return queryStr;
@@ -591,7 +601,7 @@ function buildMarketStatsQuery(after?: number, before?: number): string {
         `;
 }
 
-async function fetchSymbol(db: DB, contract: string, symbol: string): Promise<{token_symbol: string, token_contract: string, token_precision: number}> {
+async function fetchSymbol(db: DB, contract: string, symbol: string): Promise<{ token_symbol: string, token_contract: string, token_precision: number }> {
     if (!symbol) {
         return null;
     }

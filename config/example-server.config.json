@@ -21,6 +21,8 @@
   "max_query_time_ms": 10000,
   "max_db_connections": 50,
 
+  "metrics_port": 9010,
+
   "namespaces": [
     {
       "name": "atomicassets",

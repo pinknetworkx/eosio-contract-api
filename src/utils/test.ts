@@ -6,7 +6,7 @@ import { AtomicMarketContext } from '../api/namespaces/atomicmarket';
 import { IConnectionsConfig } from '../types/config';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const connectionConfig: IConnectionsConfig = require('../../config/connections.config.json');
+export const connectionConfig: IConnectionsConfig = require('../../config/connections.config.json');
 
 export class TestClient extends Client {
 
