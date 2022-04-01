@@ -70,7 +70,7 @@ FROM (
     JOIN atomicmarket_tokens AS tokens ON tokens.token_symbol = leaderboard.symbol
 WHERE (total_sold + total_bought) > {{min_volume}};
 
-CREATE UNIQUE INDEX nefy_quest_leaderboard_pkey ON nefy_quest_leaderboard_{{quest_id}} (rank);
+CREATE UNIQUE INDEX nefy_quest_leaderboard_pkey ON nefy_quest_leaderboard_{{quest_id}} (account);
 
 CREATE INDEX nefy_quest_leaderboard_account ON nefy_quest_leaderboard_{{quest_id}} USING btree (account);
 CREATE INDEX nefy_quest_leaderboard_experience ON nefy_quest_leaderboard_{{quest_id}} USING btree (experience);
