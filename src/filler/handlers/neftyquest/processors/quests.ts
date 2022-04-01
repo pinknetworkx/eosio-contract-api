@@ -27,7 +27,9 @@ const fillQuests = async (args: NeftyQuestArgs, connection: ConnectionManager): 
         }, 1000) as QuestsTableRow[];
 
         const questRows = questsTable.map(quest => getQuestRow(quest, args));
-        await bulkInsert(connection.database, 'neftyquest_quests', questRows);
+        if (questRows.length > 0) {
+            await bulkInsert(connection.database, 'neftyquest_quests', questRows);
+        }
     }
 };
 
