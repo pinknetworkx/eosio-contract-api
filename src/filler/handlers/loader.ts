@@ -8,6 +8,7 @@ import SimpleAssetsHandler from './simpleassets';
 import NeftyDropsHandler from './neftydrops';
 import CollectionsListHandler from './helpers';
 import BlendsHandler from './blends';
+import NeftyQuestHandler from './neftyquest';
 
 export const handlers: (typeof ContractHandler)[] = [
     AtomicAssetsHandler,
@@ -18,4 +19,5 @@ export const handlers: (typeof ContractHandler)[] = [
     NeftyDropsHandler,
     CollectionsListHandler,
     BlendsHandler,
+    NeftyQuestHandler,
 ];
