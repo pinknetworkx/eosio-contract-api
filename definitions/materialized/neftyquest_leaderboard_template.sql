@@ -60,6 +60,7 @@ FROM (
         SELECT owner, COUNT(DISTINCT template_id) total
         FROM atomicassets_assets
         WHERE template_id IN ({{templates}})
+        AND atomicassets_assets.updated_at_time < '{{end_time}}'
         GROUP BY owner
     ) AS templates_owned
     ON nefty_buys.buyer = templates_owned.owner
