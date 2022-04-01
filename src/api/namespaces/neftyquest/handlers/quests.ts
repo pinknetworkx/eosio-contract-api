@@ -73,7 +73,7 @@ export async function getQuestAction(params: RequestValues, ctx: NeftyQuestConte
     );
 
     if (query.rowCount === 0) {
-        throw new ApiError('Quest not found', 416);
+        throw new ApiError('Quest not found', 404);
     } else {
         return formatQuest(query.rows[0]);
     }
@@ -101,14 +101,14 @@ export async function getLeaderboardAction(params: RequestValues, ctx: NeftyQues
     );
 
     if (questResult.rowCount === 0) {
-        throw new ApiError('Quest not found', 416);
+        throw new ApiError('Quest not found', 404);
     }
 
     const [quest] = questResult.rows;
 
     const query = new QueryBuilder(`
         SELECT *
-        FROM nefy_quest_leaderboard_${quest.quest_id} loaderboard
+        FROM nefy_quest_leaderboard_${quest.quest_id} leaderboard
     `);
 
     if (args.account_name) {
