@@ -155,7 +155,7 @@ export default class Filler {
                 );
             } else if (this.reader.blocksUntilHead > 60) {
                 lastBlockTime = Date.now();
-                timeout = 4 * 60 * 1000;
+                timeout = 10 * 60 * 1000;
 
                 if (blockRange === 0) {
                     blockRange = this.reader.blocksUntilHead;
