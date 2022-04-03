@@ -323,7 +323,7 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
 
     query.addCondition('template.contract = $1');
 
-    buildGreylistFilter(params, query, { collectionName: '"template".collection_name' });
+    //buildGreylistFilter(params, query, { collectionName: '"template".collection_name' });
     buildBoundaryFilter(params, query, '"template".template_id', 'int', '"template".created_at_time');
     buildDataConditions(params, query, {templateTable: '"template"'});
 
