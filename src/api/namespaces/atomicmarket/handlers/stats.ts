@@ -1,10 +1,10 @@
 import {AtomicMarketContext, SaleApiState} from '../index';
 import {SaleState} from '../../../../filler/handlers/atomicmarket';
-import {RequestValues} from '../../utils';
+import { buildBoundaryFilter, RequestValues } from '../../utils';
 import {formatCollection, formatTemplate} from '../../atomicassets/format';
 import {ApiError} from '../../../error';
 import QueryBuilder from '../../../builder';
-import {buildGreylistFilter} from '../../atomicassets/utils';
+import { buildDataConditions, buildGreylistFilter } from '../../atomicassets/utils';
 import {DB} from '../../../server';
 import {filterQueryArgs} from '../../validation';
 import {oneLine} from 'common-tags';
@@ -322,6 +322,10 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
     );
 
     query.addCondition('template.contract = $1');
+
+    buildGreylistFilter(params, query, { collectionName: '"template".collection_name' });
+    buildBoundaryFilter(params, query, '"template".template_id', 'int', '"template".created_at_time');
+    buildDataConditions(params, query, {templateTable: '"template"'});
 
     if (args.collection_name.length > 0) {
         query.equalMany('template.collection_name', args.collection_name);
