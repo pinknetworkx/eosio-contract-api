@@ -304,40 +304,41 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
     }
 
     const query = new QueryBuilder(
-        oneLine`
+        `
             SELECT 
-                "templates"."template_id" as "template_id", 
+                "template"."template_id", 
                 COALESCE("stats"."volume", 0) "volume", 
                 COALESCE("stats"."sales", 0) "sales" 
-            FROM "atomicassets_templates" AS "templates" 
+            FROM atomicassets_templates "template"
             LEFT JOIN (
-                SELECT "assets_contract", "template_id", SUM(price) "volume", COUNT(*) "sales" FROM "atomicmarket_stats_prices" AS "asp"
+                SELECT assets_contract, template_id, SUM(price) "volume", COUNT(*) "sales" 
+                FROM atomicmarket_stats_prices "asp"
                 WHERE 
-                    "asp"."assets_contract" = $1 
-                    AND "asp"."market_contract" = $2 
-                    AND "asp"."symbol" = $3 ${buildRangeCondition('"time', args.after, args.before)}
-                GROUP BY "asp"."assets_contract", "asp"."template_id" 
-            ) AS "stats" 
-            ON "stats"."template_id" = "templates"."template_id" AND "stats"."assets_contract" = "templates"."contract" AND "templates".contract = $1
+                    "asp".assets_contract = $1 AND "asp".market_contract = $2 AND 
+                    "asp".symbol = $3 ${buildRangeCondition('time', args.after, args.before)}
+                GROUP BY "asp".assets_contract, "asp".template_id 
+            ) "stats" ON ("stats".template_id = "template".template_id AND "stats".assets_contract = "template".contract)
+            WHERE 
+                "template".contract = $1
         `, [ctx.coreArgs.atomicassets_account, ctx.coreArgs.atomicmarket_account, args.symbol]
     );
 
-    query.addCondition('templates.contract = $1');
+    query.addCondition('template.contract = $1');
 
     if (args.collection_name.length > 0) {
-        query.equalMany('templates.collection_name', args.collection_name);
+        query.equalMany('template.collection_name', args.collection_name);
     }
 
     if (args.schema_name.length > 0) {
-        query.equalMany('templates.schema_name', args.schema_name);
+        query.equalMany('template.schema_name', args.schema_name);
     }
 
     if (args.template_id.length > 0) {
-        query.equalMany('templates.template_id', args.template_id);
+        query.equalMany('template.template_id', args.template_id);
     }
 
     if (args.search) {
-        query.addCondition(`${query.addVariable(args.search)} <% (templates.immutable_data->>'name')`);
+        query.addCondition(`${query.addVariable(args.search)} <% (template.immutable_data->>'name')`);
     }
 
     if (args.sort === 'sales') {
