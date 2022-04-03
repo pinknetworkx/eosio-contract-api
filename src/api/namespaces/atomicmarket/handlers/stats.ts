@@ -318,8 +318,6 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
                     "asp".symbol = $3 ${buildRangeCondition('time', args.after, args.before)}
                 GROUP BY "asp".assets_contract, "asp".template_id 
             ) "stats" ON ("stats".template_id = "template".template_id AND "stats".assets_contract = "template".contract)
-            WHERE 
-                "template".contract = $1
         `, [ctx.coreArgs.atomicassets_account, ctx.coreArgs.atomicmarket_account, args.symbol]
     );
 
