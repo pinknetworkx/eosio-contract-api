@@ -154,7 +154,7 @@ describe('AtomicMarket Stats API', () => {
                     final_price: 1,
                     listing_price: 1, listing_symbol: 'TOKEN1',
                     settlement_symbol: 'TOKEN1', state: SaleApiState.SOLD,
-                    updated_at_time: now - 5,
+                    updated_at_time: now,
                 }, {template_id});
 
 
@@ -176,15 +176,15 @@ describe('AtomicMarket Stats API', () => {
                     listing_symbol: 'TOKEN1',
                     settlement_symbol: 'TOKEN1',
                     state: SaleApiState.SOLD,
-                    updated_at_time: now + 10,
+                    updated_at_time: now + 20,
                 }, {template_id: template_id2});
 
                 await client.query('REFRESH MATERIALIZED VIEW "atomicmarket_stats_prices"');
 
                 const response = await getTemplateStatsAction({
                     symbol: 'TOKEN1',
-                    before: (now + 8).toString(),
-                    after: (now - 6).toString()
+                    before: (now + 10).toString(),
+                    after: (now - 10).toString()
                 }, context);
 
                 expect(response.results.length).to.equal(2);
