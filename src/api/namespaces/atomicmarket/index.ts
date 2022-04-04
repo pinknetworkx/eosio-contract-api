@@ -18,7 +18,7 @@ import ApiNotificationReceiver from '../../notification';
 import { buyoffersEndpoints, buyofferSockets } from './routes/buyoffers';
 import { assetsEndpoints } from './routes/assets';
 import { ActionHandlerContext } from '../../actionhandler';
-import {ILimits} from "../../../types/config";
+import {ILimits} from '../../../types/config';
 
 export interface AtomicMarketNamespaceArgs {
     connected_reader: string;

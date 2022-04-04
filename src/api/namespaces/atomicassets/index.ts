@@ -15,7 +15,7 @@ import { accountsEndpoints } from './routes/accounts';
 import ApiNotificationReceiver from '../../notification';
 import { burnEndpoints } from './routes/burns';
 import { ActionHandlerContext } from '../../actionhandler';
-import {ILimits} from "../../../types/config";
+import {ILimits} from '../../../types/config';
 
 export type AtomicAssetsNamespaceArgs = {
     connected_reader: string;

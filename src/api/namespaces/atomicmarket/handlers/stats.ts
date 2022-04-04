@@ -7,7 +7,6 @@ import QueryBuilder from '../../../builder';
 import { buildDataConditions, buildGreylistFilter } from '../../atomicassets/utils';
 import {DB} from '../../../server';
 import {filterQueryArgs} from '../../validation';
-import {oneLine} from 'common-tags';
 
 export async function getAllCollectionStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
