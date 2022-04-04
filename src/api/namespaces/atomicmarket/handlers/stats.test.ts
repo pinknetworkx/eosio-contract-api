@@ -74,7 +74,7 @@ describe('AtomicMarket Stats API', () => {
                 await client.createToken({token_symbol: 'TOKEN1'});
                 const context = getTestContext(client);
                 // Included
-                const {schema_name, collection_name } = await client.createSchema();
+                const {schema_name, collection_name} = await client.createSchema();
                 const {template_id} = await client.createTemplate({schema_name, collection_name});
                 // Not included
                 await client.createTemplate();
@@ -134,6 +134,71 @@ describe('AtomicMarket Stats API', () => {
                     volume: '0', sales: '0',
                 });
                 expect(response.results[0].template.template_id).to.equal(template_id);
+            });
+        });
+
+        context('with time after and before filter', () => {
+            txit('gets the templates sales and volume even if they dont have sales in the period defined', async () => {
+                await client.createToken({token_symbol: 'TOKEN1'});
+                // Included
+                const {template_id} = await client.createTemplate();
+                // Not included
+                const {template_id: template_id2} = await client.createTemplate();
+
+                const now = Date.now();
+
+                const context = getTestContext(client);
+
+                // Included
+                await client.createFullSale({
+                    final_price: 1,
+                    listing_price: 1, listing_symbol: 'TOKEN1',
+                    settlement_symbol: 'TOKEN1', state: SaleApiState.SOLD,
+                    updated_at_time: now - 5,
+                }, {template_id});
+
+
+
+                // Not included
+                await client.createFullSale({
+                    final_price: 1,
+                    listing_price: 1,
+                    listing_symbol: 'TOKEN1',
+                    settlement_symbol: 'TOKEN1',
+                    state: SaleApiState.SOLD,
+                    updated_at_time: now - 20,
+                }, {template_id: template_id2});
+
+                // Not included
+                await client.createFullSale({
+                    final_price: 1,
+                    listing_price: 1,
+                    listing_symbol: 'TOKEN1',
+                    settlement_symbol: 'TOKEN1',
+                    state: SaleApiState.SOLD,
+                    updated_at_time: now + 10,
+                }, {template_id: template_id2});
+
+                await client.query('REFRESH MATERIALIZED VIEW "atomicmarket_stats_prices"');
+
+                const response = await getTemplateStatsAction({
+                    symbol: 'TOKEN1',
+                    before: (now + 8).toString(),
+                    after: (now - 6).toString()
+                }, context);
+
+                expect(response.results.length).to.equal(2);
+                const t1Result = response.results.find((t: { template: { template_id: string} }) => t.template.template_id === template_id);
+                const t2Result = response.results.find((t: { template: { template_id: string} }) => t.template.template_id === template_id2);
+
+
+                expect(t1Result).to.deep.contains({
+                    volume: '1', sales: '1',
+                });
+
+                expect(t2Result).to.deep.contains({
+                    volume: '0', sales: '0',
+                });
             });
         });
     });
