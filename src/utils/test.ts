@@ -18,6 +18,7 @@ export class TestClient extends Client {
             database: `${connectionConfig.postgres.database}-test`,
         });
 
+        // eslint-disable-next-line no-console
         this.connect().catch(console.error);
     }
 

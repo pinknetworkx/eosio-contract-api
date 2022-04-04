@@ -1,6 +1,6 @@
-import {getAccountsAction} from "./accounts";
-import {expect} from "chai";
-import {initAtomicAssetsTest} from "../test";
+import {getAccountsAction} from './accounts';
+import {expect} from 'chai';
+import {initAtomicAssetsTest} from '../test';
 
 describe('getAccountsAction limits', () => {
     const {client, txit} = initAtomicAssetsTest();
@@ -14,12 +14,12 @@ describe('getAccountsAction limits', () => {
             contract: 'contractlim',
         });
 
-        const asset2 = await client.createAsset({
+        await client.createAsset({
             owner: 'accountlim2',
             contract: asset1['contract'],
         });
 
-        const asset3 = await client.createAsset({
+        await client.createAsset({
             owner: 'accountlim3',
             contract: asset1['contract'],
         });
@@ -44,12 +44,12 @@ describe('getAccountsAction limits', () => {
             contract: 'contractlim',
         });
 
-        const asset2 = await client.createAsset({
+        await client.createAsset({
             owner: 'accountlim2',
             contract: asset1['contract'],
         });
 
-        const asset3 = await client.createAsset({
+        await client.createAsset({
             owner: 'accountlim3',
             contract: asset1['contract'],
         });
@@ -80,12 +80,12 @@ describe('getAccountsAction limits', () => {
             contract: 'contractlim',
         });
 
-        const asset2 = await client.createAsset({
+        await client.createAsset({
             owner: 'accountlim2',
             contract: asset1['contract'],
         });
 
-        const asset3 = await client.createAsset({
+        await client.createAsset({
             owner: 'accountlim3',
             contract: asset1['contract'],
         });

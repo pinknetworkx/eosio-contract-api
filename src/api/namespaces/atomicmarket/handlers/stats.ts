@@ -7,7 +7,6 @@ import QueryBuilder from '../../../builder';
 import { buildDataConditions, buildGreylistFilter } from '../../atomicassets/utils';
 import {DB} from '../../../server';
 import {filterQueryArgs} from '../../validation';
-import {oneLine} from 'common-tags';
 
 export async function getAllCollectionStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
@@ -315,7 +314,7 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
                 FROM atomicmarket_stats_prices "asp"
                 WHERE 
                     "asp".assets_contract = $1 AND "asp".market_contract = $2 AND 
-                    "asp".symbol = $3 ${buildRangeCondition('time', args.after, args.before)}
+                    "asp".symbol = $3 ${buildRangeCondition('"asp".time', args.after, args.before)}
                 GROUP BY "asp".assets_contract, "asp".template_id 
             ) "stats" ON ("stats".template_id = "template".template_id AND "stats".assets_contract = "template".contract)
         `, [ctx.coreArgs.atomicassets_account, ctx.coreArgs.atomicmarket_account, args.symbol]
@@ -535,11 +534,11 @@ function buildRangeCondition(column: string, after?: number, before?: number): s
     let queryStr = '';
 
     if (typeof after === 'number') {
-        queryStr += `AND ${column} > ${after}`;
+        queryStr += ` AND ${column} > ${after} `;
     }
 
     if (typeof before === 'number') {
-        queryStr += `AND ${column} < ${before}`;
+        queryStr += ` AND ${column} < ${before} `;
     }
 
     return queryStr;
