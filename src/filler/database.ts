@@ -532,7 +532,11 @@ export class ContractDBTransaction {
 
             logger.info('Rollback ' + query.rowCount + ' operations until block #' + blockNum);
 
+            const startTime = Date.now();
+
             let counter = 0;
+            let lastProgressMessage = Date.now();
+
             for (const row of query.rows) {
                 const values = row.values;
                 const condition: Condition | null = row.condition;
@@ -555,6 +559,13 @@ export class ContractDBTransaction {
                     }
                 }
 
+                if (Date.now() - startTime >= 30000) {
+                    logger.warn('Fork rollback taking longer than expected. Executing query...', {
+                        table: row.table,
+                        values, condition
+                    });
+                }
+
                 if (row.operation === 'insert') {
                     await this.insert(row.table, values, [], false, false);
                 } else if (row.operation === 'update') {
@@ -567,8 +578,10 @@ export class ContractDBTransaction {
 
                 counter += 1;
 
-                if (counter % 1000 === 0) {
+                if (Date.now() - lastProgressMessage >= 5000) {
                     logger.info('Executed rollback query ' + counter + ' / ' + query.rowCount);
+
+                    lastProgressMessage = Date.now();
                 }
             }
 
