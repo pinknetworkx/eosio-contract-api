@@ -561,6 +561,7 @@ export class ContractDBTransaction {
 
                 if (Date.now() - startTime >= 30000) {
                     logger.warn('Fork rollback taking longer than expected. Executing query...', {
+                        operation: row.operation,
                         table: row.table,
                         values, condition
                     });
