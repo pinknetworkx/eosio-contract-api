@@ -355,7 +355,7 @@ function getRollsDbRows(blendId: number, rollsArray: any[], args: BlendsArgs, bl
 
 function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
     return row.ingredients.map(([type, payload], index) => {
-        const [effectType, effectPayload] = payload.effect;
+        const [effectType = '', effectPayload = {}] = payload.effect || [];
         const effect = {
             payload: effectPayload,
             type: effectType
@@ -393,6 +393,18 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 attributes: payload.attributes,
                 display_data: payload.display_data,
                 amount: payload.amount,
+                effect,
+                index,
+            };
+        } else if (type === BlendIngredientType.CHEST_INGREDIENT) {
+            return {
+                type,
+                collection_name: null,
+                schema_name: payload.schema_name,
+                template_id: payload.template_id,
+                attributes: [],
+                display_data: payload.display_data,
+                amount: 1,
                 effect,
                 index,
             };
