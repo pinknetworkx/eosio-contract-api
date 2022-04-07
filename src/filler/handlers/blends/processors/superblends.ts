@@ -399,7 +399,7 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
         } else if (type === BlendIngredientType.CHEST_INGREDIENT) {
             return {
                 type,
-                collection_name: payload.collection_name,
+                collection_name: null,
                 schema_name: payload.schema_name,
                 template_id: payload.template_id,
                 attributes: [],
