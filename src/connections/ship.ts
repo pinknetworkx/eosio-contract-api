@@ -253,7 +253,9 @@ export default class StateHistoryBlockReader {
                         }
 
                         if (response.this_block && response.last_irreversible) {
-                            this.currentArgs.have_positions = this.currentArgs.have_positions.filter(row => row.block_num > response.last_irreversible.block_num);
+                            this.currentArgs.have_positions = this.currentArgs.have_positions.filter(
+                                row => row.block_num > response.last_irreversible.block_num && row.block_num < response.this_block.block_num
+                            );
 
                             if (response.this_block.block_num > response.last_irreversible.block_num) {
                                 this.currentArgs.have_positions.push(response.this_block);
