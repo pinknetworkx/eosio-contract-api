@@ -180,7 +180,7 @@ export default class NeftyQuestHandler extends ContractHandler {
                         '{{state}}': '3',
                         '{{start_time}}': quest.start_time.toString(),
                         '{{end_time}}': quest.end_time.toString(),
-                        '{{total_to_collect}}': quest.bonus_threshold ? quest.bonus_threshold : questTemplates.length.toString(),
+                        '{{total_to_collect}}': quest.bonus_threshold > 0 ? quest.bonus_threshold : questTemplates.length.toString(),
                         '{{completion_multiplier}}': quest.completion_multiplier,
                         '{{templates}}': questTemplates.join(','),
                         '{{volume_threshold}}': quest.volume_threshold,
