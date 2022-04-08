@@ -333,6 +333,52 @@ export const extendedAssetFilterParameters = [
     ...greylistFilterParameters
 ];
 
+export const extendedAssetFilterParametersSpecificOwner = [
+    {
+        name: 'match',
+        in: 'query',
+        description: 'Search for input in asset name on template data',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'search',
+        in: 'query',
+        description: 'Fuzzy search for input in asset name on template data',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'match_immutable_name',
+        in: 'query',
+        description: 'Search for input in asset name on asset immutable data',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'match_mutable_name',
+        in: 'query',
+        description: 'Search for input in asset name on asset mutable data',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'is_transferable',
+        in: 'query',
+        description: 'Check if asset is transferable',
+        required: false,
+        schema: {type: 'boolean'}
+    },
+    {
+        name: 'is_burnable',
+        in: 'query',
+        description: 'Check if asset is burnable',
+        required: false,
+        schema: {type: 'boolean'}
+    },
+    ...greylistFilterParameters
+];
+
 export const completeAssetFilterParameters = [
     {
         name: 'only_duplicate_templates',
