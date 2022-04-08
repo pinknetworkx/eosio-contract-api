@@ -40,6 +40,7 @@ export function configProcessor(core: NeftyQuestHandler, processor: DataProcesso
                     volume_threshold_symbol: delta.value.volume_threshold.split(' ')[1],
                     minimum_volume: preventInt64Overflow(delta.value.minimum_volume.split(' ')[0].replace('.', '')),
                     minimum_volume_symbol: delta.value.minimum_volume.split(' ')[1],
+                    quest_attribute_name: delta.value.quest_attribute_name,
                 }, {
                     str: 'contract = $1',
                     values: [contract]
@@ -51,9 +52,9 @@ export function configProcessor(core: NeftyQuestHandler, processor: DataProcesso
                     'contract, collection_name, template_id, ' +
                     'balance_attribute_name, quest_duration, points_per_asset, ' +
                     'min_asset_value, min_asset_value_symbol, points_per_volume, volume_threshold, ' +
-                    'volume_threshold_symbol, minimum_volume, minimum_volume_symbol ' +
+                    'volume_threshold_symbol, minimum_volume, minimum_volume_symbol, quest_attribute_name ' +
                     ') ' +
-                    'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
+                    'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)',
                     [
                         contract,
                         delta.value.collection_name,
@@ -68,6 +69,7 @@ export function configProcessor(core: NeftyQuestHandler, processor: DataProcesso
                         delta.value.volume_threshold.split(' ')[1],
                         preventInt64Overflow(delta.value.minimum_volume.split(' ')[0].replace('.', '')),
                         delta.value.minimum_volume.split(' ')[1],
+                        delta.value.quest_attribute_name,
                     ]
                 );
             }

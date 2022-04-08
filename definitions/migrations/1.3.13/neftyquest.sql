@@ -1,0 +1,2 @@
+ALTER TABLE neftyquest_quests ADD COLUMN IF NOT EXISTS bonus_threshold bigint NOT NULL DEFAULT 0;
+ALTER TABLE neftyquest_config ADD COLUMN IF NOT EXISTS quest_attribute_name character varying(255) NOT NULL DEFAULT 'quest';

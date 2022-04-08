@@ -27,5 +27,6 @@ export async function getConfigAction(params: RequestValues, ctx: NeftyQuestCont
         volume_threshold_symbol: config.volume_threshold_symbol,
         minimum_volume: +config.minimum_volume,
         minimum_volume_symbol: config.minimum_volume_symbol,
+        quest_attribute_name: config.quest_attribute_name,
     };
 }

@@ -103,9 +103,9 @@ export default class NeftyQuestHandler extends ContractHandler {
                     'contract, collection_name, template_id, ' +
                     'balance_attribute_name, quest_duration, points_per_asset, ' +
                     'min_asset_value, min_asset_value_symbol, points_per_volume, volume_threshold, ' +
-                    'volume_threshold_symbol, minimum_volume, minimum_volume_symbol ' +
+                    'volume_threshold_symbol, minimum_volume, minimum_volume_symbol, quest_attribute_name ' +
                 ') ' +
-                'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)',
+                'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)',
                 [
                     this.args.neftyquest_account,
                     config.collection_name,
@@ -120,6 +120,7 @@ export default class NeftyQuestHandler extends ContractHandler {
                     config.volume_threshold.split(' ')[1],
                     preventInt64Overflow(config.minimum_volume.split(' ')[0].replace('.', '')),
                     config.minimum_volume.split(' ')[1],
+                    config.quest_attribute_name,
                 ]
             );
 
@@ -179,7 +180,7 @@ export default class NeftyQuestHandler extends ContractHandler {
                         '{{state}}': '3',
                         '{{start_time}}': quest.start_time.toString(),
                         '{{end_time}}': quest.end_time.toString(),
-                        '{{total_to_collect}}': questTemplates.length.toString(),
+                        '{{total_to_collect}}': quest.bonus_threshold ? quest.bonus_threshold : questTemplates.length.toString(),
                         '{{completion_multiplier}}': quest.completion_multiplier,
                         '{{templates}}': questTemplates.join(','),
                         '{{volume_threshold}}': quest.volume_threshold,
