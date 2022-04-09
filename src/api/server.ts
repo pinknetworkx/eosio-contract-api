@@ -1,4 +1,3 @@
-import * as os from 'os';
 import * as express from 'express';
 import {Server} from 'socket.io';
 import * as http from 'http';

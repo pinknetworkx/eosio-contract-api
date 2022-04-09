@@ -246,22 +246,27 @@ export default class StateHistoryBlockReader {
                             throw error;
                         }
 
-                        this.unconfirmed += 1;
-
-                        if (this.unconfirmed >= this.options.min_block_confirmation) {
-                            this.send(['get_blocks_ack_request_v0', { num_messages: this.unconfirmed }]);
-                            this.unconfirmed = 0;
-                        }
-
                         if (response.this_block) {
                             this.currentArgs.start_block_num = response.this_block.block_num + 1;
                         } else {
                             this.currentArgs.start_block_num += 1;
                         }
 
-                        if (response.this_block && response.last_irreversible && response.this_block.block_num > response.last_irreversible.block_num) {
-                            this.currentArgs.have_positions = this.currentArgs.have_positions.filter(row => row.block_num > response.last_irreversible.block_num);
-                            this.currentArgs.have_positions.push(response.this_block);
+                        if (response.this_block && response.last_irreversible) {
+                            this.currentArgs.have_positions = this.currentArgs.have_positions.filter(
+                                row => row.block_num > response.last_irreversible.block_num && row.block_num < response.this_block.block_num
+                            );
+
+                            if (response.this_block.block_num > response.last_irreversible.block_num) {
+                                this.currentArgs.have_positions.push(response.this_block);
+                            }
+                        }
+
+                        this.unconfirmed += 1;
+
+                        if (this.unconfirmed >= this.options.min_block_confirmation) {
+                            this.send(['get_blocks_ack_request_v0', { num_messages: this.unconfirmed }]);
+                            this.unconfirmed = 0;
                         }
                     }).then();
                 } else {

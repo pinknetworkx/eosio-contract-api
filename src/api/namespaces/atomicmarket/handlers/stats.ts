@@ -1,13 +1,12 @@
 import {AtomicMarketContext, SaleApiState} from '../index';
 import {SaleState} from '../../../../filler/handlers/atomicmarket';
-import {RequestValues} from '../../utils';
+import { buildBoundaryFilter, RequestValues } from '../../utils';
 import {formatCollection, formatTemplate} from '../../atomicassets/format';
 import {ApiError} from '../../../error';
 import QueryBuilder from '../../../builder';
-import {buildGreylistFilter} from '../../atomicassets/utils';
+import { buildDataConditions, buildGreylistFilter } from '../../atomicassets/utils';
 import {DB} from '../../../server';
 import {filterQueryArgs} from '../../validation';
-import {oneLine} from 'common-tags';
 
 export async function getAllCollectionStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
@@ -304,40 +303,43 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
     }
 
     const query = new QueryBuilder(
-        oneLine`
+        `
             SELECT 
-                "templates"."template_id" as "template_id", 
+                "template"."template_id", 
                 COALESCE("stats"."volume", 0) "volume", 
                 COALESCE("stats"."sales", 0) "sales" 
-            FROM "atomicassets_templates" AS "templates" 
+            FROM atomicassets_templates "template"
             LEFT JOIN (
-                SELECT "assets_contract", "template_id", SUM(price) "volume", COUNT(*) "sales" FROM "atomicmarket_stats_prices" AS "asp"
+                SELECT assets_contract, template_id, SUM(price) "volume", COUNT(*) "sales" 
+                FROM atomicmarket_stats_prices "asp"
                 WHERE 
-                    "asp"."assets_contract" = $1 
-                    AND "asp"."market_contract" = $2 
-                    AND "asp"."symbol" = $3 ${buildRangeCondition('"time', args.after, args.before)}
-                GROUP BY "asp"."assets_contract", "asp"."template_id" 
-            ) AS "stats" 
-            ON "stats"."template_id" = "templates"."template_id" AND "stats"."assets_contract" = "templates"."contract" AND "templates".contract = $1
+                    "asp".assets_contract = $1 AND "asp".market_contract = $2 AND 
+                    "asp".symbol = $3 ${buildRangeCondition('"asp".time', args.after, args.before)}
+                GROUP BY "asp".assets_contract, "asp".template_id 
+            ) "stats" ON ("stats".template_id = "template".template_id AND "stats".assets_contract = "template".contract)
         `, [ctx.coreArgs.atomicassets_account, ctx.coreArgs.atomicmarket_account, args.symbol]
     );
 
-    query.addCondition('templates.contract = $1');
+    query.addCondition('template.contract = $1');
+
+    buildGreylistFilter(params, query, { collectionName: '"template".collection_name' });
+    buildBoundaryFilter(params, query, '"template".template_id', 'int', null);
+    buildDataConditions(params, query, {templateTable: '"template"'});
 
     if (args.collection_name.length > 0) {
-        query.equalMany('templates.collection_name', args.collection_name);
+        query.equalMany('template.collection_name', args.collection_name);
     }
 
     if (args.schema_name.length > 0) {
-        query.equalMany('templates.schema_name', args.schema_name);
+        query.equalMany('template.schema_name', args.schema_name);
     }
 
     if (args.template_id.length > 0) {
-        query.equalMany('templates.template_id', args.template_id);
+        query.equalMany('template.template_id', args.template_id);
     }
 
     if (args.search) {
-        query.addCondition(`${query.addVariable(args.search)} <% (templates.immutable_data->>'name')`);
+        query.addCondition(`${query.addVariable(args.search)} <% (template.immutable_data->>'name')`);
     }
 
     if (args.sort === 'sales') {
@@ -532,11 +534,11 @@ function buildRangeCondition(column: string, after?: number, before?: number): s
     let queryStr = '';
 
     if (typeof after === 'number') {
-        queryStr += `AND ${column} > ${after}`;
+        queryStr += ` AND ${column} > ${after} `;
     }
 
     if (typeof before === 'number') {
-        queryStr += `AND ${column} < ${before}`;
+        queryStr += ` AND ${column} < ${before} `;
     }
 
     return queryStr;
