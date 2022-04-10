@@ -19,9 +19,9 @@ FROM (
         COALESCE(templates_owned.total, 0) total_collected,
         COALESCE(nefty_sells.symbol, nefty_buys.symbol) AS symbol,
         (
-                (CASE COALESCE(templates_owned.total, 0) WHEN {{total_to_collect}} THEN {{completion_multiplier}} ELSE 1 END) * 100 *
+                (CASE COALESCE(templates_owned.total, 0) WHEN {{total_to_collect}} THEN {{completion_multiplier}} ELSE 1 END) *
                 (
-                        (COALESCE(nefty_sells.total_sold, 0) + COALESCE(nefty_buys.total_bought, 0)) / {{volume_threshold}} +
+                        {{points_per_volume}} * (COALESCE(nefty_sells.total_sold, 0) + COALESCE(nefty_buys.total_bought, 0)) / {{volume_threshold}} +
                         (COALESCE(nefty_sells.sold_items, 0) + COALESCE(nefty_buys.bought_items, 0)) * {{points_per_asset}}
                 )
         ) experience

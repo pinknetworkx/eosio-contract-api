@@ -186,6 +186,7 @@ export default class NeftyQuestHandler extends ContractHandler {
                         '{{min_asset_value}}': quest.min_asset_value,
                         '{{points_per_asset}}': quest.points_per_asset,
                         '{{min_volume}}': quest.minimum_volume,
+                        '{{points_per_volume}}': quest.points_per_volume,
                     };
                     const expression = new RegExp(Object.keys(tokens).join('|'),'gi');
                     materializedViewQuery = materializedViewQuery.replace(expression, function(matched: string){
