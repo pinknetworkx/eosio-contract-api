@@ -27,6 +27,7 @@ export function formatLeaderboard(row: any): any {
         symbol_precision: +row.symbol_precision,
         items_sold: +row.items_sold,
         items_bought: +row.items_bought,
+        total_collected: +row.total_collected,
         completion_percentage: +row.completion_percentage,
         experience: +row.experience,
     };
