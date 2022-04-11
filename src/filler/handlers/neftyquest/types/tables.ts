@@ -26,4 +26,5 @@ export type ConfigTableRow = {
     points_per_volume: number,
     volume_threshold: string,
     minimum_volume: string,
+    quest_attribute_name: string,
 };

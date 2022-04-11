@@ -10,6 +10,7 @@ export const neftyQuestComponents = {
             symbol_precision: { type: 'number' },
             items_sold: { type: 'number' },
             items_bought: { type: 'number' },
+            total_collected: { type: 'number' },
             completion_percentage: { type: 'number' },
             experience: { type: 'number' },
         }

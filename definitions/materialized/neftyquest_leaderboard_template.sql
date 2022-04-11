@@ -5,6 +5,7 @@ SELECT rank() OVER (ORDER BY experience DESC) "rank",
        total_bought,
        items_sold,
        items_bought,
+       total_collected,
        (total_collected / {{total_to_collect}}::numeric) completion_percentage,
        experience,
        tokens.token_symbol symbol,
@@ -19,7 +20,7 @@ FROM (
         COALESCE(templates_owned.total, 0) total_collected,
         COALESCE(nefty_sells.symbol, nefty_buys.symbol) AS symbol,
         (
-                (CASE COALESCE(templates_owned.total, 0) WHEN {{total_to_collect}} THEN {{completion_multiplier}} ELSE 1 END) *
+                (CASE WHEN templates_owned.total >= {{total_to_collect}} THEN {{completion_multiplier}} ELSE 1 END) *
                 (
                         {{points_per_volume}} * (COALESCE(nefty_sells.total_sold, 0) + COALESCE(nefty_buys.total_bought, 0)) / {{volume_threshold}} +
                         (COALESCE(nefty_sells.sold_items, 0) + COALESCE(nefty_buys.bought_items, 0)) * {{points_per_asset}}

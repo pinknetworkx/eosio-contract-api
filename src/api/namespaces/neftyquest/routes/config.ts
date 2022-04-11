@@ -35,6 +35,7 @@ export function configEndpoints(core: NeftyQuestNamespace, server: HTTPServer, r
                             volume_threshold_symbol: { type: 'string'},
                             minimum_volume: { type: 'number'},
                             minimum_volume_symbol: { type: 'string'},
+                            quest_attribute_name: {type: 'string'},
                         }
                     })
                 }
