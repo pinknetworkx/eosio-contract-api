@@ -8,7 +8,7 @@ ANALYSE atomicassets_mints;
 */
 
 
-create index atomicassets_mints_idx_asset_id on atomicassets_mints using brin (asset_id);
+create index if not exists atomicassets_mints_idx_asset_id on atomicassets_mints using brin (asset_id);
 
 DROP INDEX atomicassets_mints_minter; -- 1GB, used as filter in conjunction with asset_id, which is a better index
 DROP INDEX atomicassets_mints_receiver; -- 1.6GB, never used as filter
