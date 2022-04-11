@@ -60,7 +60,7 @@ FROM (
         SELECT owner, COUNT(DISTINCT template_id) total
         FROM atomicassets_assets
         WHERE template_id IN ({{templates}})
-        AND atomicassets_assets.updated_at_time < '{{end_time}}'
+        AND (atomicassets_assets.updated_at_time < '{{end_time}}' OR atomicassets_assets.minted_at_time < '{{end_time}}')
         AND atomicassets_assets.owner IS NOT NULL
         GROUP BY owner
     ) AS templates_owned
