@@ -12,7 +12,6 @@ SELECT
     blend.ingredients_count,
     blend.security_id,
     blend.is_hidden,
-    blend.category,
     jsonb_agg(DISTINCT jsonb_build_object(
             'type', ingredient.ingredient_type,
             'effect', ingredient.effect,
@@ -48,7 +47,8 @@ SELECT
             'index', roll_sub.roll_index,
             'total_odds', roll_sub.total_odds,
             'outcomes', roll_sub.outcomes
-        )) as rolls
+        )) as rolls,
+    blend.category
 FROM
     neftyblends_blends blend
         JOIN neftyblends_blend_ingredients "ingredient" ON
