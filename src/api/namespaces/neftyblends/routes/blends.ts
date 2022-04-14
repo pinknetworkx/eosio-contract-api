@@ -78,6 +78,13 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
                             required: false,
                             schema: {type: 'string', enum: ['visible', 'hidden'], default: ''}
                         },
+                        {
+                            name: 'category',
+                            in: 'query',
+                            description: 'Filter by category',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
 
                         ...paginationParameters
                     ],
