@@ -102,5 +102,6 @@ function getQuestRow(quest: QuestsTableRow, args: NeftyQuestArgs): any {
         completion_multiplier: quest.completion_multiplier,
         bonus: encodeDatabaseJson(bonus),
         prizes: encodeDatabaseJson(quest.prizes),
+        bonus_threshold: quest.bonus_threshold,
     };
 }
