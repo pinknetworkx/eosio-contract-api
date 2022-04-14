@@ -163,7 +163,7 @@ export default class NeftyQuestHandler extends ContractHandler {
             const now = new Date().getTime();
             const questsResult = await this.connection.database.query(
                 'SELECT * FROM neftyquest_quests WHERE start_time < $1 AND end_time > $2',
-                [now, now + 300_000]
+                [now - 300_000, now + 60_000]
             );
             for (let i = 0; i < questsResult.rows.length; i+= 1) {
                 const quest = questsResult.rows[i];
