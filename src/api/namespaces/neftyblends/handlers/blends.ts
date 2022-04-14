@@ -19,6 +19,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         missing_ingredients: {type: 'int', min: 1, default: 1},
         available_only: {type: 'bool', default: false},
         visibility: {type: 'string', allowedValues: ['all', 'visible', 'hidden'], default: 'all'},
+        category: {type: 'string', default: ''},
     });
 
     let queryVarCounter:number = 0;
@@ -75,6 +76,12 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         } else if (args.visibility === 'hidden') {
             queryString += `
                 AND blend_detail.is_hidden = TRUE
+            `;
+        }
+        if (args.category !== '') {
+            queryValues.push(args.category);
+            queryString += `
+                AND blend_detail.category = $${++queryVarCounter}
             `;
         }
     }
@@ -160,6 +167,12 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                 queryString += `
                     AND b.is_hidden = TRUE
                 `;
+            }
+            if (args.category !== '') {
+                queryValues.push(args.category);
+                queryString += `
+                AND b.category = $${++queryVarCounter}
+            `;
             }
         }
 

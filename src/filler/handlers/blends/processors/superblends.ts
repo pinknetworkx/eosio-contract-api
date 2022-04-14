@@ -134,6 +134,7 @@ const superBlendsTableListener = (core: CollectionsListHandler, contract: string
             updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
             is_hidden: delta.value.is_hidden || false,
             security_id: delta.value.security_id || 0,
+            category: delta.value.category || '',
         }, {
             str: 'contract = $1 AND blend_id = $2',
             values: [contract, delta.value.blend_id]
@@ -302,6 +303,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
             created_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
             security_id: blend.security_id || 0,
             is_hidden: blend.is_hidden || false,
+            category: blend.category || '',
         },
         ingredientDbRows,
         ingredientAttributesDbRows,

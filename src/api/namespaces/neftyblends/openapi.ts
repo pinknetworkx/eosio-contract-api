@@ -15,6 +15,8 @@ export const neftyBlendsComponents = {
             created_at_time: {type: 'string'},
             ingredients_count: {type: 'string'},
             security_id: {type: 'string'},
+            is_hidden: {type: 'boolean', default: false},
+            category: {type: 'string'},
             ingredients: {
                 type: 'array',
                 // @TODO:
