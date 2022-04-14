@@ -12,6 +12,7 @@ SELECT
     blend.ingredients_count,
     blend.security_id,
     blend.is_hidden,
+    blend.category,
     jsonb_agg(DISTINCT jsonb_build_object(
             'type', ingredient.ingredient_type,
             'effect', ingredient.effect,
