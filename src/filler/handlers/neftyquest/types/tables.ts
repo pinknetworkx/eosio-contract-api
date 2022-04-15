@@ -14,6 +14,7 @@ export type QuestsTableRow = {
     }>,
     completion_multiplier: number,
     prizes: Array<unknown>,
+    bonus_threshold: number,
 };
 
 export type ConfigTableRow = {

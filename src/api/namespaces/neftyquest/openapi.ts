@@ -58,6 +58,7 @@ export const neftyQuestComponents = {
                 },
             },
             completion_multiplier: {type: 'number'},
+            bonus_threshold: {type: 'number'},
         }
     }
 };
