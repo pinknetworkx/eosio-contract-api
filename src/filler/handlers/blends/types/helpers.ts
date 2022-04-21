@@ -1,4 +1,6 @@
 export type Ingredient = {
+    balance_ingredient_attribute_name: string,
+    balance_ingredient_cost: number,
     type: string,
     collection_name: string,
     schema_name: string,

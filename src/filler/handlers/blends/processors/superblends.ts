@@ -267,6 +267,8 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
             created_at_block: blockNumber || 0,
             created_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
             display_data: ingredient.display_data,
+            balance_ingredient_attribute_name: ingredient.balance_ingredient_attribute_name,
+            balance_ingredient_cost: ingredient.balance_ingredient_cost,
         });
 
         let index = 0;
