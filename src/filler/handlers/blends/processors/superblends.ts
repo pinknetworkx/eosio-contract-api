@@ -368,6 +368,8 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 type,
                 collection_name: payload.collection_name,
                 schema_name: null,
+                balance_ingredient_attribute_name: null,
+                balance_ingredient_cost: null,
                 template_id: payload.template_id,
                 attributes: [],
                 display_data: null,
@@ -380,6 +382,8 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 type,
                 collection_name: payload.collection_name,
                 schema_name: payload.schema_name,
+                balance_ingredient_attribute_name: null,
+                balance_ingredient_cost: null,
                 template_id: null,
                 attributes: [],
                 display_data: payload.display_data,
@@ -392,6 +396,8 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 type,
                 collection_name: payload.collection_name,
                 schema_name: payload.schema_name,
+                balance_ingredient_attribute_name: null,
+                balance_ingredient_cost: null,
                 template_id: null,
                 attributes: payload.attributes,
                 display_data: payload.display_data,
@@ -399,11 +405,13 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 effect,
                 index,
             };
-        } else if (type === BlendIngredientType.CHEST_INGREDIENT) {
+        } else if (type === BlendIngredientType.BALANCE_INGREDIENT) {
             return {
                 type,
                 collection_name: blend_collection,
                 schema_name: payload.schema_name,
+                balance_ingredient_attribute_name: payload.attribute_name,
+                balance_ingredient_cost: payload.cost,
                 template_id: payload.template_id,
                 attributes: [],
                 display_data: payload.display_data,
