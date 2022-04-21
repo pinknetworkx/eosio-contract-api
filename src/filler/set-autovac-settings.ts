@@ -8,8 +8,6 @@ const settingOverrides: {[key: string]: {scale: string, threshold: number}} = {
 };
 
 export async function setAutoVacSettings(database: PostgresConnection): Promise<void> {
-    await database.query('ANALYSE');
-
     const {rows} = await database.query('SELECT schemaname, relname AS tablename, n_live_tup::INT AS rows FROM pg_stat_user_tables');
 
     const sql = rows.map(table => {
