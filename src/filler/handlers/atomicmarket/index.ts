@@ -289,7 +289,7 @@ export default class AtomicMarketHandler extends ContractHandler {
             {name: 'atomicmarket_template_prices', priority: JobQueuePriority.LOW},
             {name: 'atomicmarket_stats_prices', priority: JobQueuePriority.LOW},
             {name: 'atomicmarket_stats_markets', priority: JobQueuePriority.LOW},
-            {name: 'atomicmarket_sale_prices', priority: JobQueuePriority.MEDIUM},
+            {name: 'atomicmarket_sale_prices', priority: JobQueuePriority.LOW},
         ];
 
         for (const view of materializedViews) {

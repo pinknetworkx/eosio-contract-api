@@ -63,11 +63,14 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
         count: {type: 'bool'}
     });
 
+    if (args.sort === 'price') {
+        throw new ApiError('Sorting by price removed in /v1/sales, use /v2/sales', 400);
+    }
+
     const query = new QueryBuilder(`
                 SELECT listing.sale_id
                 FROM atomicmarket_sales listing
                     JOIN atomicassets_offers offer ON (listing.assets_contract = offer.contract AND listing.offer_id = offer.offer_id)
-                    LEFT JOIN atomicmarket_sale_prices price ON (price.market_contract = listing.market_contract AND price.sale_id = listing.sale_id)
             `);
 
     query.equal('listing.market_contract', ctx.coreArgs.atomicmarket_account);
@@ -96,7 +99,6 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
         sale_id: {column: 'listing.sale_id', nullable: false, numericIndex: true},
         created: {column: 'listing.created_at_time', nullable: false, numericIndex: true},
         updated: {column: 'listing.updated_at_time', nullable: false, numericIndex: true},
-        price: {column: args.state === '3' ? 'listing.final_price' : 'price.price', nullable: true, numericIndex: false},
         template_mint: {column: 'LOWER(listing.template_mint)', nullable: true, numericIndex: false}
     };
 

@@ -177,7 +177,19 @@ describe('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id]);
         });
 
-        txit('throws error when maximum price filter is set without settlement symbol', async () => {
+        txit('filters by minimum price', async () => {
+            let err;
+            try {
+                await getSalesIds({min_price: '2'});
+            } catch (e) {
+                err = e;
+            }
+
+            expect(err).to.be.instanceof(ApiError);
+            expect(err.message).to.equal('Price filters are removed in /v1/sales, use /v2/sales');
+        });
+
+        txit('filters by maximum price', async () => {
             let err;
             try {
                 await getSalesIds({max_price: '1'});
@@ -186,33 +198,7 @@ describe('AtomicMarket Sales API', () => {
             }
 
             expect(err).to.be.instanceof(ApiError);
-            expect(err.message).to.equal('Price range filters require the "symbol" filter');
-        });
-
-        txit('filters by minimum price', async () => {
-            await client.createSale({});
-
-            const {sale_id} = await client.createSale({
-                listing_price: 200000000,
-            });
-
-            await client.query('REFRESH MATERIALIZED VIEW atomicmarket_sale_prices');
-
-            expect(await getSalesIds({symbol: 'TEST', min_price: '2'}))
-                .to.deep.equal([sale_id]);
-        });
-
-        txit('filters by maximum price', async () => {
-            await client.createSale({
-                listing_price: 200000000,
-            });
-
-            const {sale_id} = await client.createSale({});
-
-            await client.query('REFRESH MATERIALIZED VIEW atomicmarket_sale_prices');
-
-            expect(await getSalesIds({symbol: 'TEST', max_price: '1'}))
-                .to.deep.equal([sale_id]);
+            expect(err.message).to.equal('Price filters are removed in /v1/sales, use /v2/sales');
         });
 
         txit('filters out seller contracts unless whitelisted', async () => {
@@ -670,15 +656,15 @@ describe('AtomicMarket Sales API', () => {
         });
 
         txit('orders by price', async () => {
-            const sale_id2 = `${client.getId()}`;
-            const {sale_id: sale_id1} = await client.createSale({listing_price: 2});
+            let err;
+            try {
+                await getSalesIds({sort: 'price'});
+            } catch (e) {
+                err = e;
+            }
 
-            await client.createSale({listing_price: 1, sale_id: sale_id2});
-
-            await client.query('REFRESH MATERIALIZED VIEW atomicmarket_sale_prices');
-
-            expect(await getSalesIds({sort: 'price'}))
-                .to.deep.equal([sale_id1, sale_id2]);
+            expect(err).to.be.instanceof(ApiError);
+            expect(err.message).to.equal('Sorting by price removed in /v1/sales, use /v2/sales');
         });
 
         txit('orders by template_mint', async () => {

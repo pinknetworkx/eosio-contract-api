@@ -120,6 +120,10 @@ export function buildSaleFilter(values: FilterValues, query: QueryBuilder): void
         template_blacklist: {type: 'int[]', min: 1},
     });
 
+    if (args.min_price || args.max_price) {
+        throw new ApiError('Price filters are removed in /v1/sales, use /v2/sales', 400);
+    }
+
     buildListingFilter(values, query);
 
     if (args.template_blacklist.length || hasAssetFilter(values, ['collection_name']) || hasDataFilters(values)) {
@@ -171,16 +175,6 @@ export function buildSaleFilter(values: FilterValues, query: QueryBuilder): void
 
     if (args.symbol) {
         query.equal('listing.settlement_symbol', args.symbol);
-
-        if (args.min_price) {
-            query.addCondition('price.price >= 1.0 * ' + query.addVariable(args.min_price) + ' * POWER(10, price.settlement_precision)');
-        }
-
-        if (args.max_price) {
-            query.addCondition('price.price <= 1.0 * ' + query.addVariable(args.max_price) + ' * POWER(10, price.settlement_precision)');
-        }
-    } else if (args.min_price || args.max_price) {
-        throw new ApiError('Price range filters require the "symbol" filter');
     }
 
     if (args.state) {
