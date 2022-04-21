@@ -123,7 +123,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                             i.ingredient_type = 'BALANCE_INGREDIENT' AND 
                             a.template_id = i.template_id AND
                             (
-                                a.mutable_data->i.balance_ingredient_attribute_name >= i.balance_ingredient_cost
+                                (a.mutable_data->>i.balance_ingredient_attribute_name)::numeric >= i.balance_ingredient_cost
                             )
                         )
                 WHERE`
