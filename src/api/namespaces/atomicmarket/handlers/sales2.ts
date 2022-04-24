@@ -7,6 +7,7 @@ import {ApiError} from '../../../error';
 import {toInt} from '../../../../utils';
 import moize from 'moize';
 import {filterQueryArgs, FilterValues} from '../../validation';
+import {hasAssetFilter} from '../../atomicassets/utils';
 
 type SalesSearchOptions = {
     values: FilterValues;
@@ -92,21 +93,24 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
 
     query.append(`ORDER BY ${sortMapping[args.sort].column}${preventIndexUsage ? ' + 0' : ''} ${args.order}, listing.sale_id ASC`);
     query.paginate(args.page, args.limit);
-    const saleQuery = await ctx.db.query(query.buildString(), query.buildValues());
+    const saleIds = await ctx.db.query(query.buildString(), query.buildValues());
 
+    return await fillSalesIdRows(saleIds.rows, ctx);
+}
+
+async function fillSalesIdRows(rows: any[], ctx: AtomicMarketContext): Promise<any[]> {
     const result = await ctx.db.query(`
             SELECT * FROM atomicmarket_sales_master m
                 JOIN UNNEST($2::BIGINT[]) WITH ORDINALITY AS f(sale_id) ON m.sale_id = f.sale_id
             WHERE market_contract = $1
                 AND m.sale_id = ANY($2::BIGINT[])
             ORDER BY f.ordinality`,
-        [ctx.coreArgs.atomicmarket_account, saleQuery.rows.map(row => row.sale_id)]
+        [ctx.coreArgs.atomicmarket_account, rows.map((row: any) => row.sale_id)]
     );
 
     return await fillSales(
         ctx.db, ctx.coreArgs.atomicassets_account, result.rows.map(formatSale)
     );
-
 }
 
 export async function getSalesCountV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
@@ -518,4 +522,64 @@ async function getTemplateIDsForPartialName(name: string, search: SalesSearchOpt
      `, [search.ctx.coreArgs.atomicassets_account, name]);
 
     return rows.length ? rows.map(r => r.template_id) : [-1];
+}
+
+export async function getSalesTemplatesV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+    const maxLimit = ctx.coreArgs.limits?.sales_templates || 100;
+    const args = filterQueryArgs(params, {
+        symbol: {type: 'string', min: 1},
+        collection_whitelist: {type: 'string', min: 1},
+
+        page: {type: 'int', min: 1, default: 1},
+        limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
+        sort: {
+            type: 'string',
+            allowedValues: ['template_id', 'price'],
+            default: 'template_id'
+        },
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
+    });
+
+    if (!args.symbol) {
+        throw new ApiError('symbol parameter is required', 200);
+    }
+
+    if (!hasAssetFilter(params) && !args.collection_whitelist) {
+        throw new ApiError('You need to specify an asset filter!', 200);
+    }
+
+    const query = new QueryBuilder(`
+        SELECT DISTINCT ON (listing.assets_contract, template_id)
+            listing.market_contract, listing.sale_id, listing.assets_contract, SUBSTRING(u.f FROM 2)::BIGINT template_id, listing.price
+        FROM atomicmarket_sales_filters listing
+            JOIN LATERAL UNNEST(filter) u(f) ON u.f LIKE 't%'
+    `);
+
+    query.equal('listing.market_contract', ctx.coreArgs.atomicmarket_account);
+    query.equal('listing.asset_count', 1);
+
+    const search: SalesSearchOptions = {
+        values: params,
+        ctx,
+        query,
+        strongFilters: [],
+        saleStates: [SaleApiState.LISTED],
+    };
+
+    await buildSaleFilterV2(search);
+
+    query.append('ORDER BY listing.assets_contract, template_id, listing.price');
+
+    const sortColumnMapping: {[key: string]: string} = {
+        price: 't1.price',
+        template_id: 't1.template_id',
+    };
+
+    const outerQuery = new QueryBuilder(`SELECT * FROM (${query.buildString()}) t1`, query.buildValues());
+    outerQuery.append(`ORDER BY ${sortColumnMapping[args.sort]} ${args.order} NULLS LAST, t1.template_id`);
+    outerQuery.paginate(args.page, args.limit);
+
+    const saleIds = await ctx.db.query(outerQuery.buildString(), outerQuery.buildValues());
+
+    return await fillSalesIdRows(saleIds.rows, ctx);
 }
