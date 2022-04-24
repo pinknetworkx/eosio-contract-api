@@ -97,6 +97,7 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
         sale_id: {column: 'listing.sale_id', nullable: false, numericIndex: true},
         created: {column: 'listing.created_at_time', nullable: false, numericIndex: true},
         updated: {column: 'listing.updated_at_time', nullable: false, numericIndex: true},
+        price: {column: 'listing.final_price', nullable: true, numericIndex: true},
         template_mint: {column: 'LOWER(listing.template_mint)', nullable: true, numericIndex: false}
     };
 
