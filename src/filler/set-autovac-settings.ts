@@ -53,6 +53,8 @@ export async function setAutoVacSettings(connection: ConnectionManager): Promise
                     autovacuum_vacuum_insert_threshold = ${threshold * 10}
                 )
             `);
+
+            logger.info(`Updated autovaccum settings for ${table.schemaname}.${table.tablename}`)
         } catch (error) {
             logger.error(`Failed to change autovaccum settings for ${table.schemaname}.${table.tablename}`, error);
         }
