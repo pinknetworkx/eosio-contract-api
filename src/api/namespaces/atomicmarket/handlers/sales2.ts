@@ -151,7 +151,13 @@ async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
     if (args.symbol) {
         query.equal('listing.settlement_symbol', args.symbol);
 
-        const {token_precision} = (await ctx.db.query('SELECT token_precision FROM atomicmarket_tokens WHERE market_contract = $1 AND token_symbol = $2', [ctx.coreArgs.atomicmarket_account, args.symbol])).rows[0];
+        const token = await ctx.db.query('SELECT token_precision FROM atomicmarket_tokens WHERE market_contract = $1 AND token_symbol = $2', [ctx.coreArgs.atomicmarket_account, args.symbol]);
+
+        if (token.rows.length === 0) {
+            throw new ApiError('Symbol not found');
+        }
+
+        const {token_precision} = token.rows[0];
 
         if (args.min_price) {
             query.addCondition(`listing.price >= 1.0 * ${query.addVariable(args.min_price)} * POWER(10, ${query.addVariable(token_precision)})`);
