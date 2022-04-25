@@ -1,4 +1,5 @@
-import PostgresConnection from '../connections/postgres';
+import ConnectionManager from '../connections/manager';
+import logger from '../utils/winston';
 
 const settingOverrides: {[key: string]: {scale: string, threshold: number}} = {
     atomicassets_templates: {
@@ -7,8 +8,19 @@ const settingOverrides: {[key: string]: {scale: string, threshold: number}} = {
     },
 };
 
-export async function setAutoVacSettings(database: PostgresConnection): Promise<void> {
-    const {rows} = await database.query('SELECT schemaname, relname AS tablename, n_live_tup::INT AS rows FROM pg_stat_user_tables');
+export async function setAutoVacSettings(connection: ConnectionManager): Promise<void> {
+    const dbinfo = await connection.database.query(`SELECT * FROM dbinfo WHERE name = 'vacuum_settings'`);
+
+    if (dbinfo.rows.length > 0 && +dbinfo.rows[0].value + 3600 * 24 * 7 * 1000 > Date.now()) {
+        logger.info('Skipping updating vacuum settings');
+
+        return;
+    }
+
+    const {rows} = await connection.database.query(
+        `SELECT schemaname, relname AS tablename, n_live_tup::INT AS rows FROM pg_stat_user_tables 
+        WHERE schemaname = 'public'`
+    );
 
     for (const table of rows) {
         let scale = '0.05';
@@ -30,16 +42,27 @@ export async function setAutoVacSettings(database: PostgresConnection): Promise<
             threshold = settingOverrides[table.tablename].threshold;
         }
 
-        await database.query(`
-            ALTER TABLE ${table.schemaname}.${table.tablename} SET (
-                autovacuum_vacuum_scale_factor = ${scale},
-                autovacuum_vacuum_threshold = ${threshold},
-                autovacuum_analyze_scale_factor = ${scale},
-                autovacuum_analyze_threshold = ${threshold * 10},
-                autovacuum_vacuum_insert_scale_factor = ${scale},
-                autovacuum_vacuum_insert_threshold = ${threshold * 10}
-            )
-        `);
+        try {
+            await connection.database.query(`
+                ALTER TABLE ${table.schemaname}.${table.tablename} SET (
+                    autovacuum_vacuum_scale_factor = ${scale},
+                    autovacuum_vacuum_threshold = ${threshold},
+                    autovacuum_analyze_scale_factor = ${scale},
+                    autovacuum_analyze_threshold = ${threshold * 10},
+                    autovacuum_vacuum_insert_scale_factor = ${scale},
+                    autovacuum_vacuum_insert_threshold = ${threshold * 10}
+                )
+            `);
+        } catch (error) {
+            logger.error(`Failed to change autovaccum settings for ${table.schemaname}.${table.tablename}`, error);
+        }
     }
 
+    if (dbinfo.rows.length === 0) {
+        await connection.database.query(`INSERT INTO dbinfo ("name", "value", updated) VALUES ('vacuum_settings', '${Date.now()}', extract(epoch from current_timestamp)::bigint);`);
+    } else {
+        await connection.database.query(`UPDATE dbinfo SET "value" = '${Date.now()}' WHERE name = 'vacuum_settings';`);
+    }
+
+    logger.info('Updated vacuum settings for tables.')
 }

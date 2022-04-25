@@ -54,7 +54,7 @@ if (cluster.isPrimary || cluster.isMaster) {
             process.exit(1);
         }
 
-        setAutoVacSettings(connection.database).then(
+        setAutoVacSettings(connection).then(
             () => logger.info('Finished setting autovacuum settings'),
             error => logger.error('Failed setting autovacuum settings', error)
         );
