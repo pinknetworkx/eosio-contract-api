@@ -222,6 +222,22 @@ export default class StateHistoryBlockReader {
                             throw error;
                         }
 
+                        if (response.this_block) {
+                            this.currentArgs.start_block_num = response.this_block.block_num + 1;
+                        } else {
+                            this.currentArgs.start_block_num += 1;
+                        }
+
+                        if (response.this_block && response.last_irreversible) {
+                            this.currentArgs.have_positions = this.currentArgs.have_positions.filter(
+                                row => row.block_num > response.last_irreversible.block_num && row.block_num < response.this_block.block_num
+                            );
+
+                            if (response.this_block.block_num > response.last_irreversible.block_num) {
+                                this.currentArgs.have_positions.push(response.this_block);
+                            }
+                        }
+
                         try {
                             await this.processBlock({
                                 this_block: response.this_block,
@@ -244,22 +260,6 @@ export default class StateHistoryBlockReader {
                             this.blocksQueue.pause();
 
                             throw error;
-                        }
-
-                        if (response.this_block) {
-                            this.currentArgs.start_block_num = response.this_block.block_num + 1;
-                        } else {
-                            this.currentArgs.start_block_num += 1;
-                        }
-
-                        if (response.this_block && response.last_irreversible) {
-                            this.currentArgs.have_positions = this.currentArgs.have_positions.filter(
-                                row => row.block_num > response.last_irreversible.block_num && row.block_num < response.this_block.block_num
-                            );
-
-                            if (response.this_block.block_num > response.last_irreversible.block_num) {
-                                this.currentArgs.have_positions.push(response.this_block);
-                            }
                         }
 
                         this.unconfirmed += 1;
