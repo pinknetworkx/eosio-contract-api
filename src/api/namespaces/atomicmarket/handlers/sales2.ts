@@ -547,11 +547,11 @@ export async function getSalesTemplatesV2Action(params: RequestValues, ctx: Atom
     });
 
     if (!args.symbol) {
-        throw new ApiError('symbol parameter is required', 200);
+        throw new ApiError('symbol parameter is required', 400);
     }
 
     if (!hasAssetFilter(params) && !args.collection_whitelist) {
-        throw new ApiError('You need to specify an asset filter!', 200);
+        throw new ApiError('You need to specify an asset filter!', 400);
     }
 
     const query = new QueryBuilder(`

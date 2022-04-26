@@ -65,6 +65,4 @@ export async function setAutoVacSettings(connection: ConnectionManager): Promise
     } else {
         await connection.database.query(`UPDATE dbinfo SET "value" = '${Date.now()}' WHERE name = 'vacuum_settings';`);
     }
-
-    logger.info('Updated vacuum settings for tables.')
 }
