@@ -22,9 +22,10 @@ export async function getPricesAction(params: RequestValues, ctx: AtomicMarketCo
 
     const query = new QueryBuilder(
         'SELECT price.*, token.token_precision, token.token_contract, asset.template_mint ' +
-        'FROM atomicmarket_stats_prices price, atomicassets_assets asset, atomicmarket_tokens token '
+        'FROM atomicmarket_stats_markets price, atomicassets_assets asset, atomicmarket_tokens token '
     );
 
+    query.notNull('price.asset_id');
     query.equal('price.market_contract', ctx.coreArgs.atomicmarket_account);
     query.addCondition(
         'price.assets_contract = asset.contract AND price.asset_id = asset.asset_id AND ' +
@@ -152,9 +153,10 @@ export async function getPricesSalesDaysAction(params: RequestValues, ctx: Atomi
                     AVG(price.price)::bigint average,
                     COUNT(*) sales, token.token_symbol, token.token_precision, token.token_contract,
                     (price.time / (3600 * 24 * 1000)) daytime
-                FROM atomicmarket_stats_prices price, atomicmarket_tokens token 
+                FROM atomicmarket_stats_markets price, atomicmarket_tokens token 
             `);
 
+    query.notNull('price.asset_id');
     query.equal('price.market_contract', ctx.coreArgs.atomicmarket_account);
     query.addCondition('price.market_contract = token.market_contract AND price.symbol = token.token_symbol');
 

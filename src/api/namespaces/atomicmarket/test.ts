@@ -65,8 +65,14 @@ export class AtomicMarketTestClient extends AtomicAssetsTestClient {
         });
     }
 
-    async refreshPrice(): Promise<Record<string, any>> {
-        return this.query('REFRESH MATERIALIZED VIEW atomicmarket_template_prices');
+    async refreshPrice(): Promise<void> {
+        await this.refreshStatsMarket();
+
+        await this.query('REFRESH MATERIALIZED VIEW atomicmarket_template_prices');
+    }
+
+    async refreshStatsMarket(): Promise<void> {
+        await this.query('SELECT update_atomicmarket_stats_market()');
     }
 
     async createBuyOffer(values: Record<string, any> = {}): Promise<Record<string, any>> {

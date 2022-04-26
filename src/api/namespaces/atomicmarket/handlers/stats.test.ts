@@ -19,7 +19,8 @@ describe('AtomicMarket Stats API', () => {
             await client.createFullSale({
                 final_price: 1,
                 listing_price: 1, listing_symbol: 'TOKEN1',
-                settlement_symbol: 'TOKEN1', state: SaleApiState.SOLD
+                settlement_symbol: 'TOKEN1', state: SaleApiState.SOLD,
+                taker_marketplace: 'X',
             }, {template_id});
 
             await client.createFullSale({
@@ -27,10 +28,11 @@ describe('AtomicMarket Stats API', () => {
                 listing_price: 1,
                 listing_symbol: 'TOKEN1',
                 settlement_symbol: 'TOKEN1',
-                state: SaleApiState.SOLD
+                state: SaleApiState.SOLD,
+                taker_marketplace: 'X',
             }, {template_id});
 
-            await client.query('REFRESH MATERIALIZED VIEW "atomicmarket_stats_prices"');
+            await client.refreshStatsMarket();
 
             const response = await getTemplateStatsAction({symbol: 'TOKEN1'}, context);
 
@@ -56,7 +58,7 @@ describe('AtomicMarket Stats API', () => {
                 // Not included
                 await client.createTemplate();
 
-                await client.query('REFRESH MATERIALIZED VIEW "atomicmarket_stats_prices"');
+                await client.refreshStatsMarket();
 
                 const response = await getTemplateStatsAction({symbol: 'TOKEN1', template_id: template_id}, context);
 
@@ -79,7 +81,7 @@ describe('AtomicMarket Stats API', () => {
                 // Not included
                 await client.createTemplate();
 
-                await client.query('REFRESH MATERIALIZED VIEW "atomicmarket_stats_prices"');
+                await client.refreshStatsMarket();
 
                 const response = await getTemplateStatsAction({symbol: 'TOKEN1', schema_name}, context);
 
@@ -102,7 +104,7 @@ describe('AtomicMarket Stats API', () => {
                 // Not included
                 await client.createTemplate();
 
-                await client.query('REFRESH MATERIALIZED VIEW "atomicmarket_stats_prices"');
+                await client.refreshStatsMarket();
 
                 const response = await getTemplateStatsAction({symbol: 'TOKEN1', collection_name}, context);
 
@@ -124,7 +126,7 @@ describe('AtomicMarket Stats API', () => {
                 // Not included
                 await client.createTemplate();
 
-                await client.query('REFRESH MATERIALIZED VIEW "atomicmarket_stats_prices"');
+                await client.refreshStatsMarket();
 
                 const response = await getTemplateStatsAction({symbol: 'TOKEN1', search: 'test'}, context);
 
@@ -155,6 +157,7 @@ describe('AtomicMarket Stats API', () => {
                     listing_price: 1, listing_symbol: 'TOKEN1',
                     settlement_symbol: 'TOKEN1', state: SaleApiState.SOLD,
                     updated_at_time: now,
+                    taker_marketplace: 'X',
                 }, {template_id});
 
 
@@ -167,6 +170,7 @@ describe('AtomicMarket Stats API', () => {
                     settlement_symbol: 'TOKEN1',
                     state: SaleApiState.SOLD,
                     updated_at_time: now - 20,
+                    taker_marketplace: 'X',
                 }, {template_id: template_id2});
 
                 // Not included
@@ -177,9 +181,10 @@ describe('AtomicMarket Stats API', () => {
                     settlement_symbol: 'TOKEN1',
                     state: SaleApiState.SOLD,
                     updated_at_time: now + 20,
+                    taker_marketplace: 'X',
                 }, {template_id: template_id2});
 
-                await client.query('REFRESH MATERIALIZED VIEW "atomicmarket_stats_prices"');
+                await client.refreshStatsMarket();
 
                 const response = await getTemplateStatsAction({
                     symbol: 'TOKEN1',
