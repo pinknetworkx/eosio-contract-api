@@ -12,7 +12,7 @@ SELECT rank() OVER (ORDER BY experience DESC) "rank",
        tokens.token_precision symbol_precision
 FROM (
      SELECT
-       COALESCE(seller, buyer) account,
+        COALESCE(seller, buyer) account,
         COALESCE(nefty_sells.total_sold, 0) total_sold,
         COALESCE(nefty_buys.total_bought, 0) total_bought,
         COALESCE(nefty_sells.sold_items, 0) items_sold,
@@ -65,7 +65,7 @@ FROM (
         AND atomicassets_assets.owner IS NOT NULL
         GROUP BY owner
     ) AS templates_owned
-    ON nefty_buys.buyer = templates_owned.owner
+    ON COALESCE(seller, buyer) = templates_owned.owner
     WHERE COALESCE(seller, buyer) IS NOT NULL
     ) AS leaderboard
     JOIN atomicmarket_tokens AS tokens ON tokens.token_symbol = leaderboard.symbol
