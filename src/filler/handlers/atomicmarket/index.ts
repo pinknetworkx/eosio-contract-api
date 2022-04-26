@@ -80,13 +80,13 @@ export default class AtomicMarketHandler extends ContractHandler {
         const views = [
             'atomicmarket_assets_master', 'atomicmarket_auctions_master',
             'atomicmarket_sales_master', 'atomicmarket_sale_prices_master',
-            'atomicmarket_stats_prices_master', 'atomicmarket_stats_markets_master',
+            'atomicmarket_stats_prices_master',
             'atomicmarket_template_prices_master', 'atomicmarket_buyoffers_master'
         ];
 
         const materializedViews = [
             'atomicmarket_template_prices',
-            'atomicmarket_stats_prices', 'atomicmarket_stats_markets'
+            'atomicmarket_stats_prices',
         ];
 
         const procedures = ['atomicmarket_auction_mints', 'atomicmarket_buyoffer_mints', 'atomicmarket_sale_mints'];
@@ -252,7 +252,7 @@ export default class AtomicMarketHandler extends ContractHandler {
 
         const materializedViews = [
             'atomicmarket_template_prices',
-            'atomicmarket_stats_prices', 'atomicmarket_stats_markets'
+            'atomicmarket_stats_prices',
         ];
 
         for (const view of materializedViews) {
@@ -278,7 +278,6 @@ export default class AtomicMarketHandler extends ContractHandler {
         const materializedViews: Array<{name: string, priority: JobQueuePriority}> = [
             {name: 'atomicmarket_template_prices', priority: JobQueuePriority.LOW},
             {name: 'atomicmarket_stats_prices', priority: JobQueuePriority.LOW},
-            {name: 'atomicmarket_stats_markets', priority: JobQueuePriority.LOW}
         ];
 
         for (const view of materializedViews) {
@@ -331,6 +330,12 @@ export default class AtomicMarketHandler extends ContractHandler {
         this.filler.jobs.add('refresh_atomicmarket_sales_filters_price', 60_000 * 60, JobQueuePriority.LOW, async () => {
             await this.connection.database.query(
                 'SELECT refresh_atomicmarket_sales_filters_price()'
+            );
+        });
+
+        this.filler.jobs.add('refresh_atomicmarket_sales_filters_price', 60_000, JobQueuePriority.MEDIUM, async () => {
+            await this.connection.database.query(
+                'SELECT update_atomicmarket_stats()'
             );
         });
 
