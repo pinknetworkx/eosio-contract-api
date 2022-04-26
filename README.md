@@ -10,8 +10,9 @@ Per block transactions guarantee that the database is consistent at any time.
 
 * NodeJS >= 16.0
 * PostgreSQL >= 13.0
+  * You need to enable the `pg_trgm` extension with `CREATE EXTENSION pg_trgm;`
 * Redis >= 5.0
-* Nodeos >= 1.8.0 (only tested with 2.0) The state history plugin needs to be enabled and the options: 
+* Nodeos >= 1.8.0 (only tested with 2.0 and 2.1) The state history plugin needs to be enabled and the options: 
 `trace-history = true`, `chain-state-history = true`
 
 Suggestions
@@ -54,6 +55,13 @@ chain can use the same database if they are non conflicting
 
 #### readers.config.json
 This file is used to configure the filler
+
+For atomicassets / atomicmarket you should specify the following start blocks
+* `wax-mainnet`: `64000000`
+* `wax-testnet`: `35795000` (Here you need to use it otherwise it will break)
+* `eos-mainnet`: `99070000`
+* `proton-mainnet`: `50289000`
+* `proton-testnet`: `53440000`
 
 ```json5
 [

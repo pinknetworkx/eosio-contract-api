@@ -116,9 +116,16 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                     JOIN neftyblends_blend_ingredients i ON
                         b.blend_id = i.blend_id
                     JOIN atomicassets_assets a ON 
-                        ((i.ingredient_type = 'TEMPLATE_INGREDIENT' OR i.ingredient_type = 'CHEST_INGREDIENT') AND a.template_id = i.template_id) OR
+                        (i.ingredient_type = 'TEMPLATE_INGREDIENT' AND a.template_id = i.template_id) OR
                         (i.ingredient_type = 'SCHEMA_INGREDIENT' AND a.schema_name = i.schema_name) OR
-                        (i.ingredient_type = 'ATTRIBUTE_INGREDIENT' AND is_ingredient_attribute_match(a.template_id, b.blend_id, i.ingredient_index, i.total_attributes))
+                        (i.ingredient_type = 'ATTRIBUTE_INGREDIENT' AND is_ingredient_attribute_match(a.template_id, b.blend_id, i.ingredient_index, i.total_attributes)) OR
+                        (
+                            i.ingredient_type = 'BALANCE_INGREDIENT' AND 
+                            a.template_id = i.template_id AND
+                            (
+                                (a.mutable_data->>i.balance_ingredient_attribute_name)::numeric >= i.balance_ingredient_cost
+                            )
+                        )
                 WHERE`
             ;
         // add `WHERE` conditions in filter subquery:
