@@ -7,13 +7,13 @@ import {
     extendedAssetFilterParameters,
     baseAssetFilterParameters,
     greylistFilterParameters,
-    hideOffersParameters
+    hideOffersParameters, extendedAssetFilterParametersSpecificOwner
 } from '../../atomicassets/openapi';
 import {
     getAssetSalesAction,
     getPricesAction, getPricesAssetsAction,
     getPricesSalesDaysAction,
-    getPricesTemplatesAction
+    getPricesTemplatesAction, getUsersInventoryPrices
 } from '../handlers/prices';
 
 export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
@@ -28,6 +28,8 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
     router.all('/v1/prices/templates', caching(), returnAsJSON(getPricesTemplatesAction, core));
 
     router.all('/v1/prices/assets', caching(), returnAsJSON(getPricesAssetsAction, core));
+
+    router.all('/v1/prices/inventory/:account', caching(), returnAsJSON(getUsersInventoryPrices, core));
 
     return {
         tag: {
@@ -232,6 +234,50 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                                 min: {type: 'string'},
                                 max: {type: 'string'}
                             }
+                        }
+                    })
+                }
+            },
+            '/v1/prices/inventory/{account}': {
+                get: {
+                    tags: ['pricing'],
+                    summary: 'Gets a users inventory value grouped by collection',
+                    parameters: [
+                        ...baseAssetFilterParameters,
+                        ...extendedAssetFilterParametersSpecificOwner,
+                        {
+                            name: 'authorized_account',
+                            in: 'query',
+                            description: 'Filter for assets the provided account can edit. ',
+                            required: false,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
+                        ...hideOffersParameters,
+                        ...greylistFilterParameters,
+                        ...primaryBoundaryParameters
+                    ],
+                    responses: getOpenAPI3Responses([500, 200], {
+                        type: 'object',
+                        properties: {
+                            collections: [{
+                                type: 'object',
+                                properties: {
+                                    collection: {type: 'string'},
+                                    prices: [{
+                                        token_symbol: {type: 'string'},
+                                        token_precision: {type: 'integer'},
+                                        token_contract: {type: 'string'},
+                                        median: {type: 'string'},
+                                        average: {type: 'string'},
+                                        suggested_average: {type: 'string'},
+                                        suggested_median: {type: 'string'},
+                                        min: {type: 'string'},
+                                        max: {type: 'string'}
+                                    }]
+                                }
+                            }],
                         }
                     })
                 }

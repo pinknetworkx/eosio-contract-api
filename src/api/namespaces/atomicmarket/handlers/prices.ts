@@ -1,8 +1,15 @@
-import { buildBoundaryFilter, RequestValues } from '../../utils';
-import { AtomicMarketContext } from '../index';
+import {buildBoundaryFilter, RequestValues} from '../../utils';
+import {AtomicMarketContext} from '../index';
 import QueryBuilder from '../../../builder';
-import { buildAssetQueryCondition } from '../../atomicassets/handlers/assets';
-import { filterQueryArgs } from '../../validation';
+import {buildAssetQueryCondition} from '../../atomicassets/handlers/assets';
+import {filterQueryArgs} from '../../validation';
+import {
+    ICollectionsMasterView,
+    IUserInventoryCollectionsPrices,
+    IUserInventoryPriceResponse, IUserInventoryPrices,
+    IUserInventoryPricesQueryResponse
+} from '../../../../types/models';
+import {oneLine} from 'common-tags';
 
 export async function getPricesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
@@ -267,4 +274,60 @@ export async function getPricesAssetsAction(params: RequestValues, ctx: AtomicMa
     const result = await ctx.db.query(query.buildString(), query.buildValues());
 
     return result.rows;
+}
+
+export async function getUsersInventoryPrices(params: RequestValues, ctx: AtomicMarketContext): Promise<IUserInventoryPriceResponse> {
+    const query = new QueryBuilder(
+        oneLine`
+      SELECT token.token_symbol, token.token_precision, token.token_contract, asset.collection_name,
+        SUM(price."median") "median", SUM(price."average") "average", SUM(price."min") "min", SUM(price."max") "max", 
+        SUM(price.suggested_median) suggested_median, SUM(price.suggested_average) suggested_average 
+      
+      FROM atomicassets_assets asset, atomicassets_templates "template", atomicmarket_template_prices "price", atomicmarket_tokens token`
+    );
+
+    query.equal('price.assets_contract', ctx.coreArgs.atomicassets_account);
+    query.equal('price.market_contract', ctx.coreArgs.atomicmarket_account);
+    query.equal('asset.owner', ctx.pathParams.account);
+
+    query.addCondition(
+        oneLine`
+      asset.contract = template.contract 
+      AND asset.template_id = template.template_id 
+      AND template.contract = price.assets_contract 
+      AND template.template_id = price.template_id 
+      AND token.market_contract = price.market_contract 
+      AND token.token_symbol = price.symbol`
+    );
+
+    buildAssetQueryCondition(params, query, {assetTable: '"asset"', templateTable: '"template"'});
+    buildBoundaryFilter(params, query, 'asset.asset_id', 'int', null);
+
+    query.append('GROUP BY token.token_symbol, token.token_precision, token.token_contract, asset.collection_name');
+
+    const result = await ctx.db.query<IUserInventoryPricesQueryResponse>(query.buildString(), query.buildValues());
+
+    const collections = await ctx.db.query<ICollectionsMasterView>(
+        'SELECT * FROM atomicassets_collections_master WHERE contract = $1 AND collection_name = ANY($2)',
+        [ctx.coreArgs.atomicassets_account, result.rows.map(row => row.collection_name)]
+    );
+
+    return buildUserInventoryPriceResponse(result.rows, collections.rows);
+}
+
+function buildUserInventoryPriceResponse(result: IUserInventoryPricesQueryResponse[], collections: ICollectionsMasterView[]): IUserInventoryPriceResponse {
+    const response: Record<string, IUserInventoryCollectionsPrices> = {};
+    const prices: Record<string, IUserInventoryPrices[]> = {};
+    result.map((i) => {
+        const { collection_name, ...price } = i;
+        prices[collection_name] = prices[collection_name] ?? [];
+        prices[collection_name].push(price);
+    });
+    collections.map((row) => {
+        response[row.collection_name] = {collection: row, prices: prices[row.collection_name] || []};
+    });
+
+    return {
+        collections: Object.values(response)
+    };
 }

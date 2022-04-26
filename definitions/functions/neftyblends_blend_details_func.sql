@@ -27,7 +27,7 @@ $body$
                     WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN 'template'
                     WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN 'schema'
                     WHEN ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' THEN 'attributes'
-                    WHEN ingredient.ingredient_type = 'CHEST_INGREDIENT' THEN 'template'
+                    WHEN ingredient.ingredient_type = 'BALANCE_INGREDIENT' THEN 'template'
                     END,
                 CASE
                     WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN jsonb_build_object(
@@ -42,7 +42,7 @@ $body$
                             'schema_name', ingredient.schema_name,
                             'collection_name', ingredient.ingredient_collection_name
                         )
-                    WHEN ingredient.ingredient_type = 'CHEST_INGREDIENT' THEN jsonb_build_object(
+                    WHEN ingredient.ingredient_type = 'BALANCE_INGREDIENT' THEN jsonb_build_object(
                             'template_id', ingredient.template_id,
                             'schema_name', ingredient.schema_name
                         )

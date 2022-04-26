@@ -267,6 +267,8 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
             created_at_block: blockNumber || 0,
             created_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
             display_data: ingredient.display_data,
+            balance_ingredient_attribute_name: ingredient.balance_ingredient_attribute_name,
+            balance_ingredient_cost: ingredient.balance_ingredient_cost,
         });
 
         let index = 0;
@@ -368,6 +370,8 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 type,
                 collection_name: payload.collection_name,
                 schema_name: null,
+                balance_ingredient_attribute_name: null,
+                balance_ingredient_cost: null,
                 template_id: payload.template_id,
                 attributes: [],
                 display_data: null,
@@ -380,6 +384,8 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 type,
                 collection_name: payload.collection_name,
                 schema_name: payload.schema_name,
+                balance_ingredient_attribute_name: null,
+                balance_ingredient_cost: null,
                 template_id: null,
                 attributes: [],
                 display_data: payload.display_data,
@@ -392,6 +398,8 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 type,
                 collection_name: payload.collection_name,
                 schema_name: payload.schema_name,
+                balance_ingredient_attribute_name: null,
+                balance_ingredient_cost: null,
                 template_id: null,
                 attributes: payload.attributes,
                 display_data: payload.display_data,
@@ -399,11 +407,13 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 effect,
                 index,
             };
-        } else if (type === BlendIngredientType.CHEST_INGREDIENT) {
+        } else if (type === BlendIngredientType.BALANCE_INGREDIENT) {
             return {
                 type,
                 collection_name: blend_collection,
                 schema_name: payload.schema_name,
+                balance_ingredient_attribute_name: payload.attribute_name || '',
+                balance_ingredient_cost: payload.cost || 0,
                 template_id: payload.template_id,
                 attributes: [],
                 display_data: payload.display_data,

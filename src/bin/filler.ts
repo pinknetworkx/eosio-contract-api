@@ -45,7 +45,13 @@ if (cluster.isPrimary || cluster.isMaster) {
             process.exit(1);
         }
 
-        await upgradeDb(connection.database);
+        try {
+            await upgradeDb(connection.database);
+        } catch (error) {
+            logger.error('Failed to execute migration scripts', error);
+
+            return process.exit(1);
+        }
 
         for (let i = 0; i < readerConfigs.length; i++) {
             // @ts-ignore
