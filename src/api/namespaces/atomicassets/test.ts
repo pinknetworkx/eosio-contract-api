@@ -63,7 +63,7 @@ export class AtomicAssetsTestClient extends TestClient {
             contract: 'aatest',
             offer_id: values.offer_id ?? (await this.createOffer()).offer_id,
             owner: 'owner',
-            index: 0,
+            index: 1,
             asset_id: values.asset_id ?? (await this.createAsset(assetValues)).asset_id,
             ...values,
         });

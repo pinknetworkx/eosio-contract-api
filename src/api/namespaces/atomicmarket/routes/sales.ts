@@ -22,9 +22,9 @@ import { NotificationData } from '../../../../filler/notifier';
 import {
     getSaleAction,
     getSaleLogsAction,
-    getSalesAction, getSalesCountAction, getSalesTemplatesAction
+    getSalesAction, getSalesCountAction
 } from '../handlers/sales';
-import { getSalesCountV2Action, getSalesV2Action } from '../handlers/sales2';
+import { getSalesCountV2Action, getSalesTemplatesV2Action, getSalesV2Action } from '../handlers/sales2';
 
 export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;
@@ -43,7 +43,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
     router.all('/v2/sales', caching(), returnAsJSON(getSalesV2Action, core));
     router.all('/v2/sales/_count', caching(), returnAsJSON(getSalesCountV2Action, core));
 
-    router.all('/v1/sales/templates', caching(), returnAsJSON(getSalesTemplatesAction, core));
+    router.all('/v1/sales/templates', caching(), returnAsJSON(getSalesTemplatesV2Action, core));
 
     router.all('/v1/sales/:sale_id', caching(), returnAsJSON(getSaleAction, core));
 

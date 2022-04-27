@@ -85,7 +85,7 @@ export default class AtomicMarketHandler extends ContractHandler {
         ];
 
         const materializedViews = [
-            'atomicmarket_template_prices', 'atomicmarket_sale_prices',
+            'atomicmarket_template_prices',
             'atomicmarket_stats_prices', 'atomicmarket_stats_markets'
         ];
 
@@ -119,16 +119,6 @@ export default class AtomicMarketHandler extends ContractHandler {
     }
 
     static async upgrade(client: PoolClient, version: string): Promise<void> {
-        if (version === '1.2.1') {
-            logger.info('Upgrading materialized view atomicmarket_sale_prices');
-
-            await client.query('DROP MATERIALIZED VIEW IF EXISTS atomicmarket_sale_prices;');
-
-            await client.query(fs.readFileSync('./definitions/materialized/atomicmarket_sale_prices.sql', {encoding: 'utf8'}));
-
-            await client.query('REFRESH MATERIALIZED VIEW atomicmarket_sale_prices;');
-        }
-
         if (version === '1.2.2') {
             await client.query('DROP VIEW IF EXISTS atomicmarket_assets_master CASCADE;');
             await client.query(fs.readFileSync('./definitions/views/atomicmarket_assets_master.sql', {encoding: 'utf8'}));
@@ -261,7 +251,7 @@ export default class AtomicMarketHandler extends ContractHandler {
         }
 
         const materializedViews = [
-            'atomicmarket_template_prices', 'atomicmarket_sale_prices',
+            'atomicmarket_template_prices',
             'atomicmarket_stats_prices', 'atomicmarket_stats_markets'
         ];
 
@@ -288,8 +278,7 @@ export default class AtomicMarketHandler extends ContractHandler {
         const materializedViews: Array<{name: string, priority: JobQueuePriority}> = [
             {name: 'atomicmarket_template_prices', priority: JobQueuePriority.LOW},
             {name: 'atomicmarket_stats_prices', priority: JobQueuePriority.LOW},
-            {name: 'atomicmarket_stats_markets', priority: JobQueuePriority.LOW},
-            {name: 'atomicmarket_sale_prices', priority: JobQueuePriority.MEDIUM},
+            {name: 'atomicmarket_stats_markets', priority: JobQueuePriority.LOW}
         ];
 
         for (const view of materializedViews) {

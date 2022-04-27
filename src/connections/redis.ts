@@ -1,9 +1,9 @@
-import * as IORedis from 'ioredis';
+import Redis from 'ioredis';
 import { createClient, RedisClientType } from 'redis';
 
 export default class RedisConnection {
-    readonly ioRedis: IORedis.Redis;
-    readonly ioRedisSub: IORedis.Redis;
+    readonly ioRedis: Redis;
+    readonly ioRedisSub: Redis;
 
     readonly nodeRedis: RedisClientType<any, any>;
     readonly nodeRedisSub: RedisClientType<any, any>;
@@ -11,8 +11,8 @@ export default class RedisConnection {
     private initialized = false;
 
     constructor(host: string, port: number) {
-        this.ioRedis = new IORedis({ host, port });
-        this.ioRedisSub = new IORedis({ host, port });
+        this.ioRedis = new Redis({ host, port });
+        this.ioRedisSub = new Redis({ host, port });
 
         this.nodeRedis = createClient({ url: `redis://${host}:${port}` });
         this.nodeRedisSub = createClient({ url: `redis://${host}:${port}` });
