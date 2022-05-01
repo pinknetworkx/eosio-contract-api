@@ -69,7 +69,7 @@ FROM (
     WHERE COALESCE(seller, buyer) IS NOT NULL
     ) AS leaderboard
     JOIN atomicmarket_tokens AS tokens ON tokens.token_symbol = leaderboard.symbol
-WHERE (total_sold + total_bought) > {{min_volume}};
+WHERE (total_sold + total_bought) > {{min_volume}} AND account <> 'mkt.nefty';
 
 CREATE UNIQUE INDEX nefy_quest_leaderboard_pkey_{{quest_id}} ON nefy_quest_leaderboard_{{quest_id}} (account);
 
