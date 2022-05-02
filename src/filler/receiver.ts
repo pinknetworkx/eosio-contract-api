@@ -199,6 +199,10 @@ export default class StateReceiver {
 
         try {
             if (resp.this_block.block_num <= this.currentBlock) {
+                if (resp.this_block.block_num < this.lastIrreversibleBlock) {
+                    throw new Error('Dont rollback more blocks than are reversible');
+                }
+
                 logger.info('Chain fork detected. Reverse all blocks which were affected');
 
                 commitSize = 1;

@@ -9,7 +9,7 @@ const settingOverrides: {[key: string]: {scale: string, threshold: number}} = {
 };
 
 export async function setAutoVacSettings(connection: ConnectionManager): Promise<void> {
-    const dbinfo = await connection.database.query(`SELECT * FROM dbinfo WHERE name = 'vacuum_settings'`);
+    const dbinfo = await connection.database.query('SELECT * FROM dbinfo WHERE name = \'vacuum_settings\'');
 
     if (dbinfo.rows.length > 0 && +dbinfo.rows[0].value + 3600 * 24 * 7 * 1000 > Date.now()) {
         logger.info('Skipping updating vacuum settings');
@@ -54,7 +54,7 @@ export async function setAutoVacSettings(connection: ConnectionManager): Promise
                 )
             `);
 
-            logger.info(`Updated autovaccum settings for ${table.schemaname}.${table.tablename}`)
+            logger.info(`Updated autovaccum settings for ${table.schemaname}.${table.tablename}`);
         } catch (error) {
             logger.error(`Failed to change autovaccum settings for ${table.schemaname}.${table.tablename}`, error);
         }
