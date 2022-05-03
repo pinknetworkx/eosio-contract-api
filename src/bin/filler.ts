@@ -10,6 +10,7 @@ import {IConnectionsConfig, IReaderConfig} from '../types/config';
 import {upgradeDb} from '../filler/upgrade-db';
 import {MetricsCollectorHandler} from '../metrics/handler';
 import {Registry} from 'prom-client';
+import {setAutoVacSettings} from '../filler/set-autovac-settings';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const readerConfigs: IReaderConfig[] = require('../../config/readers.config.json');
@@ -50,8 +51,13 @@ if (cluster.isPrimary || cluster.isMaster) {
         } catch (error) {
             logger.error('Failed to execute migration scripts', error);
 
-            return process.exit(1);
+            process.exit(1);
         }
+
+        setAutoVacSettings(connection).then(
+            () => logger.info('Finished setting autovacuum settings'),
+            error => logger.error('Failed setting autovacuum settings', error)
+        );
 
         for (let i = 0; i < readerConfigs.length; i++) {
             // @ts-ignore
