@@ -135,14 +135,8 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                 a.owner = $${++queryVarCounter}`
             ;
 
-            // Out of the assets the user owns, we only care about the ones
-            // belonging to this collection. This assumes that a blends can
-            // only have ingredients that are from the same collection
-            // This saves an absurd amount of time in the query!
-            // ~(30 secs to 300ms, for the `asset_matches_sub` subquery!)
-            queryValues.push(args.collection_name);
             queryString += `
-                AND a.collection_name = $${++queryVarCounter}`
+                AND a.collection_name = i.ingredient_collection_name`
             ;
 
             // blends in collection
