@@ -91,9 +91,17 @@ DROP TABLE IF EXISTS atomicmarket_stats_markets_updates;
 CREATE TABLE atomicmarket_stats_markets_updates(
     market_contract VARCHAR(12),
     listing_type text,
-    listing_id BIGINT
+    listing_id BIGINT,
+    refresh_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+INSERT INTO atomicmarket_stats_markets_updates(market_contract, listing_type, listing_id, refresh_at)
+	SELECT
+		auction.market_contract, 'auction' listing_type, auction.auction_id listing_id,
+		TO_TIMESTAMP(auction.end_time) + INTERVAL '3 minutes'
+	FROM atomicmarket_auctions auction
+	WHERE auction.buyer IS NOT NULL AND auction.state = 1 AND auction.end_time >= extract(epoch from now())
+;
 
 DROP FUNCTION IF EXISTS update_atomicmarket_stats_markets_by_sale CASCADE;
 CREATE OR REPLACE FUNCTION update_atomicmarket_stats_markets_by_sale() RETURNS TRIGGER AS $$
@@ -132,9 +140,9 @@ DECLARE
     affects_stats_markets BOOLEAN;
 BEGIN
     affects_stats_markets =
-        (TG_OP IN ('INSERT', 'UPDATE') AND NEW.buyer IS NOT NULL AND NEW.state = 1 AND NEW.end_time < extract(epoch from now()))
+        (TG_OP IN ('INSERT', 'UPDATE') AND NEW.buyer IS NOT NULL AND NEW.state = 1)
         OR
-        (TG_OP IN ('DELETE', 'UPDATE') AND OLD.buyer IS NOT NULL AND OLD.state = 1 AND OLD.end_time < extract(epoch from now()));
+        (TG_OP IN ('DELETE', 'UPDATE') AND OLD.buyer IS NOT NULL AND OLD.state = 1);
     IF (NOT affects_stats_markets)
     THEN RETURN NULL;
     END IF;
@@ -145,6 +153,17 @@ BEGIN
         'auction',
         CASE TG_OP WHEN 'DELETE' THEN OLD.auction_id ELSE NEW.auction_id END
     );
+
+    IF (TG_OP IN ('INSERT', 'UPDATE'))
+    THEN
+		INSERT INTO atomicmarket_stats_markets_updates(market_contract, listing_type, listing_id, refresh_at)
+		VALUES (
+			NEW.market_contract,
+			'auction',
+			NEW.auction_id,
+			TO_TIMESTAMP(NEW.end_time) + INTERVAL '3 minutes'
+		);
+    END IF;
 
     RETURN NULL;
 END
@@ -196,6 +215,7 @@ DECLARE
 BEGIN
     WITH changed_listings AS (
         DELETE FROM atomicmarket_stats_markets_updates u
+        WHERE refresh_at < NOW()
         RETURNING market_contract, listing_type, listing_id
     ), updated_listings AS (
         SELECT
