@@ -175,6 +175,25 @@ CREATE TABLE atomicmarket_buyoffers_assets
     CONSTRAINT atomicmarket_buyoffers_assets_pkey PRIMARY KEY (market_contract, buyoffer_id, assets_contract, asset_id)
 );
 
+CREATE TABLE atomicmarket_stats_markets (
+    listing_id bigint not null,
+    price bigint not null,
+    "time" bigint not null,
+    template_id bigint,
+    asset_id bigint,
+	market_contract varchar(12) not null,
+    listing_type text not null,
+    buyer varchar(12) not null,
+    seller varchar(12) not null,
+    maker_marketplace varchar(12) not null,
+    taker_marketplace varchar(12) not null,
+    assets_contract varchar(12) not null,
+    collection_name varchar(12),
+    schema_name varchar(12),
+    symbol varchar(12) not null,
+	CONSTRAINT atomicmarket_stats_markets_pkey PRIMARY KEY (market_contract, listing_type, listing_id)
+);
+
 -- Foreign Keys
 ALTER TABLE ONLY atomicmarket_auctions
     ADD CONSTRAINT atomicmarket_auctions_token_symbol_fkey FOREIGN KEY (market_contract, token_symbol)
@@ -278,3 +297,13 @@ CREATE INDEX atomicmarket_buyoffers_assets_asset_id ON atomicmarket_buyoffers_as
 CREATE INDEX atomicmarket_sales_missing_mint ON atomicmarket_sales(assets_contract, sale_id, offer_id) WHERE template_mint IS NULL;
 CREATE INDEX atomicmarket_buyoffers_missing_mint ON atomicmarket_buyoffers(assets_contract, buyoffer_id) WHERE template_mint IS NULL;
 CREATE INDEX atomicmarket_auctions_missing_mint ON atomicmarket_auctions(assets_contract, auction_id) WHERE template_mint IS NULL;
+
+
+CREATE INDEX atomicmarket_stats_markets_collection_name ON atomicmarket_stats_markets USING btree (collection_name);
+CREATE INDEX atomicmarket_stats_markets_buyer ON atomicmarket_stats_markets USING btree (buyer);
+CREATE INDEX atomicmarket_stats_markets_seller ON atomicmarket_stats_markets USING btree (seller);
+CREATE INDEX atomicmarket_stats_markets_price ON atomicmarket_stats_markets USING btree (price);
+CREATE INDEX atomicmarket_stats_markets_time ON atomicmarket_stats_markets USING btree ("time");
+CREATE INDEX atomicmarket_stats_markets_asset_id ON atomicmarket_stats_markets USING btree ("asset_id");
+CREATE INDEX atomicmarket_stats_markets_schema_name ON atomicmarket_stats_markets USING btree ("schema_name");
+CREATE INDEX atomicmarket_stats_markets_template_id ON atomicmarket_stats_markets USING btree ("template_id");

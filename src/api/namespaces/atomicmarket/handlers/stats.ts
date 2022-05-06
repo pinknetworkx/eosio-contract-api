@@ -233,12 +233,11 @@ export async function getSchemaStatsByCollectionV2Action(params: RequestValues, 
 
     const query = new QueryBuilder(
         'SELECT template.schema_name, SUM(price.price) volume, COUNT(*) sales ' +
-        'FROM atomicmarket_stats_markets price, atomicassets_templates "template" '
+        'FROM atomicmarket_stats_prices_master price, atomicassets_templates "template" '
     );
 
     query.addCondition('price.assets_contract = template.contract AND price.template_id = template.template_id');
 
-    query.notNull('price.asset_id');
     query.equal('price.market_contract', ctx.coreArgs.atomicmarket_account);
     query.equal('price.symbol', args.symbol);
     query.equal('price.collection_name', ctx.pathParams.collection_name);
@@ -312,10 +311,10 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
             FROM atomicassets_templates "template"
             LEFT JOIN (
                 SELECT assets_contract, template_id, SUM(price) "volume", COUNT(*) "sales" 
-                FROM atomicmarket_stats_markets "asp"
-                WHERE asp.asset_id IS NOT NULL
-                    AND "asp".assets_contract = $1 AND "asp".market_contract = $2
-                    AND "asp".symbol = $3 ${buildRangeCondition('"asp".time', args.after, args.before)}
+                FROM atomicmarket_stats_prices_master "asp"
+                WHERE
+                    "asp".assets_contract = $1 AND "asp".market_contract = $2 AND
+                    "asp".symbol = $3 ${buildRangeCondition('"asp".time', args.after, args.before)}
                 GROUP BY "asp".assets_contract, "asp".template_id 
             ) "stats" ON ("stats".template_id = "template".template_id AND "stats".assets_contract = "template".contract)
         `, [ctx.coreArgs.atomicassets_account, ctx.coreArgs.atomicmarket_account, args.symbol]

@@ -80,7 +80,12 @@ export default class AtomicMarketHandler extends ContractHandler {
         const views = [
             'atomicmarket_assets_master', 'atomicmarket_auctions_master',
             'atomicmarket_sales_master', 'atomicmarket_sale_prices_master',
-            'atomicmarket_buyoffers_master',
+            'atomicmarket_stats_prices_master',
+            'atomicmarket_template_prices_master', 'atomicmarket_buyoffers_master'
+        ];
+
+        const materializedViews = [
+            'atomicmarket_template_prices',
         ];
 
         const procedures = ['atomicmarket_auction_mints', 'atomicmarket_buyoffer_mints', 'atomicmarket_sale_mints'];
@@ -94,6 +99,10 @@ export default class AtomicMarketHandler extends ContractHandler {
 
             for (const view of views) {
                 await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
+            }
+
+            for (const view of materializedViews) {
+                await client.query(fs.readFileSync('./definitions/materialized/' + view + '.sql', {encoding: 'utf8'}));
             }
 
             for (const procedure of procedures) {
@@ -126,6 +135,11 @@ export default class AtomicMarketHandler extends ContractHandler {
                 await client.query('DELETE FROM atomicmarket_buyoffers_assets WHERE buyoffer_id = 609405;');
                 await client.query('DELETE FROM atomicmarket_buyoffers WHERE buyoffer_id = 609405;');
             }
+        }
+
+        if (version === '1.3.13') {
+            await client.query(fs.readFileSync('./definitions/views/atomicmarket_stats_prices_master.sql', {encoding: 'utf8'}));
+            await client.query(fs.readFileSync('./definitions/views/atomicmarket_template_prices_master.sql', {encoding: 'utf8'}));
         }
     }
 
@@ -225,7 +239,8 @@ export default class AtomicMarketHandler extends ContractHandler {
             'atomicmarket_auctions', 'atomicmarket_auctions_assets', 'atomicmarket_auctions_bids',
             'atomicmarket_sales', 'atomicmarket_buyoffers', 'atomicmarket_buyoffers_assets',
             'atomicmarket_config', 'atomicmarket_delphi_pairs', 'atomicmarket_marketplaces',
-            'atomicmarket_token_symbols', 'atomicmarket_bonusfees', 'atomicmarket_balances'
+            'atomicmarket_token_symbols', 'atomicmarket_bonusfees', 'atomicmarket_balances',
+            'atomicmarket_stats_markets',
         ];
 
         for (const table of tables) {

@@ -1,7 +1,7 @@
 DROP VIEW IF EXISTS atomicmarket_stats_prices_master CASCADE;
 DROP VIEW IF EXISTS atomicmarket_stats_markets_master CASCADE;
 
-DROP TABLE IF EXISTS atomicmarket_stats_markets;
+DROP TABLE IF EXISTS atomicmarket_stats_markets CASCADE;
 CREATE TABLE atomicmarket_stats_markets (
     listing_id bigint not null,
     price bigint not null,
