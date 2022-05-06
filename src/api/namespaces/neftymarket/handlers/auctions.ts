@@ -17,8 +17,8 @@ export async function getAuctionsAction(params: RequestValues, ctx: NeftyMarketC
         sort: {
             type: 'string',
             allowedValues: [
-                'created', 'updated', 'ending', 'auction_id', 'price',
-                'template_mint'
+                'created', 'updated', 'starting', 'ending', 'auction_id', 'price',
+                'buy_now_price', 'template_mint'
             ],
             default: 'created'
         },
@@ -45,9 +45,19 @@ export async function getAuctionsAction(params: RequestValues, ctx: NeftyMarketC
 
     buildAuctionFilter(params, query);
     buildGreylistFilter(params, query, {collectionName: 'listing.collection_name'});
+
+    let dateColumn;
+    if (args.sort === 'starting') {
+        dateColumn = 'listing.start_time';
+    } else if (args.sort === 'ending') {
+        dateColumn = 'listing.end_time';
+    } else if (args.sort === 'updated') {
+        dateColumn = 'listing.updated_at_time';
+    } else {
+        dateColumn = 'listing.created_at_time';
+    }
     buildBoundaryFilter(
-        params, query, 'listing.auction_id', 'int',
-        args.sort === 'updated' ? 'listing.updated_at_time' : 'listing.created_at_time'
+        params, query, 'listing.auction_id', 'int', dateColumn
     );
 
     if (args.count) {
@@ -66,6 +76,7 @@ export async function getAuctionsAction(params: RequestValues, ctx: NeftyMarketC
         created: {column: 'listing.created_at_time', nullable: false, numericIndex: true},
         updated: {column: 'listing.updated_at_time', nullable: false, numericIndex: true},
         price: {column: 'listing.price', nullable: true, numericIndex: false},
+        buy_now_price: {column: 'listing.buy_now_price', nullable: true, numericIndex: false},
         template_mint: {column: 'LOWER(listing.template_mint)', nullable: true, numericIndex: false}
     };
 
@@ -124,7 +135,7 @@ export async function getAuctionLogsAction(params: RequestValues, ctx: NeftyMark
 
     return await getContractActionLogs(
         ctx.db, ctx.coreArgs.neftymarket_account,
-        applyActionGreylistFilters(['lognewauct', 'logauctstart', 'cancelauct', 'auctclaimbuy', 'auctclaimsel'], args),
+        applyActionGreylistFilters(['lognewauct'], args),
         {auction_id: ctx.pathParams.auction_id},
         (args.page - 1) * args.limit, args.limit, args.order
     );

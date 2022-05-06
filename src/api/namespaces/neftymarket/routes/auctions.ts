@@ -1,6 +1,6 @@
 import * as express from 'express';
 
-import { NeftyMarketNamespace, AuctionApiState } from '../index';
+import {NeftyMarketNamespace, AuctionApiState, AuctionType} from '../index';
 import { HTTPServer } from '../../../server';
 import {
     actionGreylistParameters,
@@ -37,10 +37,21 @@ export function auctionsEndpoints(core: NeftyMarketNamespace, server: HTTPServer
                             name: 'state',
                             in: 'query',
                             description: 'Filter by auction state (' +
+                                AuctionApiState.WAITING.valueOf() + ': WAITING - Auction not yet started, ' +
                                 AuctionApiState.LISTED.valueOf() + ': LISTED - Auction pending and open to bids, ' +
                                 AuctionApiState.CANCELED.valueOf() + ': CANCELED - Auction was canceled, ' +
                                 AuctionApiState.SOLD.valueOf() + ': SOLD - Auction has been sold, ' +
                                 AuctionApiState.INVALID.valueOf() + ': INVALID - Auction ended but no bid was made' +
+                                ') - separate multiple with ","',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'type',
+                            in: 'query',
+                            description: 'Filter by auction type (' +
+                                AuctionType.ENGLISH.valueOf() + ': ENGLISH - Actions that go up on price, ' +
+                                AuctionType.DUTCH.valueOf() + ': DUTCH - Auctions thatt go down in price ' +
                                 ') - separate multiple with ","',
                             required: false,
                             schema: {type: 'string'}
@@ -66,7 +77,28 @@ export function auctionsEndpoints(core: NeftyMarketNamespace, server: HTTPServer
                             required: false,
                             schema: {type: 'boolean'}
                         },
+                        {
+                            name: 'show_buy_now_only',
+                            in: 'query',
+                            description: 'Show auctions with buy now option',
+                            required: false,
+                            schema: {type: 'boolean'}
+                        },
                         ...listingFilterParameters,
+                        {
+                            name: 'min_buy_now_price',
+                            in: 'query',
+                            description: 'Buy now lower price limit',
+                            required: false,
+                            schema: {type: 'number'}
+                        },
+                        {
+                            name: 'max_buy_now_price',
+                            in: 'query',
+                            description: 'Buy now upper price limit',
+                            required: false,
+                            schema: {type: 'number'}
+                        },
                         ...baseAssetFilterParameters,
                         ...extendedAssetFilterParameters,
                         ...primaryBoundaryParameters,
@@ -80,8 +112,8 @@ export function auctionsEndpoints(core: NeftyMarketNamespace, server: HTTPServer
                             schema: {
                                 type: 'string',
                                 enum: [
-                                    'created', 'updated', 'ending', 'auction_id', 'price',
-                                    'template_mint'
+                                    'created', 'updated', 'starting', 'ending', 'auction_id',
+                                    'price', 'buy_now_price', 'template_mint'
                                 ],
                                 default: 'created'
                             }

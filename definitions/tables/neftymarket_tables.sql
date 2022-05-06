@@ -100,10 +100,13 @@ CREATE INDEX neftymarket_auctions_auction_id ON neftymarket_auctions USING btree
 CREATE INDEX neftymarket_auctions_seller ON neftymarket_auctions USING hash (seller);
 CREATE INDEX neftymarket_auctions_buyer ON neftymarket_auctions USING hash (buyer);
 CREATE INDEX neftymarket_auctions_price ON neftymarket_auctions USING btree (price);
+CREATE INDEX neftymarket_auctions_buy_now_price ON neftymarket_auctions USING btree (buy_now_price);
 CREATE INDEX neftymarket_auctions_collection_name ON neftymarket_auctions USING btree (collection_name);
 CREATE INDEX neftymarket_auctions_state ON neftymarket_auctions USING btree (state);
+CREATE INDEX neftymarket_auctions_type ON neftymarket_auctions USING btree (auction_type);
 CREATE INDEX neftymarket_auctions_updated_at_time ON neftymarket_auctions USING btree (updated_at_time);
 CREATE INDEX neftymarket_auctions_created_at_time ON neftymarket_auctions USING btree (created_at_time);
+CREATE INDEX neftymarket_auctions_start_time ON neftymarket_auctions USING btree (start_time);
 CREATE INDEX neftymarket_auctions_end_time ON neftymarket_auctions USING btree (end_time);
 
 CREATE INDEX neftymarket_auctions_assets_asset_id ON neftymarket_auctions_assets USING btree (asset_id);

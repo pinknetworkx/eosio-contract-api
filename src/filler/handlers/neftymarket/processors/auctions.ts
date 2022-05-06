@@ -36,9 +36,9 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
                 state: AuctionState.LISTED.valueOf(),
                 auction_type: trace.act.data.auction_type,
                 discount_rate: trace.act.data.discount_rate,
-                discount_interval: trace.act.data.discount_interval,
-                start_time: trace.act.data.start_time,
-                end_time: trace.act.data.end_time,
+                discount_interval: trace.act.data.discount_interval * 1000,
+                start_time: trace.act.data.start_time * 1000,
+                end_time: trace.act.data.end_time * 1000,
                 updated_at_block: block.block_num,
                 updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
                 created_at_block: block.block_num,
@@ -63,7 +63,7 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
         contract, 'auctions',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<AuctionsTableRow>): Promise<void> => {
             await db.update('neftymarket_auctions', {
-                end_time: delta.value.end_time,
+                end_time: delta.value.end_time * 1000,
                 claimed_by_buyer: delta.value.claimed_assets,
                 claimed_by_seller: delta.value.claimed_win_bid,
                 updated_at_block: block.block_num,

@@ -6,19 +6,20 @@ export function formatAuction(row: any): any {
 
     data.price.amount = row.raw_price;
 
-    if (row.auction_state === AuctionState.WAITING.valueOf()) {
+    if (row.auction_state === AuctionState.LISTED.valueOf() && row.start_time > Date.now()) {
         data.state = AuctionApiState.WAITING.valueOf();
-    } else if (row.auction_state === AuctionState.LISTED.valueOf() && row.end_time > Date.now() / 1000) {
+    } else if (row.auction_state === AuctionState.LISTED.valueOf() && row.end_time > Date.now()) {
         data.state = AuctionApiState.LISTED.valueOf();
     } else if (row.auction_state === AuctionState.CANCELED.valueOf()) {
         data.state = AuctionApiState.CANCELED.valueOf();
-    } else if (row.auction_state === AuctionState.LISTED.valueOf() && row.end_time <= Date.now() / 1000 && row.buyer !== null) {
+    } else if (row.auction_state === AuctionState.LISTED.valueOf() && row.end_time <= Date.now() && row.buyer !== null) {
         data.state = AuctionApiState.SOLD.valueOf();
     } else {
         data.state = AuctionApiState.INVALID.valueOf();
     }
 
-    data.end_time = String(data.end_time * 1000);
+    data.start_time = String(data.start_time);
+    data.end_time = String(data.end_time);
 
     delete data.raw_price;
     delete data.raw_token_symbol;

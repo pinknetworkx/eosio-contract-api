@@ -127,7 +127,7 @@ export function buildAssetFillerHook(
                 'FROM neftymarket_auctions auction, neftymarket_auctions_assets auction_asset ' +
                 'WHERE auction.market_contract = auction_asset.market_contract AND auction.auction_id = auction_asset.auction_id AND ' +
                 'auction_asset.assets_contract = $1 AND auction_asset.asset_id = ANY($2) AND ' +
-                'auction.state = ' + AuctionState.LISTED.valueOf() + ' AND auction.end_time > ' + (Date.now() / 1000) + '::BIGINT ',
+                'auction.state = ' + AuctionState.LISTED.valueOf() + ' AND auction.end_time > ' + Date.now() + '::BIGINT ',
                 [contract, assetIDs]
             ),
         ]);
@@ -180,7 +180,7 @@ export function buildAssetFillerHook(
         }
 
         if (queries[3]) {
-            for (const row of queries[1].rows) {
+            for (const row of queries[3].rows) {
                 assetData[row.asset_id].auctions.push({market_contract: row.market_contract, auction_id: row.auction_id});
             }
         }

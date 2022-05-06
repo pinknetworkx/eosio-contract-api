@@ -1,5 +1,5 @@
 import {buildAssetFilter, hasAssetFilter, hasDataFilters} from '../atomicassets/utils';
-import {AuctionApiState} from './index';
+import {AuctionApiState, AuctionType} from './index';
 import {AuctionState} from '../../../filler/handlers/neftymarket';
 import QueryBuilder from '../../builder';
 import {ApiError} from '../../error';
@@ -93,6 +93,7 @@ export function buildListingFilter(values: FilterValues, query: QueryBuilder): v
 export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): void {
     const args = filterQueryArgs(values, {
         state: {type: 'string', min: 1},
+        type: {type: 'string', min: 1},
 
         min_assets: {type: 'int', min: 1},
         max_assets: {type: 'int', min: 1},
@@ -100,10 +101,13 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
         symbol: {type: 'string', min: 1},
         min_price: {type: 'float', min: 0},
         max_price: {type: 'float', min: 0},
+        min_buy_now_price: {type: 'float', min: 0},
+        max_buy_now_price: {type: 'float', min: 0},
 
         participant: {type: 'string', min: 1},
         bidder: {type: 'string', min: 1},
 
+        show_buy_now_only: {type: 'bool'},
         hide_empty_auctions: {type: 'bool'},
         template_blacklist: {type: 'int[]', min: 1},
     });
@@ -139,10 +143,10 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
 
         query.addCondition(
             `(
-                (listing.seller = ${varName} AND listing.claimed_by_seller IS FALSE and listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Math.floor(Date.now() / 1000)}::BIGINT)
-                OR (listing.buyer = ${varName} AND listing.claimed_by_buyer IS FALSE and listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Math.floor(Date.now() / 1000)}::BIGINT)
-                OR (listing.seller = ${varName} and listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time > ${Math.floor(Date.now() / 1000)}::BIGINT)
-                OR (listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time > ${Math.floor(Date.now() / 1000)}::BIGINT AND EXISTS(
+                (listing.seller = ${varName} AND listing.claimed_by_seller IS FALSE and listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Date.now()}::BIGINT)
+                OR (listing.buyer = ${varName} AND listing.claimed_by_buyer IS FALSE and listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Date.now()}::BIGINT)
+                OR (listing.seller = ${varName} and listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time > ${Date.now()}::BIGINT)
+                OR (listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time > ${Date.now()}::BIGINT AND EXISTS(
                     SELECT * FROM neftymarket_auctions_bids bid WHERE bid.market_contract = listing.market_contract AND bid.auction_id = listing.auction_id AND bid.account = ${varName}
                 ))
             )`
@@ -178,6 +182,10 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
             'bid.account = ANY(' + query.addVariable(args.bidder.split(',')) + ') )');
     }
 
+    if (args.show_buy_now_only) {
+        query.addCondition('listing.buy_now_price > 0');
+    }
+
     if (args.symbol) {
         query.equal('listing.token_symbol', args.symbol);
 
@@ -188,19 +196,41 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
         if (args.max_price) {
             query.addCondition('listing.price <= 1.0 * ' + query.addVariable(args.max_price) + ' * POWER(10, "token".token_precision)');
         }
+
+        if (args.min_buy_now_price) {
+            query.addCondition('listing.buy_now_price >= 1.0 * ' + query.addVariable(args.min_buy_now_price) + ' * POWER(10, "token".token_precision)');
+        }
+
+        if (args.max_buy_now_price) {
+            query.addCondition('listing.buy_now_price <= 1.0 * ' + query.addVariable(args.max_buy_now_price) + ' * POWER(10, "token".token_precision)');
+        }
     } else if (args.min_price || args.max_price) {
         throw new ApiError('Price range filters require the "symbol" filter');
+    }
+
+    if (args.type) {
+        const typeConditions: string[] = [];
+
+        if (args.state.split(',').indexOf(String(AuctionType.ENGLISH.valueOf())) >= 0) {
+            typeConditions.push(`listing.auction_type = ${AuctionType.ENGLISH.valueOf()}`);
+        }
+
+        if (args.state.split(',').indexOf(String(AuctionType.DUTCH.valueOf())) >= 0) {
+            typeConditions.push(`listing.auction_type = ${AuctionType.DUTCH.valueOf()}`);
+        }
+
+        query.addCondition('(' + typeConditions.join(' OR ') + ')');
     }
 
     if (args.state) {
         const stateConditions: string[] = [];
 
         if (args.state.split(',').indexOf(String(AuctionApiState.WAITING.valueOf())) >= 0) {
-            stateConditions.push(`(listing.state = ${AuctionState.WAITING.valueOf()})`);
+            stateConditions.push(`(listing.state = ${AuctionState.LISTED.valueOf()}) AND listing.start_time < ${Date.now()}::BIGINT)`);
         }
 
         if (args.state.split(',').indexOf(String(AuctionApiState.LISTED.valueOf())) >= 0) {
-            stateConditions.push(`(listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time > ${Math.floor(Date.now() / 1000)}::BIGINT)`);
+            stateConditions.push(`(listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time > ${Date.now()}::BIGINT)`);
         }
 
         if (args.state.split(',').indexOf(String(AuctionApiState.CANCELED.valueOf())) >= 0) {
@@ -208,11 +238,11 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
         }
 
         if (args.state.split(',').indexOf(String(AuctionApiState.SOLD.valueOf())) >= 0) {
-            stateConditions.push(`(listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Math.floor(Date.now() / 1000)}::BIGINT AND listing.buyer IS NOT NULL)`);
+            stateConditions.push(`(listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Date.now()}::BIGINT AND listing.buyer IS NOT NULL)`);
         }
 
         if (args.state.split(',').indexOf(String(AuctionApiState.INVALID.valueOf())) >= 0) {
-            stateConditions.push(`(listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Math.floor(Date.now() / 1000)}::BIGINT AND listing.buyer IS NULL)`);
+            stateConditions.push(`(listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time <= ${Date.now()}::BIGINT AND listing.buyer IS NULL)`);
         }
 
         query.addCondition('(' + stateConditions.join(' OR ') + ')');
