@@ -209,21 +209,27 @@ async function insertBlendRolls(
     rollOutcomesDbRows: any[],
     rollOutcomeResultsDbRows: any[]
 ): Promise<void> {
-    await db.insert(
-        'neftyblends_blend_rolls',
-        rollsDbRows,
-        ['contract', 'blend_id', 'roll_index']
-    );
-    await db.insert(
-        'neftyblends_blend_roll_outcomes',
-        rollOutcomesDbRows,
-        ['contract', 'blend_id', 'roll_index', 'outcome_index']
-    );
-    await db.insert(
-        'neftyblends_blend_roll_outcome_results',
-        rollOutcomeResultsDbRows,
-        ['contract', 'blend_id', 'roll_index', 'outcome_index', 'result_index']
-    );
+    if (rollsDbRows.length > 0) {
+        await db.insert(
+            'neftyblends_blend_rolls',
+            rollsDbRows,
+            ['contract', 'blend_id', 'roll_index']
+        );
+    }
+    if (rollOutcomesDbRows.length > 0) {
+        await db.insert(
+            'neftyblends_blend_roll_outcomes',
+            rollOutcomesDbRows,
+            ['contract', 'blend_id', 'roll_index', 'outcome_index']
+        );
+    }
+    if (rollOutcomeResultsDbRows.length > 0) {
+        await db.insert(
+            'neftyblends_blend_roll_outcome_results',
+            rollOutcomeResultsDbRows,
+            ['contract', 'blend_id', 'roll_index', 'outcome_index', 'result_index']
+        );
+    }
 }
 
 async function deleteBlendRolls(
