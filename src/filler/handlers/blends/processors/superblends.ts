@@ -160,9 +160,6 @@ const superBlendsRollsListener = (core: CollectionsListHandler, contract: string
         trace.act.data.blend_id,
         contract,
     );
-    console.log(JSON.stringify(rollsDbRows, null, 2));
-    console.log(JSON.stringify(rollOutcomesDbRows, null, 2));
-    console.log(JSON.stringify(rollOutcomeResultsDbRows, null, 2));
     await insertBlendRolls(
         db,
         rollsDbRows,
