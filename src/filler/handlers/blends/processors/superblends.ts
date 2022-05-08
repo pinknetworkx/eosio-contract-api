@@ -5,7 +5,8 @@ import { ShipBlock } from '../../../../types/ship';
 import { eosioTimestampToDate } from '../../../../utils/eosio';
 import CollectionsListHandler, {
     BlendIngredientType, BlendsArgs,
-    BlendsUpdatePriority,
+    BlendsUpdatePriority, BlendUpgradeRequirementType,
+    BlendUpgradeResultValueType, BlendUpgradeImmediateType
 } from '../index';
 import ConnectionManager from '../../../../connections/manager';
 import {Roll, SuperBlendTableRow} from '../types/tables';
@@ -17,6 +18,7 @@ import {
     getAllRowsFromTable
 } from '../../../utils';
 import {SetBlendRollsActionData} from '../types/actions';
+import logger from '../../../../utils/winston';
 
 const fillSuperBlends = async (args: BlendsArgs, connection: ConnectionManager, contract: string): Promise<void> => {
     const superBlendsCount = await connection.database.query(
@@ -38,6 +40,9 @@ const fillSuperBlends = async (args: BlendsArgs, connection: ConnectionManager, 
         let rollsRows: any[] = [];
         let rollOutcomesRows: any[] = [];
         let rollOutcomeResultsRows: any[] = [];
+        let upgradeSpecsRows: any[] = [];
+        let upgradeRequirementsRows: any[] = [];
+        let upgradeResultsRows: any[] = [];
         for (const {
             blendDbRow,
             ingredientDbRows,
@@ -45,6 +50,9 @@ const fillSuperBlends = async (args: BlendsArgs, connection: ConnectionManager, 
             rollsDbRows,
             rollOutcomesDbRows,
             rollOutcomeResultsDbRows,
+            upgradeSpecsDbRows,
+            upgradeRequirementsDbRows,
+            upgradeResultsDbRows
         } of dbMaps) {
             blendRows.push(blendDbRow);
             ingredientRows = ingredientRows.concat(ingredientDbRows);
@@ -52,17 +60,37 @@ const fillSuperBlends = async (args: BlendsArgs, connection: ConnectionManager, 
             rollsRows = rollsRows.concat(rollsDbRows);
             rollOutcomesRows = rollOutcomesRows.concat(rollOutcomesDbRows);
             rollOutcomeResultsRows = rollOutcomeResultsRows.concat(rollOutcomeResultsDbRows);
+            upgradeSpecsRows = upgradeSpecsRows.concat(upgradeSpecsDbRows);
+            upgradeRequirementsRows = upgradeRequirementsRows.concat(upgradeRequirementsDbRows);
+            upgradeResultsRows = upgradeResultsRows.concat(upgradeResultsDbRows);
         }
 
         await bulkInsert(connection.database, 'neftyblends_blends', blendRows);
-        await bulkInsert(connection.database, 'neftyblends_blend_ingredients', ingredientRows);
+        if (ingredientRows.length > 0) {
+            await bulkInsert(connection.database, 'neftyblends_blend_ingredients', ingredientRows);
+        }
 
         if (ingredientAttributesRows.length > 0) {
             await bulkInsert(connection.database, 'neftyblends_blend_ingredient_attributes', ingredientAttributesRows);
         }
-        await bulkInsert(connection.database, 'neftyblends_blend_rolls', rollsRows);
-        await bulkInsert(connection.database, 'neftyblends_blend_roll_outcomes', rollOutcomesRows);
-        await bulkInsert(connection.database, 'neftyblends_blend_roll_outcome_results', rollOutcomeResultsRows);
+        if (rollsRows.length > 0) {
+            await bulkInsert(connection.database, 'neftyblends_blend_rolls', rollsRows);
+        }
+        if (rollOutcomeResultsRows.length > 0) {
+            await bulkInsert(connection.database, 'neftyblends_blend_roll_outcomes', rollOutcomesRows);
+        }
+        if (rollOutcomesRows.length > 0) {
+            await bulkInsert(connection.database, 'neftyblends_blend_roll_outcome_results', rollOutcomeResultsRows);
+        }
+        if (upgradeSpecsRows.length > 0) {
+            await bulkInsert(connection.database, 'neftyblends_blend_upgrade_specs', upgradeResultsRows);
+        }
+        if (upgradeRequirementsRows.length > 0) {
+            await bulkInsert(connection.database, 'neftyblends_blend_upgrade_spec_upgrade_requirements', upgradeRequirementsRows);
+        }
+        if (upgradeResultsRows.length > 0) {
+            await bulkInsert(connection.database, 'neftyblends_blend_upgrade_spec_upgrade_results', upgradeResultsRows);
+        }
     }
 };
 
@@ -101,15 +129,21 @@ const superBlendsTableListener = (core: CollectionsListHandler, contract: string
             rollsDbRows,
             rollOutcomesDbRows,
             rollOutcomeResultsDbRows,
+
+            upgradeSpecsDbRows,
+            upgradeRequirementsDbRows,
+            upgradeResultsDbRows
         } = getBlendDbRows(
             delta.value, core.args, block.block_num, block.timestamp, contract
         );
         await db.insert('neftyblends_blends', blendDbRow, ['contract', 'blend_id']);
-        await db.insert(
-            'neftyblends_blend_ingredients',
-            ingredientDbRows,
-            ['contract', 'blend_id', 'ingredient_index']
-        );
+        if (ingredientDbRows.length > 0) {
+            await db.insert(
+                'neftyblends_blend_ingredients',
+                ingredientDbRows,
+                ['contract', 'blend_id', 'ingredient_index']
+            );
+        }
         if (ingredientAttributesDbRows.length > 0) {
             await db.insert(
                 'neftyblends_blend_ingredient_attributes',
@@ -117,12 +151,39 @@ const superBlendsTableListener = (core: CollectionsListHandler, contract: string
                 ['contract', 'blend_id', 'ingredient_index', 'attribute_index']
             );
         }
-        await insertBlendRolls(
-            db,
-            rollsDbRows,
-            rollOutcomesDbRows,
-            rollOutcomeResultsDbRows,
-        );
+        if (rollsDbRows.length > 0) {
+            await insertBlendRolls(
+                db,
+                rollsDbRows,
+                rollOutcomesDbRows,
+                rollOutcomeResultsDbRows,
+            );
+        }
+        if (upgradeSpecsDbRows.length > 0) {
+            await db.insert(
+                'neftyblends_blend_upgrade_specs',
+                upgradeSpecsDbRows,
+                ['contract', 'blend_id', 'upgrade_spec_index', 'schema_name', 'display_data']
+            );
+        }
+        if (upgradeRequirementsDbRows.length > 0) {
+            await db.insert(
+                'neftyblends_blend_upgrade_spec_upgrade_requirements',
+                upgradeRequirementsDbRows,
+                ['contract', 'blend_id', 'upgrade_spec_index', 'upgrade_requirement_index',
+                 'type', 'template_id', 'typed_attribute_definition']
+            );
+        }
+        if (upgradeResultsDbRows.length > 0) {
+            await db.insert(
+                'neftyblends_blend_upgrade_spec_upgrade_results',
+                upgradeResultsDbRows,
+                ['contract', 'blend_id', 'upgrade_spec_index', 'upgrade_result_index',
+                 'attribute_name', 'attribute_type', 'upgrade_operator', 
+                 'blend_collection_name', 'result_value_type', 'valueroll_id', 
+                 'immediate_type', 'immediate_uint64', 'immediate_string']
+            );
+        }
     } else {
         await db.update('neftyblends_blends', {
             start_time: delta.value.start_time * 1000,
@@ -287,6 +348,117 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
         }
     }
 
+    let upgradeSpecsDbRows = [ ];
+    let upgradeRequirementsDbRows = [ ];
+    let upgradeResultsDbRows = [ ];
+    if(blend.upgrade_specs) {
+        // @todo: put it in a function to declutter the code
+        // upgrade_specs
+        for (let upgradeSpecIndex = 0; upgradeSpecIndex < blend.upgrade_specs.length; upgradeSpecIndex++){
+            const upgradeSpec = blend.upgrade_specs[upgradeSpecIndex];
+            upgradeSpecsDbRows.push({
+                contract,
+                blend_id: blend.blend_id,
+                upgrade_spec_index: upgradeSpecIndex,
+
+                schema_name: upgradeSpec.schema_name,
+                display_data: upgradeSpec.display_data,
+            }) 
+            
+            // upgrade_requirements
+            for (let upgradeRequirementIndex = 0; upgradeRequirementIndex < upgradeSpec.upgrade_requirements.length; upgradeRequirementIndex++){
+                const upgradeRequirementType = upgradeSpec.upgrade_requirements[upgradeRequirementIndex][0];
+                const upgradeRequirementObject = upgradeSpec.upgrade_requirements[upgradeRequirementIndex][1];
+
+                let newUpgradeRequirementDbRow:any = {
+                    contract: contract,
+                    blend_id: blend.blend_id,
+                    upgrade_spec_index: upgradeSpecIndex,
+                    upgrade_requirement_index: upgradeRequirementIndex,
+
+                    type: upgradeRequirementType,
+                }
+                if (upgradeRequirementType === BlendUpgradeRequirementType.TEMPLATE_REQUIREMENT) {
+                    newUpgradeRequirementDbRow.template_id = upgradeRequirementObject.template_id;
+                    newUpgradeRequirementDbRow.typed_attribute_definition = null;
+                } else if (upgradeRequirementType === BlendUpgradeRequirementType.TYPED_ATTRIBUTE_REQUIREMENT) {
+                    newUpgradeRequirementDbRow.template_id = null;
+                    newUpgradeRequirementDbRow.typed_attribute_definition = encodeDatabaseJson(upgradeRequirementObject.typed_attribute_definition);
+                } 
+                // if upgradeRequirementType is not a valid BlendUpgradeRequirement
+                // we still want to insert whatever we can into the 
+                // blend_requirement table.
+                // (this can happen if we add more variant alternatives in the
+                // contract)
+                else {
+                    logger.warn(`Invalid upgradeRequirementType: '${upgradeRequirementType}'`);
+                    newUpgradeRequirementDbRow.template_id = null;
+                    newUpgradeRequirementDbRow.typed_attribute_definition = null;
+                }
+                upgradeRequirementsDbRows.push(newUpgradeRequirementDbRow);
+            }
+
+            // upgrade_results
+            for (let upgradeResultIndex = 0; upgradeResultIndex < upgradeSpec.upgrade_results.length; upgradeResultIndex++){
+                const upgradeResultObject = upgradeSpec.upgrade_results[upgradeResultIndex];
+
+                const resultValueType = upgradeResultObject.value[0];
+                const resultValueObject = upgradeResultObject.value[1];
+
+                let newUpgradeRequirementDbRow:any = {
+                    contract: contract,
+                    blend_id: blend.blend_id,
+                    upgrade_spec_index: upgradeSpecIndex,
+                    upgrade_result_index: upgradeResultIndex,
+
+                    attribute_name: upgradeResultObject.attribute_name,
+                    attribute_type: upgradeResultObject.attribute_type,
+                    upgrade_operator: encodeDatabaseJson(upgradeResultObject.op),
+                    blend_collection_name: blend.collection_name,
+
+                    result_value_type: resultValueType
+                }
+                if (resultValueType === BlendUpgradeResultValueType.VALUE_ROLL_RESULT) {
+                    newUpgradeRequirementDbRow.immediate_type = null;
+
+                    newUpgradeRequirementDbRow.valueroll_id = resultValueObject.valueroll_id
+                    newUpgradeRequirementDbRow.immediate_string = null;
+                    newUpgradeRequirementDbRow.immediate_uint64 = null;
+                } else if (resultValueType === BlendUpgradeResultValueType.IMMEDIATE_VALUE) {
+                    let immediateType = resultValueObject[0];
+                    let immediateObject = resultValueObject[1];
+                    
+                    newUpgradeRequirementDbRow.immediate_type = immediateType;
+                    if (immediateType === BlendUpgradeImmediateType.STRING) {
+                        newUpgradeRequirementDbRow.valueroll_id = null;
+                        newUpgradeRequirementDbRow.immediate_string = immediateObject;
+                        newUpgradeRequirementDbRow.immediate_uint64 = null;
+                    } else if (immediateType === BlendUpgradeImmediateType.UINT64) {
+                        newUpgradeRequirementDbRow.valueroll_id = null;
+                        newUpgradeRequirementDbRow.immediate_string = null;
+                        newUpgradeRequirementDbRow.immediate_uint64 = immediateObject;
+                    } else {
+                        logger.warn(`Invalid immediateType: '${immediateType}'`);
+                        newUpgradeRequirementDbRow.valueroll_id = null;
+                        newUpgradeRequirementDbRow.immediate_string = null;
+                        newUpgradeRequirementDbRow.immediate_uint64 = null;
+                    }
+                } else {
+                    logger.warn(`Invalid resultValueType: '${resultValueType}'`);
+
+                    newUpgradeRequirementDbRow.immediate_type = null;
+
+                    newUpgradeRequirementDbRow.valueroll_id = null;
+                    newUpgradeRequirementDbRow.immediate_string = null;
+                    newUpgradeRequirementDbRow.immediate_uint64 = null;
+                }
+                upgradeResultsDbRows.push(newUpgradeRequirementDbRow);
+            }
+        }
+
+    }
+
+
     return {
         blendDbRow: {
             assets_contract: args.atomicassets_account,
@@ -310,6 +482,10 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
         ingredientDbRows,
         ingredientAttributesDbRows,
         ...getRollsDbRows(blend.blend_id, blend.rolls, args, blockNumber, blockTimeStamp, contract),
+
+        upgradeSpecsDbRows,
+        upgradeRequirementsDbRows,
+        upgradeResultsDbRows
     };
 }
 

@@ -36,6 +36,21 @@ export enum IngredientEffectType {
     TRANSFER_EFFECT = 'TRANSFER_EFFECT',
 }
 
+export enum BlendUpgradeRequirementType {
+    TEMPLATE_REQUIREMENT = 'TEMPLATE_REQUIREMENT',
+    TYPED_ATTRIBUTE_REQUIREMENT = 'TYPED_ATTRIBUTE_REQUIREMENT'
+}
+
+export enum BlendUpgradeResultValueType {
+    VALUE_ROLL_RESULT = 'VALUE_ROLL_RESULT',
+    IMMEDIATE_VALUE= 'IMMEDIATE_VALUE',
+}
+
+export enum BlendUpgradeImmediateType {
+    STRING = 'string',
+    UINT64 = 'uint64'
+}
+
 export enum BlendsUpdatePriority {
     TABLE_BLENDS = BLENDS_BASE_PRIORITY + 10,
     SET_ROLLS = BLENDS_BASE_PRIORITY + 20,

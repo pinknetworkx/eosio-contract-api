@@ -10,7 +10,8 @@ export type SuperBlendTableRow = {
     display_data: string,
     security_id?: number,
     is_hidden?: boolean,
-    category: string,
+    category?: string,
+    upgrade_specs?: any[]
 };
 
 export type Result = {
