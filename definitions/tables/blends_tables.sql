@@ -55,6 +55,22 @@ CREATE TABLE neftyblends_blend_ingredient_attributes
     CONSTRAINT neftyblends_blend_ingredient_attributes_pkey PRIMARY KEY (contract, blend_id, ingredient_index, attribute_index)
 );
 
+CREATE TABLE neftyblends_blend_ingredient_typed_attributes
+(
+    contract                   character varying(12) NOT NULL,
+    blend_id                   bigint                NOT NULL,
+    ingredient_collection_name character varying(13) NOT NULL,
+    ingredient_index           integer               NOT NULL,
+    typed_attribute_index      integer               NOT NULL,
+
+    attribute_name             text                  NOT NULL,
+    attribute_type             text                  NOT NULL,
+    allowed_values_type        text                  NOT NULL,
+    allowed_values             jsonb                 NOT NULL,
+
+    CONSTRAINT neftyblends_blend_ingredient_typed_attributes_pkey PRIMARY KEY (contract, blend_id, ingredient_index, typed_attribute_index)
+);
+
 CREATE TABLE neftyblends_blend_rolls
 (
     assets_contract character varying(12) NOT NULL,
@@ -253,6 +269,18 @@ ALTER TABLE ONLY neftyblends_blend_roll_outcome_results
 
 ALTER TABLE ONLY neftyblends_blend_ingredient_attributes
     ADD CONSTRAINT neftyblends_blend_ingredient_attributes_blend_ingredient_fkey FOREIGN KEY (contract, blend_id, ingredient_index) REFERENCES neftyblends_blend_ingredients (contract, blend_id, ingredient_index) MATCH SIMPLE ON
+        UPDATE RESTRICT
+        ON
+            DELETE
+            RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+
+ALTER TABLE ONLY neftyblends_blend_ingredient_typed_attributes
+    ADD CONSTRAINT neftyblends_blend_ingredient_typed_attributes_blend_ingredient_fkey
+    FOREIGN KEY (
+        contract, blend_id, ingredient_index) 
+    REFERENCES neftyblends_blend_ingredients (
+        contract, blend_id, ingredient_index
+    ) MATCH SIMPLE ON
         UPDATE RESTRICT
         ON
             DELETE

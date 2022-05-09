@@ -127,6 +127,7 @@ const superBlendsTableListener = (core: CollectionsListHandler, contract: string
             blendDbRow,
             ingredientDbRows,
             ingredientAttributesDbRows,
+            ingredientTypedAttributesDbRows,
             rollsDbRows,
             rollOutcomesDbRows,
             rollOutcomeResultsDbRows,
@@ -152,6 +153,13 @@ const superBlendsTableListener = (core: CollectionsListHandler, contract: string
                 ['contract', 'blend_id', 'ingredient_index', 'attribute_index']
             );
         }
+        if (ingredientTypedAttributesDbRows.length > 0) {
+            await db.insert(
+                'neftyblends_blend_ingredient_typed_attributes',
+                ingredientTypedAttributesDbRows,
+                ['contract', 'blend_id', 'ingredient_index', 'typed_attribute_index']
+            );
+        }
         if (rollsDbRows.length > 0) {
             await insertBlendRolls(
                 db,
@@ -164,25 +172,21 @@ const superBlendsTableListener = (core: CollectionsListHandler, contract: string
             await db.insert(
                 'neftyblends_blend_upgrade_specs',
                 upgradeSpecsDbRows,
-                ['contract', 'blend_id', 'upgrade_spec_index', 'schema_name', 'display_data']
+                ['contract', 'blend_id', 'upgrade_spec_index']
             );
         }
         if (upgradeRequirementsDbRows.length > 0) {
             await db.insert(
                 'neftyblends_blend_upgrade_spec_upgrade_requirements',
                 upgradeRequirementsDbRows,
-                ['contract', 'blend_id', 'upgrade_spec_index', 'upgrade_requirement_index',
-                 'type', 'template_id', 'typed_attribute_definition']
+                ['contract', 'blend_id', 'upgrade_spec_index', 'upgrade_requirement_index']
             );
         }
         if (upgradeResultsDbRows.length > 0) {
             await db.insert(
                 'neftyblends_blend_upgrade_spec_upgrade_results',
                 upgradeResultsDbRows,
-                ['contract', 'blend_id', 'upgrade_spec_index', 'upgrade_result_index',
-                 'attribute_name', 'attribute_type', 'upgrade_operator', 
-                 'blend_collection_name', 'result_value_type', 'valueroll_id', 
-                 'immediate_type', 'immediate_uint64', 'immediate_string']
+                ['contract', 'blend_id', 'upgrade_spec_index', 'upgrade_result_index']
             );
         }
     } else {
@@ -363,6 +367,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
     const ingredients = getSuperBlendIngredients(blend);
     const ingredientDbRows = [];
     const ingredientAttributesDbRows = [];
+    const ingredientTypedAttributesDbRows = [];
     for (const ingredient of ingredients) {
         ingredientDbRows.push({
             assets_contract: args.atomicassets_account,
@@ -385,7 +390,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
             balance_ingredient_cost: ingredient.balance_ingredient_cost,
         });
 
-        let index = 0;
+        let attributeIndex = 0;
         for (const attribute of ingredient.attributes) {
             ingredientAttributesDbRows.push({
                 assets_contract: args.atomicassets_account,
@@ -393,11 +398,30 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
                 blend_id: blend.blend_id,
                 ingredient_collection_name: ingredient.collection_name,
                 ingredient_index: ingredient.index,
-                attribute_index: index,
+                attribute_index: attributeIndex,
                 attribute_name: attribute.attribute_name,
                 allowed_values: encodeDatabaseArray(attribute.allowed_values),
             });
-            index++;
+            attributeIndex++;
+        }
+
+        let typedAttributeIndex = 0;
+        for (const typedAttribute of ingredient.typed_attributes) {
+            ingredientTypedAttributesDbRows.push({
+                assets_contract: args.atomicassets_account,
+                contract,
+                blend_id: blend.blend_id,
+                ingredient_collection_name: ingredient.collection_name,
+                ingredient_index: ingredient.index,
+                typed_attribute_index: typedAttributeIndex,
+
+                attribute_name: typedAttribute.attribute_name,
+                attribute_type: typedAttribute.attribute_type,
+                // variant type, and variant value
+                allowed_values_type: typedAttribute.allowed_values[0],
+                allowed_values: encodeDatabaseArray(typedAttribute.allowed_values[1])
+            });
+            typedAttributeIndex++;
         }
     }
 
@@ -534,6 +558,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
         },
         ingredientDbRows,
         ingredientAttributesDbRows,
+        ingredientTypedAttributesDbRows,
         ...getRollsDbRows(blend.blend_id, blend.rolls, args, blockNumber, blockTimeStamp, contract),
 
         upgradeSpecsDbRows,
@@ -603,6 +628,7 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 balance_ingredient_cost: null,
                 template_id: payload.template_id,
                 attributes: [],
+                typed_attributes: [],
                 display_data: null,
                 amount: payload.amount,
                 effect,
@@ -617,6 +643,7 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 balance_ingredient_cost: null,
                 template_id: null,
                 attributes: [],
+                typed_attributes: [],
                 display_data: payload.display_data,
                 amount: payload.amount,
                 effect,
@@ -631,6 +658,7 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 balance_ingredient_cost: null,
                 template_id: null,
                 attributes: payload.attributes,
+                typed_attributes: [],
                 display_data: payload.display_data,
                 amount: payload.amount,
                 effect,
@@ -645,6 +673,22 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 balance_ingredient_cost: payload.cost || 0,
                 template_id: payload.template_id,
                 attributes: [],
+                typed_attributes: [],
+                display_data: payload.display_data,
+                amount: 1,
+                effect,
+                index,
+            };
+        } else if (type === BlendIngredientType.TYPED_ATTRIBUTE_INGREDIENT) {
+            return {
+                type,
+                collection_name: blend_collection,
+                schema_name: payload.schema_name,
+                balance_ingredient_attribute_name: payload.attribute_name || '',
+                balance_ingredient_cost: payload.cost || 0,
+                template_id: payload.template_id,
+                attributes: [],
+                typed_attributes: payload.attributes,
                 display_data: payload.display_data,
                 amount: 1,
                 effect,

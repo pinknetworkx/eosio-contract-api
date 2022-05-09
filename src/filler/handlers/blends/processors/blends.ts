@@ -222,6 +222,7 @@ function getBlendIngredients(row: BlendTableRow): Ingredient[] {
             schema_name: null,
             template_id: template_id,
             attributes: [],
+            typed_attributes: [],
             display_data: null,
             amount: count,
             effect,

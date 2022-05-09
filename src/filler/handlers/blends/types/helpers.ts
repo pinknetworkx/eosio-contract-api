@@ -6,6 +6,7 @@ export type Ingredient = {
     schema_name: string,
     template_id: number,
     attributes: AttributeDefinition[],
+    typed_attributes: TypedAttributeDefinition[],
     display_data: string,
     amount: number,
     effect: Effect,
@@ -20,4 +21,11 @@ export type Effect = {
 export type AttributeDefinition = {
     attribute_name: string,
     allowed_values: string[],
+};
+
+export type TypedAttributeDefinition = {
+    attribute_name: string,
+    attribute_type: string,
+    // variant
+    allowed_values: any[],
 };
