@@ -118,7 +118,9 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                     JOIN atomicassets_assets a ON 
                         (i.ingredient_type = 'TEMPLATE_INGREDIENT' AND a.template_id = i.template_id) OR
                         (i.ingredient_type = 'SCHEMA_INGREDIENT' AND a.schema_name = i.schema_name AND a.collection_name = i.ingredient_collection_name) OR
-                        (i.ingredient_type = 'ATTRIBUTE_INGREDIENT' AND is_ingredient_attribute_match(a.template_id, b.blend_id, i.ingredient_index, i.total_attributes)) OR
+                        (i.ingredient_type = 'ATTRIBUTE_INGREDIENT'
+                            AND a.schema_name = i.schema_name AND a.collection_name = i.ingredient_collection_name 
+                            AND is_ingredient_attribute_match(a.template_id, b.blend_id, i.ingredient_index, i.total_attributes)) OR
                         (
                             i.ingredient_type = 'BALANCE_INGREDIENT' AND 
                             a.template_id = i.template_id AND
