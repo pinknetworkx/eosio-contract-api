@@ -14,6 +14,18 @@ export type SuperBlendTableRow = {
     upgrade_specs?: any[]
 };
 
+export type ValueOutcome = {
+    // variant: RESULT_VALUE
+    result: any[],
+    odds: number
+}
+
+export type SuperBlendValuerollsTableRow = {
+    id: string,
+    value_outcomes: ValueOutcome[],
+    total_odds: number
+}
+
 export type Result = {
     result_index: number,
     type: string,

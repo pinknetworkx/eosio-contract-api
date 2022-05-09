@@ -54,6 +54,7 @@ export enum BlendUpgradeImmediateType {
 export enum BlendsUpdatePriority {
     TABLE_BLENDS = BLENDS_BASE_PRIORITY + 10,
     SET_ROLLS = BLENDS_BASE_PRIORITY + 20,
+    TABLE_VALUEROLL = BLENDS_BASE_PRIORITY + 30,
 }
 
 const views = [

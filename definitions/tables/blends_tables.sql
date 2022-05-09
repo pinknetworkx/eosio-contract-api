@@ -167,6 +167,10 @@ CREATE TABLE neftyblends_valuerolls
     value_outcomes                jsonb                  NOT NULL,
     total_odds                    bigint                 NOT NULL,
     
+    updated_at_block              bigint                 NOT NULL,
+    updated_at_time               bigint                 NOT NULL,
+    created_at_block              bigint                 NOT NULL,
+    created_at_time               bigint                 NOT NULL,
     
     CONSTRAINT neftyblends_valuerolls_pkey PRIMARY KEY (contract, collection_name, valueroll_id)
 );
