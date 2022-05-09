@@ -5,6 +5,7 @@ CREATE TABLE neftymarket_auctions
     seller character varying(12) NOT NULL,
     buyer character varying(12),
     price bigint NOT NULL,
+    min_price bigint NOT NULL,
     buy_now_price bigint,
     token_symbol character varying(12) NOT NULL,
     assets_contract character varying(12) NOT NULL,

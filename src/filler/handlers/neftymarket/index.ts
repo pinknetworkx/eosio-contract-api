@@ -187,6 +187,7 @@ export default class NeftyMarketHandler extends ContractHandler {
         }
 
         const materializedViews: Array<{name: string, priority: JobQueuePriority}> = [
+            {name: 'neftymarket_auction_prices', priority: JobQueuePriority.LOW},
         ];
 
         for (const view of materializedViews) {

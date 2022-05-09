@@ -26,6 +26,7 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
                 seller: trace.act.data.seller,
                 buyer: null,
                 price: preventInt64Overflow(trace.act.data.min_price.split(' ')[0].replace('.', '')),
+                min_price: preventInt64Overflow(trace.act.data.min_price.split(' ')[0].replace('.', '')),
                 buy_now_price: trace.act.data.buy_now_price ? preventInt64Overflow(trace.act.data.buy_now_price.split(' ')[0].replace('.', '')) : null,
                 token_symbol: trace.act.data.min_price.split(' ')[1],
                 assets_contract: core.args.atomicassets_account,
@@ -91,6 +92,7 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
         }, NeftyMarketUpdatePriority.ACTION_UPDATE_AUCTION.valueOf()
     ));
 
+    // TODO: Check bids for auctions for prices higher than the buy now price
     const bidHandler = async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<AuctionBidActionData>): Promise<void> => {
       await db.update('neftymarket_auctions', {
         buyer: trace.act.data.bidder,

@@ -8,7 +8,6 @@ CREATE OR REPLACE VIEW neftymarket_auctions_master AS
         auction.buyer,
 
         auction.price raw_price,
-        (CASE WHEN auction.buy_now_price > 0 THEN  auction.buy_now_price END) raw_buy_now_price,
         token.token_precision raw_token_precision,
         token.token_symbol raw_token_symbol,
 
