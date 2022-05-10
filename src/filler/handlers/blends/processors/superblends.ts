@@ -408,7 +408,6 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
         let typedAttributeIndex = 0;
         for (const typedAttribute of ingredient.typed_attributes) {
             ingredientTypedAttributesDbRows.push({
-                assets_contract: args.atomicassets_account,
                 contract,
                 blend_id: blend.blend_id,
                 ingredient_collection_name: ingredient.collection_name,
@@ -419,7 +418,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
                 attribute_type: typedAttribute.attribute_type,
                 // variant type, and variant value
                 allowed_values_type: typedAttribute.allowed_values[0],
-                allowed_values: encodeDatabaseArray(typedAttribute.allowed_values[1])
+                allowed_values: encodeDatabaseJson(typedAttribute.allowed_values[1])
             });
             typedAttributeIndex++;
         }
