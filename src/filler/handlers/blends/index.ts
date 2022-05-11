@@ -66,7 +66,7 @@ const views = [
 
 const functions = [
     'neftyblends_blend_details_func',
-    'nefty_blends_attribute_match',
+    'neftyblends_attribute_match',
 ];
 
 export default class BlendsHandler extends ContractHandler {
