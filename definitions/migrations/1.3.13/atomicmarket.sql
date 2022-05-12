@@ -92,15 +92,15 @@ CREATE TABLE atomicmarket_stats_markets_updates(
     market_contract VARCHAR(12),
     listing_type text,
     listing_id BIGINT,
-    refresh_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    refresh_at BIGINT NOT NULL DEFAULT 0
 );
 
 INSERT INTO atomicmarket_stats_markets_updates(market_contract, listing_type, listing_id, refresh_at)
 	SELECT
 		auction.market_contract, 'auction' listing_type, auction.auction_id listing_id,
-		TO_TIMESTAMP(auction.end_time) + INTERVAL '3 minutes'
+		auction.end_time * 1000
 	FROM atomicmarket_auctions auction
-	WHERE auction.buyer IS NOT NULL AND auction.state = 1 AND auction.end_time >= extract(epoch from now())
+	WHERE auction.buyer IS NOT NULL AND auction.state = 1
 ;
 
 DROP FUNCTION IF EXISTS update_atomicmarket_stats_markets_by_sale CASCADE;
@@ -161,7 +161,7 @@ BEGIN
 			NEW.market_contract,
 			'auction',
 			NEW.auction_id,
-			TO_TIMESTAMP(NEW.end_time) + INTERVAL '3 minutes'
+			NEW.end_time * 1000
 		);
     END IF;
 
@@ -212,10 +212,11 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     result INT;
+    current_block_time BIGINT = (SELECT MAX(block_time) FROM contract_readers);
 BEGIN
     WITH changed_listings AS (
         DELETE FROM atomicmarket_stats_markets_updates u
-        WHERE refresh_at < NOW()
+        WHERE refresh_at <= current_block_time
         RETURNING market_contract, listing_type, listing_id
     ), updated_listings AS (
         SELECT
