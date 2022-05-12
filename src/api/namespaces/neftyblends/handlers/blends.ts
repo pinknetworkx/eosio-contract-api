@@ -136,8 +136,8 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
             ;
 
             // Out of the assets the user owns, we only care about the ones
-            // belonging to this collection. This assumes that a blends can
-            // only have ingredients that are from the same collection
+            // belonging to the collection of the blend. This assumes that a 
+            // blends can only have ingredients that are from the same collection
             // This saves an absurd amount of time in the query!
             // ~(30 secs to 300ms, for the `asset_matches_sub` subquery!)
             queryValues.push(args.collection_name);
@@ -181,6 +181,13 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                 AND b.category = $${++queryVarCounter}
             `;
             }
+            // sixpmblends contract does not work with filters because it 
+            // the filters assume we only check template.immutable_data to determine
+            // if an asset satisfies the requirements of an ingredient, that is
+            // no the case for sixpm
+            queryString += `
+                AND b.contract <> '${ctx.coreArgs.sixpmblender_account}'
+            `;
         }
 
         queryString += `

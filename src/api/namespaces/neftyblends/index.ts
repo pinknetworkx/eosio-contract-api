@@ -8,6 +8,7 @@ import { ActionHandlerContext } from '../../actionhandler';
 
 export type NeftyBlendsNamespaceArgs = {
     atomicassets_account: string,
+    sixpmblender_account: string
 };
 
 export type NeftyBlendsContext = ActionHandlerContext<NeftyBlendsNamespaceArgs>
