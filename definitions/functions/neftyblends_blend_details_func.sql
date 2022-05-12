@@ -5,7 +5,7 @@
 --  where collection_name = 'collection_name` since we can use
 DROP FUNCTION IF EXISTS neftyblends_blend_details_func(collection_name character varying(13));
 CREATE FUNCTION neftyblends_blend_details_func(collection_name character varying(13))
-  RETURNS TABLE (blend_id bigint, contract character varying(12), collection_name character varying(13), start_time bigint, end_time bigint, max bigint, use_count bigint, display_data text, created_at_time bigint, ingredients_count integer, security_id bigint, is_hidden boolean, ingredients jsonb, rolls jsonb, category character varying(255))
+  RETURNS TABLE (blend_id bigint, contract character varying(12), collection_name character varying(13), start_time bigint, end_time bigint, max bigint, use_count bigint, display_data text, created_at_time bigint, ingredients_count integer, security_id bigint, is_hidden boolean, ingredients jsonb, rolls jsonb, upgrades jsonb, category character varying(255))
 AS
 $body$
 
@@ -266,3 +266,5 @@ $body$
 $body$
 LANGUAGE SQL;
 
+-- @TODO: remove unnecessary subqueries, just join to the table directly when 
+-- possible

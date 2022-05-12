@@ -251,3 +251,5 @@ GROUP BY
     blend.created_at_time,
     blend.ingredients_count;
 
+-- @TODO: remove unnecessary subqueries, just join to the table directly when 
+-- possible
