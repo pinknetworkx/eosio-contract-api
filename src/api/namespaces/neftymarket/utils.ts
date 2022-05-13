@@ -211,11 +211,11 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
     if (args.type) {
         const typeConditions: string[] = [];
 
-        if (args.state.split(',').indexOf(String(AuctionType.ENGLISH.valueOf())) >= 0) {
+        if (args.type.split(',').indexOf(String(AuctionType.ENGLISH.valueOf())) >= 0) {
             typeConditions.push(`listing.auction_type = ${AuctionType.ENGLISH.valueOf()}`);
         }
 
-        if (args.state.split(',').indexOf(String(AuctionType.DUTCH.valueOf())) >= 0) {
+        if (args.type.split(',').indexOf(String(AuctionType.DUTCH.valueOf())) >= 0) {
             typeConditions.push(`listing.auction_type = ${AuctionType.DUTCH.valueOf()}`);
         }
 
@@ -226,11 +226,11 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
         const stateConditions: string[] = [];
 
         if (args.state.split(',').indexOf(String(AuctionApiState.WAITING.valueOf())) >= 0) {
-            stateConditions.push(`(listing.state = ${AuctionState.LISTED.valueOf()}) AND listing.start_time < ${Date.now()}::BIGINT)`);
+            stateConditions.push(`(listing.state = ${AuctionState.LISTED.valueOf()} AND listing.start_time > ${Date.now()}::BIGINT)`);
         }
 
         if (args.state.split(',').indexOf(String(AuctionApiState.LISTED.valueOf())) >= 0) {
-            stateConditions.push(`(listing.state = ${AuctionState.LISTED.valueOf()} AND listing.end_time > ${Date.now()}::BIGINT)`);
+            stateConditions.push(`(listing.state = ${AuctionState.LISTED.valueOf()} AND listing.start_time < ${Date.now()}::BIGINT AND listing.end_time > ${Date.now()}::BIGINT)`);
         }
 
         if (args.state.split(',').indexOf(String(AuctionApiState.CANCELED.valueOf())) >= 0) {
