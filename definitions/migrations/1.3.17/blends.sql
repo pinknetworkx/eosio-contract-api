@@ -1,4 +1,4 @@
-ALTER TABLE neftyblends_blend_ingredients DROP CONSTRAINT neftyblends_blend_ingredients_blend_fkey;
+ALTER TABLE neftyblends_blend_ingredients DROP CONSTRAINT neftyblends_blend_ingredients_blend_fkey CASCADE;
 
 ALTER TABLE neftyblends_blend_ingredients
   ADD CONSTRAINT neftyblends_blend_ingredients_blend_fkey
