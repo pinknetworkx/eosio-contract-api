@@ -1,3 +1,16 @@
+ALTER TABLE neftyblends_blend_ingredients DROP CONSTRAINT neftyblends_blend_ingredients_blend_fkey;
+
+ALTER TABLE neftyblends_blend_ingredients
+  ADD CONSTRAINT neftyblends_blend_ingredients_blend_fkey
+    PRIMARY KEY (contract, blend_id, ingredient_index);
+
+ALTER TABLE ONLY neftyblends_blend_ingredient_attributes
+    ADD CONSTRAINT neftyblends_blend_ingredient_attributes_blend_ingredient_fkey FOREIGN KEY (contract, blend_id, ingredient_index) REFERENCES neftyblends_blend_ingredients (contract, blend_id, ingredient_index) MATCH SIMPLE ON
+        UPDATE RESTRICT
+        ON
+            DELETE
+            RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+
 DROP TABLE IF EXISTS neftyblends_blend_ingredient_typed_attributes;
 CREATE TABLE neftyblends_blend_ingredient_typed_attributes
 (

@@ -1,3 +1,4 @@
+
 CREATE TABLE neftyblends_blends
 (
     assets_contract   character varying(12) NOT NULL,
