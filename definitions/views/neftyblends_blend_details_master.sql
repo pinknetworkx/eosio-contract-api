@@ -24,14 +24,14 @@ SELECT
             WHEN ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' THEN 'attributes'
             WHEN ingredient.ingredient_type = 'BALANCE_INGREDIENT' THEN 'balance_ingredient'
             WHEN ingredient.ingredient_type = 'TYPED_ATTRIBUTE_INGREDIENT' THEN 'typed_attributes'
-            WHEN ingredient.ingredient_type = 'FT_INGREDIENT' THEN 'ft_ingredient'
+            WHEN ingredient.ingredient_type = 'FT_INGREDIENT' THEN 'ft_amount'
         END,
         CASE
-            WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN 
+            WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN
                 jsonb_build_object(
                     'template_id', ingredient.template_id
                 )
-            WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN 
+            WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN
                 jsonb_build_object(
                     'schema_name', ingredient.schema_name,
                     'collection_name', ingredient.ingredient_collection_name
@@ -57,9 +57,11 @@ SELECT
                 )
             WHEN ingredient.ingredient_type = 'FT_INGREDIENT' THEN
                 jsonb_build_object(
-                    'quantity_price', ft_ingredient_quantity_price,
-                    'quantity_symbol', ft_ingredient_quantity_symbol
-                )
+                        'token_contract', "token".token_contract,
+                        'token_symbol', "token".token_symbol,
+                        'token_precision', "token".token_precision,
+                        'amount', ft_ingredient_quantity_price
+                    )
         END
     )) FILTER (where ingredient.ingredient_index is not null) as ingredients,
     jsonb_agg(DISTINCT jsonb_build_object(
@@ -79,6 +81,7 @@ FROM
     LEFT JOIN neftyblends_blend_ingredients "ingredient" ON
         ingredient.contract = blend.contract AND
         ingredient.blend_id = blend.blend_id
+    LEFT JOIN neftyblends_tokens "token" ON "token".contract = ingredient.contract AND "token".token_symbol = ingredient.ft_ingredient_quantity_symbol
     LEFT JOIN(
         SELECT
             ing_attribute.contract,
@@ -260,5 +263,5 @@ GROUP BY
     blend.ingredients_count;
 
 
--- @TODO: remove unnecessary subqueries, just join to the table directly when 
+-- @TODO: remove unnecessary subqueries, just join to the table directly when
 -- possible

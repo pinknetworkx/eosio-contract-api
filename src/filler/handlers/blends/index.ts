@@ -108,7 +108,7 @@ export default class BlendsHandler extends ContractHandler {
     }
 
     static async upgrade(client: PoolClient, version: string): Promise<void> {
-        if (version === '1.3.15') {
+        if (version === '1.3.18') {
             const viewsToUpdate = ['neftyblends_blend_details_master'];
             const functionsToUpdate = ['neftyblends_blend_details_func'];
             for (const view of viewsToUpdate) {
