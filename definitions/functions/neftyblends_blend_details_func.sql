@@ -1,7 +1,7 @@
 -- this function does the same as the view 'neftyblends_blend_details_master'
 -- we created it only because we noticed a performace improvement when calling
--- `neftyblends_blend_details_func('collection_name')` instead of 
--- `select * from neftyblends_blend_details_master 
+-- `neftyblends_blend_details_func('collection_name')` instead of
+-- `select * from neftyblends_blend_details_master
 --  where collection_name = 'collection_name` since we can use
 DROP FUNCTION IF EXISTS neftyblends_blend_details_func(collection_name character varying(13));
 CREATE FUNCTION neftyblends_blend_details_func(collection_name character varying(13))
@@ -37,11 +37,11 @@ $body$
                 WHEN ingredient.ingredient_type = 'FT_INGREDIENT' THEN 'ft_ingredient'
             END,
             CASE
-                WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN 
+                WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN
                     jsonb_build_object(
                         'template_id', ingredient.template_id
                     )
-                WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN 
+                WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN
                     jsonb_build_object(
                         'schema_name', ingredient.schema_name,
                         'collection_name', ingredient.ingredient_collection_name
@@ -258,7 +258,7 @@ $body$
             upg_spec_sub.contract = blend.contract AND
             upg_spec_sub.blend_id = blend.blend_id
     WHERE
-        blend.contract = $1
+        blend.collection_name = $1
     GROUP BY
         blend.blend_id,
         blend.contract,
@@ -274,5 +274,5 @@ $body$
 $body$
 LANGUAGE SQL;
 
--- @TODO: remove unnecessary subqueries, just join to the table directly when 
+-- @TODO: remove unnecessary subqueries, just join to the table directly when
 -- possible

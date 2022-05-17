@@ -414,7 +414,7 @@ $body$
             upg_spec_sub.contract = blend.contract AND
             upg_spec_sub.blend_id = blend.blend_id
     WHERE
-        blend.contract = $1
+        blend.collection_name = $1
     GROUP BY
         blend.blend_id,
         blend.contract,

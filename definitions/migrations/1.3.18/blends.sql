@@ -36,11 +36,11 @@ $body$
                 WHEN ingredient.ingredient_type = 'FT_INGREDIENT' THEN 'ft_ingredient'
             END,
             CASE
-                WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN 
+                WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN
                     jsonb_build_object(
                         'template_id', ingredient.template_id
                     )
-                WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN 
+                WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN
                     jsonb_build_object(
                         'schema_name', ingredient.schema_name,
                         'collection_name', ingredient.ingredient_collection_name
@@ -257,7 +257,7 @@ $body$
             upg_spec_sub.contract = blend.contract AND
             upg_spec_sub.blend_id = blend.blend_id
     WHERE
-        blend.contract = $1
+        blend.collection_name = $1
     GROUP BY
         blend.blend_id,
         blend.contract,
@@ -303,11 +303,11 @@ SELECT
             WHEN ingredient.ingredient_type = 'FT_INGREDIENT' THEN 'ft_ingredient'
         END,
         CASE
-            WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN 
+            WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN
                 jsonb_build_object(
                     'template_id', ingredient.template_id
                 )
-            WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN 
+            WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN
                 jsonb_build_object(
                     'schema_name', ingredient.schema_name,
                     'collection_name', ingredient.ingredient_collection_name
