@@ -198,11 +198,11 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
         }
 
         if (args.min_buy_now_price) {
-            query.addCondition('listing.buy_now_price >= 1.0 * ' + query.addVariable(args.min_buy_now_price) + ' * POWER(10, "token".token_precision)');
+            query.addCondition('price.buy_now_price >= 1.0 * ' + query.addVariable(args.min_buy_now_price) + ' * POWER(10, "token".token_precision)');
         }
 
         if (args.max_buy_now_price) {
-            query.addCondition('listing.buy_now_price <= 1.0 * ' + query.addVariable(args.max_buy_now_price) + ' * POWER(10, "token".token_precision)');
+            query.addCondition('price.buy_now_price <= 1.0 * ' + query.addVariable(args.max_buy_now_price) + ' * POWER(10, "token".token_precision)');
         }
     } else if (args.min_price || args.max_price) {
         throw new ApiError('Price range filters require the "symbol" filter');

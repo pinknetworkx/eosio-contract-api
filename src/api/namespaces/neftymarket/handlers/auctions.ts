@@ -30,7 +30,8 @@ export async function getAuctionsAction(params: RequestValues, ctx: NeftyMarketC
     const query = new QueryBuilder(
         'SELECT listing.auction_id ' +
         'FROM neftymarket_auctions listing ' +
-        'JOIN neftymarket_tokens "token" ON (listing.market_contract = "token".market_contract AND listing.token_symbol = "token".token_symbol)'
+        'JOIN neftymarket_tokens "token" ON (listing.market_contract = "token".market_contract AND listing.token_symbol = "token".token_symbol)' +
+        'LEFT JOIN neftymarket_auction_prices price ON (listing.market_contract = price.market_contract AND listing.auction_id = price.auction_id)'
     );
 
     query.equal('listing.market_contract', ctx.coreArgs.neftymarket_account);
@@ -76,7 +77,7 @@ export async function getAuctionsAction(params: RequestValues, ctx: NeftyMarketC
         created: {column: 'listing.created_at_time', nullable: false, numericIndex: true},
         updated: {column: 'listing.updated_at_time', nullable: false, numericIndex: true},
         price: {column: 'listing.price', nullable: true, numericIndex: false},
-        buy_now_price: {column: 'listing.buy_now_price', nullable: true, numericIndex: false},
+        buy_now_price: {column: 'price.buy_now_price_dynamic', nullable: true, numericIndex: false},
         template_mint: {column: 'LOWER(listing.template_mint)', nullable: true, numericIndex: false}
     };
 

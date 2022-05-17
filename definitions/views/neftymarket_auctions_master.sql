@@ -25,11 +25,11 @@ CREATE OR REPLACE VIEW neftymarket_auctions_master AS
             'amount', auction.min_price::text
         ) min_price,
 
-        (CASE WHEN auction.buy_now_price > 0 THEN json_build_object(
+        (CASE WHEN price.buy_now_price > 0 THEN json_build_object(
             'token_contract', token.token_contract,
             'token_symbol', token.token_symbol,
             'token_precision', token.token_precision,
-            'amount', auction.buy_now_price::text
+            'amount', price.buy_now_price::text
         ) END) buy_now_price,
 
         ARRAY(
@@ -85,6 +85,6 @@ CREATE OR REPLACE VIEW neftymarket_auctions_master AS
         auction.updated_at_time,
         auction.created_at_block,
         auction.created_at_time
-    FROM neftymarket_auctions auction, atomicassets_collections collection, neftymarket_tokens token
+    FROM neftymarket_auctions auction LEFT JOIN neftymarket_auction_prices price ON (auction.market_contract = price.market_contract AND auction.auction_id = price.auction_id), atomicassets_collections collection, neftymarket_tokens token
     WHERE auction.market_contract = token.market_contract AND auction.token_symbol = token.token_symbol AND
         auction.assets_contract = collection.contract AND auction.collection_name = collection.collection_name

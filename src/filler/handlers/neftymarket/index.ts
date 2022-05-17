@@ -55,7 +55,7 @@ export default class NeftyMarketHandler extends ContractHandler {
             'neftymarket_auctions_master',
         ];
 
-        const materializedViews: string[] = [];
+        const materializedViews = ['neftymarket_auction_prices'];
 
         const procedures = ['neftymarket_auction_mints'];
 
@@ -167,8 +167,7 @@ export default class NeftyMarketHandler extends ContractHandler {
             );
         }
 
-        const materializedViews: string[] = [
-        ];
+        const materializedViews = ['neftymarket_auction_prices'];
 
         for (const view of materializedViews) {
             await client.query('REFRESH MATERIALIZED VIEW ' + client.escapeIdentifier(view) + '');
