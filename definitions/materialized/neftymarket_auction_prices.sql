@@ -3,7 +3,7 @@ SELECT market_contract,
        auction_id,
        CASE
            WHEN auction_type = 1 AND buyer IS NULL
-               THEN LEAST(
+               THEN GREATEST(
                    (
                        ROUND(
                                    buy_now_price *

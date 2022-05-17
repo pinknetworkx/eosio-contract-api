@@ -24,3 +24,11 @@ export type LogNewAuctionActionData = {
     end_time: number,
     security_id: number,
 };
+
+export type ClaimAssetsActionData = {
+    auction_id: string
+};
+
+export type ClaimWinBidActionData = {
+    auction_id: string
+};

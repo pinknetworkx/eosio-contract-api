@@ -5,13 +5,15 @@ import { ShipBlock } from '../../../../types/ship';
 import { eosioTimestampToDate } from '../../../../utils/eosio';
 import NeftyMarketHandler, { NeftyMarketUpdatePriority, AuctionState } from '../index';
 import {
-    AuctionBidActionData,
-    EraseAuctionActionData,
-    LogNewAuctionActionData
+  AuctionBidActionData, ClaimAssetsActionData, ClaimWinBidActionData,
+  EraseAuctionActionData,
+  LogNewAuctionActionData
 } from '../types/actions';
 import { preventInt64Overflow } from '../../../../utils/binary';
 import ApiNotificationSender from '../../../notifier';
 import { AuctionsTableRow } from '../types/tables';
+import logger from '../../../../utils/winston';
+import {AuctionType} from '../../../../api/namespaces/neftymarket';
 
 export function auctionProcessor(core: NeftyMarketHandler, processor: DataProcessor, notifier: ApiNotificationSender): () => any {
     const destructors: Array<() => any> = [];
@@ -92,14 +94,63 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
         }, NeftyMarketUpdatePriority.ACTION_UPDATE_AUCTION.valueOf()
     ));
 
-    // TODO: Check bids for auctions for prices higher than the buy now price
+    destructors.push(processor.onActionTrace(
+        contract, 'claimassets',
+        async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<ClaimAssetsActionData>): Promise<void> => {
+          await db.update('neftymarket_auctions', {
+            claimed_by_buyer: true,
+            updated_at_block: block.block_num,
+            updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
+          }, {
+            str: 'market_contract = $1 AND auction_id = $2',
+            values: [contract, trace.act.data.auction_id]
+          }, ['market_contract', 'auction_id']);
+
+          notifier.sendActionTrace('auctions', block, tx, trace);
+        }, NeftyMarketUpdatePriority.ACTION_UPDATE_AUCTION.valueOf()
+    ));
+
+    destructors.push(processor.onActionTrace(
+        contract, 'claimwinbid',
+        async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<ClaimWinBidActionData>): Promise<void> => {
+          await db.update('neftymarket_auctions', {
+            claimed_by_seller: true,
+            updated_at_block: block.block_num,
+            updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
+          }, {
+            str: 'market_contract = $1 AND auction_id = $2',
+            values: [contract, trace.act.data.auction_id]
+          }, ['market_contract', 'auction_id']);
+
+          notifier.sendActionTrace('auctions', block, tx, trace);
+        }, NeftyMarketUpdatePriority.ACTION_UPDATE_AUCTION.valueOf()
+    ));
+
     const bidHandler = async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<AuctionBidActionData>): Promise<void> => {
+      const auction = await db.query(
+          'SELECT auction_type, buy_now_price FROM neftymarket_auctions WHERE market_contract = $1 AND auction_id = $2',
+          [core.args.neftymarket_account, trace.act.data.auction_id]
+      );
+
+      if (auction.rowCount === 0) {
+        logger.warn('NeftyMarket: Auction has bids but was not created');
+        return;
+      }
+
+      const {
+        auction_type: auctionType,
+        buy_now_price: buyNowPrice,
+      } = auction.rows[0];
+
+      const bidAmount = preventInt64Overflow(trace.act.data.bid_amount.split(' ')[0].replace('.', ''));
       await db.update('neftymarket_auctions', {
         buyer: trace.act.data.bidder,
-        price: preventInt64Overflow(trace.act.data.bid_amount.split(' ')[0].replace('.', '')),
+        price: bidAmount,
         token_symbol: trace.act.data.bid_amount.split(' ')[1],
         updated_at_block: block.block_num,
-        updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
+        updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
+        claimed_by_buyer: auctionType === AuctionType.DUTCH || (buyNowPrice > 0 && bidAmount >= buyNowPrice),
+        claimed_by_seller: auctionType === AuctionType.DUTCH || (buyNowPrice > 0 && bidAmount >= buyNowPrice),
       }, {
         str: 'market_contract = $1 AND auction_id = $2',
         values: [contract, trace.act.data.auction_id]
