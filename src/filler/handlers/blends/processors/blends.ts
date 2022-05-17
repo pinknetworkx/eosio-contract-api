@@ -229,6 +229,8 @@ function getBlendIngredients(row: BlendTableRow): Ingredient[] {
             index,
             balance_ingredient_attribute_name: '',
             balance_ingredient_cost: 0,
+            ft_ingredient_quantity_price: null,
+            ft_ingredient_quantity_symbol: null,
         };
     });
 }

@@ -22,8 +22,9 @@ SELECT
             WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN 'template'
             WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN 'schema'
             WHEN ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' THEN 'attributes'
-            WHEN ingredient.ingredient_type = 'BALANCE_INGREDIENT' THEN 'template'
+            WHEN ingredient.ingredient_type = 'BALANCE_INGREDIENT' THEN 'balance_ingredient'
             WHEN ingredient.ingredient_type = 'TYPED_ATTRIBUTE_INGREDIENT' THEN 'typed_attributes'
+            WHEN ingredient.ingredient_type = 'FT_INGREDIENT' THEN 'ft_ingredient'
         END,
         CASE
             WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN 
@@ -44,13 +45,20 @@ SELECT
             WHEN ingredient.ingredient_type = 'BALANCE_INGREDIENT' THEN
                 jsonb_build_object(
                     'template_id', ingredient.template_id,
-                    'schema_name', ingredient.schema_name
+                    'schema_name', ingredient.schema_name,
+                    'attribute_name', ingredient.balance_ingredient_attribute_name,
+                    'cost', ingredient.balance_ingredient_cost
                 )
             WHEN ingredient.ingredient_type = 'TYPED_ATTRIBUTE_INGREDIENT' THEN
                 jsonb_build_object(
                     'typed_attributes', typed_attribute_ing_sub.typed_attributes,
                     'schema_name', ingredient.schema_name,
                     'collection_name', ingredient.ingredient_collection_name
+                )
+            WHEN ingredient.ingredient_type = 'FT_INGREDIENT' THEN
+                jsonb_build_object(
+                    'quantity_price', ft_ingredient_quantity_price,
+                    'quantity_symbol', ft_ingredient_quantity_symbol
                 )
         END
     )) FILTER (where ingredient.ingredient_index is not null) as ingredients,
@@ -250,6 +258,7 @@ GROUP BY
     blend.display_data,
     blend.created_at_time,
     blend.ingredients_count;
+
 
 -- @TODO: remove unnecessary subqueries, just join to the table directly when 
 -- possible

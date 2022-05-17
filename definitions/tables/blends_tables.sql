@@ -30,6 +30,8 @@ CREATE TABLE neftyblends_blend_ingredients
     schema_name                          character varying(12),
     balance_ingredient_attribute_name    text,
     balance_ingredient_cost              numeric,
+    ft_ingredient_quantity_price         bigint,
+    ft_ingredient_quantity_symbol        character varying(12),
     amount                               integer               NOT NULL,
     effect                               jsonb,
     ingredient_type                      character varying(50) NOT NULL,

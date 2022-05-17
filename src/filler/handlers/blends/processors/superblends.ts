@@ -1,6 +1,6 @@
 import DataProcessor from '../../../processor';
 import { ContractDBTransaction } from '../../../database';
-import {EosioActionTrace, EosioContractRow, EosioTransaction} from '../../../../types/eosio';
+import { EosioActionTrace, EosioContractRow, EosioTransaction } from '../../../../types/eosio';
 import { ShipBlock } from '../../../../types/ship';
 import { eosioTimestampToDate } from '../../../../utils/eosio';
 import CollectionsListHandler, {
@@ -11,15 +11,16 @@ import CollectionsListHandler, {
 } from '../index';
 import ConnectionManager from '../../../../connections/manager';
 import { Roll, SuperBlendTableRow, SuperBlendValuerollsTableRow } from '../types/tables';
-import {Ingredient} from '../types/helpers';
+import { Ingredient } from '../types/helpers';
 import {
     bulkInsert,
     encodeDatabaseArray,
     encodeDatabaseJson,
     getAllRowsFromTable
 } from '../../../utils';
-import {SetBlendRollsActionData} from '../types/actions';
+import { SetBlendRollsActionData } from '../types/actions';
 import logger from '../../../../utils/winston';
+import { preventInt64Overflow } from '../../../../utils/binary';
 
 const fillSuperBlends = async (args: BlendsArgs, connection: ConnectionManager, contract: string): Promise<void> => {
     const superBlendsCount = await connection.database.query(
@@ -388,6 +389,8 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
             display_data: ingredient.display_data,
             balance_ingredient_attribute_name: ingredient.balance_ingredient_attribute_name,
             balance_ingredient_cost: ingredient.balance_ingredient_cost,
+            ft_ingredient_quantity_price: ingredient.ft_ingredient_quantity_price,
+            ft_ingredient_quantity_symbol: ingredient.ft_ingredient_quantity_symbol
         });
 
         let attributeIndex = 0;
@@ -623,6 +626,8 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 type,
                 collection_name: payload.collection_name,
                 schema_name: null,
+                ft_ingredient_quantity_price: null,
+                ft_ingredient_quantity_symbol: null,
                 balance_ingredient_attribute_name: null,
                 balance_ingredient_cost: null,
                 template_id: payload.template_id,
@@ -638,6 +643,8 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 type,
                 collection_name: payload.collection_name,
                 schema_name: payload.schema_name,
+                ft_ingredient_quantity_price: null,
+                ft_ingredient_quantity_symbol: null,
                 balance_ingredient_attribute_name: null,
                 balance_ingredient_cost: null,
                 template_id: null,
@@ -653,6 +660,8 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 type,
                 collection_name: payload.collection_name,
                 schema_name: payload.schema_name,
+                ft_ingredient_quantity_price: null,
+                ft_ingredient_quantity_symbol: null,
                 balance_ingredient_attribute_name: null,
                 balance_ingredient_cost: null,
                 template_id: null,
@@ -668,6 +677,8 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 type,
                 collection_name: blend_collection,
                 schema_name: payload.schema_name,
+                ft_ingredient_quantity_price: null,
+                ft_ingredient_quantity_symbol: null,
                 balance_ingredient_attribute_name: payload.attribute_name || '',
                 balance_ingredient_cost: payload.cost || 0,
                 template_id: payload.template_id,
@@ -683,11 +694,30 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 type,
                 collection_name: blend_collection,
                 schema_name: payload.schema_name,
-                balance_ingredient_attribute_name: payload.attribute_name || '',
-                balance_ingredient_cost: payload.cost || 0,
-                template_id: payload.template_id,
+                ft_ingredient_quantity_price: null,
+                ft_ingredient_quantity_symbol: null,
+                balance_ingredient_attribute_name: null,
+                balance_ingredient_cost: null,
+                template_id: null,
                 attributes: [],
                 typed_attributes: payload.attributes,
+                display_data: payload.display_data,
+                amount: 1,
+                effect,
+                index,
+            };
+        } else if (type === BlendIngredientType.FT_INGREDIENT) {
+            return {
+                type,
+                collection_name: blend_collection,
+                schema_name: null,
+                ft_ingredient_quantity_price: preventInt64Overflow(payload.quantity.split(' ')[0].replace('.', '')),
+                ft_ingredient_quantity_symbol: payload.quantity.split(' ')[1],
+                balance_ingredient_attribute_name: null,
+                balance_ingredient_cost: null,
+                template_id: null,
+                attributes: [],
+                typed_attributes: [],
                 display_data: payload.display_data,
                 amount: 1,
                 effect,
