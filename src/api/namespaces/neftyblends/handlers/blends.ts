@@ -173,6 +173,13 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                 AND b.category = $${++queryVarCounter}
             `;
             }
+            // sixpmblends contract does not work with filters because it
+            // the filters assume we only check template.immutable_data to determine
+            // if an asset satisfies the requirements of an ingredient, that is
+            // no the case for sixpm
+            queryString += `
+                AND b.contract <> '${ctx.coreArgs.sixpmblender_account}'
+            `;
         }
 
         queryString += `

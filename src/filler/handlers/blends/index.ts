@@ -22,7 +22,9 @@ export enum BlendIngredientType {
     TEMPLATE_INGREDIENT = 'TEMPLATE_INGREDIENT',
     ATTRIBUTE_INGREDIENT = 'ATTRIBUTE_INGREDIENT',
     SCHEMA_INGREDIENT = 'SCHEMA_INGREDIENT',
-    BALANCE_INGREDIENT = 'BALANCE_INGREDIENT'
+    BALANCE_INGREDIENT = 'BALANCE_INGREDIENT',
+    TYPED_ATTRIBUTE_INGREDIENT = 'TYPED_ATTRIBUTE_INGREDIENT',
+    FT_INGREDIENT = 'FT_INGREDIENT',
 }
 
 export enum BlendResultType {
@@ -36,9 +38,25 @@ export enum IngredientEffectType {
     TRANSFER_EFFECT = 'TRANSFER_EFFECT',
 }
 
+export enum BlendUpgradeRequirementType {
+    TEMPLATE_REQUIREMENT = 'TEMPLATE_REQUIREMENT',
+    TYPED_ATTRIBUTE_REQUIREMENT = 'TYPED_ATTRIBUTE_REQUIREMENT'
+}
+
+export enum BlendUpgradeResultValueType {
+    VALUE_ROLL_RESULT = 'VALUE_ROLL_RESULT',
+    IMMEDIATE_VALUE= 'IMMEDIATE_VALUE',
+}
+
+export enum BlendUpgradeImmediateType {
+    STRING = 'string',
+    UINT64 = 'uint64'
+}
+
 export enum BlendsUpdatePriority {
     TABLE_BLENDS = BLENDS_BASE_PRIORITY + 10,
     SET_ROLLS = BLENDS_BASE_PRIORITY + 20,
+    TABLE_VALUEROLL = BLENDS_BASE_PRIORITY + 30,
 }
 
 const views = [
@@ -49,7 +67,7 @@ const views = [
 
 const functions = [
     'neftyblends_blend_details_func',
-    'nefty_blends_attribute_match',
+    'neftyblends_attribute_match',
 ];
 
 export default class BlendsHandler extends ContractHandler {
