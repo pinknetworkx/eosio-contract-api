@@ -8,6 +8,7 @@ import { ATOMICASSETS_BASE_PRIORITY } from '../atomicassets';
 import DataProcessor from '../../processor';
 import {superBlendsProcessor, initSuperBlends} from './processors/superblends';
 import {blendsProcessor, initBlends} from './processors/blends';
+import {ConfigTableRow} from './types/tables';
 
 export const BLENDS_BASE_PRIORITY = ATOMICASSETS_BASE_PRIORITY + 3000;
 
@@ -57,6 +58,7 @@ export enum BlendsUpdatePriority {
     TABLE_BLENDS = BLENDS_BASE_PRIORITY + 10,
     SET_ROLLS = BLENDS_BASE_PRIORITY + 20,
     TABLE_VALUEROLL = BLENDS_BASE_PRIORITY + 30,
+    TABLE_CONFIG = BLENDS_BASE_PRIORITY + 30,
 }
 
 const views = [
@@ -74,6 +76,8 @@ export default class BlendsHandler extends ContractHandler {
     static handlerName = 'blends';
 
     declare readonly args: BlendsArgs;
+
+    config: ConfigTableRow;
 
     static async setup(client: PoolClient): Promise<boolean> {
         const existsQuery = await client.query(
@@ -134,11 +138,60 @@ export default class BlendsHandler extends ContractHandler {
         }
     }
 
-    async init(): Promise<void> {
+    async init(client: PoolClient): Promise<void> {
         try {
             await this.connection.database.begin();
             await initBlends(this.args, this.connection);
             await initSuperBlends(this.args, this.connection);
+
+            const configQuery = await client.query(
+                'SELECT * FROM neftyblends_config WHERE contract = $1',
+                [this.args.nefty_blender_account]
+            );
+
+            if (configQuery.rows.length === 0) {
+                const configTable = await this.connection.chain.rpc.get_table_rows({
+                    json: true, code: this.args.nefty_blender_account,
+                    scope: this.args.nefty_blender_account, table: 'config'
+                });
+
+                if (configTable.rows.length === 0) {
+                    throw new Error('NeftyBlends: Unable to fetch neftydrops config');
+                }
+
+                const config: ConfigTableRow = configTable.rows[0];
+
+                await client.query(
+                    'INSERT INTO neftyblends_config ' +
+                    '(' +
+                    'contract, fee, fee_recipient) ' +
+                    'VALUES ($1, $2, $3)',
+                    [
+                        this.args.nefty_blender_account,
+                        config.fee,
+                        config.fee_recipient,
+                    ]
+                );
+
+                this.config = {
+                    ...config,
+                    supported_tokens: []
+                };
+            } else {
+                const tokensQuery = await this.connection.database.query(
+                    'SELECT * FROM neftyblends_tokens WHERE contract = $1',
+                    [this.args.nefty_blender_account]
+                );
+
+                this.config = {
+                    ...configQuery.rows[0],
+                    supported_tokens: tokensQuery.rows.map(row => ({
+                        token_contract: row.token_contract,
+                        token_symbol: row.token_precision + ',' + row.token_symbol
+                    })),
+                };
+            }
+
             await this.connection.database.query('COMMIT');
         } catch (error) {
             await this.connection.database.query('ROLLBACK');

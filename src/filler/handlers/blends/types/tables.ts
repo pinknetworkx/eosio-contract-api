@@ -50,3 +50,12 @@ export type BlendTableRow = {
     target: number,
     mixture: number[],
 };
+
+export type ConfigTableRow = {
+    supported_tokens: Array<{
+        contract: string,
+        sym: string
+    }>,
+    fee: number,
+    fee_recipient: string,
+};
