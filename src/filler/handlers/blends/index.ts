@@ -189,8 +189,8 @@ export default class BlendsHandler extends ContractHandler {
                     this.config = {
                         ...configQuery.rows[0],
                         supported_tokens: tokensQuery.rows.map(row => ({
-                            token_contract: row.token_contract,
-                            token_symbol: row.token_precision + ',' + row.token_symbol
+                            contract: row.token_contract,
+                            sym: row.token_precision + ',' + row.token_symbol
                         })),
                     };
                 }

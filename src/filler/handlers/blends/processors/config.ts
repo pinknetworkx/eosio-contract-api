@@ -30,7 +30,7 @@ export function configProcessor(core: BlendsHandler, processor: DataProcessor): 
                 const index = tokens.indexOf(token.sym.split(',')[1]);
 
                 if (index === -1) {
-                    await db.insert('neftymarket_tokens', {
+                    await db.insert('neftyblends_tokens', {
                         contract: core.args.nefty_blender_account,
                         token_contract: token.contract,
                         token_symbol: token.sym.split(',')[1],
