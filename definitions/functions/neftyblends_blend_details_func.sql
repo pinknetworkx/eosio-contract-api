@@ -48,6 +48,7 @@ SELECT blend.blend_id,
                CASE
                    WHEN ingredient.ingredient_type = 'TEMPLATE_INGREDIENT' THEN 'template'
                    WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN 'schema'
+                   WHEN ingredient.ingredient_type = 'COLLECTION_INGREDIENT' THEN 'collection'
                    WHEN ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' THEN 'attributes'
                    WHEN ingredient.ingredient_type = 'BALANCE_INGREDIENT' THEN 'balance_ingredient'
                    WHEN ingredient.ingredient_type = 'TYPED_ATTRIBUTE_INGREDIENT'
@@ -62,6 +63,10 @@ SELECT blend.blend_id,
                    WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN
                        jsonb_build_object(
                                'schema_name', ingredient.schema_name,
+                               'collection_name', ingredient.ingredient_collection_name
+                           )
+                   WHEN ingredient.ingredient_type = 'COLLECTION_INGREDIENT' THEN
+                       jsonb_build_object(
                                'collection_name', ingredient.ingredient_collection_name
                            )
                    WHEN ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' THEN

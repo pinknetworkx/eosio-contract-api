@@ -7,7 +7,7 @@ import CollectionsListHandler, {
     BlendIngredientType, BlendsArgs,
     BlendsUpdatePriority, BlendUpgradeRequirementType,
     BlendUpgradeResultValueType, BlendUpgradeImmediateType,
-    
+
 } from '../index';
 import ConnectionManager from '../../../../connections/manager';
 import { Roll, SuperBlendTableRow, SuperBlendValuerollsTableRow } from '../types/tables';
@@ -221,7 +221,7 @@ const superBlendsValuerollsTableListener = (core: CollectionsListHandler, contra
             values: [ contract, delta.scope, delta.value.id ],
         });
     } else if (valueroll.rowCount === 0) {
-        let valuerollDbRow = {
+        const valuerollDbRow = {
             contract,
             collection_name: delta.scope,
             valueroll_id: delta.value.id,
@@ -235,9 +235,9 @@ const superBlendsValuerollsTableListener = (core: CollectionsListHandler, contra
             created_at_time: block.timestamp ? eosioTimestampToDate(block.timestamp).getTime() : 0,
         };
         await db.insert(
-            'neftyblends_valuerolls', valuerollDbRow, 
-            ['contract', 'collection_name', 'valueroll_id', 'value_outcomes', 
-             'total_odds', 'updated_at_block', 'updated_at_time', 
+            'neftyblends_valuerolls', valuerollDbRow,
+            ['contract', 'collection_name', 'valueroll_id', 'value_outcomes',
+             'total_odds', 'updated_at_block', 'updated_at_time',
              'created_at_block', 'created_at_time']
         );
     } else {
@@ -433,9 +433,9 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
         }
     }
 
-    let upgradeSpecsDbRows = [ ];
-    let upgradeRequirementsDbRows = [ ];
-    let upgradeResultsDbRows = [ ];
+    const upgradeSpecsDbRows = [ ];
+    const upgradeRequirementsDbRows = [ ];
+    const upgradeResultsDbRows = [ ];
     if(blend.upgrade_specs) {
         // @todo: put it in a function to declutter the code
         // upgrade_specs
@@ -448,30 +448,30 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
 
                 schema_name: upgradeSpec.schema_name,
                 display_data: upgradeSpec.display_data,
-            }) 
-            
+            });
+
             // upgrade_requirements
             for (let upgradeRequirementIndex = 0; upgradeRequirementIndex < upgradeSpec.upgrade_requirements.length; upgradeRequirementIndex++){
                 const upgradeRequirementType = upgradeSpec.upgrade_requirements[upgradeRequirementIndex][0];
                 const upgradeRequirementObject = upgradeSpec.upgrade_requirements[upgradeRequirementIndex][1];
 
-                let newUpgradeRequirementDbRow:any = {
+                const newUpgradeRequirementDbRow:any = {
                     contract: contract,
                     blend_id: blend.blend_id,
                     upgrade_spec_index: upgradeSpecIndex,
                     upgrade_requirement_index: upgradeRequirementIndex,
 
                     type: upgradeRequirementType,
-                }
+                };
                 if (upgradeRequirementType === BlendUpgradeRequirementType.TEMPLATE_REQUIREMENT) {
                     newUpgradeRequirementDbRow.template_id = upgradeRequirementObject.template_id;
                     newUpgradeRequirementDbRow.typed_attribute_definition = null;
                 } else if (upgradeRequirementType === BlendUpgradeRequirementType.TYPED_ATTRIBUTE_REQUIREMENT) {
                     newUpgradeRequirementDbRow.template_id = null;
                     newUpgradeRequirementDbRow.typed_attribute_definition = encodeDatabaseJson(upgradeRequirementObject.typed_attribute_definition);
-                } 
+                }
                 // if upgradeRequirementType is not a valid BlendUpgradeRequirement
-                // we still want to insert whatever we can into the 
+                // we still want to insert whatever we can into the
                 // blend_requirement table.
                 // (this can happen if we add more variant alternatives in the
                 // contract)
@@ -490,7 +490,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
                 const resultValueType = upgradeResultObject.value[0];
                 const resultValueObject = upgradeResultObject.value[1];
 
-                let newUpgradeRequirementDbRow:any = {
+                const newUpgradeRequirementDbRow:any = {
                     contract: contract,
                     blend_id: blend.blend_id,
                     upgrade_spec_index: upgradeSpecIndex,
@@ -502,17 +502,17 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
                     blend_collection_name: blend.collection_name,
 
                     result_value_type: resultValueType
-                }
+                };
                 if (resultValueType === BlendUpgradeResultValueType.VALUE_ROLL_RESULT) {
                     newUpgradeRequirementDbRow.immediate_type = null;
 
-                    newUpgradeRequirementDbRow.valueroll_id = resultValueObject.valueroll_id
+                    newUpgradeRequirementDbRow.valueroll_id = resultValueObject.valueroll_id;
                     newUpgradeRequirementDbRow.immediate_string = null;
                     newUpgradeRequirementDbRow.immediate_uint64 = null;
                 } else if (resultValueType === BlendUpgradeResultValueType.IMMEDIATE_VALUE) {
-                    let immediateType = resultValueObject[0];
-                    let immediateObject = resultValueObject[1];
-                    
+                    const immediateType = resultValueObject[0];
+                    const immediateObject = resultValueObject[1];
+
                     newUpgradeRequirementDbRow.immediate_type = immediateType;
                     if (immediateType === BlendUpgradeImmediateType.STRING) {
                         newUpgradeRequirementDbRow.valueroll_id = null;
@@ -649,6 +649,23 @@ function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
                 type,
                 collection_name: payload.collection_name,
                 schema_name: payload.schema_name,
+                ft_ingredient_quantity_price: null,
+                ft_ingredient_quantity_symbol: null,
+                balance_ingredient_attribute_name: null,
+                balance_ingredient_cost: null,
+                template_id: null,
+                attributes: [],
+                typed_attributes: [],
+                display_data: payload.display_data,
+                amount: payload.amount,
+                effect,
+                index,
+            };
+        } else if (type === BlendIngredientType.COLLECTION_INGREDIENT) {
+            return {
+                type,
+                collection_name: payload.collection_name,
+                schema_name: null,
                 ft_ingredient_quantity_price: null,
                 ft_ingredient_quantity_symbol: null,
                 balance_ingredient_attribute_name: null,
