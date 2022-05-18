@@ -39,8 +39,8 @@ SELECT
                 )
             WHEN ingredient.ingredient_type = 'COLLECTION_INGREDIENT' THEN
                 jsonb_build_object(
-                        'collection_name', ingredient.ingredient_collection_name
-                    )
+                    'collection_name', ingredient.ingredient_collection_name
+                )
             WHEN ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' THEN
                 jsonb_build_object(
                     'attributes', attribute_ing_sub.attributes,
@@ -86,6 +86,9 @@ FROM
     LEFT JOIN neftyblends_blend_ingredients "ingredient" ON
         ingredient.contract = blend.contract AND
         ingredient.blend_id = blend.blend_id
+    LEFT JOIN neftyblends_tokens "token" ON "token".contract = ingredient.contract AND
+                                            "token".token_symbol =
+                                            ingredient.ft_ingredient_quantity_symbol
     LEFT JOIN(
         SELECT
             ing_attribute.contract,
