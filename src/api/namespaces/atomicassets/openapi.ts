@@ -246,7 +246,14 @@ export const greylistFilterParameters = [
         description: 'Show only results from specific collections. Split multiple with ","',
         required: false,
         schema: {type: 'string'}
-    }
+    },
+    {
+        name: 'only_whitelisted',
+        in: 'query',
+        description: 'Show only whitelisted collections',
+        required: false,
+        schema: {type: 'boolean'}
+    },
 ];
 
 export const baseAssetFilterParameters = [

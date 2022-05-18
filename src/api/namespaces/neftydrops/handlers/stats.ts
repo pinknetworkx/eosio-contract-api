@@ -18,6 +18,7 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Neft
 
         collection_whitelist: {type: 'string', min: 1},
         collection_blacklist: {type: 'string', min: 1},
+        only_whitelisted: {type: 'bool'},
 
         sort: {type: 'string', allowedValues: ['volume', 'sales'], default: 'volume'},
         order: {type: 'string', allowedValues: ['desc', 'asc'], default: 'desc'},
@@ -50,6 +51,16 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Neft
     if (args.collection_blacklist) {
         queryString += 'AND NOT (collection_name = ANY ($' + ++varCounter + ')) ';
         queryValues.push(args.collection_blacklist.split(','));
+    }
+
+    if (typeof args.only_whitelisted === 'boolean') {
+        if (args.only_whitelisted) {
+            queryString += 'AND collection_name = ANY (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE (list = \'whitelist\' OR list = \'verified\') AND (list != \'blacklist\' OR list != \'scam\')' +
+                ')  ';
+        }
     }
 
     const sortColumnMapping: { [key: string]: string } = {

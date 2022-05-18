@@ -233,6 +233,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
         collection_name: {type: 'string[]', min: 1},
         collection_blacklist: {type: 'string[]', min: 1},
         collection_whitelist: {type: 'string[]', min: 1},
+        only_whitelisted: {type: 'bool'},
 
         owner: {type: 'string[]', min: 1, max: 12},
 
@@ -301,6 +302,16 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
 
         if (args.collection_blacklist.length) {
             exc.collection_names.push(...args.collection_blacklist);
+        }
+    }
+
+    if (typeof args.only_whitelisted === 'boolean') {
+        if (args.only_whitelisted) {
+            query.addCondition('SUBSTR(listing.filter[1], 2) = ANY (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE (list = \'whitelist\' OR list = \'verified\') AND (list != \'blacklist\' OR list != \'scam\'))'
+            );
         }
     }
 
