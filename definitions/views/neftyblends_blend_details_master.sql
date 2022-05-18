@@ -81,7 +81,6 @@ FROM
     LEFT JOIN neftyblends_blend_ingredients "ingredient" ON
         ingredient.contract = blend.contract AND
         ingredient.blend_id = blend.blend_id
-    LEFT JOIN neftyblends_tokens "token" ON "token".contract = ingredient.contract AND "token".token_symbol = ingredient.ft_ingredient_quantity_symbol
     LEFT JOIN(
         SELECT
             ing_attribute.contract,
