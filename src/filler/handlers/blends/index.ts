@@ -65,8 +65,6 @@ export enum BlendsUpdatePriority {
 }
 
 const views = [
-    'neftyblends_schema_details_master',
-    'neftyblends_template_details_master',
     'neftyblends_blend_details_master'
 ];
 

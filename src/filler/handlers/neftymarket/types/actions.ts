@@ -6,6 +6,7 @@ export type AuctionBidActionData = {
     bidder: string,
     auction_id: string,
     bid_amount: string,
+    marketplace: string,
     security_check?: any,
 };
 
@@ -23,6 +24,7 @@ export type LogNewAuctionActionData = {
     start_time: number,
     end_time: number,
     security_id: number,
+    marketplace: string,
 };
 
 export type ClaimAssetsActionData = {

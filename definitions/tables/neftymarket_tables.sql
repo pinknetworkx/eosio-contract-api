@@ -14,6 +14,8 @@ CREATE TABLE neftymarket_auctions
     collection_fee double precision NOT NULL,
     claimed_by_buyer boolean,
     claimed_by_seller boolean,
+    maker_marketplace character varying(12) NOT NULL,
+    taker_marketplace character varying(12) NOT NULL,
     state smallint NOT NULL,
     start_time bigint NOT NULL,
     end_time bigint NOT NULL,
@@ -118,3 +120,7 @@ CREATE INDEX neftymarket_auctions_bids_created_at_time ON neftymarket_auctions_b
 CREATE INDEX neftymarket_balances_owner ON neftymarket_balances USING btree (owner);
 
 CREATE INDEX neftymarket_auctions_missing_mint ON neftymarket_auctions(assets_contract, auction_id) WHERE template_mint IS NULL;
+
+CREATE INDEX neftymarket_auctions_auction_maker_marketplace ON neftymarket_auctions USING btree(maker_marketplace);
+CREATE INDEX neftymarket_auctions_auction_taker_marketplace ON neftymarket_auctions USING btree(taker_marketplace);
+

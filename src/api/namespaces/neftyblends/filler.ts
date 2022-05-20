@@ -147,7 +147,7 @@ export class CollectionFiller {
 
             try {
                 const query = await this.db.query(
-                    'SELECT * FROM ' + this.view + ' WHERE contract = $1 AND collection_name = ANY ($2)' +
+                    'SELECT * FROM ' + this.view + ' WHERE contract = $1 AND collection_name = ANY ($2)',
                     [this.contract, this.collectionNames]
                 );
 
@@ -200,7 +200,7 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
 
     const templateFiller = new TemplateFiller(db, assetContract, templateIds, formatTemplate, 'atomicassets_templates_master');
     const schemaFiller = new SchemaFiller(db, assetContract, schemaIds, formatSchema, 'atomicassets_schemas');
-    const collectionFiller = new CollectionFiller(db, assetContract, schemaIds, formatCollection, 'atomicassets_collections');
+    const collectionFiller = new CollectionFiller(db, assetContract, collectionNames, formatCollection, 'atomicassets_collections');
     const filledBlends = [];
 
     for (const blend of blends) {
