@@ -90,7 +90,7 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
                         values: [core.args.atomicassets_account, neftyContract, listName]
                     });
                 } else {
-                    const collectionsQuery = await db.query('SELECT collection_name WHERE assets_contract = $1 AND contract = $2 AND list = $3',
+                    const collectionsQuery = await db.query('SELECT collection_name FROM helpers_collection_list WHERE assets_contract = $1 AND contract = $2 AND list = $3',
                         [core.args.atomicassets_account, neftyContract, listName]
                     );
 
@@ -134,7 +134,7 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
                         values: [core.args.atomicassets_account, atomicContract, listName]
                     });
                 } else {
-                    const collectionsQuery = await db.query('SELECT collection_name WHERE assets_contract = $1 AND contract = $2 AND list = $3',
+                    const collectionsQuery = await db.query('SELECT collection_name FROM helpers_collection_list WHERE assets_contract = $1 AND contract = $2 AND list = $3',
                         [core.args.atomicassets_account, atomicContract, listName]
                     );
 
