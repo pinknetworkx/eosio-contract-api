@@ -66,12 +66,12 @@ export default class NeftyMarketHandler extends ContractHandler {
                 encoding: 'utf8'
             }));
 
-            for (const view of views) {
-                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
-            }
-
             for (const view of materializedViews) {
                 await client.query(fs.readFileSync('./definitions/materialized/' + view + '.sql', {encoding: 'utf8'}));
+            }
+
+            for (const view of views) {
+                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
             }
 
             for (const procedure of procedures) {
