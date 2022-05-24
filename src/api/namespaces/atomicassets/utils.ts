@@ -198,7 +198,8 @@ export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, c
     const args = filterQueryArgs(values, {
         collection_blacklist: {type: 'string', min: 1},
         collection_whitelist: {type: 'string', min: 1},
-        account_blacklist: {type: 'string', min: 1}
+        account_blacklist: {type: 'string', min: 1},
+        only_whitelisted: {type: 'bool'},
     });
 
     let collectionBlacklist: string[] = [];
@@ -210,6 +211,16 @@ export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, c
 
     if (args.collection_whitelist) {
         collectionWhitelist = args.collection_whitelist.split(',');
+    }
+
+    if (typeof args.only_whitelisted === 'boolean') {
+        if (args.only_whitelisted) {
+            query.addCondition(columns.collectionName + ' = ANY (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE (list = \'whitelist\' OR list = \'verified\') AND (list != \'blacklist\' OR list != \'scam\'))'
+            );
+        }
     }
 
     if (columns.collectionName) {

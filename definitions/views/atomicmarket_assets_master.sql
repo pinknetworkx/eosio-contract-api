@@ -13,15 +13,28 @@ CREATE OR REPLACE VIEW atomicmarket_assets_master AS
                 offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND
                 offer.state = 0 AND sale.state = 1
         ) sales,
-        ARRAY(
-            SELECT
-                json_build_object(
-                    'market_contract', auction.market_contract,
-                    'auction_id', auction.auction_id
-                )
-            FROM atomicmarket_auctions auction, atomicmarket_auctions_assets auction_asset
-            WHERE auction.market_contract = auction_asset.market_contract AND auction.auction_id = auction_asset.auction_id AND
-                auction_asset.assets_contract = asset.contract AND auction_asset.asset_id = asset.asset_id AND
-                auction.state = 1 AND auction.end_time > (extract(epoch from now()) * 1000)::bigint
+        array_cat(
+            ARRAY(
+                SELECT
+                    json_build_object(
+                        'market_contract', auction.market_contract,
+                        'auction_id', auction.auction_id
+                    )
+                FROM atomicmarket_auctions auction, atomicmarket_auctions_assets auction_asset
+                WHERE auction.market_contract = auction_asset.market_contract AND auction.auction_id = auction_asset.auction_id AND
+                    auction_asset.assets_contract = asset.contract AND auction_asset.asset_id = asset.asset_id AND
+                    auction.state = 1 AND auction.end_time > (extract(epoch from now()) * 1000)::bigint
+            ),
+            ARRAY(
+                SELECT
+                    json_build_object(
+                            'market_contract', auction.market_contract,
+                            'auction_id', auction.auction_id
+                        )
+                FROM neftymarket_auctions auction, neftymarket_auctions_assets auction_asset
+                WHERE auction.market_contract = auction_asset.market_contract AND auction.auction_id = auction_asset.auction_id AND
+                        auction_asset.assets_contract = asset.contract AND auction_asset.asset_id = asset.asset_id AND
+                        auction.state = 1 AND auction.end_time > (extract(epoch from now()) * 1000)::bigint
+            )
         ) auctions
     FROM atomicassets_assets_master asset

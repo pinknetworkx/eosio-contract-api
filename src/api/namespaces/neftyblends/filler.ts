@@ -1,6 +1,6 @@
 import {DB} from '../../server';
 import {FillerHook} from '../atomicassets/filler';
-import {formatTemplate, formatSchema} from '../atomicassets/format';
+import {formatTemplate, formatSchema, formatCollection} from '../atomicassets/format';
 import {BlendResultType} from '../../../filler/handlers/blends';
 
 export class TemplateFiller {
@@ -114,13 +114,67 @@ export class SchemaFiller {
     }
 }
 
+export class CollectionFiller {
+    private collections: Promise<{[key: string]: any}> | null;
+
+    constructor(
+        readonly db: DB,
+        readonly contract: string,
+        readonly collectionNames: any[],
+        readonly formatter: (_: any) => any,
+        readonly view: string,
+        readonly hook?: FillerHook
+    ) {
+        this.collections = null;
+    }
+
+    async fill(collectionName: string): Promise<any> {
+        this.query();
+
+        const data = await this.collections;
+        return data[collectionName] || collectionName;
+    }
+
+    query(): void {
+        if (this.collections !== null) {
+            return;
+        }
+
+        this.collections = new Promise(async (resolve, reject) => {
+            if (this.collectionNames.length === 0) {
+                return resolve({});
+            }
+
+            try {
+                const query = await this.db.query(
+                    'SELECT * FROM ' + this.view + ' WHERE contract = $1 AND collection_name = ANY ($2)',
+                    [this.contract, this.collectionNames]
+                );
+
+                const rows = this.hook ? await this.hook(this.db, this.contract, query.rows) : query.rows;
+                const result: {[key: string]: any} = {};
+
+                for (const row of rows) {
+                    result[String(row.collection_name)] = this.formatter(row);
+                }
+
+                return resolve(result);
+            } catch (e) {
+                return reject(e);
+            }
+        });
+    }
+}
+
 export async function fillBlends(db: DB, assetContract: string, blends: any[]): Promise<any[]> {
     const templateIds: string[] = [];
     const schemaIds: any[] = [];
+    const collectionNames: any[] = [];
     for (const blend of blends) {
         for (const ingredient of blend.ingredients) {
             const templateId = ingredient.template?.template_id;
             const schema = ingredient.schema || ingredient.attributes;
+            const collection = ingredient.collection;
             if (templateId) {
                 templateIds.push(templateId);
             } else if (schema) {
@@ -128,6 +182,8 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
                     collectionName: schema.collection_name,
                     schemaName: schema.schema_name,
                 });
+            } else if (collection) {
+                collectionNames.push(collection.collection_name);
             }
         }
         for (const roll of blend.rolls) {
@@ -144,6 +200,7 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
 
     const templateFiller = new TemplateFiller(db, assetContract, templateIds, formatTemplate, 'atomicassets_templates_master');
     const schemaFiller = new SchemaFiller(db, assetContract, schemaIds, formatSchema, 'atomicassets_schemas');
+    const collectionFiller = new CollectionFiller(db, assetContract, collectionNames, formatCollection, 'atomicassets_collections');
     const filledBlends = [];
 
     for (const blend of blends) {
@@ -154,6 +211,7 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
             const templateId = ingredient.template?.template_id;
             const schema = ingredient.schema || ingredient.attributes;
             const schemaName = schema?.schema_name;
+            const collection = ingredient.collection;
             if (templateId) {
                 filledIngredients.push({
                     ...ingredient,
@@ -164,6 +222,12 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
                 filledIngredients.push({
                     ...ingredient,
                     schema: (await schemaFiller.fill(collectionName, schemaName)),
+                });
+            } else if (collection) {
+                const collectionName = collection.collection_name;
+                filledIngredients.push({
+                    ...ingredient,
+                    collection: (await collectionFiller.fill(collectionName)),
                 });
             } else {
                 filledIngredients.push(ingredient);

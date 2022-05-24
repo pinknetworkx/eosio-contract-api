@@ -10,8 +10,21 @@ export type SuperBlendTableRow = {
     display_data: string,
     security_id?: number,
     is_hidden?: boolean,
-    category: string,
+    category?: string,
+    upgrade_specs?: any[]
 };
+
+export type ValueOutcome = {
+    // variant: RESULT_VALUE
+    result: any[],
+    odds: number
+}
+
+export type SuperBlendValuerollsTableRow = {
+    id: string,
+    value_outcomes: ValueOutcome[],
+    total_odds: number
+}
 
 export type Result = {
     result_index: number,
@@ -36,4 +49,13 @@ export type BlendTableRow = {
     collection: string,
     target: number,
     mixture: number[],
+};
+
+export type ConfigTableRow = {
+    supported_tokens: Array<{
+        contract: string,
+        sym: string
+    }>,
+    fee: number,
+    fee_recipient: string,
 };

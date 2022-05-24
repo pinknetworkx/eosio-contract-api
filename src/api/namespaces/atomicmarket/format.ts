@@ -87,7 +87,7 @@ export function formatListingAsset(row: any): any {
 }
 
 export function buildAssetFillerHook(
-    options: {fetchAuctions?: boolean, fetchSales?: boolean, fetchPrices?: boolean}
+    options: {fetchAuctions?: boolean, fetchSales?: boolean, fetchPrices?: boolean, fetchNeftyAuctions?: boolean}
 ): FillerHook {
     return async (db: DB, contract: string, rows: any[]): Promise<any[]> => {
         const assetIDs = rows.map(asset => asset.asset_id);
@@ -121,7 +121,15 @@ export function buildAssetFillerHook(
                 'price.market_contract = token.market_contract AND price.symbol = token.token_symbol AND ' +
                 'asset.contract = $1 AND asset.asset_id = ANY($2)',
                 [contract, assetIDs]
-            )
+            ),
+            options.fetchNeftyAuctions && db.query(
+                'SELECT auction.market_contract, auction.auction_id, auction_asset.asset_id ' +
+                'FROM neftymarket_auctions auction, neftymarket_auctions_assets auction_asset ' +
+                'WHERE auction.market_contract = auction_asset.market_contract AND auction.auction_id = auction_asset.auction_id AND ' +
+                'auction_asset.assets_contract = $1 AND auction_asset.asset_id = ANY($2) AND ' +
+                'auction.state = ' + AuctionState.LISTED.valueOf() + ' AND auction.end_time > ' + Date.now() + '::BIGINT ',
+                [contract, assetIDs]
+            ),
         ]);
 
         const assetData: {[key: string]: {sales: any[], auctions: any[]}} = {};
@@ -168,6 +176,12 @@ export function buildAssetFillerHook(
                     max: row.max,
                     sales: row.sales,
                 });
+            }
+        }
+
+        if (queries[3]) {
+            for (const row of queries[3].rows) {
+                assetData[row.asset_id].auctions.push({market_contract: row.market_contract, auction_id: row.auction_id});
             }
         }
 

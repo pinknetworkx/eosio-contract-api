@@ -20,6 +20,7 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
         collection_name: {type: 'string', min: 1},
         collection_whitelist: {type: 'string[]', min: 1},
         collection_blacklist: {type: 'string[]', min: 1},
+        only_whitelisted: {type: 'bool'},
 
         sort: {type: 'string', allowedValues: ['volume', 'sales'], default: 'volume'},
         page: {type: 'int', min: 1, default: 1},
@@ -63,6 +64,16 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
 
     if (args.collection_blacklist.length) {
         query.notMany('collection.collection_name', args.collection_blacklist);
+    }
+
+    if (typeof args.only_whitelisted === 'boolean') {
+        if (args.only_whitelisted) {
+            query.addCondition('collection.collection_name = ANY (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE (list = \'whitelist\' OR list = \'verified\') AND (list != \'blacklist\' OR list != \'scam\'))'
+            );
+        }
     }
 
     const sortColumnMapping: { [key: string]: string } = {

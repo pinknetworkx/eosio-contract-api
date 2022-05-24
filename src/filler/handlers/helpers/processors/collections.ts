@@ -69,6 +69,10 @@ export async function initCollections(args: CollectionsListArgs, connection: Con
     }
 }
 
+const difference = (set1: Set<string>, set2: Set<string>): Set<string> => new Set([...set1].filter(x => !set2.has(x)));
+const differenceA = (arr1: string[], arr2: string[]): string[] => Array.from(difference(new Set(arr1), new Set(arr2)));
+
+
 export function collectionsProcessor(core: CollectionsListHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
     const neftyContract = core.args.features_account;
@@ -79,23 +83,40 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<FeaturesTableRow>): Promise<void> => {
             if (delta.value.list.match(neftyCollectionListRegex)) {
                 const listName = convertCollectionListName(neftyContract, delta.value.list, core.args);
-                await db.delete('helpers_collection_list', {
-                    str: 'assets_contract = $1 AND contract = $2 AND list = $3',
-                    values: [core.args.atomicassets_account, neftyContract, listName]
-                });
 
-                if (delta.present && delta.value.collections.length > 0) {
-                    const collections = [...new Set(delta.value.collections)];
-                    await db.insert('helpers_collection_list', collections.map(collection => {
-                        return {
-                            assets_contract: core.args.atomicassets_account,
-                            contract: neftyContract,
-                            list: listName,
-                            collection_name: collection,
-                            updated_at_block: block.block_num,
-                            updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
-                        };
-                    }), ['assets_contract', 'collection_name', 'contract', 'list']);
+                if (!delta.present) {
+                    await db.delete('helpers_collection_list', {
+                        str: 'assets_contract = $1 AND contract = $2 AND list = $3',
+                        values: [core.args.atomicassets_account, neftyContract, listName]
+                    });
+                } else {
+                    const collectionsQuery = await db.query('SELECT collection_name FROM helpers_collection_list WHERE assets_contract = $1 AND contract = $2 AND list = $3',
+                        [core.args.atomicassets_account, neftyContract, listName]
+                    );
+
+                    const collections = collectionsQuery.rows.map(({ collection_name }) => collection_name);
+                    const addedCollections = differenceA(delta.value.collections, collections);
+                    const deletedCollections = differenceA(collections, delta.value.collections);
+
+                    if (deletedCollections.length > 0) {
+                        await db.delete('helpers_collection_list', {
+                            str: 'assets_contract = $1 AND contract = $2 AND list = $3 AND collection_name = ANY($4)',
+                            values: [core.args.atomicassets_account, neftyContract, listName, deletedCollections]
+                        });
+                    }
+
+                    if (addedCollections.length > 0) {
+                        await db.insert('helpers_collection_list', addedCollections.map(collection => {
+                            return {
+                                assets_contract: core.args.atomicassets_account,
+                                contract: neftyContract,
+                                list: listName,
+                                collection_name: collection,
+                                updated_at_block: block.block_num,
+                                updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
+                            };
+                        }), ['assets_contract', 'collection_name', 'contract', 'list']);
+                    }
                 }
             }
         }, HelpersUpdatePriority.TABLE_FEATURES.valueOf()
@@ -106,23 +127,38 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<AccListTableRow>): Promise<void> => {
             if (delta.value.list_name.match(atomicCollectionListRegex)) {
                 const listName = convertCollectionListName(atomicContract, delta.value.list_name, core.args);
-                await db.delete('helpers_collection_list', {
-                    str: 'assets_contract = $1 AND contract = $2 AND list = $3',
-                    values: [core.args.atomicassets_account, atomicContract, listName]
-                });
 
-                if (delta.present && delta.value.list.length > 0) {
-                    const collections = [...new Set(delta.value.list)].filter(x => x.length <= 13);
-                    await db.insert('helpers_collection_list', collections.map(collection => {
-                        return {
-                            assets_contract: core.args.atomicassets_account,
-                            contract: atomicContract,
-                            list: listName,
-                            collection_name: collection,
-                            updated_at_block: block.block_num,
-                            updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
-                        };
-                    }), ['assets_contract', 'collection_name', 'contract', 'list']);
+                if (!delta.present) {
+                    await db.delete('helpers_collection_list', {
+                        str: 'assets_contract = $1 AND contract = $2 AND list = $3',
+                        values: [core.args.atomicassets_account, atomicContract, listName]
+                    });
+                } else {
+                    const collectionsQuery = await db.query('SELECT collection_name FROM helpers_collection_list WHERE assets_contract = $1 AND contract = $2 AND list = $3',
+                        [core.args.atomicassets_account, atomicContract, listName]
+                    );
+
+                    const collections = collectionsQuery.rows.map(({ collection_name }) => collection_name);
+                    const addedCollections = differenceA(delta.value.list, collections);
+                    const deletedCollections = differenceA(collections, delta.value.list);
+
+                    await db.delete('helpers_collection_list', {
+                        str: 'assets_contract = $1 AND contract = $2 AND list = $3 AND collection_name = ANY($4)',
+                        values: [core.args.atomicassets_account, atomicContract, listName, deletedCollections]
+                    });
+
+                    if (addedCollections.length > 0) {
+                        await db.insert('helpers_collection_list', addedCollections.map(collection => {
+                            return {
+                                assets_contract: core.args.atomicassets_account,
+                                contract: atomicContract,
+                                list: listName,
+                                collection_name: collection,
+                                updated_at_block: block.block_num,
+                                updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
+                            };
+                        }), ['assets_contract', 'collection_name', 'contract', 'list']);
+                    }
                 }
             }
         }, HelpersUpdatePriority.TABLE_FEATURES.valueOf()

@@ -3,12 +3,30 @@ import * as express from 'express';
 import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
 import { filtersEndpoints } from './routes/filters';
+import { auctionsEndpoints } from './routes/auctions';
 import { neftyMarketComponents } from './openapi';
 import {ActionHandlerContext} from '../../actionhandler';
+import {ILimits} from '../../../types/config';
 
 export type NeftyMarketNamespaceArgs = {
     atomicassets_account: string,
+    connected_reader: string;
+    neftymarket_account: string;
+    limits?: ILimits;
 };
+
+export enum AuctionApiState {
+    WAITING = 0, // Auction created but assets were not transferred yet
+    LISTED = 1, // Auction pending and open to bids
+    CANCELED = 2, // Auction was canceled
+    SOLD = 3, // Auction has been sold
+    INVALID = 4 // Auction ended but no bid was made
+}
+
+export enum AuctionType {
+    ENGLISH = 0, // English auction where price goes up
+    DUTCH = 1, // Dutch auction where price goes down
+}
 
 export type NeftyMarketContext = ActionHandlerContext<NeftyMarketNamespaceArgs>;
 
@@ -35,6 +53,7 @@ export class NeftyMarketNamespace extends ApiNamespace {
 
         const endpointsDocs = [];
         endpointsDocs.push(filtersEndpoints(this, server, router));
+        endpointsDocs.push(auctionsEndpoints(this, server, router));
 
         for (const doc of endpointsDocs) {
             if (doc.tag) {

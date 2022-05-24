@@ -110,14 +110,15 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                     i.ingredient_index,
                     i.amount AS "required",
                     count(DISTINCT a.asset_id) AS "owned",
-                    least(i.amount, count(DISTINCT a.asset_id)) AS fulfilled
+                    least(i.amount, count(DISTINCT a.asset_id) + count(DISTINCT i.ingredient_index) FILTER (WHERE i.ingredient_type = 'FT_INGREDIENT')) AS fulfilled
                 FROM
                     neftyblends_blends b 
                     JOIN neftyblends_blend_ingredients i ON
-                        b.blend_id = i.blend_id
-                    JOIN atomicassets_assets a ON 
-                        (i.ingredient_type = 'TEMPLATE_INGREDIENT' AND a.template_id = i.template_id) OR
+                        b.blend_id = i.blend_id AND i.ingredient_type != 'TOKEN_INGREDIENT'
+                    LEFT JOIN atomicassets_assets a ON 
+                        ((i.ingredient_type = 'TEMPLATE_INGREDIENT' AND a.template_id = i.template_id) OR
                         (i.ingredient_type = 'SCHEMA_INGREDIENT' AND a.schema_name = i.schema_name AND a.collection_name = i.ingredient_collection_name) OR
+                        (i.ingredient_type = 'COLLECTION_INGREDIENT' AND a.collection_name = i.ingredient_collection_name) OR
                         (i.ingredient_type = 'ATTRIBUTE_INGREDIENT'
                             AND a.schema_name = i.schema_name AND a.collection_name = i.ingredient_collection_name 
                             AND is_ingredient_attribute_match(a.template_id, b.blend_id, i.ingredient_index, i.total_attributes)) OR
@@ -127,20 +128,16 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                             (
                                 (a.mutable_data->>i.balance_ingredient_attribute_name)::numeric >= i.balance_ingredient_cost
                             )
-                        )
-                WHERE`
+                        )) AND a.owner = ${'$' + (++queryVarCounter)} WHERE`
             ;
         // add `WHERE` conditions in filter subquery:
         {
             queryValues.push(args.ingredient_owner);
-            queryString += `
-                a.owner = $${++queryVarCounter}`
-            ;
 
             // blends in collection
             queryValues.push(args.collection_name);
             queryString += `
-                AND b.collection_name = $${++queryVarCounter}`
+                b.collection_name = $${++queryVarCounter}`
             ;
 
             if(args.contract !== ''){
@@ -173,6 +170,13 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                 AND b.category = $${++queryVarCounter}
             `;
             }
+            // sixpmblends contract does not work with filters because it
+            // the filters assume we only check template.immutable_data to determine
+            // if an asset satisfies the requirements of an ingredient, that is
+            // no the case for sixpm
+            queryString += `
+                AND b.contract <> '${ctx.coreArgs.sixpmblender_account}'
+            `;
         }
 
         queryString += `

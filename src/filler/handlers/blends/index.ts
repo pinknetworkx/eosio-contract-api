@@ -8,6 +8,8 @@ import { ATOMICASSETS_BASE_PRIORITY } from '../atomicassets';
 import DataProcessor from '../../processor';
 import {superBlendsProcessor, initSuperBlends} from './processors/superblends';
 import {blendsProcessor, initBlends} from './processors/blends';
+import {ConfigTableRow} from './types/tables';
+import {configProcessor} from './processors/config';
 
 export const BLENDS_BASE_PRIORITY = ATOMICASSETS_BASE_PRIORITY + 3000;
 
@@ -16,13 +18,17 @@ export type BlendsArgs = {
     nefty_blender_account: string,
     tag_blender_account: string,
     blenderizer_account: string,
+    store_config: boolean,
 };
 
 export enum BlendIngredientType {
     TEMPLATE_INGREDIENT = 'TEMPLATE_INGREDIENT',
     ATTRIBUTE_INGREDIENT = 'ATTRIBUTE_INGREDIENT',
     SCHEMA_INGREDIENT = 'SCHEMA_INGREDIENT',
-    BALANCE_INGREDIENT = 'BALANCE_INGREDIENT'
+    COLLECTION_INGREDIENT = 'COLLECTION_INGREDIENT',
+    BALANCE_INGREDIENT = 'BALANCE_INGREDIENT',
+    TYPED_ATTRIBUTE_INGREDIENT = 'TYPED_ATTRIBUTE_INGREDIENT',
+    FT_INGREDIENT = 'FT_INGREDIENT',
 }
 
 export enum BlendResultType {
@@ -36,26 +42,43 @@ export enum IngredientEffectType {
     TRANSFER_EFFECT = 'TRANSFER_EFFECT',
 }
 
+export enum BlendUpgradeRequirementType {
+    TEMPLATE_REQUIREMENT = 'TEMPLATE_REQUIREMENT',
+    TYPED_ATTRIBUTE_REQUIREMENT = 'TYPED_ATTRIBUTE_REQUIREMENT'
+}
+
+export enum BlendUpgradeResultValueType {
+    VALUE_ROLL_RESULT = 'VALUE_ROLL_RESULT',
+    IMMEDIATE_VALUE= 'IMMEDIATE_VALUE',
+}
+
+export enum BlendUpgradeImmediateType {
+    STRING = 'string',
+    UINT64 = 'uint64'
+}
+
 export enum BlendsUpdatePriority {
     TABLE_BLENDS = BLENDS_BASE_PRIORITY + 10,
     SET_ROLLS = BLENDS_BASE_PRIORITY + 20,
+    TABLE_VALUEROLL = BLENDS_BASE_PRIORITY + 30,
+    TABLE_CONFIG = BLENDS_BASE_PRIORITY + 30,
 }
 
 const views = [
-    'neftyblends_schema_details_master',
-    'neftyblends_template_details_master',
     'neftyblends_blend_details_master'
 ];
 
 const functions = [
     'neftyblends_blend_details_func',
-    'nefty_blends_attribute_match',
+    'neftyblends_attribute_match',
 ];
 
 export default class BlendsHandler extends ContractHandler {
     static handlerName = 'blends';
 
     declare readonly args: BlendsArgs;
+
+    config: ConfigTableRow;
 
     static async setup(client: PoolClient): Promise<boolean> {
         const existsQuery = await client.query(
@@ -86,7 +109,7 @@ export default class BlendsHandler extends ContractHandler {
     }
 
     static async upgrade(client: PoolClient, version: string): Promise<void> {
-        if (version === '1.3.15') {
+        if (version === '1.3.18') {
             const viewsToUpdate = ['neftyblends_blend_details_master'];
             const functionsToUpdate = ['neftyblends_blend_details_func'];
             for (const view of viewsToUpdate) {
@@ -116,11 +139,68 @@ export default class BlendsHandler extends ContractHandler {
         }
     }
 
-    async init(): Promise<void> {
+    async init(client: PoolClient): Promise<void> {
         try {
             await this.connection.database.begin();
             await initBlends(this.args, this.connection);
             await initSuperBlends(this.args, this.connection);
+
+            if (this.args.store_config) {
+                const configQuery = await client.query(
+                    'SELECT * FROM neftyblends_config WHERE contract = $1',
+                    [this.args.nefty_blender_account]
+                );
+
+                if (configQuery.rows.length === 0) {
+                    const configTable = await this.connection.chain.rpc.get_table_rows({
+                        json: true, code: this.args.nefty_blender_account,
+                        scope: this.args.nefty_blender_account, table: 'config'
+                    });
+
+                    if (configTable.rows.length === 0) {
+                        logger.warn('NeftyBlends: Unable to fetch blends config');
+                        this.config = {
+                            fee: 0,
+                            fee_recipient: '',
+                            supported_tokens: [],
+                        };
+                        return;
+                    }
+
+                    const config: ConfigTableRow = configTable.rows[0];
+
+                    await client.query(
+                        'INSERT INTO neftyblends_config ' +
+                        '(' +
+                        'contract, fee, fee_recipient) ' +
+                        'VALUES ($1, $2, $3)',
+                        [
+                            this.args.nefty_blender_account,
+                            config.fee,
+                            config.fee_recipient,
+                        ]
+                    );
+
+                    this.config = {
+                        ...config,
+                        supported_tokens: []
+                    };
+                } else {
+                    const tokensQuery = await this.connection.database.query(
+                        'SELECT * FROM neftyblends_tokens WHERE contract = $1',
+                        [this.args.nefty_blender_account]
+                    );
+
+                    this.config = {
+                        ...configQuery.rows[0],
+                        supported_tokens: tokensQuery.rows.map(row => ({
+                            contract: row.token_contract,
+                            sym: row.token_precision + ',' + row.token_symbol
+                        })),
+                    };
+                }
+            }
+
             await this.connection.database.query('COMMIT');
         } catch (error) {
             await this.connection.database.query('ROLLBACK');
@@ -147,6 +227,9 @@ export default class BlendsHandler extends ContractHandler {
         const destructors: Array<() => any> = [];
         destructors.push(superBlendsProcessor(this, processor));
         destructors.push(blendsProcessor(this, processor));
+        if (this.args.store_config) {
+            destructors.push(configProcessor(this, processor));
+        }
         return (): any => destructors.map(fn => fn());
     }
 }
