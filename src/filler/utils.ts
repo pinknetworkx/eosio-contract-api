@@ -9,7 +9,7 @@ export function encodeDatabaseJson(obj: any): string {
 }
 
 export function encodeDatabaseArray(array: any[]): string {
-    return `{ ${array.join(',')} }`;
+    return `ARRAY[${array.map(x => `'${x.replace(/\t/g, '\'||CHR(9)||\'')}'`).join(',')}]`;
 }
 
 export async function getAllRowsFromTable(rpc: JsonRpc, options: any, batchSize: number): Promise<any[]> {
