@@ -1,3 +1,5 @@
+DROP VIEW IF EXISTS neftyblends_blend_details_master;
+
 ALTER TABLE neftyblends_blend_ingredients ADD COLUMN IF NOT EXISTS ft_ingredient_quantity_price bigint;
 ALTER TABLE neftyblends_blend_ingredients ADD COLUMN IF NOT EXISTS ft_ingredient_quantity_symbol character varying(12);
 
