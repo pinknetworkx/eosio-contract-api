@@ -23,7 +23,7 @@ SELECT
             WHEN ingredient.ingredient_type = 'SCHEMA_INGREDIENT' THEN 'schema'
             WHEN ingredient.ingredient_type = 'COLLECTION_INGREDIENT' THEN 'collection'
             WHEN ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' THEN 'attributes'
-            WHEN ingredient.ingredient_type = 'BALANCE_INGREDIENT' THEN 'balance_ingredient'
+            WHEN ingredient.ingredient_type = 'BALANCE_INGREDIENT' THEN 'template'
             WHEN ingredient.ingredient_type = 'TYPED_ATTRIBUTE_INGREDIENT' THEN 'typed_attributes'
             WHEN ingredient.ingredient_type = 'FT_INGREDIENT' THEN 'ft_amount'
         END,
