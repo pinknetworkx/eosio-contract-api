@@ -10,7 +10,7 @@ const {client, txit} = initAtomicMarketTest();
 async function getSalesIds(values: RequestValues): Promise<Array<number>> {
     const testContext = getTestContext(client);
 
-    await client.query('SELECT update_atomicmarket_sales_filters()');
+    await client.refreshSalesFilters();
 
     const result = await getSalesTemplatesV2Action({
         symbol: 'TEST',
@@ -404,7 +404,7 @@ describe('AtomicMarket Sales API', () => {
             const {offer_id} = await client.createOfferAsset({}, {template_id});
             const {sale_id} = await client.createSale({offer_id});
 
-            await client.query('SELECT update_atomicmarket_sales_filters()');
+            await client.refreshSalesFilters();
 
             const testContext = getTestContext(client);
 

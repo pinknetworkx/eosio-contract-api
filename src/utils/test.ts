@@ -37,6 +37,17 @@ export class TestClient extends Client {
         });
     }
 
+    async createContractReader(values: Record<string, any> = {}): Promise<Record<string, any>> {
+        return await this.insert('contract_readers', {
+            name: 'test-default',
+            block_num: this.getId(),
+            block_time: this.getId(),
+            live: false,
+            updated: this.getId(),
+            ...values,
+        });
+    }
+
     protected async insert(table: string, data: Record<string, any>): Promise<Record<string, any>> {
         data = data || {};
 
