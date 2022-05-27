@@ -23,7 +23,7 @@ export async function getMarketAssetsAction(params: RequestValues, ctx: AtomicMa
         ctx.db, ctx.coreArgs.atomicassets_account,
         result,
         formatListingAsset, 'atomicmarket_assets_master',
-        buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true, fetchNeftyAuctions: true})
+        buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true, fetchNeftyAuctions: ctx.coreArgs.include_nefty_auctions})
     );
 }
 

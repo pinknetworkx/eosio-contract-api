@@ -27,6 +27,7 @@ export interface AtomicMarketNamespaceArgs {
     // optional
     atomicassets_account: string;
     delphioracle_account: string;
+    include_nefty_auctions: boolean;
 
     socket_features?: {
         asset_update?: boolean;
@@ -116,19 +117,19 @@ export class AtomicMarketNamespace extends ApiNamespace {
         const assetApi = new AssetApi(
             this, server, 'ListingAsset',
             'atomicassets_assets_master',
-            formatListingAsset, buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true, fetchNeftyAuctions: true})
+            formatListingAsset, buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true, fetchNeftyAuctions: this.args.include_nefty_auctions})
         );
         const transferApi = new TransferApi(
             this, server, 'ListingTransfer',
             'atomicassets_transfers_master', formatTransfer,
             'atomicassets_assets_master',
-            formatListingAsset, buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true, fetchNeftyAuctions: true})
+            formatListingAsset, buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true, fetchNeftyAuctions: this.args.include_nefty_auctions})
         );
         const offerApi = new OfferApi(
             this, server, 'ListingOffer',
             'atomicassets_offers_master', formatOffer,
             'atomicassets_assets_master',
-            formatListingAsset, buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true, fetchNeftyAuctions: true})
+            formatListingAsset, buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true, fetchNeftyAuctions: this.args.include_nefty_auctions})
         );
 
         endpointsDocs.push(assetsEndpoints(this, server, router));
