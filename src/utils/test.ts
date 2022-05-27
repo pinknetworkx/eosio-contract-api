@@ -94,6 +94,7 @@ export function getTestContext(db: DB, pathParams: RequestValues = {}): AtomicMa
             atomicmarket_account: 'amtest',
             atomicassets_account: 'aatest',
             delphioracle_account: 'dotest',
+            include_nefty_auctions: false,
 
             connected_reader: '',
 
