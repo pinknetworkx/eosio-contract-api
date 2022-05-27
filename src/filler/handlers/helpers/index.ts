@@ -59,10 +59,6 @@ export default class HelpersHandler extends ContractHandler {
         if (typeof args.features_account !== 'string') {
             throw new Error('Helpers: Argument missing in helpers handler: features_account');
         }
-
-        if (typeof args.hub_tools_account !== 'string') {
-            throw new Error('Helpers: Argument missing in helpers handler: hub_tools_account');
-        }
     }
 
     async init(): Promise<void> {

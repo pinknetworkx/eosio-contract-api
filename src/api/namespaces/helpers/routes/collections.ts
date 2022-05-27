@@ -4,7 +4,6 @@ import {HelpersNamespace} from '../index';
 import { HTTPServer } from '../../../server';
 import {
     getOpenAPI3Responses,
-    paginationParameters,
 } from '../../../docs';
 import {getCollectionsAction} from '../handlers/collections';
 

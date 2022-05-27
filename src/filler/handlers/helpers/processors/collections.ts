@@ -17,34 +17,38 @@ export async function initCollections(args: CollectionsListArgs, connection: Con
     );
 
     if (featuresQuery.rows.length === 0) {
+
+        let databaseRows: any[] = [];
+
         const featuresTable = await connection.chain.rpc.get_table_rows({
             json: true, code: args.features_account,
             scope: args.features_account, table: 'features'
         });
 
-        const atomicAccountsTable = await connection.chain.rpc.get_table_rows({
-            json: true, code: args.hub_tools_account,
-            scope: args.hub_tools_account, table: 'acclists'
-        });
+        databaseRows = databaseRows.concat(featuresTable.rows.filter(list => list.list.match(neftyCollectionListRegex)).flatMap((row: FeaturesTableRow) => {
+            return [...new Set(row.collections)].map(collection => ({
+                assets_contract: args.atomicassets_account,
+                contract: args.features_account,
+                list: convertCollectionListName(args.features_account, row.list, args),
+                collection_name: collection,
+            }));
+        }));
 
-        const databaseRows = [
-            ...featuresTable.rows.filter(list => list.list.match(neftyCollectionListRegex)).flatMap((row: FeaturesTableRow) => {
-                return [...new Set(row.collections)].map(collection => ({
-                    assets_contract: args.atomicassets_account,
-                    contract: args.features_account,
-                    list: convertCollectionListName(args.features_account, row.list, args),
-                    collection_name: collection,
-                }));
-            }),
-            ...atomicAccountsTable.rows.filter(list => list.list_name.match(atomicCollectionListRegex)).flatMap((row: AccListTableRow) => {
+        if (args.hub_tools_account) {
+            const atomicAccountsTable = await connection.chain.rpc.get_table_rows({
+                json: true, code: args.hub_tools_account,
+                scope: args.hub_tools_account, table: 'acclists'
+            });
+
+            databaseRows = databaseRows.concat(...atomicAccountsTable.rows.filter(list => list.list_name.match(atomicCollectionListRegex)).flatMap((row: AccListTableRow) => {
                 return [...new Set(row.list)].filter(collection => collection.length <= 13).map(collection => ({
                     assets_contract: args.atomicassets_account,
                     contract: args.hub_tools_account,
                     list: convertCollectionListName(args.hub_tools_account, row.list_name, args),
                     collection_name: collection,
                 }));
-            }),
-        ];
+            }));
+        }
 
         let varCounter = 0;
         const values = databaseRows.map(() =>
@@ -122,47 +126,49 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
         }, HelpersUpdatePriority.TABLE_FEATURES.valueOf()
     ));
 
-    destructors.push(processor.onContractRow(
-        atomicContract, 'acclists',
-        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<AccListTableRow>): Promise<void> => {
-            if (delta.value.list_name.match(atomicCollectionListRegex)) {
-                const listName = convertCollectionListName(atomicContract, delta.value.list_name, core.args);
+    if (atomicContract) {
+        destructors.push(processor.onContractRow(
+            atomicContract, 'acclists',
+            async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<AccListTableRow>): Promise<void> => {
+                if (delta.value.list_name.match(atomicCollectionListRegex)) {
+                    const listName = convertCollectionListName(atomicContract, delta.value.list_name, core.args);
 
-                if (!delta.present) {
-                    await db.delete('helpers_collection_list', {
-                        str: 'assets_contract = $1 AND contract = $2 AND list = $3',
-                        values: [core.args.atomicassets_account, atomicContract, listName]
-                    });
-                } else {
-                    const collectionsQuery = await db.query('SELECT collection_name FROM helpers_collection_list WHERE assets_contract = $1 AND contract = $2 AND list = $3',
-                        [core.args.atomicassets_account, atomicContract, listName]
-                    );
+                    if (!delta.present) {
+                        await db.delete('helpers_collection_list', {
+                            str: 'assets_contract = $1 AND contract = $2 AND list = $3',
+                            values: [core.args.atomicassets_account, atomicContract, listName]
+                        });
+                    } else {
+                        const collectionsQuery = await db.query('SELECT collection_name FROM helpers_collection_list WHERE assets_contract = $1 AND contract = $2 AND list = $3',
+                            [core.args.atomicassets_account, atomicContract, listName]
+                        );
 
-                    const collections = collectionsQuery.rows.map(({ collection_name }) => collection_name);
-                    const addedCollections = differenceA(delta.value.list, collections);
-                    const deletedCollections = differenceA(collections, delta.value.list);
+                        const collections = collectionsQuery.rows.map(({ collection_name }) => collection_name);
+                        const addedCollections = differenceA(delta.value.list, collections);
+                        const deletedCollections = differenceA(collections, delta.value.list);
 
-                    await db.delete('helpers_collection_list', {
-                        str: 'assets_contract = $1 AND contract = $2 AND list = $3 AND collection_name = ANY($4)',
-                        values: [core.args.atomicassets_account, atomicContract, listName, deletedCollections]
-                    });
+                        await db.delete('helpers_collection_list', {
+                            str: 'assets_contract = $1 AND contract = $2 AND list = $3 AND collection_name = ANY($4)',
+                            values: [core.args.atomicassets_account, atomicContract, listName, deletedCollections]
+                        });
 
-                    if (addedCollections.length > 0) {
-                        await db.insert('helpers_collection_list', addedCollections.map(collection => {
-                            return {
-                                assets_contract: core.args.atomicassets_account,
-                                contract: atomicContract,
-                                list: listName,
-                                collection_name: collection,
-                                updated_at_block: block.block_num,
-                                updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
-                            };
-                        }), ['assets_contract', 'collection_name', 'contract', 'list']);
+                        if (addedCollections.length > 0) {
+                            await db.insert('helpers_collection_list', addedCollections.map(collection => {
+                                return {
+                                    assets_contract: core.args.atomicassets_account,
+                                    contract: atomicContract,
+                                    list: listName,
+                                    collection_name: collection,
+                                    updated_at_block: block.block_num,
+                                    updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
+                                };
+                            }), ['assets_contract', 'collection_name', 'contract', 'list']);
+                        }
                     }
                 }
-            }
-        }, HelpersUpdatePriority.TABLE_FEATURES.valueOf()
-    ));
+            }, HelpersUpdatePriority.TABLE_FEATURES.valueOf()
+        ));
+    }
 
     return (): any => destructors.map(fn => fn());
 }
