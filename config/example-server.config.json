@@ -30,6 +30,7 @@
       "args": {
         "atomicassets_account": "atomicassets",
         "connected_reader": "atomic-1",
+        "include_nefty_auctions": false,
         "socket_features": {
           "asset_update": false
         },
