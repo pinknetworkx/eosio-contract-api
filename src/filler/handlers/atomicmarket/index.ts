@@ -293,11 +293,13 @@ export default class AtomicMarketHandler extends ContractHandler {
             );
         });
 
-        this.filler.jobs.add('refresh_atomicmarket_sales_filters_price', 90_000, JobQueuePriority.MEDIUM, async () => {
+        this.filler.jobs.add('update_atomicmarket_stats_market', 60_000, JobQueuePriority.MEDIUM, async () => {
             await this.connection.database.query(
                 'SELECT update_atomicmarket_stats_market()'
             );
+        });
 
+        this.filler.jobs.add('update_atomicmarket_template_prices', 60_000 * 60, JobQueuePriority.MEDIUM, async () => {
             await this.connection.database.query(
                 'SELECT update_atomicmarket_template_prices()'
             );
