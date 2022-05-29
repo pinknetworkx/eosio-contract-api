@@ -13,4 +13,3 @@ CREATE INDEX atomicmarket_template_prices_suggested_average ON atomicmarket_temp
 CREATE INDEX atomicmarket_template_prices_min ON atomicmarket_template_prices USING btree ("min");
 CREATE INDEX atomicmarket_template_prices_max ON atomicmarket_template_prices USING btree ("max");
 CREATE INDEX atomicmarket_template_prices_sales ON atomicmarket_template_prices USING btree (sales);
-
