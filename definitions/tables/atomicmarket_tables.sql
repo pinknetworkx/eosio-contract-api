@@ -306,4 +306,4 @@ CREATE INDEX atomicmarket_stats_markets_price ON atomicmarket_stats_markets USIN
 CREATE INDEX atomicmarket_stats_markets_time ON atomicmarket_stats_markets USING btree ("time");
 CREATE INDEX atomicmarket_stats_markets_asset_id ON atomicmarket_stats_markets USING btree ("asset_id");
 CREATE INDEX atomicmarket_stats_markets_schema_name ON atomicmarket_stats_markets USING btree ("schema_name");
-CREATE INDEX atomicmarket_stats_markets_template_id ON atomicmarket_stats_markets USING btree ("template_id");
+CREATE INDEX atomicmarket_stats_markets_template_id_time ON atomicmarket_stats_markets (template_id, time);

@@ -41,7 +41,7 @@ describe('AtomicMarket Assets API', () => {
                 template_id: template_id2,
             });
 
-            await client.query('REFRESH MATERIALIZED VIEW atomicmarket_template_prices');
+            await client.refreshTemplatePrices();
 
             expect(await getAssetIds({sort: 'suggested_median_price', asset_id: `${asset_id1},${asset_id2}`}))
                 .to.deep.equal([asset_id1, asset_id2]);
@@ -69,7 +69,7 @@ describe('AtomicMarket Assets API', () => {
                 template_id: template_id2,
             });
 
-            await client.query('REFRESH MATERIALIZED VIEW atomicmarket_template_prices');
+            await client.refreshTemplatePrices();
 
             expect(await getAssetIds({sort: 'suggested_average_price', asset_id: `${asset_id1},${asset_id2}`}))
                 .to.deep.equal([asset_id1, asset_id2]);
@@ -97,7 +97,7 @@ describe('AtomicMarket Assets API', () => {
                 template_id: template_id2,
             });
 
-            await client.query('REFRESH MATERIALIZED VIEW atomicmarket_template_prices');
+            await client.refreshTemplatePrices();
 
             expect(await getAssetIds({sort: 'median_price', asset_id: `${asset_id1},${asset_id2}`}))
                 .to.deep.equal([asset_id1, asset_id2]);
@@ -125,7 +125,7 @@ describe('AtomicMarket Assets API', () => {
                 template_id: template_id2,
             });
 
-            await client.query('REFRESH MATERIALIZED VIEW atomicmarket_template_prices');
+            await client.refreshTemplatePrices();
 
             expect(await getAssetIds({sort: 'average_price', asset_id: `${asset_id1},${asset_id2}`}))
                 .to.deep.equal([asset_id1, asset_id2]);

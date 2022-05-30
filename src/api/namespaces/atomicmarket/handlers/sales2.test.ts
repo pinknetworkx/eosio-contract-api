@@ -15,7 +15,7 @@ async function getSalesIds(values: RequestValues, options = {refresh: true}): Pr
     const testContext = getTestContext(client);
 
     if (options.refresh) {
-        await client.query('SELECT update_atomicmarket_sales_filters()');
+        await client.refreshSalesFilters();
     }
 
     const result = await getSalesV2Action(values, testContext);
@@ -69,7 +69,7 @@ describe('AtomicMarket Sales API', () => {
                 state: SaleState.LISTED,
             });
 
-            await client.query('SELECT update_atomicmarket_sales_filters()');
+            await client.refreshSalesFilters();
 
             await client.query(`UPDATE atomicmarket_sales SET state = ${SaleState.SOLD} WHERE sale_id = $1`, [sale_id2]);
 
@@ -680,7 +680,7 @@ describe('AtomicMarket Sales API', () => {
 
             const testContext = getTestContext(client);
 
-            await client.query('SELECT update_atomicmarket_sales_filters()');
+            await client.refreshSalesFilters();
 
             const result = await getSalesV2Action({ids: `${sale_id}`, count: 'true'}, testContext);
 
@@ -768,7 +768,7 @@ describe('AtomicMarket Sales API', () => {
 
             const testContext = getTestContext(client);
 
-            await client.query('SELECT update_atomicmarket_sales_filters()');
+            await client.refreshSalesFilters();
 
             const [result] = await getSalesV2Action({}, testContext);
 
