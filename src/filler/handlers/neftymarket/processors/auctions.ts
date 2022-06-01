@@ -153,7 +153,7 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
         updated_at_block: block.block_num,
         updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
         claimed_by_buyer: auctionType === AuctionType.DUTCH || (buyNowPrice > 0 && bidAmount >= buyNowPrice),
-        claimed_by_seller: auctionType === AuctionType.DUTCH || (buyNowPrice > 0 && bidAmount >= buyNowPrice),
+        claimed_by_seller: false,
       }, {
         str: 'market_contract = $1 AND auction_id = $2',
         values: [contract, trace.act.data.auction_id]
