@@ -142,9 +142,13 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
       const {
         auction_type: auctionType,
         buy_now_price: buyNowPrice,
+        state,
       } = auction.rows[0];
 
       const bidAmount = preventInt64Overflow(trace.act.data.bid_amount.split(' ')[0].replace('.', ''));
+      const dutchAuction = auctionType == AuctionType.DUTCH;
+      const buyNowPricePaid = (buyNowPrice > 0 && bidAmount >= buyNowPrice);
+      const newState = dutchAuction || buyNowPricePaid ? AuctionState.SOLD.valueOf() : state;
       await db.update('neftymarket_auctions', {
         buyer: trace.act.data.bidder,
         price: bidAmount,
@@ -152,8 +156,9 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
         taker_marketplace: trace.act.data.marketplace || '',
         updated_at_block: block.block_num,
         updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
-        claimed_by_buyer: auctionType == AuctionType.DUTCH || (buyNowPrice > 0 && bidAmount >= buyNowPrice),
-        claimed_by_seller: auctionType == AuctionType.DUTCH || (buyNowPrice > 0 && bidAmount >= buyNowPrice),
+        claimed_by_buyer: dutchAuction || buyNowPricePaid,
+        claimed_by_seller: dutchAuction || buyNowPricePaid,
+        state: newState,
       }, {
         str: 'market_contract = $1 AND auction_id = $2',
         values: [contract, trace.act.data.auction_id]

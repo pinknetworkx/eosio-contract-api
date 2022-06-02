@@ -25,7 +25,8 @@ export type NeftyMarketArgs = {
 
 export enum AuctionState {
     LISTED = 1,
-    CANCELED = 2
+    CANCELED = 2,
+    SOLD = 3
 }
 
 export enum NeftyMarketUpdatePriority {
