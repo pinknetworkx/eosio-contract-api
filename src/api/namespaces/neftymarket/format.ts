@@ -14,7 +14,9 @@ export function formatAuction(row: any): any {
         data.state = AuctionApiState.CANCELED.valueOf();
     } else if (row.auction_state === AuctionState.LISTED.valueOf() && row.end_time <= Date.now() && row.buyer !== null) {
         data.state = AuctionApiState.SOLD.valueOf();
-    } else if (row.auction_state !== AuctionApiState.SOLD.valueOf()) {
+    } else if (row.auction_state === AuctionState.SOLD.valueOf()) {
+        data.state = AuctionApiState.SOLD.valueOf();
+    } else {
         data.state = AuctionApiState.INVALID.valueOf();
     }
 
