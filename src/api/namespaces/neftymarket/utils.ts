@@ -190,11 +190,19 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
         query.equal('listing.token_symbol', args.symbol);
 
         if (args.min_price) {
-            query.addCondition('listing.price >= 1.0 * ' + query.addVariable(args.min_price) + ' * POWER(10, "token".token_precision)');
+            const englishAuctionCondition = 
+                `listing.auction_type = ${AuctionType.ENGLISH.valueOf()} AND ` + 'listing.price >= 1.0 * ' + query.addVariable(args.min_price) + ' * POWER(10, "token".token_precision)';
+            const dutchAuctionCondition = 
+                `listing.auction_type = ${AuctionType.DUTCH.valueOf()} AND ` + 'price.buy_now_price >= 1.0 * ' + query.addVariable(args.min_price) + ' * POWER(10, "token".token_precision)';
+            query.addCondition(`((${englishAuctionCondition}) OR (${dutchAuctionCondition}))`);
         }
 
         if (args.max_price) {
-            query.addCondition('listing.price <= 1.0 * ' + query.addVariable(args.max_price) + ' * POWER(10, "token".token_precision)');
+            const englishAuctionCondition = 
+                `listing.auction_type = ${AuctionType.ENGLISH.valueOf()} AND ` + 'listing.price <= 1.0 * ' + query.addVariable(args.max_price) + ' * POWER(10, "token".token_precision)';
+            const dutchAuctionCondition = 
+                `listing.auction_type = ${AuctionType.DUTCH.valueOf()} AND ` + 'price.buy_now_price <= 1.0 * ' + query.addVariable(args.max_price) + ' * POWER(10, "token".token_precision)';
+            query.addCondition(`((${englishAuctionCondition}) OR (${dutchAuctionCondition}))`);
         }
 
         if (args.min_buy_now_price) {
