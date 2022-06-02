@@ -89,7 +89,7 @@
       "path": "/neftydrops",
       "args": {
         "neftydrops_account": "neftyblocksd",
-        "neftymarket_name": "neftyblocksm",
+        "neftymarket_name": "market.nefty",
         "atomicassets_account": "atomicassets"
       }
     },
@@ -98,6 +98,14 @@
       "path": "/neftyblends",
       "args": {
         "atomicassets_account": "atomicassets"
+      }
+    },
+    {
+      "name": "neftymarket",
+      "path": "/neftymarket",
+      "args": {
+        "atomicassets_account": "atomicassets",
+        "neftymarket_account": "market.nefty"
       }
     }
   ]
