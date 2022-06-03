@@ -145,7 +145,7 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
         state,
       } = auction.rows[0];
 
-      const bidAmount = BigInt(preventInt64Overflow(trace.act.data.bid_amount.split(' ')[0].replace('.', '')));
+      const bidAmount = +preventInt64Overflow(trace.act.data.bid_amount.split(' ')[0].replace('.', ''));
       const dutchAuction = auctionType === AuctionType.DUTCH.valueOf();
       const buyNowPricePaid = (buyNowPrice > 0 && bidAmount >= buyNowPrice);
       const newState = dutchAuction || buyNowPricePaid ? AuctionState.SOLD.valueOf()
