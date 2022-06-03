@@ -43,5 +43,26 @@ CREATE OR REPLACE VIEW atomicmarket_stats_prices_master AS
                 buyoffer.state = 3
             GROUP BY buyoffer.market_contract, buyoffer.buyoffer_id
             HAVING COUNT(*) = 1
+       ) UNION ALL (
+           SELECT
+                nefty_auction.market_contract, 'auction' listing_type, nefty_auction.auction_id listing_id,
+                nefty_auction.assets_contract, nefty_auction.collection_name,
+                MIN(asset.schema_name) schema_name, MIN(asset.template_id) template_id, MIN(asset.asset_id) asset_id,
+                nefty_auction.token_symbol symbol, nefty_auction.price, (nefty_auction.end_time * 1000) "time"
+            FROM
+                atomicassets_assets asset, neftymarket_auctions_assets nefty_auction_asset, neftymarket_auctions nefty_auction
+            WHERE
+                nefty_auction.assets_contract = nefty_auction_asset.assets_contract AND 
+                nefty_auction.auction_id = nefty_auction_asset.auction_id AND
+                nefty_auction_asset.assets_contract = asset.contract AND nefty_auction_asset.asset_id = asset.asset_id AND
+                (
+                -- DUTCH auction sold
+                (nefty_auction.buyer IS NOT NULL AND nefty_auction.auction_type = 1)
+                    OR
+                -- ENGLISH auction bid and ended
+                (nefty_auction.buyer IS NOT NULL AND nefty_auction.end_time <= extract(epoch from now()))
+                )
+            GROUP BY nefty_auction.market_contract, nefty_auction.auction_id
+            HAVING COUNT(*) = 1
        )
     ) t1
