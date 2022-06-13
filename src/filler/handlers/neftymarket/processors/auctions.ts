@@ -67,7 +67,6 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
     destructors.push(processor.onContractRow(
         contract, 'auctions',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<AuctionsTableRow>): Promise<void> => {
-            console.log('onContractRow auctions', delta);
             const end_time = delta.present ? delta.value.end_time * 1000 : Date.now();
             await db.update('neftymarket_auctions', {
                 end_time: end_time,
@@ -150,10 +149,7 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
       const buyNowPricePaid = buyNowPrice > 0 && bidAmount >= buyNowPrice;
       const newState = dutchAuction || buyNowPricePaid ? AuctionState.SOLD.valueOf()
         : state || AuctionState.LISTED.valueOf();
-      
-      console.log('auctionType', typeof auctionType, auctionType);
-      console.log('AuctionType.DUTCH.valueOf()', typeof AuctionType.DUTCH.valueOf(), AuctionType.DUTCH.valueOf());
-      console.log('dutchAuction', dutchAuction);
+
       await db.update('neftymarket_auctions', {
         buyer: trace.act.data.bidder,
         price: bidAmount,
@@ -184,7 +180,6 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
         created_at_block: block.block_num,
         created_at_time: eosioTimestampToDate(block.timestamp).getTime()
       }, ['market_contract', 'auction_id', 'bid_number']);
-      console.log('Finished bidding updates', trace);
       notifier.sendActionTrace('auctions', block, tx, trace);
     };
 
