@@ -67,12 +67,10 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
     destructors.push(processor.onContractRow(
         contract, 'auctions',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<AuctionsTableRow>): Promise<void> => {
-            console.log("seems like this is notified and updates again the claimed_by fields");
-            console.log(delta);
+            console.log('onContractRow auctions', delta);
+            const end_time = delta.present ? delta.value.end_time * 1000 : Date.now();
             await db.update('neftymarket_auctions', {
-                end_time: delta.value.end_time * 1000,
-                claimed_by_buyer: delta.value.claimed_assets,
-                claimed_by_seller: delta.value.claimed_win_bid,
+                end_time: end_time,
                 updated_at_block: block.block_num,
                 updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
             }, {
@@ -183,7 +181,7 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
         created_at_block: block.block_num,
         created_at_time: eosioTimestampToDate(block.timestamp).getTime()
       }, ['market_contract', 'auction_id', 'bid_number']);
-
+      console.log('Finished bidding updates', trace);
       notifier.sendActionTrace('auctions', block, tx, trace);
     };
 
