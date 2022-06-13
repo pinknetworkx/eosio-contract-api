@@ -151,6 +151,10 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
       const newState = dutchAuction || buyNowPricePaid ? AuctionState.SOLD.valueOf()
         : state || AuctionState.LISTED.valueOf();
       
+      console.log('dutchAuction', dutchAuction);
+      console.log('bidAmount', bidAmount);
+      console.log('buyNowPricePaid', buyNowPricePaid);
+      console.log('newState', newState);
       await db.update('neftymarket_auctions', {
         buyer: trace.act.data.bidder,
         price: bidAmount,
