@@ -67,6 +67,8 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
     destructors.push(processor.onContractRow(
         contract, 'auctions',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<AuctionsTableRow>): Promise<void> => {
+            console.log("seems like this is notified and updates again the claimed_by fields");
+            console.log(delta);
             await db.update('neftymarket_auctions', {
                 end_time: delta.value.end_time * 1000,
                 claimed_by_buyer: delta.value.claimed_assets,
@@ -147,7 +149,7 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
 
       const bidAmount = +preventInt64Overflow(trace.act.data.bid_amount.split(' ')[0].replace('.', ''));
       const dutchAuction = auctionType === AuctionType.DUTCH.valueOf();
-      const buyNowPricePaid = (buyNowPrice > 0 && bidAmount >= buyNowPrice);
+      const buyNowPricePaid = buyNowPrice > 0 && bidAmount >= buyNowPrice;
       const newState = dutchAuction || buyNowPricePaid ? AuctionState.SOLD.valueOf()
         : state || AuctionState.LISTED.valueOf();
       
