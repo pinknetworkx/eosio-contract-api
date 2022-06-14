@@ -56,7 +56,8 @@ export default class QueryBuilder {
         }
 
         if (values.length > 10) {
-            this.conditions.push(`EXISTS (SELECT FROM UNNEST(${this.addVariable(values)}::${isWeakIntArray(values) ? 'BIGINT' : 'TEXT'}[]) u(c) WHERE u.c = ${column})`);
+            const isNumber = !column.endsWith('collection_name') && isWeakIntArray(values);
+            this.conditions.push(`EXISTS (SELECT FROM UNNEST(${this.addVariable(values)}::${isNumber ? 'BIGINT' : 'TEXT'}[]) u(c) WHERE u.c = ${column})`);
         } else {
             this.conditions.push(`${column} = ANY(${this.addVariable(values)})`);
         }
