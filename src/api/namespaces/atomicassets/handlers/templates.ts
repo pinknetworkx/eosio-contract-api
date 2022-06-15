@@ -157,7 +157,7 @@ export async function getTemplateAction(params: RequestValues, ctx: AtomicAssets
 export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const query = await ctx.db.query(
         `SELECT SUM(assets) AS assets, SUM(burned) AS burned
-                FROM atomicassets_template_counts
+                FROM atomicassets_asset_counts
                 WHERE contract = $1 AND template_id = $2`,
         [ctx.coreArgs.atomicassets_account, ctx.pathParams.template_id]
     );
