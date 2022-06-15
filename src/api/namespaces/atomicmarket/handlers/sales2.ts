@@ -197,7 +197,7 @@ function buildAssetFilterV2(search: SalesSearchOptions): void {
     for (const name of names) {
         query.addCondition(
             'listing.asset_names ILIKE ' +
-            query.addVariable('%' + name.replace('%', '\\%').replace('_', '\\_') + '%')
+            query.addVariable('%' + query.escapeLikeVariable(name) + '%')
         );
         // postgres makes the right decision on whether to use the asset_names index or the order index based
         // on how common the keyword is, so we don't force it to use the asset_names index here

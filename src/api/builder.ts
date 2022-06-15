@@ -139,6 +139,10 @@ export default class QueryBuilder {
         return this;
     }
 
+    escapeLikeVariable(s: string): string {
+        return s.replace('%', '\\%').replace('_', '\\_');
+    }
+
     buildString(): string {
         let queryString = this.baseQuery + ' ';
 

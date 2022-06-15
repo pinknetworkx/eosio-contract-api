@@ -66,7 +66,7 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
 
     if (args.match_memo) {
         query.addCondition(
-            'memo ILIKE ' + query.addVariable('%' + args.match_memo.replace('%', '\\%').replace('_', '\\_') + '%')
+            'memo ILIKE ' + query.addVariable('%' + query.escapeLikeVariable(args.match_memo) + '%')
         );
     }
 

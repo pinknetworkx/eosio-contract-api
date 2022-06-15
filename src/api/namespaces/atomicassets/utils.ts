@@ -78,7 +78,7 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
             query.addCondition(
                 options.assetTable + '.immutable_data->>\'name\' IS NOT NULL AND ' +
                 options.assetTable + '.immutable_data->>\'name\' ILIKE ' +
-                query.addVariable('%' + values.match_immutable_name.replace('%', '\\%').replace('_', '\\_') + '%')
+                query.addVariable('%' + query.escapeLikeVariable(values.match_immutable_name) + '%')
             );
         }
 
@@ -86,7 +86,7 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
             query.addCondition(
                 options.assetTable + '.mutable_data->>\'name\' IS NOT NULL AND ' +
                 options.assetTable + '.mutable_data->>\'name\' ILIKE ' +
-                query.addVariable('%' + values.match_mutable_name.replace('%', '\\%').replace('_', '\\_') + '%')
+                query.addVariable('%' + query.escapeLikeVariable(values.match_mutable_name) + '%')
             );
         }
     }
@@ -100,7 +100,7 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
             query.addCondition(
                 options.templateTable + '.immutable_data->>\'name\' IS NOT NULL AND ' +
                 options.templateTable + '.immutable_data->>\'name\' ILIKE ' +
-                query.addVariable('%' + values.match.replace('%', '\\%').replace('_', '\\_') + '%')
+                query.addVariable('%' + query.escapeLikeVariable(values.match) + '%')
             );
         }
 

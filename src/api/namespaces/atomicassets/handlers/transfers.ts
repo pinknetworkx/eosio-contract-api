@@ -50,7 +50,7 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
 
     if (args.match_memo) {
         query.addCondition(
-            'memo ILIKE ' + query.addVariable('%' + args.match_memo.replace('%', '\\%').replace('_', '\\_') + '%')
+            'memo ILIKE ' + query.addVariable('%' + query.escapeLikeVariable(args.match_memo) + '%')
         );
     }
 
