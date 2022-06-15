@@ -275,24 +275,6 @@ export default class AtomicAssetsHandler extends ContractHandler {
             );
         });
 
-        this.filler.jobs.add('update atomicassets_schemas.has_owned_assets', 60 * 60 * 12, JobQueuePriority.LOW, async () => {
-            await this.connection.database.query(
-                `
-                UPDATE atomicassets_schemas "schema"
-                    SET has_owned_assets = TRUE
-                WHERE has_owned_assets IS DISTINCT FROM TRUE
-                    AND (collection_name, schema_name) IN (
-                        SELECT DISTINCT collection_name, schema_name FROM atomicassets_assets asset
-                        WHERE "owner" IS NOT NULL
-                            AND updated_at_block <= $2
-                            AND contract = $1
-                    )
-                    AND contract = $1
-                `,
-                [this.args.atomicassets_account, this.filler.reader.lastIrreversibleBlock]
-            );
-        });
-
         return (): any => destructors.map(fn => fn());
     }
 }

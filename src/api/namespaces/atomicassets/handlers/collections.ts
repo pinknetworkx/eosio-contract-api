@@ -131,12 +131,12 @@ export async function getCollectionStatsAction(params: RequestValues, ctx: Atomi
 
 export async function getCollectionSchemasAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const query = await ctx.db.query(
-        `SELECT schema_name FROM atomicassets_schemas "schema"
-                WHERE contract = $1 AND collection_name = $2 AND (has_owned_assets OR EXISTS (
-                    SELECT * FROM atomicassets_assets asset 
-                    WHERE asset.contract = "schema".contract AND asset.collection_name = "schema".collection_name AND 
-                        asset.schema_name = "schema".schema_name AND "owner" IS NOT NULL
-                ))`,
+        `
+        SELECT schema_name FROM atomicassets_asset_counts
+        WHERE contract = $1 AND collection_name = $2
+        GROUP BY schema_name
+        HAVING SUM(owned) > 0
+        `,
         [ctx.coreArgs.atomicassets_account, ctx.pathParams.collection_name]
     );
 
