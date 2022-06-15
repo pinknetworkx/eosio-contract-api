@@ -108,16 +108,16 @@ export async function getCollectionStatsAction(params: RequestValues, ctx: Atomi
             SELECT
                 template_id,
                 schema_name,
-                COUNT(*) total,
-                COUNT(*) FILTER (WHERE owner IS NULL) burned
-            FROM atomicassets_assets
+                SUM(assets) assets,
+                SUM(burned) burned
+            FROM atomicassets_asset_counts
             WHERE contract = $1
                 AND collection_name = $2
             GROUP BY template_id, schema_name
         )
         
         SELECT
-            (SELECT SUM(total) FROM assets) assets,
+            (SELECT SUM(assets) FROM assets) assets,
             (SELECT SUM(burned) FROM assets) burned,
             ARRAY(SELECT jsonb_build_object('template_id', template_id, 'burned', SUM(burned)) FROM assets GROUP BY template_id HAVING SUM(burned) > 0) burned_by_template,
             ARRAY(SELECT jsonb_build_object('schema_name', schema_name, 'burned', SUM(burned)) FROM assets GROUP BY schema_name HAVING SUM(burned) > 0) burned_by_schema,

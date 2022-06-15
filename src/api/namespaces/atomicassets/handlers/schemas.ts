@@ -93,11 +93,11 @@ export async function getSchemaStatsAction(params: RequestValues, ctx: AtomicAss
     const query = await ctx.db.query(`
         WITH asset_counts AS (
             SELECT
-                COUNT(*) assets,
-                COUNT(*) FILTER (WHERE owner IS NULL) burned
-            FROM atomicassets_assets
+                SUM(assets) assets,
+                SUM(burned) burned
+            FROM atomicassets_asset_counts
             WHERE contract = $1
-                AND collection_name || '' = $2 -- prevent collection index usage because the schema index is better
+                AND collection_name = $2
                 AND schema_name = $3
         )
         SELECT
