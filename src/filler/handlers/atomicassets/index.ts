@@ -247,7 +247,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
             destructors.push(logProcessor(this, processor));
         }
 
-        this.filler.jobs.add('update atomicassets_template_counts', 60 * 10 * 1000, JobQueuePriority.LOW, async () => {
+        this.filler.jobs.add('update atomicassets_template_counts', 60 * 10, JobQueuePriority.LOW, async () => {
             await this.connection.database.query(
                 'WITH del AS ( ' +
                     'DELETE FROM atomicassets_template_counts ' +
@@ -265,7 +265,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
             );
         });
 
-        this.filler.jobs.add('update_atomicassets_mints', 30_000, JobQueuePriority.MEDIUM, async () => {
+        this.filler.jobs.add('update_atomicassets_mints', 30, JobQueuePriority.MEDIUM, async () => {
             await this.connection.database.query(
                 'CALL update_atomicassets_mints($1, $2)',
                 [this.args.atomicassets_account, this.filler.reader.lastIrreversibleBlock]
