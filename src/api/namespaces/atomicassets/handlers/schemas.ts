@@ -79,7 +79,11 @@ export async function getSchemaAction(params: RequestValues, ctx: AtomicAssetsCo
     );
 
     if (query.rowCount === 0) {
-        throw new ApiError('Schema not found', 416);
+        throw new ApiError('Schema not found', 404);
+    }
+
+    if (query.rows[0].collection_name !== ctx.pathParams.collection_name) {
+        throw new ApiError('Schema not found', 404);
     }
 
     return formatSchema(query.rows[0]);

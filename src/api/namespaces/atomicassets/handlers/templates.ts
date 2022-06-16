@@ -144,7 +144,11 @@ export async function getTemplateAction(params: RequestValues, ctx: AtomicAssets
     );
 
     if (query.rowCount === 0) {
-        throw new ApiError('Template not found', 416);
+        throw new ApiError('Template not found', 404);
+    }
+
+    if (query.rows[0].collection_name !== ctx.pathParams.collection_name) {
+        throw new ApiError('Template not found', 404);
     }
 
     return formatTemplate(query.rows[0]);
