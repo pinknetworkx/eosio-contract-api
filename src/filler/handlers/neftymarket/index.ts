@@ -55,10 +55,6 @@ export default class NeftyMarketHandler extends ContractHandler {
         const views = [
             'neftymarket_auctions_master',
             'neftymarket_assets_master',
-            'neftymarket_sales_master',
-            'neftymarket_sale_prices_master',
-            'neftymarket_stats_prices_master',
-            'neftymarket_template_prices_master',
         ];
 
         const materializedViews = ['neftymarket_auction_prices'];
