@@ -188,7 +188,7 @@ export async function getAccountStatsAction(params: RequestValues, ctx: NeftyMar
     return {symbol, result: query.rows[0]};
 }
 
-export async function getSchemaStatsByCollectionV2Action(params: RequestValues, ctx: NeftyMarketContext): Promise<any> {
+export async function getSchemaStatsByCollectionAction(params: RequestValues, ctx: NeftyMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
 

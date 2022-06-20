@@ -9,7 +9,7 @@ import {
     getAllAccountStatsAction,
     getCollectionStatsAction,
     getAllCollectionStatsAction,
-    getSchemaStatsByCollectionV2Action,
+    getSchemaStatsByCollectionAction,
     getStatsGraphAction,
     getMarketStatsAction, getTemplateStatsAction
 } from '../handlers/stats';
@@ -27,7 +27,7 @@ export function statsEndpoints(core: NeftyMarketNamespace, server: HTTPServer, r
 
     router.all('/v1/stats/templates', caching(), returnAsJSON(getTemplateStatsAction, core));
 
-    router.all('/v2/stats/schemas/:collection_name', caching(), returnAsJSON(getSchemaStatsByCollectionV2Action, core));
+    router.all('/v1/stats/schemas/:collection_name', caching(), returnAsJSON(getSchemaStatsByCollectionAction, core));
 
     router.all('/v1/stats/markets', caching(), returnAsJSON(getMarketStatsAction, core));
 
@@ -103,7 +103,7 @@ export function statsEndpoints(core: NeftyMarketNamespace, server: HTTPServer, r
                             name: 'search',
                             in: 'query',
                             description: 'Perform a collection search',
-                            required: true,
+                            required: false,
                             schema: {
                                 type: 'string'
                             }
@@ -239,6 +239,53 @@ export function statsEndpoints(core: NeftyMarketNamespace, server: HTTPServer, r
                     })
                 }
             },
+            '/v1/stats/schemas/{collection_name}': {
+                get: {
+                    tags: ['stats'],
+                    summary: 'Get market schemas sorted by volume or listings',
+                    parameters: [
+                        {
+                            name: 'collection_name',
+                            in: 'path',
+                            description: 'Collection Name',
+                            required: true,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
+                        {
+                            name: 'symbol',
+                            in: 'query',
+                            description: 'Token Symbol',
+                            required: true,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
+                        ...primaryBoundaryParameters,
+                        ...dateBoundaryParameters,
+                        ...paginationParameters,
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                                enum: ['volume', 'listings'],
+                                default: 'volume'
+                            }
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'object',
+                        properties: {
+                            symbol: SymbolResult,
+                            results: {type: 'array', items: SchemaResult}
+                        }
+                    })
+                }
+            },
             '/v1/stats/templates': {
                 get: {
                     tags: ['stats'],
@@ -257,7 +304,7 @@ export function statsEndpoints(core: NeftyMarketNamespace, server: HTTPServer, r
                             name: 'search',
                             in: 'query',
                             description: 'Perform a collection search',
-                            required: true,
+                            required: false,
                             schema: {
                                 type: 'string'
                             }
