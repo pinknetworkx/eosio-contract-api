@@ -34,6 +34,15 @@ export function assetsEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                     summary: 'Fetch assets.',
                     description: atomicDataFilter,
                     parameters: [
+                        {
+                            name: 'symbol',
+                            in: 'query',
+                            description: 'Token Symbol',
+                            required: false,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
                         ...baseAssetFilterParameters,
                         ...extendedAssetFilterParameters,
                         ...completeAssetFilterParameters,

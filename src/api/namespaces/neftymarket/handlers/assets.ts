@@ -3,10 +3,23 @@ import { NeftyMarketContext } from '../index';
 import { fillAssets } from '../../atomicassets/filler';
 import { buildAssetFillerHook, formatListingAsset } from '../format';
 import { getRawAssetsAction } from '../../atomicassets/handlers/assets';
+import QueryBuilder from '../../../builder';
+import {filterQueryArgs} from '../../validation';
 
 export async function getMarketAssetsAction(params: RequestValues, ctx: NeftyMarketContext): Promise<any> {
+    const args = filterQueryArgs(params, {
+        symbol: {type: 'string', default: null},
+    });
+
     const result = await getRawAssetsAction(params, ctx, {
-        extraTables: 'LEFT JOIN neftymarket_template_prices "price" ON (asset.contract = price.assets_contract AND asset.template_id = price.template_id)',
+        hook: (query: QueryBuilder) => {
+            query.appendToBase('LEFT JOIN neftymarket_template_prices "price" ' +
+                'ON (' +
+                'asset.contract = price.assets_contract AND asset.template_id = price.template_id' +
+                (args.symbol ? ' AND "price".symbol = ' + query.addVariable(args.symbol) : '') +
+                ')'
+            );
+        },
         extraSort: {
             suggested_median_price: {column: '"price".suggested_median', nullable: true, numericIndex: false},
             suggested_average_price: {column: '"price".suggested_average', nullable: true, numericIndex: false},
