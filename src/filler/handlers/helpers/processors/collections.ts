@@ -8,7 +8,7 @@ import ConnectionManager from '../../../../connections/manager';
 import {AccListTableRow, FeaturesTableRow} from '../types/tables';
 
 const atomicCollectionListRegex = /^col\..*$/g;
-const neftyCollectionListRegex = /^whitelist|verified|blacklist|nsfw$/g;
+const neftyCollectionListRegex = /^whitelist|verified|blacklist|nsfw|scam|exceptions$/g;
 
 export async function initCollections(args: CollectionsListArgs, connection: ConnectionManager): Promise<void> {
     const featuresQuery = await connection.database.query(
@@ -198,6 +198,8 @@ function convertCollectionListName(contract: string, list_name: string, args: Co
             list = 'nsfw';
         } else if (list_name === 'scam') {
             list = 'scam';
+        } else if (list_name === 'exceptions') {
+            list = 'exceptions';
         }
     }
     return list;

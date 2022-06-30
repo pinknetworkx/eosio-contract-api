@@ -15,7 +15,10 @@ export async function getCollectionsAction(params: RequestValues, ctx: NeftyMark
                 FROM helpers_collection_list as v
             `);
     query.equal('v.assets_contract', ctx.coreArgs.atomicassets_account);
-    if (args.list) {
+    if (args.list === 'blacklist') {
+        query.equal('v.list', args.list);
+        query.unequal('v.list', 'exceptions');
+    } else if (args.list) {
         query.equal('v.list', args.list);
     }
     query.append(`
