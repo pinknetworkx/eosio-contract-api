@@ -8,6 +8,8 @@ import { neftyMarketComponents } from './openapi';
 import {ActionHandlerContext} from '../../actionhandler';
 import {ILimits} from '../../../types/config';
 import {statsEndpoints} from './routes/stats';
+import {assetsEndpoints} from './routes/assets';
+import {pricesEndpoints} from './routes/prices';
 
 export type NeftyMarketNamespaceArgs = {
     atomicassets_account: string,
@@ -56,6 +58,8 @@ export class NeftyMarketNamespace extends ApiNamespace {
         endpointsDocs.push(filtersEndpoints(this, server, router));
         endpointsDocs.push(auctionsEndpoints(this, server, router));
         endpointsDocs.push(statsEndpoints(this, server, router));
+        endpointsDocs.push(assetsEndpoints(this, server, router));
+        endpointsDocs.push(pricesEndpoints(this, server, router));
 
         for (const doc of endpointsDocs) {
             if (doc.tag) {
