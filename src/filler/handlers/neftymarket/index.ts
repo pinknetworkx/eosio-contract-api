@@ -54,6 +54,7 @@ export default class NeftyMarketHandler extends ContractHandler {
 
         const views = [
             'neftymarket_auctions_master',
+            'neftymarket_assets_master',
         ];
 
         const materializedViews = ['neftymarket_auction_prices'];
@@ -88,7 +89,11 @@ export default class NeftyMarketHandler extends ContractHandler {
     }
 
     static async upgrade(client: PoolClient, version: string): Promise<void> {
-
+        if (version === '1.3.20') {
+            await client.query(fs.readFileSync('./definitions/views/neftymarket_stats_prices_master.sql', {encoding: 'utf8'}));
+            await client.query(fs.readFileSync('./definitions/views/neftymarket_template_prices_master.sql', {encoding: 'utf8'}));
+            await client.query(fs.readFileSync('./definitions/views/neftymarket_assets_master.sql', {encoding: 'utf8'}));
+        }
     }
 
     constructor(filler: Filler, args: {[key: string]: any}) {
@@ -188,6 +193,7 @@ export default class NeftyMarketHandler extends ContractHandler {
 
         const materializedViews: Array<{name: string, priority: JobQueuePriority}> = [
             {name: 'neftymarket_auction_prices', priority: JobQueuePriority.LOW},
+            {name: 'neftymarket_template_prices', priority: JobQueuePriority.LOW},
         ];
 
         for (const view of materializedViews) {
@@ -210,6 +216,12 @@ export default class NeftyMarketHandler extends ContractHandler {
             await this.connection.database.query(
                 'CALL update_neftymarket_auction_mints($1, $2)',
                 [this.args.neftymarket_account, this.filler.reader.lastIrreversibleBlock]
+            );
+        });
+
+        this.filler.jobs.add('refresh_neftymarket_stats_market', 60_000, JobQueuePriority.MEDIUM, async () => {
+            await this.connection.database.query(
+                'SELECT update_atomicmarket_stats_market()'
             );
         });
 

@@ -109,7 +109,11 @@ export function buildAssetQueryCondition(
 export async function getRawAssetsAction(
     params: RequestValues,
     ctx: AtomicAssetsContext,
-    options?: {extraTables: string, extraSort: SortColumnMapping}): Promise<Array<number> | string> {
+    options?: {
+        extraTables?: string,
+        extraSort: SortColumnMapping,
+        hook?: (query: QueryBuilder) => void
+    }): Promise<Array<number> | string> {
 
     const maxLimit = ctx.coreArgs.limits?.assets || 1000;
     const args = filterQueryArgs(params, {
@@ -129,6 +133,9 @@ export async function getRawAssetsAction(
     );
     if (options?.extraTables) {
         query.appendToBase(options.extraTables);
+    }
+    if (options?.hook) {
+        options?.hook(query);
     }
 
     query.equal('asset.contract', ctx.coreArgs.atomicassets_account);

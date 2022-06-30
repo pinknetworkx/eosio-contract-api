@@ -1,6 +1,6 @@
 import * as express from 'express';
 
-import { AtomicMarketNamespace } from '../index';
+import { NeftyMarketNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import {
     dateBoundaryParameters,
@@ -17,7 +17,7 @@ import {
 } from '../../atomicassets/openapi';
 import { getMarketAssetsAction, getMarketAssetsCountAction } from '../handlers/assets';
 
-export function assetsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, router: express.Router): any {
+export function assetsEndpoints(core: NeftyMarketNamespace, server: HTTPServer, router: express.Router): any {
     const {caching, returnAsJSON} = server.web;
     router.all('/v1/assets', caching(), returnAsJSON(getMarketAssetsAction, core));
     router.all('/v1/assets/_count', caching(), returnAsJSON(getMarketAssetsCountAction, core));
@@ -34,15 +34,6 @@ export function assetsEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                     summary: 'Fetch assets.',
                     description: atomicDataFilter,
                     parameters: [
-                        {
-                            name: 'symbol',
-                            in: 'query',
-                            description: 'Token Symbol',
-                            required: false,
-                            schema: {
-                                type: 'string'
-                            }
-                        },
                         ...baseAssetFilterParameters,
                         ...extendedAssetFilterParameters,
                         ...completeAssetFilterParameters,
