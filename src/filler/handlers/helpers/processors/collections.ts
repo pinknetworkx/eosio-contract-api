@@ -147,10 +147,12 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
                         const addedCollections = differenceA(delta.value.list, collections);
                         const deletedCollections = differenceA(collections, delta.value.list);
 
-                        await db.delete('helpers_collection_list', {
-                            str: 'assets_contract = $1 AND contract = $2 AND list = $3 AND collection_name = ANY($4)',
-                            values: [core.args.atomicassets_account, atomicContract, listName, deletedCollections]
-                        });
+                        if (deletedCollections.length > 0) {
+                            await db.delete('helpers_collection_list', {
+                                str: 'assets_contract = $1 AND contract = $2 AND list = $3 AND collection_name = ANY($4)',
+                                values: [core.args.atomicassets_account, atomicContract, listName, deletedCollections]
+                            });
+                        }
 
                         if (addedCollections.length > 0) {
                             await db.insert('helpers_collection_list', addedCollections.map(collection => {
