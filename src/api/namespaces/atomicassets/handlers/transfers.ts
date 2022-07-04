@@ -17,7 +17,7 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
         collection_blacklist: {type: 'string', min: 1},
         collection_whitelist: {type: 'string', min: 1},
 
-        account: {type: 'string', min: 1},
+        account: {type: 'string[]', min: 1},
         sender: {type: 'string', min: 1},
         recipient: {type: 'string', min: 1},
         memo: {type: 'string', min: 1},
@@ -31,9 +31,16 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
     const query = new QueryBuilder('SELECT * FROM atomicassets_transfers_master transfer'); // TODO was ' + this.transferView + '
     query.equal('contract', ctx.coreArgs.atomicassets_account);
 
-    if (args.account) {
-        const varName = query.addVariable(args.account.split(','));
-        query.addCondition('(sender_name = ANY (' + varName + ') OR recipient_name = ANY (' + varName + '))');
+    if (args.account.length) {
+        // this filter uses 2 similar conditions to prevent postgres from choosing an extremely slow execution plan
+
+        const accountsVarName = query.addVariable(args.account.map(query.escapeLikeVariable).map((s: string) => `%${s}%`));
+        query.addCondition(`(sender_name || e'\\n' || recipient_name) ILIKE ANY(${accountsVarName})`);
+
+        if (args.account.length === 1) {
+            const varName = query.addVariable(args.account);
+            query.addCondition('(sender_name = ANY (' + varName + ') OR recipient_name = ANY (' + varName + '))');
+        }
     }
 
     if (args.sender) {
@@ -50,7 +57,7 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
 
     if (args.match_memo) {
         query.addCondition(
-            'memo ILIKE ' + query.addVariable('%' + args.match_memo.replace('%', '\\%').replace('_', '\\_') + '%')
+            'memo ILIKE ' + query.addVariable('%' + query.escapeLikeVariable(args.match_memo) + '%')
         );
     }
 

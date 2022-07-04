@@ -20,7 +20,7 @@ describe('JobQueue', () => {
     it('queues job for immediate execution', async () => {
         await executeTestWithQueue(1, async (jq) => {
             let called = false;
-            jq.add('Test1', 100, JobQueuePriority.HIGH, () => called = true);
+            jq.add('Test1', 0.1, JobQueuePriority.HIGH, () => called = true);
 
             jq.start();
 
@@ -35,9 +35,9 @@ describe('JobQueue', () => {
             const promiseJob1 = new Promise(() => null);
 
             let calledJob1 = false;
-            jq.add('Job1', 1, JobQueuePriority.HIGH, () => (calledJob1 = true) && promiseJob1);
+            jq.add('Job1', 0.001, JobQueuePriority.HIGH, () => (calledJob1 = true) && promiseJob1);
             let calledJob2 = false;
-            jq.add('Job2', 1, JobQueuePriority.HIGH, () => calledJob2 = true);
+            jq.add('Job2', 0.001, JobQueuePriority.HIGH, () => calledJob2 = true);
 
             jq.start();
 
@@ -55,9 +55,9 @@ describe('JobQueue', () => {
             const promiseJob1 = new Promise(() => null);
             const now = new Date();
             let calledJob1At: Date;
-            jq.add('Job1', 1, JobQueuePriority.MEDIUM, () => (calledJob1At = new Date()) && promiseJob1);
+            jq.add('Job1', 0.001, JobQueuePriority.MEDIUM, () => (calledJob1At = new Date()) && promiseJob1);
             let calledJob2At: Date;
-            jq.add('Job2', 1, JobQueuePriority.LOW, () => calledJob2At = new Date());
+            jq.add('Job2', 0.001, JobQueuePriority.LOW, () => calledJob2At = new Date());
 
             jq.start();
 
@@ -73,9 +73,9 @@ describe('JobQueue', () => {
             const promiseJob1 = new Promise(() => null);
 
             let calledJob1 = false;
-            jq.add('Job1', 1, JobQueuePriority.HIGH, () => (calledJob1 = true) && promiseJob1);
+            jq.add('Job1', 0.001, JobQueuePriority.HIGH, () => (calledJob1 = true) && promiseJob1);
             let calledJob2 = false;
-            jq.add('Job2', 1, JobQueuePriority.LOW, () => calledJob2 = true);
+            jq.add('Job2', 0.001, JobQueuePriority.LOW, () => calledJob2 = true);
 
             jq.start();
 
@@ -91,7 +91,7 @@ describe('JobQueue', () => {
             const promiseJob1 = new Promise((res) => res(null));
 
             let calledJob1 = 0;
-            jq.add('Job1', 100, JobQueuePriority.HIGH, () => ++calledJob1 && promiseJob1);
+            jq.add('Job1', 0.1, JobQueuePriority.HIGH, () => ++calledJob1 && promiseJob1);
 
             jq.start();
 
@@ -122,7 +122,7 @@ describe('JobQueue', () => {
             promiseJob1.catch(() => null); // prevent node warning about uncaught promise
 
             let calledJob1 = 0;
-            jq.add('Job1', 1, JobQueuePriority.HIGH, () => ++calledJob1 && promiseJob1);
+            jq.add('Job1', 0.001, JobQueuePriority.HIGH, () => ++calledJob1 && promiseJob1);
 
             jq.start();
 
@@ -141,7 +141,7 @@ describe('JobQueue', () => {
                 logs.push(message);
             });
 
-            jq.add('Test1', 100, JobQueuePriority.HIGH, () => null);
+            jq.add('Test1', 0.1, JobQueuePriority.HIGH, () => null);
 
             jq.start();
 

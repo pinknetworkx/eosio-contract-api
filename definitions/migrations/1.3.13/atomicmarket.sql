@@ -326,7 +326,7 @@ BEGIN
         WHERE (market_contract, listing_type, listing_id) IN (
             SELECT market_contract, listing_type, listing_id FROM changed_listings
             EXCEPT
-            SELECT market_contract, listing_type, listing_id FROM ins_upd
+            SELECT market_contract, listing_type, listing_id FROM updated_listings
         )
         RETURNING 1
     )

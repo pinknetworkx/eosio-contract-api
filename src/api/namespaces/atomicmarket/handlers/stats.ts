@@ -46,7 +46,7 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
     query.addCondition('collection.contract = $1');
 
     if (args.match) {
-        query.addCondition(`collection.collection_name ILIKE ${query.addVariable(`%${args.match.replace('%', '').replace('_', '')}%`)}`);
+        query.addCondition(`collection.collection_name ILIKE ${query.addVariable(`%${query.escapeLikeVariable(args.match)}%`)}`);
     }
 
     if (args.search) {
