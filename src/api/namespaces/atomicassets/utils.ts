@@ -12,7 +12,7 @@ export function hasDataFilters(values: FilterValues): boolean {
     const keys = Object.keys(values);
 
     for (const key of keys) {
-        if (['match', 'match_immutable_name', 'match_mutable_name'].includes(key)) {
+        if (['match', 'match_immutable_name', 'match_mutable_name', 'search'].includes(key)) {
             return true;
         }
 
