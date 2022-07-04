@@ -10,6 +10,8 @@ const {client, txit} = initAtomicMarketTest();
 describe('AtomicMarket Stats API', () => {
     describe('getTemplateStatsAction', () => {
         txit('gets the templates sales and volume', async () => {
+            await client.createContractReader();
+
             await client.createToken({token_symbol: 'TOKEN1'});
             const {template_id} = await client.createTemplate();
             const {template_id: templateId2} = await client.createTemplate();
@@ -36,7 +38,6 @@ describe('AtomicMarket Stats API', () => {
 
             const response = await getTemplateStatsAction({symbol: 'TOKEN1'}, context);
 
-
             expect(response.results.length).to.equal(2);
             expect(response.results.find((r: any) => r.template.template_id === template_id)).to.deep.contains({
                 volume: '2',
@@ -51,6 +52,8 @@ describe('AtomicMarket Stats API', () => {
 
         context('with template_id filter', () => {
             txit('gets the templates sales and volume even if they dont have sales', async () => {
+                await client.createContractReader();
+
                 await client.createToken({token_symbol: 'TOKEN1'});
                 const context = getTestContext(client);
                 // Included
@@ -73,6 +76,8 @@ describe('AtomicMarket Stats API', () => {
 
         context('with schema_name filter', () => {
             txit('gets the templates sales and volume even if they dont have sales', async () => {
+                await client.createContractReader();
+
                 await client.createToken({token_symbol: 'TOKEN1'});
                 const context = getTestContext(client);
                 // Included
@@ -96,6 +101,8 @@ describe('AtomicMarket Stats API', () => {
 
         context('with collection_name filter', () => {
             txit('gets the templates sales and volume even if they dont have sales', async () => {
+                await client.createContractReader();
+
                 await client.createToken({token_symbol: 'TOKEN1'});
                 const context = getTestContext(client);
                 // Included
@@ -119,6 +126,8 @@ describe('AtomicMarket Stats API', () => {
 
         context('with search filter', () => {
             txit('gets the templates sales and volume even if they dont have sales', async () => {
+                await client.createContractReader();
+
                 await client.createToken({token_symbol: 'TOKEN1'});
                 const context = getTestContext(client);
                 // Included
@@ -141,6 +150,8 @@ describe('AtomicMarket Stats API', () => {
 
         context('with time after and before filter', () => {
             txit('gets the templates sales and volume even if they dont have sales in the period defined', async () => {
+                await client.createContractReader();
+
                 await client.createToken({token_symbol: 'TOKEN1'});
                 // Included
                 const {template_id} = await client.createTemplate();

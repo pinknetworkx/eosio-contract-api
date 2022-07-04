@@ -80,12 +80,7 @@ export default class AtomicMarketHandler extends ContractHandler {
         const views = [
             'atomicmarket_assets_master', 'atomicmarket_auctions_master',
             'atomicmarket_sales_master', 'atomicmarket_sale_prices_master',
-            'atomicmarket_stats_prices_master',
-            'atomicmarket_template_prices_master', 'atomicmarket_buyoffers_master'
-        ];
-
-        const materializedViews = [
-            'atomicmarket_template_prices',
+            'atomicmarket_stats_prices_master', 'atomicmarket_buyoffers_master'
         ];
 
         const procedures = ['atomicmarket_auction_mints', 'atomicmarket_buyoffer_mints', 'atomicmarket_sale_mints'];
@@ -99,10 +94,6 @@ export default class AtomicMarketHandler extends ContractHandler {
 
             for (const view of views) {
                 await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
-            }
-
-            for (const view of materializedViews) {
-                await client.query(fs.readFileSync('./definitions/materialized/' + view + '.sql', {encoding: 'utf8'}));
             }
 
             for (const procedure of procedures) {
@@ -139,7 +130,6 @@ export default class AtomicMarketHandler extends ContractHandler {
 
         if (version === '1.3.13') {
             await client.query(fs.readFileSync('./definitions/views/atomicmarket_stats_prices_master.sql', {encoding: 'utf8'}));
-            await client.query(fs.readFileSync('./definitions/views/atomicmarket_template_prices_master.sql', {encoding: 'utf8'}));
         }
     }
 
@@ -240,7 +230,7 @@ export default class AtomicMarketHandler extends ContractHandler {
             'atomicmarket_sales', 'atomicmarket_buyoffers', 'atomicmarket_buyoffers_assets',
             'atomicmarket_config', 'atomicmarket_delphi_pairs', 'atomicmarket_marketplaces',
             'atomicmarket_token_symbols', 'atomicmarket_bonusfees', 'atomicmarket_balances',
-            'atomicmarket_stats_markets',
+            'atomicmarket_stats_markets', 'atomicmarket_template_prices',
         ];
 
         for (const table of tables) {
@@ -248,14 +238,6 @@ export default class AtomicMarketHandler extends ContractHandler {
                 'DELETE FROM ' + client.escapeIdentifier(table) + ' WHERE market_contract = $1',
                 [this.args.atomicmarket_account]
             );
-        }
-
-        const materializedViews = [
-            'atomicmarket_template_prices',
-        ];
-
-        for (const view of materializedViews) {
-            await client.query('REFRESH MATERIALIZED VIEW ' + client.escapeIdentifier(view) + '');
         }
     }
 
@@ -272,26 +254,6 @@ export default class AtomicMarketHandler extends ContractHandler {
 
         if (this.args.store_logs) {
             destructors.push(logProcessor(this, processor));
-        }
-
-        const materializedViews: Array<{name: string, priority: JobQueuePriority}> = [
-            {name: 'atomicmarket_template_prices', priority: JobQueuePriority.LOW},
-        ];
-
-        for (const view of materializedViews) {
-            let lastVacuum = Date.now();
-
-            this.filler.jobs.add(`Refresh MV ${view.name}`, 60_000, view.priority, async () => {
-                await this.connection.database.query(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view.name}`);
-
-                if (lastVacuum + 3600 * 24 * 1000 < Date.now()) {
-                    await this.connection.database.query(`VACUUM ANALYZE ${view.name}`);
-
-                    logger.info(`Successfully ran vacuum on ${view.name}`);
-
-                    lastVacuum = Date.now();
-                }
-            });
         }
 
         this.filler.jobs.add('update_atomicmarket_sale_mints', 30_000, JobQueuePriority.MEDIUM, async () => {
@@ -331,9 +293,15 @@ export default class AtomicMarketHandler extends ContractHandler {
             );
         });
 
-        this.filler.jobs.add('refresh_atomicmarket_sales_filters_price', 60_000, JobQueuePriority.MEDIUM, async () => {
+        this.filler.jobs.add('update_atomicmarket_stats_market', 60_000, JobQueuePriority.MEDIUM, async () => {
             await this.connection.database.query(
                 'SELECT update_atomicmarket_stats_market()'
+            );
+        });
+
+        this.filler.jobs.add('update_atomicmarket_template_prices', 60_000 * 60, JobQueuePriority.MEDIUM, async () => {
+            await this.connection.database.query(
+                'SELECT update_atomicmarket_template_prices()'
             );
         });
 
