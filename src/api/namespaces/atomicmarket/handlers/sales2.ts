@@ -37,9 +37,9 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
     });
 
     const query = new QueryBuilder(`
-                SELECT listing.sale_id
-                FROM atomicmarket_sales_filters listing
-            `);
+        SELECT listing.sale_id, listing.market_contract, ROW_NUMBER() OVER() listing_order
+        FROM atomicmarket_sales_filters listing
+    `);
 
     query.equal('listing.market_contract', ctx.coreArgs.atomicmarket_account);
 
@@ -91,11 +91,39 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
 
     const preventIndexUsage = search.strongFilters.length > 0;
 
-    query.append(`ORDER BY ${sortMapping[args.sort].column}${preventIndexUsage ? ' + 0' : ''} ${args.order}, listing.sale_id ASC`);
-    query.paginate(args.page, args.limit);
-    const saleIds = await ctx.db.query(query.buildString(), query.buildValues());
+    query.append(`ORDER BY ${sortMapping[args.sort].column}${preventIndexUsage ? ' + 0' : ''} ${args.order}, listing.sale_id`);
+
+    const stateRecheckQuery = addStateRecheck(query, search.saleStates, args.page, args.limit);
+
+    const saleIds = await ctx.db.query(stateRecheckQuery.buildString(), stateRecheckQuery.buildValues());
 
     return await fillSalesIdRows(saleIds.rows, ctx);
+}
+
+function addStateRecheck(query: QueryBuilder, saleStates: number[], page: number, limit: number): QueryBuilder {
+    if (!saleStates.length) {
+        query.paginate(page, limit);
+        return query;
+    }
+
+    query.append(`LIMIT ${Math.ceil(page * limit * 1.25)}`); // select more rows than requested in case the state doesn't match for some of them
+
+    const stateRecheckQuery = new QueryBuilder(`
+        WITH listings AS MATERIALIZED (
+            ${query.buildString()}
+        )
+        
+        SELECT listings.sale_id
+        FROM listings
+            LEFT OUTER JOIN atomicmarket_sales sales ON listings.market_contract = sales.market_contract AND listings.sale_id = sales.sale_id
+            LEFT OUTER JOIN atomicassets_offers offer ON sales.assets_contract = offer.contract AND sales.offer_id = offer.offer_id
+        WHERE atomicmarket_get_sale_state(sales.state, offer.state) = ANY(${query.addVariable(saleStates)})
+        ORDER BY listing_order
+    `, query.buildValues());
+
+    stateRecheckQuery.paginate(page, limit);
+
+    return stateRecheckQuery;
 }
 
 async function fillSalesIdRows(rows: any[], ctx: AtomicMarketContext): Promise<any[]> {
@@ -170,14 +198,6 @@ async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
         }
     } else if (args.min_price || args.max_price) {
         throw new ApiError('Price range filters require the "symbol" filter');
-    }
-
-    if (search.saleStates.length) {
-        query.appendToBase('JOIN atomicmarket_sales sales ON listing.market_contract = sales.market_contract AND listing.sale_id = sales.sale_id');
-        query.appendToBase('JOIN atomicassets_offers offer ON sales.assets_contract = offer.contract AND sales.offer_id = offer.offer_id');
-        query.addCondition(`atomicmarket_get_sale_state(sales.state, offer.state) = ANY(${query.addVariable(search.saleStates)})`);
-
-        query.equalMany('listing.sale_state', search.saleStates);
     }
 }
 
