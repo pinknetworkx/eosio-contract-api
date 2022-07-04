@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS helpers_collection_list CASCADE;
+TRUNCATE TABLE helpers_collection_list;
