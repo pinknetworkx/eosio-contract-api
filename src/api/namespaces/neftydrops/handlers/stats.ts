@@ -55,11 +55,14 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Neft
 
     if (typeof args.only_whitelisted === 'boolean') {
         if (args.only_whitelisted) {
-            queryString += 'AND collection_name = ANY (' +
+            queryString += 'AND collection_name IN (' +
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
-                'WHERE (list = \'whitelist\' OR list = \'verified\') AND (list != \'blacklist\' OR list != \'scam\')' +
-                ')  ';
+                'WHERE list = \'whitelist\' OR list = \'verified\')';
+            queryString += 'collection_name NOT IN (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE list = \'blacklist\' OR list = \'scam\')';
         }
     }
 

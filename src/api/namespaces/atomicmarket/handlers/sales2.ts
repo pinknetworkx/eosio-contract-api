@@ -307,10 +307,15 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
 
     if (typeof args.only_whitelisted === 'boolean') {
         if (args.only_whitelisted) {
-            query.addCondition('SUBSTR(listing.filter[1], 2) = ANY (' +
+            query.addCondition('SUBSTR(listing.filter[1], 2) IN (' +
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
-                'WHERE (list = \'whitelist\' OR list = \'verified\') AND (list != \'blacklist\' OR list != \'scam\'))'
+                'WHERE list = \'whitelist\' OR list = \'verified\')'
+            );
+            query.addCondition('SUBSTR(listing.filter[1], 2) NOT IN (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE list = \'blacklist\' OR list = \'scam\')'
             );
         }
     }

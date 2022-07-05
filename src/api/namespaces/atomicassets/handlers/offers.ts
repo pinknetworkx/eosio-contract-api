@@ -152,7 +152,7 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
                 'NOT (asset.collection_name = ANY (' +
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
-                'WHERE (list = \'whitelist\' OR list = \'verified\') AND (list != \'blacklist\' OR list != \'scam\')' +
+                'WHERE (list = \'whitelist\' OR list = \'verified\') AND list != \'blacklist\' AND list != \'scam\'' +
                 ')'
             );
         }

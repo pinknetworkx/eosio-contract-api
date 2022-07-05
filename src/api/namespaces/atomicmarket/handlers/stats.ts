@@ -68,10 +68,15 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
 
     if (typeof args.only_whitelisted === 'boolean') {
         if (args.only_whitelisted) {
-            query.addCondition('collection.collection_name = ANY (' +
+            query.addCondition('collection.collection_name IN (' +
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
-                'WHERE (list = \'whitelist\' OR list = \'verified\') AND (list != \'blacklist\' OR list != \'scam\'))'
+                'WHERE list = \'whitelist\' OR list = \'verified\')'
+            );
+            query.addCondition('collection.collection_name NOT IN (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE list = \'blacklist\' OR list = \'scam\')'
             );
         }
     }
