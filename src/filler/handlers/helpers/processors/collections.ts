@@ -73,9 +73,11 @@ export async function initCollections(args: CollectionsListArgs, connection: Con
     }
 }
 
-const difference = (set1: Set<string>, set2: Set<string>): Set<string> => new Set([...set1].filter(x => !set2.has(x)));
-const differenceA = (arr1: string[], arr2: string[]): string[] => Array.from(difference(new Set(arr1), new Set(arr2)));
-
+const getDifference = <T>(a: T[], b: T[]): T[] => {
+    return a.filter((element) => {
+        return !b.includes(element);
+    });
+};
 
 export function collectionsProcessor(core: CollectionsListHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
@@ -99,12 +101,12 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
                     );
 
                     const collections = collectionsQuery.rows.map(({ collection_name }) => collection_name);
-                    const addedCollections = differenceA(delta.value.collections, collections);
-                    const deletedCollections = differenceA(collections, delta.value.collections);
+                    const addedCollections = getDifference(delta.value.collections, collections);
+                    const deletedCollections = getDifference(collections, delta.value.collections);
 
                     if (deletedCollections.length > 0) {
                         await db.delete('helpers_collection_list', {
-                            str: 'assets_contract = $1 AND contract = $2 AND list = $3 AND collection_name = ANY($4)',
+                            str: 'assets_contract = $1 AND contract = $2 AND list = $3 AND collection_name IN($4)',
                             values: [core.args.atomicassets_account, neftyContract, listName, deletedCollections]
                         });
                     }
@@ -144,12 +146,12 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
                         );
 
                         const collections = collectionsQuery.rows.map(({ collection_name }) => collection_name);
-                        const addedCollections = differenceA(delta.value.list, collections);
-                        const deletedCollections = differenceA(collections, delta.value.list);
+                        const addedCollections = getDifference(delta.value.list, collections);
+                        const deletedCollections = getDifference(collections, delta.value.list);
 
                         if (deletedCollections.length > 0) {
                             await db.delete('helpers_collection_list', {
-                                str: 'assets_contract = $1 AND contract = $2 AND list = $3 AND collection_name = ANY($4)',
+                                str: 'assets_contract = $1 AND contract = $2 AND list = $3 AND collection_name IN ($4)',
                                 values: [core.args.atomicassets_account, atomicContract, listName, deletedCollections]
                             });
                         }
