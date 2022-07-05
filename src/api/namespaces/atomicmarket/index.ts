@@ -35,6 +35,7 @@ export interface AtomicMarketNamespaceArgs {
     api_features?: {
         disable_v1_sales?: boolean;
     };
+    default_symbol?: string,
     limits?: ILimits;
 }
 

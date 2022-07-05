@@ -8,7 +8,7 @@ import QueryBuilder from '../../../builder';
 
 export async function getMarketAssetsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
-        symbol: {type: 'string', default: null},
+        symbol: {type: 'string', default: ctx.coreArgs.default_symbol},
     });
 
     const result = await getRawAssetsAction(params, ctx, {

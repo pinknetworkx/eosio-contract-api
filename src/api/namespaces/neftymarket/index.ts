@@ -15,6 +15,7 @@ export type NeftyMarketNamespaceArgs = {
     atomicassets_account: string,
     connected_reader: string;
     neftymarket_account: string;
+    default_symbol?: string,
     limits?: ILimits;
 };
 
