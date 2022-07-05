@@ -215,10 +215,15 @@ export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, c
 
     if (typeof args.only_whitelisted === 'boolean') {
         if (args.only_whitelisted) {
-            query.addCondition(columns.collectionName + ' = ANY (' +
+            query.addCondition(columns.collectionName + ' IN (' +
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
-                'WHERE (list = \'whitelist\' OR list = \'verified\') AND (list != \'blacklist\' OR list != \'scam\'))'
+                'WHERE list = \'whitelist\' OR list = \'verified\')'
+            );
+            query.addCondition(columns.collectionName + ' NOT IN (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE list = \'blacklist\' OR list = \'scam\')'
             );
         }
     }

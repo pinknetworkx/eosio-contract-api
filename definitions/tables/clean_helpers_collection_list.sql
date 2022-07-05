@@ -1,0 +1,1 @@
+TRUNCATE TABLE helpers_collection_list;
