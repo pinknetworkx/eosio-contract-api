@@ -338,10 +338,6 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
         query.equalMany('template.template_id', args.template_id);
     }
 
-    if (args.search) {
-        query.addCondition(`${query.addVariable(args.search)} <% (template.immutable_data->>'name')`);
-    }
-
     if (args.sort === 'sales') {
         query.append('ORDER BY sales DESC NULLS LAST, template_id ASC');
     } else {
