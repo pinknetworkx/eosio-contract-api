@@ -199,6 +199,10 @@ async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
     } else if (args.min_price || args.max_price) {
         throw new ApiError('Price range filters require the "symbol" filter');
     }
+
+    if (search.saleStates.length) {
+        query.equalMany('listing.sale_state', search.saleStates);
+    }
 }
 
 function buildAssetFilterV2(search: SalesSearchOptions): void {
