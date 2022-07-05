@@ -76,7 +76,6 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
 
         if (typeof values.match_immutable_name === 'string' && values.match_immutable_name.length > 0) {
             query.addCondition(
-                options.assetTable + '.immutable_data->>\'name\' IS NOT NULL AND ' +
                 options.assetTable + '.immutable_data->>\'name\' ILIKE ' +
                 query.addVariable('%' + query.escapeLikeVariable(values.match_immutable_name) + '%')
             );
@@ -84,7 +83,6 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
 
         if (typeof values.match_mutable_name === 'string' && values.match_mutable_name.length > 0) {
             query.addCondition(
-                options.assetTable + '.mutable_data->>\'name\' IS NOT NULL AND ' +
                 options.assetTable + '.mutable_data->>\'name\' ILIKE ' +
                 query.addVariable('%' + query.escapeLikeVariable(values.match_mutable_name) + '%')
             );
@@ -98,7 +96,6 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
 
         if (typeof values.match === 'string' && values.match.length > 0) {
             query.addCondition(
-                options.templateTable + '.immutable_data->>\'name\' IS NOT NULL AND ' +
                 options.templateTable + '.immutable_data->>\'name\' ILIKE ' +
                 query.addVariable('%' + query.escapeLikeVariable(values.match) + '%')
             );
@@ -106,8 +103,7 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
 
         if (typeof values.search === 'string' && values.search.length > 0) {
             query.addCondition(
-                `${options.templateTable}.immutable_data->>'name' IS NOT NULL AND 
-                ${query.addVariable(values.search)} <% (${options.templateTable}.immutable_data->>'name')`
+                `${query.addVariable(values.search)} <% (${options.templateTable}.immutable_data->>'name')`
             );
         }
     }
