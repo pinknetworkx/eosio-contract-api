@@ -87,7 +87,7 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
     destructors.push(processor.onContractRow(
         neftyContract, 'features',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<FeaturesTableRow>): Promise<void> => {
-            if (delta.value.list.match(neftyCollectionListRegex)) {
+            if (delta.scope === neftyContract && delta.value.list.match(neftyCollectionListRegex)) {
                 const listName = convertCollectionListName(neftyContract, delta.value.list, core.args);
 
                 if (!delta.present) {
@@ -132,7 +132,7 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
         destructors.push(processor.onContractRow(
             atomicContract, 'acclists',
             async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<AccListTableRow>): Promise<void> => {
-                if (delta.value.list_name.match(atomicCollectionListRegex)) {
+                if (delta.scope === atomicContract && delta.value.list_name.match(atomicCollectionListRegex)) {
                     const listName = convertCollectionListName(atomicContract, delta.value.list_name, core.args);
 
                     if (!delta.present) {
