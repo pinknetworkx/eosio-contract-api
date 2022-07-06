@@ -754,6 +754,16 @@ describe('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id1, sale_id2]);
         });
 
+        txit('orders correctly when filtering by state', async () => {
+            const sale_id2 = `${client.getId()}`;
+            const {sale_id: sale_id1} = await client.createFullSale({listing_price: 2});
+
+            await client.createFullSale({listing_price: 1, sale_id: sale_id2});
+
+            expect(await getSalesIds({sort: 'price', state: '1'}))
+                .to.deep.equal([sale_id1, sale_id2]);
+        });
+
         txit('paginates', async () => {
             const {sale_id: sale_id1} = await client.createFullSale();
 

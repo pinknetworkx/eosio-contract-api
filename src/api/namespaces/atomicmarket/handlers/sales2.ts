@@ -17,6 +17,7 @@ type SalesSearchOptions = {
     saleStates: number[],
 }
 
+const LISTING_ORDER_MARKER = '/*listing_order_marker*/';
 export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.sales_v2 || 100;
     const args = filterQueryArgs(params, {
@@ -37,7 +38,7 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
     });
 
     const query = new QueryBuilder(`
-        SELECT listing.sale_id, listing.market_contract, ROW_NUMBER() OVER() listing_order
+        SELECT listing.sale_id, listing.market_contract ${LISTING_ORDER_MARKER}
         FROM atomicmarket_sales_filters listing
     `);
 
@@ -91,16 +92,17 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
 
     const preventIndexUsage = search.strongFilters.length > 0;
 
-    query.append(`ORDER BY ${sortMapping[args.sort].column}${preventIndexUsage ? ' + 0' : ''} ${args.order}, listing.sale_id`);
+    const orderBy = `ORDER BY ${sortMapping[args.sort].column}${preventIndexUsage ? ' + 0' : ''} ${args.order}, listing.sale_id`;
+    query.append(orderBy);
 
-    const stateRecheckQuery = addStateRecheck(query, search.saleStates, args.page, args.limit);
+    const stateRecheckQuery = addStateRecheck(query, search.saleStates, args.page, args.limit, orderBy);
 
     const saleIds = await ctx.db.query(stateRecheckQuery.buildString(), stateRecheckQuery.buildValues());
 
     return await fillSalesIdRows(saleIds.rows, ctx);
 }
 
-function addStateRecheck(query: QueryBuilder, saleStates: number[], page: number, limit: number): QueryBuilder {
+function addStateRecheck(query: QueryBuilder, saleStates: number[], page: number, limit: number, orderBy: string): QueryBuilder {
     if (!saleStates.length) {
         query.paginate(page, limit);
         return query;
@@ -110,7 +112,7 @@ function addStateRecheck(query: QueryBuilder, saleStates: number[], page: number
 
     const stateRecheckQuery = new QueryBuilder(`
         WITH listings AS MATERIALIZED (
-            ${query.buildString()}
+            ${query.buildString().replace(LISTING_ORDER_MARKER, `, ROW_NUMBER() OVER(${orderBy}) listing_order`)}
         )
         
         SELECT listings.sale_id
