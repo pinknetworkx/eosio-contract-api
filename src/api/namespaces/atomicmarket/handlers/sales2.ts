@@ -503,7 +503,7 @@ const getSaleCount = moize({
     isPromise: true,
     maxAge: 1000 * 60 * 60 * 24,
     maxArgs: 3,
-    maxSize: 500_000,
+    maxSize: 1_000_000,
 })(async (filter: string, value: string, saleState: number, search: SalesSearchOptions): Promise<number> => {
     const {rows} = await search.ctx.db.query(`
         SELECT COUNT(*)::INT ct
@@ -520,12 +520,13 @@ const getSaleCount = moize({
     return rows[0].ct;
 });
 
+const FILTERS_REQUIRING_COUNTING = ['collection_name', 'template_id', 'schema_name'];
 async function isStrongMainFilter(filter: string, values: string[], search: SalesSearchOptions): Promise<boolean> {
-    if (values.length >= 20) {
-        return false;
+    if (!FILTERS_REQUIRING_COUNTING.includes(filter)) {
+        return true;
     }
 
-    if (['collection_name', 'template_id', 'schema_name'].includes(filter)) {
+    const getTotalCount = async (): Promise<boolean> => {
         const saleStates = search.saleStates.length
             ? search.saleStates
             : [SaleApiState.LISTED, SaleApiState.SOLD];
@@ -540,9 +541,22 @@ async function isStrongMainFilter(filter: string, values: string[], search: Sale
                 }
             }
         }
-    }
 
-    return true;
+        return true;
+    };
+
+    const MAX_COUNT_TIME = 1_000;
+    return limitExecutionTime(getTotalCount(), MAX_COUNT_TIME, false);
+}
+
+async function limitExecutionTime<T extends Promise<any>>(promise: T, maxTime: number, timeoutResult: Awaited<T>): Promise<Awaited<T>> {
+    let timeoutId;
+    const timeLimiter: Promise<Awaited<T>> = new Promise(resolve => timeoutId = setTimeout(() => resolve(timeoutResult), maxTime));
+
+    const result = await Promise.race([promise, timeLimiter]);
+    clearTimeout(timeoutId);
+
+    return result;
 }
 
 async function getTemplateIDsForPartialName(name: string, search: SalesSearchOptions): Promise<number[]> {
