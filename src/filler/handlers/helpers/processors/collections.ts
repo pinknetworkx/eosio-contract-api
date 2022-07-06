@@ -6,6 +6,7 @@ import { eosioTimestampToDate } from '../../../../utils/eosio';
 import CollectionsListHandler, {CollectionsListArgs, HelpersUpdatePriority} from '../index';
 import ConnectionManager from '../../../../connections/manager';
 import {AccListTableRow, FeaturesTableRow} from '../types/tables';
+import {bulkInsert} from '../../../utils';
 
 const atomicCollectionListRegex = /^col\..*$/g;
 const neftyCollectionListRegex = /^whitelist|verified|blacklist|nsfw|scam|exceptions$/g;
@@ -22,7 +23,8 @@ export async function initCollections(args: CollectionsListArgs, connection: Con
 
         const featuresTable = await connection.chain.rpc.get_table_rows({
             json: true, code: args.features_account,
-            scope: args.features_account, table: 'features'
+            scope: args.features_account,
+            table: 'features', limit: 1000,
         });
 
         databaseRows = databaseRows.concat(featuresTable.rows.filter(list => list.list.match(neftyCollectionListRegex)).flatMap((row: FeaturesTableRow) => {
@@ -31,13 +33,16 @@ export async function initCollections(args: CollectionsListArgs, connection: Con
                 contract: args.features_account,
                 list: convertCollectionListName(args.features_account, row.list, args),
                 collection_name: collection,
+                updated_at_block: 0,
+                updated_at_time: new Date().getTime()
             }));
         }));
 
         if (args.hub_tools_account) {
             const atomicAccountsTable = await connection.chain.rpc.get_table_rows({
                 json: true, code: args.hub_tools_account,
-                scope: args.hub_tools_account, table: 'acclists'
+                scope: args.hub_tools_account,
+                table: 'acclists', limit: 1000,
             });
 
             databaseRows = databaseRows.concat(...atomicAccountsTable.rows.filter(list => list.list_name.match(atomicCollectionListRegex)).flatMap((row: AccListTableRow) => {
@@ -46,35 +51,20 @@ export async function initCollections(args: CollectionsListArgs, connection: Con
                     contract: args.hub_tools_account,
                     list: convertCollectionListName(args.hub_tools_account, row.list_name, args),
                     collection_name: collection,
+                    updated_at_block: 0,
+                    updated_at_time: new Date().getTime()
                 }));
             }));
         }
 
-        let varCounter = 0;
-        const values = databaseRows.map(() =>
-            `($${++varCounter},$${++varCounter},$${++varCounter},$${++varCounter},$${++varCounter},$${++varCounter})`,
-        ).join(',');
-
         if (databaseRows.length > 0) {
-            await connection.database.query(
-                'INSERT INTO helpers_collection_list (' +
-                'assets_contract, contract, list, collection_name, updated_at_block, updated_at_time' +
-                ') VALUES ' + values,
-                databaseRows.flatMap(row => ([
-                    row.assets_contract,
-                    row.contract,
-                    row.list,
-                    row.collection_name,
-                    0,
-                    0
-                ]))
-            );
+            await bulkInsert(connection.database, 'helpers_collection_list', databaseRows);
         }
     }
 }
 
 const getDifference = <T>(a: T[], b: T[]): T[] => {
-    return a.filter((element) => {
+    return [...new Set<T>(a)].filter((element) => {
         return !b.includes(element);
     });
 };
@@ -106,7 +96,7 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
 
                     if (deletedCollections.length > 0) {
                         await db.delete('helpers_collection_list', {
-                            str: 'assets_contract = $1 AND contract = $2 AND list = $3 AND collection_name IN($4)',
+                            str: 'assets_contract = $1 AND contract = $2 AND list = $3 AND collection_name = ANY($4)',
                             values: [core.args.atomicassets_account, neftyContract, listName, deletedCollections]
                         });
                     }
@@ -151,7 +141,7 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
 
                         if (deletedCollections.length > 0) {
                             await db.delete('helpers_collection_list', {
-                                str: 'assets_contract = $1 AND contract = $2 AND list = $3 AND collection_name IN ($4)',
+                                str: 'assets_contract = $1 AND contract = $2 AND list = $3 AND collection_name = ANY($4)',
                                 values: [core.args.atomicassets_account, atomicContract, listName, deletedCollections]
                             });
                         }
