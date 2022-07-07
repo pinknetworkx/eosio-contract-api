@@ -8,6 +8,7 @@ import {toInt} from '../../../../utils';
 import moize from 'moize';
 import {filterQueryArgs, FilterValues} from '../../validation';
 import {hasAssetFilter} from '../../atomicassets/utils';
+import {buildTemplateMintFilter} from '../utils';
 
 type SalesSearchOptions = {
     values: FilterValues;
@@ -445,18 +446,7 @@ function buildListingFilterV2(search: SalesSearchOptions): void {
         }
     }
 
-    if (args.min_template_mint || args.max_template_mint) {
-        if (args.min_template_mint) {
-            query.addCondition('listing.template_mint != \'empty\'');
-        }
-
-        query.addCondition(
-            'listing.template_mint <@ int4range(' +
-            query.addVariable(args.min_template_mint ?? null) + ', ' +
-            query.addVariable(args.max_template_mint ?? null) +
-            ', \'[]\')'
-        );
-    }
+    buildTemplateMintFilter(values, query);
 }
 
 function getDataFilters(search: SalesSearchOptions): string[] {
