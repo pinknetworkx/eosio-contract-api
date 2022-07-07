@@ -32,15 +32,13 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
     query.equal('contract', ctx.coreArgs.atomicassets_account);
 
     if (args.account.length) {
-        // this filter uses 2 similar conditions to prevent postgres from choosing an extremely slow execution plan
-
+        // use index
         const accountsVarName = query.addVariable(args.account.map(query.escapeLikeVariable).map((s: string) => `%${s}%`));
         query.addCondition(`(sender_name || e'\\n' || recipient_name) ILIKE ANY(${accountsVarName})`);
 
-        if (args.account.length === 1) {
-            const varName = query.addVariable(args.account);
-            query.addCondition('(sender_name = ANY (' + varName + ') OR recipient_name = ANY (' + varName + '))');
-        }
+        // prevent index usage, but recheck matches
+        const varName = query.addVariable(args.account);
+        query.addCondition(`(sender_name || '' = ANY (${varName}) OR recipient_name = ANY (${varName}))`);
     }
 
     if (args.sender) {

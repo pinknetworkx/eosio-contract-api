@@ -312,22 +312,24 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
 
     await addIncArrayFilter('owner', true);
 
-    if (args.collection_name.length) {
-        const collectionNames = args.collection_name
-            .filter((collectionName: string) => !args.collection_whitelist.length || args.collection_whitelist.includes(collectionName))
-            .filter((collectionName: string) => !args.collection_blacklist.includes(collectionName));
+    const collectionNames = [];
+    if (args.collection_name.length || args.collection_whitelist.length) {
+        collectionNames.push(
+            ...(
+                args.collection_name.length
+                    ? args.collection_name.filter((collectionName: string) => !args.collection_whitelist.length || args.collection_whitelist.includes(collectionName))
+                    : args.collection_whitelist
+            )
+                .filter((collectionName: string) => !args.collection_blacklist.includes(collectionName))
+        );
 
         if (!collectionNames.length) {
             collectionNames.push('\nDOES_NOT_EXIST\n');
         }
 
         await addIncArrayFilter('collection_name', true, collectionNames);
-    } else {
-        await addIncArrayFilter('collection_name', true, args.collection_whitelist);
-
-        if (args.collection_blacklist.length) {
-            exc.collection_names.push(...args.collection_blacklist);
-        }
+    } else if (args.collection_blacklist.length) {
+        exc.collection_names.push(...args.collection_blacklist);
     }
 
     if (args.account.length) {
@@ -347,7 +349,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
     }
 
     if (args.search?.length) {
-        await addIncArrayFilter('template_id', true, await getTemplateIDsForPartialName(args.search, search));
+        await addIncArrayFilter('template_id', true, await getTemplateIDsForPartialName(args.search, search, collectionNames));
     }
 
     if (typeof args.burned === 'boolean') {
@@ -559,13 +561,19 @@ async function limitExecutionTime<T extends Promise<any>>(promise: T, maxTime: n
     return result;
 }
 
-async function getTemplateIDsForPartialName(name: string, search: SalesSearchOptions): Promise<number[]> {
-    const {rows} = await search.ctx.db.query(`
-        SELECT template_id
-        FROM atomicassets_templates
-        WHERE contract = $1
-            AND (immutable_data->>'name') %> $2
-     `, [search.ctx.coreArgs.atomicassets_account, name]);
+async function getTemplateIDsForPartialName(name: string, search: SalesSearchOptions, collectionNames: string[]): Promise<number[]> {
+    const query = new QueryBuilder(`
+        SELECT template_id, collection_name
+        FROM atomicassets_templates    
+    `);
+    query.equal('contract', search.ctx.coreArgs.atomicassets_account);
+    query.addCondition(`(immutable_data->>'name') %> ${query.addVariable(name)}`);
+
+    if (collectionNames.length) {
+        query.equalMany('collection_name', collectionNames);
+    }
+
+    const {rows} = await search.ctx.db.query(query.buildString(), query.buildValues());
 
     return rows.length ? rows.map(r => r.template_id) : [-1];
 }
