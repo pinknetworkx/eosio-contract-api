@@ -571,14 +571,16 @@ describe('AtomicMarket Sales API', () => {
         });
 
         txit('filters by search (template name filter)', async () => {
+            const {collection_name} = await client.createCollection();
+
             await client.createFullSale({}, {
-                template_id: (await client.createTemplate()).template_id,
+                template_id: (await client.createTemplate({collection_name})).template_id,
             });
 
-            const {template_id} = await client.createTemplate({immutable_data: JSON.stringify({name: 'aTEST'})});
-            const {sale_id} = await client.createFullSale({}, {template_id});
+            const {template_id} = await client.createTemplate({collection_name, immutable_data: JSON.stringify({name: 'aTEST'})});
+            const {sale_id} = await client.createFullSale({collection_name}, {template_id});
 
-            expect(await getSalesIds({'search': 'test'}))
+            expect(await getSalesIds({search: 'test', collection_name}))
                 .to.deep.equal([sale_id]);
         });
 
