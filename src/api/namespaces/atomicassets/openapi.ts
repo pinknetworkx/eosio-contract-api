@@ -175,7 +175,8 @@ export const atomicassetsComponents = {
                     created_at_block: {type: 'string'},
                     created_at_time: {type: 'string'}
                 }
-            }
+            },
+            assets: {type: 'integer'},
         }
     },
     'Template': {

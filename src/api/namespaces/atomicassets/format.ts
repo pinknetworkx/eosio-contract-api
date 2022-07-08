@@ -43,12 +43,9 @@ export function formatTemplate(row: any): any {
 }
 
 export function formatSchema(row: any): any {
-    const data = {...row};
+    const {collection_name, authorized_accounts, ...data} = row;
 
     data.collection = formatCollection(data.collection);
-
-    delete data['collection_name'];
-    delete data['authorized_accounts'];
 
     return data;
 }
