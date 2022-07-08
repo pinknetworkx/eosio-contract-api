@@ -61,7 +61,7 @@ export async function getTemplatesAction(params: RequestValues, ctx: AtomicAsset
         query.addCondition(
             'EXISTS(' +
             'SELECT * FROM atomicassets_assets asset ' +
-            'WHERE template.contract = asset.contract AND template.template_id = asset.template_id AND owner IS NOT NULL' +
+            'WHERE template.contract = asset.contract AND template.template_id = asset.template_id AND owner || \'\' IS NOT NULL' +
             ')'
         );
     }
