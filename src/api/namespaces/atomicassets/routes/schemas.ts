@@ -79,7 +79,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                             required: false,
                             schema: {
                                 type: 'string',
-                                enum: ['created', 'schema_name'],
+                                enum: ['created', 'schema_name', 'assets'],
                                 default: 'created'
                             }
                         }
