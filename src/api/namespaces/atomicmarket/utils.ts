@@ -38,9 +38,6 @@ export function buildListingFilter(values: FilterValues, query: QueryBuilder): v
         buyer: {type: 'string', min: 1},
 
         collection_name: {type: 'string', min: 1},
-
-        min_template_mint: {type: 'int', min: 1},
-        max_template_mint: {type: 'int', min: 1}
     });
 
     if (args.account) {
@@ -92,9 +89,22 @@ export function buildListingFilter(values: FilterValues, query: QueryBuilder): v
         }
     }
 
+    buildTemplateMintFilter(values, query);
+}
+
+export function buildTemplateMintFilter(values: FilterValues, query: QueryBuilder): void {
+    const args = filterQueryArgs(values, {
+        min_template_mint: {type: 'int', min: 1},
+        max_template_mint: {type: 'int', min: 1}
+    });
+
     if (args.min_template_mint || args.max_template_mint) {
-        if ((args.min_template_mint && args.min_template_mint > 1) || (args.max_template_mint && args.max_template_mint < 1)) {
+        if (args.min_template_mint) {
             query.addCondition('listing.template_mint != \'empty\'');
+        }
+
+        if (args.max_template_mint && (args.min_template_mint ?? 0) > (args.max_template_mint)) {
+            throw new ApiError('Min template mint can\'t be grater than max template mint', 400);
         }
 
         query.addCondition(
