@@ -310,7 +310,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
             query.addCondition('SUBSTR(listing.filter[1], 2) IN (' +
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
-                'WHERE list = \'whitelist\' OR list = \'verified\')'
+                'WHERE list = \'whitelist\' OR list = \'verified\' OR list = \'exceptions\')'
             );
             query.addCondition('SUBSTR(listing.filter[1], 2) NOT IN (' +
                 'SELECT DISTINCT(collection_name) ' +

@@ -218,7 +218,7 @@ export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, c
             query.addCondition(columns.collectionName + ' IN (' +
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
-                'WHERE list = \'whitelist\' OR list = \'verified\')'
+                'WHERE list = \'whitelist\' OR list = \'verified\' OR list = \'exceptions\')'
             );
             query.addCondition(columns.collectionName + ' NOT IN (' +
                 'SELECT DISTINCT(collection_name) ' +

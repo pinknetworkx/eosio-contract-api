@@ -70,7 +70,7 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: Ne
             query.addCondition('collection.collection_name IN (' +
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
-                'WHERE list = \'whitelist\' OR list = \'verified\')'
+                'WHERE list = \'whitelist\' OR list = \'verified\' OR list = \'exceptions\')'
             );
             query.addCondition('collection.collection_name NOT IN (' +
                 'SELECT DISTINCT(collection_name) ' +

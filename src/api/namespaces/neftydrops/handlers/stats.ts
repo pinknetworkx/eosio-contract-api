@@ -58,11 +58,11 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Neft
             queryString += 'AND collection_name IN (' +
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
-                'WHERE list = \'whitelist\' OR list = \'verified\')';
-            queryString += 'collection_name NOT IN (' +
+                'WHERE list = \'whitelist\' OR list = \'verified\' OR list = \'exceptions\') ';
+            queryString += 'AND collection_name NOT IN (' +
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
-                'WHERE list = \'blacklist\' OR list = \'scam\')';
+                'WHERE list = \'blacklist\' OR list = \'scam\') ';
         }
     }
 
