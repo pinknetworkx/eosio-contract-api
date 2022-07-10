@@ -5,7 +5,7 @@ import {RequestValues} from '../../utils';
 import {getTestContext} from '../../../../utils/test';
 import {getAuctionsAction} from './auctions';
 
-
+// TODO add more tests
 describe('auction handler', () => {
     const {client, txit} = initAtomicMarketTest();
 

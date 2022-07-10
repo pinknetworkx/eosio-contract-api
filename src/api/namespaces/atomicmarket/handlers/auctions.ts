@@ -42,7 +42,7 @@ export async function getAuctionsAction(params: RequestValues, ctx: AtomicMarket
     }
 
     query.equal('listing.market_contract', ctx.coreArgs.atomicmarket_account);
-
+    // filter out auctions where an asset is missing
     query.addCondition(
         'NOT EXISTS (' +
         'SELECT * FROM atomicmarket_auctions_assets auction_asset ' +
