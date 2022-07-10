@@ -25,14 +25,17 @@ export async function setAutoVacSettings(connection: ConnectionManager): Promise
     for (const table of rows) {
         let scale = '0.05';
         let threshold = 50;
+        let statistics = 100; // 300 * statistics rows are analysed
 
         if (table.rows > 1_000_00) {
             scale = '0.0';
             threshold = 10_000;
+            statistics = 200;
         }
 
         if (table.rows > 5_000_000) {
             threshold = 100_000;
+            statistics = 400;
         }
 
         if (settingOverrides[table.tablename]?.scale !== undefined) {
@@ -51,7 +54,7 @@ export async function setAutoVacSettings(connection: ConnectionManager): Promise
                     autovacuum_analyze_threshold = ${threshold * 10},
                     autovacuum_vacuum_insert_scale_factor = ${scale},
                     autovacuum_vacuum_insert_threshold = ${threshold * 10}
-                )
+                ), SET STATISTICS ${statistics}
             `);
 
             logger.info(`Updated autovaccum settings for ${table.schemaname}.${table.tablename}`);

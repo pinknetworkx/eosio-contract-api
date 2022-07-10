@@ -1,0 +1,2 @@
+CREATE STATISTICS IF NOT EXISTS atomicmarket_stats_markets_collection_schema_template_stat (dependencies) ON collection_name, schema_name, template_id FROM atomicmarket_stats_markets;
+ANALYZE atomicmarket_stats_markets;
