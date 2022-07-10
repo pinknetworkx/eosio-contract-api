@@ -89,7 +89,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string',
                                 enum: [
                                     'created', 'updated', 'sale_id', 'price',
-                                    'template_mint'
+                                    'template_mint', 'name',
                                 ],
                                 default: 'created'
                             }
