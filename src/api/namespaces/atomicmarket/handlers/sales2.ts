@@ -30,7 +30,7 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
             type: 'string',
             allowedValues: [
                 'created', 'updated', 'sale_id', 'price',
-                'template_mint'
+                'template_mint', 'name',
             ],
             default: 'created'
         },
@@ -72,12 +72,13 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
         return countQuery.rows[0].counter;
     }
 
-    const sortMapping: { [key: string]: { column: string, numericIndex: boolean } } = {
+    const sortMapping: { [key: string]: { column: string, nullable?: boolean, numericIndex: boolean } } = {
         sale_id: {column: 'listing.sale_id', numericIndex: true},
         created: {column: 'listing.created_at_time', numericIndex: true},
         updated: {column: 'listing.updated_at_time', numericIndex: true},
         price: {column: 'listing.price', numericIndex: false},
-        template_mint: {column: 'LOWER(listing.template_mint)', numericIndex: false}
+        template_mint: {column: 'LOWER(listing.template_mint)', numericIndex: false},
+        name: {column: `SPLIT_PART(listing.asset_names, e'\\n', 1)`, nullable: true, numericIndex: false},
     };
 
     if (args.sort === 'template_mint') {
@@ -93,7 +94,7 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
 
     const preventIndexUsage = search.strongFilters.length > 0;
 
-    const orderBy = `ORDER BY ${sortMapping[args.sort].column}${preventIndexUsage ? ' + 0' : ''} ${args.order}, listing.sale_id`;
+    const orderBy = `ORDER BY ${sortMapping[args.sort].column}${preventIndexUsage ? ' + 0' : ''} ${args.order} ${sortMapping[args.sort].nullable ? 'NULLS LAST' : ''}, listing.sale_id`;
     query.append(orderBy);
 
     const stateRecheckQuery = addStateRecheck(query, search.saleStates, args.page, args.limit, orderBy);

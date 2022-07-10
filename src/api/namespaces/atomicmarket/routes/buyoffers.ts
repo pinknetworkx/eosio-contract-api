@@ -76,7 +76,7 @@ export function buyoffersEndpoints(core: AtomicMarketNamespace, server: HTTPServ
                                 type: 'string',
                                 enum: [
                                     'created', 'updated', 'buyoffer_id', 'price',
-                                    'template_mint'
+                                    'template_mint', 'name',
                                 ],
                                 default: 'created'
                             }

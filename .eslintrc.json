@@ -17,7 +17,7 @@
     "@typescript-eslint/no-unused-vars": [2, {"args": "after-used", "argsIgnorePattern": "^_", "ignoreRestSiblings": true}],
     "@typescript-eslint/explicit-function-return-type": 2,
     "no-async-promise-executor": 0,
-    "quotes": [2, "single"],
+    "quotes": [2, "single", {"allowTemplateLiterals": true}],
     "semi": [2, "always"],
     "no-console": "error"
   }

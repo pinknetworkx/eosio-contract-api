@@ -93,7 +93,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                                 type: 'string',
                                 enum: [
                                     'created', 'updated', 'ending', 'auction_id', 'price',
-                                    'template_mint'
+                                    'template_mint', 'name',
                                 ],
                                 default: 'created'
                             }
