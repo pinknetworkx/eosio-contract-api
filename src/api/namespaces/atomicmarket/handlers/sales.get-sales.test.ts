@@ -676,6 +676,24 @@ describe('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id1, sale_id2]);
         });
 
+        txit('orders by template_mint', async () => {
+            const {sale_id: sale_id1} = await client.createFullSale({}, {
+                mutable_data: JSON.stringify({name: 'b'}),
+            });
+
+            const {sale_id: sale_id2} = await client.createFullSale({}, {
+                immutable_data: JSON.stringify({name: 'a'}),
+            });
+            const {sale_id: sale_id3} = await client.createFullSale({}, {
+                template_id: (await client.createTemplate({
+                    immutable_data: {name: 'e'},
+                })).template_id,
+            });
+
+            expect(await getSalesIds({sort: 'name', order: 'asc'}))
+                .to.deep.equal([sale_id2, sale_id1, sale_id3]);
+        });
+
         txit('paginates', async () => {
             const {sale_id: sale_id1} = await client.createSale();
 

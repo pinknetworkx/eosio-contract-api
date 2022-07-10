@@ -53,7 +53,7 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
             type: 'string',
             allowedValues: [
                 'created', 'updated', 'sale_id', 'price',
-                'template_mint'
+                'template_mint', 'name',
             ],
             default: 'created'
         },
@@ -70,6 +70,14 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
                 FROM atomicmarket_sales listing
                     JOIN atomicassets_offers offer ON (listing.assets_contract = offer.contract AND listing.offer_id = offer.offer_id)
             `);
+
+    if (args.sort === 'name') {
+        query.appendToBase(`
+            LEFT OUTER JOIN atomicassets_offers_assets offer_asset ON offer_asset.offer_id = offer.offer_id AND offer_asset.contract = offer.contract AND offer_asset.index = 1
+            LEFT OUTER JOIN atomicassets_assets asset ON asset.asset_id = offer_asset.asset_id AND asset.contract = offer_asset.contract
+            LEFT OUTER JOIN atomicassets_templates template ON template.contract = asset.contract AND template.template_id = asset.template_id
+        `);
+    }
 
     query.equal('listing.market_contract', ctx.coreArgs.atomicmarket_account);
 
@@ -98,7 +106,8 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
         created: {column: 'listing.created_at_time', nullable: false, numericIndex: true},
         updated: {column: 'listing.updated_at_time', nullable: false, numericIndex: true},
         price: {column: 'listing.final_price', nullable: true, numericIndex: true},
-        template_mint: {column: 'LOWER(listing.template_mint)', nullable: true, numericIndex: false}
+        template_mint: {column: 'LOWER(listing.template_mint)', nullable: true, numericIndex: false},
+        name: {column: `(COALESCE(asset.mutable_data, '{}') || COALESCE(asset.immutable_data, '{}') || COALESCE(template.immutable_data, '{}'))->>'name'`, nullable: true, numericIndex: false},
     };
 
     const preventIndexUsage = (hasAssetFilter(params) || hasDataFilters(params) || hasListingFilter(params)) && sortMapping[args.sort].numericIndex;
