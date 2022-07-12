@@ -202,7 +202,7 @@ async function addTemplateFilter(query: QueryBuilder, ctx: AtomicAssetsContext, 
             WHERE contract = $1
                 AND ${templateFilters.join(' AND ')}
         )
-        SELECT ARRAY_AGG(templates.template_id) template_id, COALESCE(SUM(ac.assets), 0)::INT assets
+        SELECT ARRAY_AGG(DISTINCT templates.template_id) template_id, COALESCE(SUM(ac.assets), 0)::INT assets
         FROM templates
             LEFT OUTER JOIN atomicassets_asset_counts ac ON ac.contract = $1 AND templates.template_id = ac.template_id
     `;
