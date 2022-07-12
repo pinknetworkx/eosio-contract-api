@@ -209,7 +209,11 @@ async function addTemplateFilter(query: QueryBuilder, ctx: AtomicAssetsContext, 
 
     const {rows: [row]} = await ctx.db.query(sql, sqlParams);
 
-    query.equalMany('asset.template_id', row.template_id);
+    if (row.template_id?.length) {
+        query.equalMany('asset.template_id', row.template_id);
+    } else {
+        query.addCondition('FALSE');
+    }
 
     return row.assets <= 1_100_000;
 }
