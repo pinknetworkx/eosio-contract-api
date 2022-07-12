@@ -72,8 +72,8 @@ export async function getAuctionsAction(params: RequestValues, ctx: AtomicMarket
         ending: {column: 'listing.end_time', nullable: false, numericIndex: true},
         created: {column: 'listing.created_at_time', nullable: false, numericIndex: true},
         updated: {column: 'listing.updated_at_time', nullable: false, numericIndex: true},
-        price: {column: 'listing.price', nullable: true, numericIndex: false},
-        template_mint: {column: 'LOWER(listing.template_mint)', nullable: true, numericIndex: false},
+        price: {column: 'listing.price', nullable: true, numericIndex: true},
+        template_mint: {column: 'LOWER(listing.template_mint)', nullable: true, numericIndex: true},
         name: {column: `(COALESCE(asset.mutable_data, '{}') || COALESCE(asset.immutable_data, '{}') || COALESCE(template.immutable_data, '{}'))->>'name'`, nullable: true, numericIndex: false},
     };
 
