@@ -3,27 +3,23 @@ import { isWeakIntArray } from '../utils';
 export default class QueryBuilder {
     private baseQuery: string;
 
-    private conditions: string[];
-    private aggregations: string[];
-    private ending: string;
+    private conditions: string[] = [];
+    private aggregations: string[] = [];
+    private havingConditions: string[] = [];
+    private ending: string = '';
 
     private values: any[];
-    private varCounter: number;
 
     constructor(query: string, values: any[] = []) {
         this.values = values;
-        this.varCounter = this.values.length;
 
         this.baseQuery = query;
-        this.conditions = [];
-        this.aggregations = [];
-        this.ending = '';
     }
 
     addVariable(value: any): string {
         this.values.push(value);
 
-        return '$' + ++this.varCounter;
+        return '$' + this.values.length;
     }
 
     join(tableA: string, tableB: string, columns: string[]): QueryBuilder {
@@ -114,6 +110,12 @@ export default class QueryBuilder {
         return this;
     }
 
+    having(condition: string): QueryBuilder {
+        this.havingConditions.push(condition);
+
+        return this;
+    }
+
     paginate(page: number, limit: number): QueryBuilder {
         this.append('LIMIT ' + this.addVariable(limit) + ' OFFSET ' + this.addVariable((page - 1) * limit));
 
@@ -134,7 +136,6 @@ export default class QueryBuilder {
 
     setVars(vars: any[]): QueryBuilder {
         this.values = vars;
-        this.varCounter = vars.length;
 
         return this;
     }
@@ -152,6 +153,10 @@ export default class QueryBuilder {
 
         if (this.aggregations.length > 0) {
             queryString += 'GROUP BY ' + this.aggregations.join(', ') + ' ';
+        }
+
+        if (this.havingConditions.length > 0) {
+            queryString += 'HAVING ' + this.havingConditions.join(' AND ') + ' ';
         }
 
         if (this.ending) {
