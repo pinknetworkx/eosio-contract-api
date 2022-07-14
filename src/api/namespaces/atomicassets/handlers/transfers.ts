@@ -38,7 +38,7 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
 
         // prevent index usage, but recheck matches
         const varName = query.addVariable(args.account);
-        query.addCondition(`(sender_name || '' = ANY (${varName}) OR recipient_name = ANY (${varName}))`);
+        query.addCondition(`(sender_name || '' = ANY (${varName}) OR recipient_name|| '' = ANY (${varName}))`);
     }
 
     if (args.sender) {

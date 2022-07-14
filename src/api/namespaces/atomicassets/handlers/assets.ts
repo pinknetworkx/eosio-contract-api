@@ -202,14 +202,18 @@ async function addTemplateFilter(query: QueryBuilder, ctx: AtomicAssetsContext, 
             WHERE contract = $1
                 AND ${templateFilters.join(' AND ')}
         )
-        SELECT ARRAY_AGG(templates.template_id) template_id, COALESCE(SUM(ac.assets), 0)::INT assets
+        SELECT ARRAY_AGG(DISTINCT templates.template_id) template_id, COALESCE(SUM(ac.assets), 0)::INT assets
         FROM templates
             LEFT OUTER JOIN atomicassets_asset_counts ac ON ac.contract = $1 AND templates.template_id = ac.template_id
     `;
 
     const {rows: [row]} = await ctx.db.query(sql, sqlParams);
 
-    query.equalMany('asset.template_id', row.template_id);
+    if (row.template_id?.length) {
+        query.equalMany('asset.template_id', row.template_id);
+    } else {
+        query.addCondition('FALSE');
+    }
 
     return row.assets <= 1_100_000;
 }
