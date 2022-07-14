@@ -76,8 +76,8 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
         sale_id: {column: 'listing.sale_id', numericIndex: true},
         created: {column: 'listing.created_at_time', numericIndex: true},
         updated: {column: 'listing.updated_at_time', numericIndex: true},
-        price: {column: 'listing.price', numericIndex: false},
-        template_mint: {column: 'LOWER(listing.template_mint)', numericIndex: false},
+        price: {column: 'listing.price', numericIndex: true},
+        template_mint: {column: 'LOWER(listing.template_mint)', numericIndex: true},
         name: {column: `SPLIT_PART(listing.asset_names, e'\\n', 1)`, nullable: true, numericIndex: false},
     };
 
@@ -92,7 +92,7 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
         }
     }
 
-    const preventIndexUsage = search.strongFilters.length > 0;
+    const preventIndexUsage = search.strongFilters.length > 0 && sortMapping[args.sort].numericIndex;
 
     const orderBy = `ORDER BY ${sortMapping[args.sort].column}${preventIndexUsage ? ' + 0' : ''} ${args.order} ${sortMapping[args.sort].nullable ? 'NULLS LAST' : ''}, listing.sale_id`;
     query.append(orderBy);

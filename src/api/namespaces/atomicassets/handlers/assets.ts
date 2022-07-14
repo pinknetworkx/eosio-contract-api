@@ -157,7 +157,7 @@ export async function getRawAssetsAction(
             updated: {column: 'asset.updated_at_time', nullable: false, numericIndex: true},
             transferred: {column: 'asset.transferred_at_time', nullable: false, numericIndex: true},
             minted: {column: 'asset.asset_id', nullable: false, numericIndex: true},
-            template_mint: {column: 'asset.template_mint', nullable: true, numericIndex: false},
+            template_mint: {column: 'asset.template_mint', nullable: true, numericIndex: true},
             name: {column: `(COALESCE(asset.mutable_data, '{}') || COALESCE(asset.immutable_data, '{}') || COALESCE(template.immutable_data, '{}'))->>'name'`, nullable: true, numericIndex: false},
             ...options?.extraSort,
         };
