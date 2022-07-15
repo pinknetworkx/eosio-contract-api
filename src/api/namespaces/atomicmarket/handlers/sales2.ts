@@ -594,7 +594,7 @@ export async function getSalesTemplatesV2Action(params: RequestValues, ctx: Atom
     }
 
     const query = new QueryBuilder(`
-        SELECT DISTINCT ON (listing.assets_contract, template_id)
+        SELECT DISTINCT ON (template_id, listing.assets_contract)
             listing.market_contract, listing.sale_id, listing.assets_contract, SUBSTRING(u.f FROM 2)::BIGINT template_id, listing.price
         FROM atomicmarket_sales_filters listing
             JOIN LATERAL UNNEST(filter) u(f) ON u.f LIKE 't%'
@@ -613,7 +613,7 @@ export async function getSalesTemplatesV2Action(params: RequestValues, ctx: Atom
 
     await buildSaleFilterV2(search);
 
-    query.append('ORDER BY listing.assets_contract, template_id, listing.price');
+    query.append('ORDER BY template_id NULLS LAST, listing.assets_contract, listing.price, listing.sale_id DESC');
 
     const sortColumnMapping: {[key: string]: string} = {
         price: 't1.price',
