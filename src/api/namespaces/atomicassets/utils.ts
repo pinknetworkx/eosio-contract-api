@@ -210,23 +210,14 @@ export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, c
 
     if (columns.collectionName) {
         if (collectionWhitelist.length > 0 && collectionBlacklist.length > 0) {
-            query.addCondition(
-                'EXISTS (SELECT * FROM UNNEST(' + query.addVariable(collectionWhitelist.filter(row => !collectionBlacklist.includes(row))) + '::text[]) ' +
-                'WHERE "unnest" = ' + columns.collectionName + ')'
-            );
+            query.equalMany(columns.collectionName, collectionWhitelist.filter(row => !collectionBlacklist.includes(row)));
         } else {
             if (collectionWhitelist.length > 0) {
-                query.addCondition(
-                    'EXISTS (SELECT * FROM UNNEST(' + query.addVariable(collectionWhitelist) + '::text[]) ' +
-                    'WHERE "unnest" = ' + columns.collectionName + ')'
-                );
+                query.equalMany(columns.collectionName, collectionWhitelist);
             }
 
             if (collectionBlacklist.length > 0) {
-                query.addCondition(
-                    'NOT EXISTS (SELECT * FROM UNNEST(' + query.addVariable(collectionBlacklist) + '::text[]) ' +
-                    'WHERE "unnest" = ' + columns.collectionName + ')'
-                );
+                query.notMany(columns.collectionName, collectionBlacklist);
             }
         }
     }
