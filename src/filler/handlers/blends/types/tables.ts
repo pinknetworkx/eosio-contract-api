@@ -21,7 +21,7 @@ export type ValueOutcome = {
 }
 
 export type SuperBlendValuerollsTableRow = {
-    id: string,
+    valueroll_id: string,
     value_outcomes: ValueOutcome[],
     total_odds: number
 }
