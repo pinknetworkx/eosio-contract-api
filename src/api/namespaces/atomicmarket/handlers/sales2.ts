@@ -291,7 +291,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
         flags: [],
     };
 
-    async function addIncArrayFilter(filter: string, canBeStrongFilter: boolean = false, value: any = undefined): Promise<void> {
+    async function addIncArrayFilter(filter: keyof typeof args, canBeStrongFilter: boolean = false, value: any = undefined): Promise<void> {
         value = value ?? args[filter];
         if (value?.length) {
             // when a single filter has multiple values, search ALL of them
