@@ -8,18 +8,21 @@ export default class QueryBuilder {
     private havingConditions: string[] = [];
     private ending: string = '';
 
-    private values: any[];
+    private variables: any[];
 
-    constructor(query: string, values: any[] = []) {
-        this.values = values;
+    constructor(query: string, variables: any[] = []) {
+        this.variables = variables;
 
         this.baseQuery = query;
     }
 
     addVariable(value: any): string {
-        this.values.push(value);
+        const existingVariable = this.variables.indexOf(value) + 1;
+        if (existingVariable) {
+            return `$${existingVariable}`;
+        }
 
-        return '$' + this.values.length;
+        return `$${this.variables.push(value)}`;
     }
 
     join(tableA: string, tableB: string, columns: string[]): QueryBuilder {
@@ -135,7 +138,7 @@ export default class QueryBuilder {
     }
 
     setVars(vars: any[]): QueryBuilder {
-        this.values = vars;
+        this.variables = vars;
 
         return this;
     }
@@ -167,6 +170,8 @@ export default class QueryBuilder {
     }
 
     buildValues(): any[] {
-        return this.values;
+        return this.variables;
+    }
+
     }
 }
