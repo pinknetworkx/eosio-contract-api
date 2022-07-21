@@ -1,9 +1,12 @@
 /*
 Faster migration:
 
-CREATE INDEX IF NOT EXISTS CONCURRENTLY atomicassets_assets_collection_schema ON atomicassets_assets (collection_name, schema_name);
-CREATE INDEX IF NOT EXISTS CONCURRENTLY atomicassets_schemas_collection_schema ON atomicassets_schemas (collection_name, schema_name);
-CREATE INDEX IF NOT EXISTS CONCURRENTLY atomicassets_templates_collection_schema ON atomicassets_templates (collection_name, schema_name);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS atomicassets_assets_collection_schema ON atomicassets_assets (collection_name, schema_name);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS atomicassets_schemas_collection_schema ON atomicassets_schemas (collection_name, schema_name);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS atomicassets_templates_collection_schema ON atomicassets_templates (collection_name, schema_name);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS atomicassets_transfers_recipient_transfer_id ON atomicassets_transfers (recipient, transfer_id);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS atomicassets_transfers_sender_transfer_id ON atomicassets_transfers (sender, transfer_id);
 
 */
 
@@ -24,3 +27,11 @@ CREATE INDEX IF NOT EXISTS atomicassets_templates_collection_schema ON atomicass
 
 DROP INDEX IF EXISTS atomicassets_templates_collection_name;
 DROP INDEX IF EXISTS atomicassets_templates_schema_name;
+
+
+CREATE INDEX IF NOT EXISTS atomicassets_transfers_recipient_transfer_id ON atomicassets_transfers (recipient, transfer_id);
+CREATE INDEX IF NOT EXISTS atomicassets_transfers_sender_transfer_id ON atomicassets_transfers (sender, transfer_id);
+
+DROP INDEX IF EXISTS atomicassets_transfers_accounts;
+DROP INDEX IF EXISTS atomicassets_transfers_sender;
+DROP INDEX IF EXISTS atomicassets_transfers_recipient;
