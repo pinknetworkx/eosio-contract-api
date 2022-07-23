@@ -129,3 +129,5 @@ SELECT update_atomicmarket_template_prices();
 create index atomicmarket_template_prices_collection_name on atomicmarket_template_prices (collection_name);
 create index atomicmarket_template_prices_template_id on atomicmarket_template_prices (template_id);
 
+CREATE INDEX atomicmarket_stats_markets_template_id_schema_name_time ON atomicmarket_stats_markets (template_id, schema_name, time);
+

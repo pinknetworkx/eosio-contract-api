@@ -1,0 +1,2 @@
+CREATE INDEX atomicassets_assets_template_id_template_mint_asset_id ON atomicassets_assets (template_id, template_mint, asset_id);
+CREATE INDEX atomicassets_assets_template_id_updated_asset_id ON atomicassets_assets (template_id, updated_at_time, asset_id);
