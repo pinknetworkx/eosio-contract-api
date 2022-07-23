@@ -26,6 +26,8 @@ describe('AtomicMarket Prices API', () => {
         });
 
         txit('has data', async () => {
+            await client.createContractReader();
+
             const account = 'account1234';
             const token = await client.createToken({token_symbol: 'SYM'});
             const token2 = await client.createToken({token_symbol: 'WAX'});
@@ -145,7 +147,7 @@ describe('AtomicMarket Prices API', () => {
                 buyoffer_id: buyOffer6.buyoffer_id,
                 asset_id: asset6.asset_id
             });
-            await client.refreshPrice();
+            await client.refreshTemplatePrices();
 
             const response = await getUsersInventoryPrices({}, getTestContext(client, {account}));
 
