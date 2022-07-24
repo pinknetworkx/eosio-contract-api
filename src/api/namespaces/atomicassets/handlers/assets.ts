@@ -248,8 +248,8 @@ export async function getAssetLogsAction(params: RequestValues, ctx: AtomicAsset
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
-        action_whitelist: {type: 'string', min: 1},
-        action_blacklist: {type: 'string', min: 1}
+        action_whitelist: {type: 'string[]', min: 1},
+        action_blacklist: {type: 'string[]', min: 1},
     });
 
     return await getContractActionLogs(
