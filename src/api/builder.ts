@@ -173,5 +173,4 @@ export default class QueryBuilder {
         return this.variables;
     }
 
-    }
 }
