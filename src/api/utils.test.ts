@@ -7,24 +7,11 @@ import {ApiError} from './error';
 
 describe('utils', () => {
     describe('ApplyActionGreyListFilters', () => {
-        const action_whitelist = 'a,b,c';
-        const action_blacklist = 'c,d,e';
-
-        it('does not apply any filter if no filter is given', () => {
-            expect(applyActionGreylistFilters(['a'], {})).to.deep.equal(['a']);
-        });
-
-        it('applies white list filter, ignores given actions', () => {
-            expect(applyActionGreylistFilters(['d'], {action_whitelist}))
-                .to.deep.equal(['a', 'b', 'c']);
-        });
-
-        it('applies blacklist filter removing not allowed actions', () => {
-            expect(applyActionGreylistFilters(['a', 'c'], {action_blacklist})).to.deep.equal(['a']);
-        });
+        const action_whitelist = ['a', 'b', 'c'];
+        const action_blacklist = ['c', 'd', 'e'];
 
         it('applies both white and black list filters on the actions', () => {
-            expect(applyActionGreylistFilters([], {action_blacklist, action_whitelist}))
+            expect(applyActionGreylistFilters(['a', 'b', 'c', 'd', 'e', 'f'], {action_blacklist, action_whitelist}))
                 .to.deep.equal(['a', 'b']);
         });
     });
