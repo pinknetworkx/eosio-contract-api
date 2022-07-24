@@ -73,7 +73,7 @@ function buildUnionQuery(unionArgsList: any[], args: Record<string, any>, params
     return new QueryBuilder(unions.join(' UNION '), query.buildValues());
 }
 
-function getUnionArgsList(args: FilteredValues): FilteredValues[] {
+function getUnionArgsList<T extends FilteredValues<T>>(args: Record<string, any>): T[] {
     if (args.count || (args.sort !== 'created') || ((args.sender.length > 0) && (args.recipient.length > 0))) {
         return []; // unable to use unions
     }
@@ -88,8 +88,8 @@ function getUnionArgsList(args: FilteredValues): FilteredValues[] {
 
     const result = [];
     for (const account of args.account) {
-        result.push({...args, account: [], sender: [account]});
-        result.push({...args, account: [], recipient: [account]});
+        result.push({...args, account: [], sender: [account]} as any as T);
+        result.push({...args, account: [], recipient: [account]} as any as T);
     }
     return result;
 }
