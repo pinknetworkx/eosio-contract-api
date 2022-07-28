@@ -25,25 +25,11 @@ export async function getContractActionLogs(
 
 export function applyActionGreylistFilters(
     actions: string[],
-    args: { action_whitelist?: string, action_blacklist?: string },
+    args: { action_whitelist: string[], action_blacklist: string[] },
 ): string[] {
-    let result = [...actions];
-
-    if (args.action_whitelist) {
-        result = args.action_whitelist.split(',');
-    }
-
-    if (args.action_blacklist) {
-        for (const action of args.action_blacklist.split(',')) {
-            const index = result.indexOf(action);
-
-            if (index > -1) {
-                result.splice(index, 1);
-            }
-        }
-    }
-
-    return result;
+    return actions
+        .filter(action => args.action_whitelist.includes(action))
+        .filter(action => !args.action_blacklist.includes(action));
 }
 
 export function createSocketApiNamespace(server: HTTPServer, path: string): Namespace {

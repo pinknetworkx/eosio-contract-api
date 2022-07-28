@@ -4,7 +4,7 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS atomicassets_transfers_accounts ON atomi
 
 */
 
-CREATE INDEX IF NOT EXISTS atomicassets_transfers_accounts ON atomicassets_transfers USING gin((sender || e'\n' || recipient) gin_trgm_ops);
+-- dropped in 1.3.17 CREATE INDEX IF NOT EXISTS atomicassets_transfers_accounts ON atomicassets_transfers USING gin((sender || e'\n' || recipient) gin_trgm_ops);
 
 
 

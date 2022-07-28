@@ -6,7 +6,7 @@ import { ApiError } from '../error';
 describe('filterQueryArgs', () => {
 
     it('removes values that are not defined in the filter', () => {
-        const result = filterQueryArgs({a: 1, b: 2}, {a: {type: 'string'}});
+        const result = filterQueryArgs({a: 1, b: 2} as any, {a: {type: 'string'}});
 
         expect(Object.keys(result)).to.deep.equal(['a']);
     });
