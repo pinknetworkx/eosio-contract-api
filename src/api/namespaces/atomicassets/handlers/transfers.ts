@@ -13,7 +13,7 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
         sort: {type: 'string', allowedValues: ['created'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
-        asset_id: {type: 'string[]', min: 1},
+        asset_id: {type: 'id[]'},
 
         collection_blacklist: {type: 'string[]', min: 1},
         collection_whitelist: {type: 'string[]', min: 1},

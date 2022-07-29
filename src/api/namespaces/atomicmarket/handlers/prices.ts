@@ -14,9 +14,9 @@ import {oneLine} from 'common-tags';
 export async function getPricesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         collection_name: {type: 'string', min: 1},
-        template_id: {type: 'string', min: 1},
+        template_id: {type: 'id[]'},
         schema_name: {type: 'string', min: 1},
-        asset_id: {type: 'string', min: 1},
+        asset_id: {type: 'id[]'},
         symbol: {type: 'string', min: 1}
     });
 
@@ -39,16 +39,16 @@ export async function getPricesAction(params: RequestValues, ctx: AtomicMarketCo
         query.equalMany('price.schema_name', args.schema_name.split(','));
     }
 
-    if (args.template_id && args.template_id.toLowerCase() !== 'null') {
-        query.equalMany('price.template_id', args.template_id.split(','));
+    if (args.template_id.length) {
+        if ((args.template_id.length === 1) && (args.template_id[0] === 'null')) {
+            query.isNull('price.template_id');
+        } else {
+            query.equalMany('price.template_id', args.template_id);
+        }
     }
 
-    if (args.template_id && args.template_id.toLowerCase() === 'null') {
-        query.isNull('price.template_id');
-    }
-
-    if (args.asset_id) {
-        query.equalMany('price.asset_id', args.asset_id.split(','));
+    if (args.asset_id.length) {
+        query.equalMany('price.asset_id', args.asset_id);
     }
 
     if (args.symbol) {
@@ -140,9 +140,9 @@ export async function getAssetSalesAction(params: RequestValues, ctx: AtomicMark
 export async function getPricesSalesDaysAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = filterQueryArgs(params, {
         collection_name: {type: 'string', min: 1},
-        template_id: {type: 'string', min: 1},
+        template_id: {type: 'id[]'},
         schema_name: {type: 'string', min: 1},
-        asset_id: {type: 'string', min: 1},
+        asset_id: {type: 'id[]'},
         symbol: {type: 'string', min: 1}
     });
 
@@ -166,16 +166,16 @@ export async function getPricesSalesDaysAction(params: RequestValues, ctx: Atomi
         query.equalMany('price.schema_name', args.schema_name.split(','));
     }
 
-    if (args.template_id && args.template_id.toLowerCase() !== 'null') {
-        query.equalMany('price.template_id', args.template_id.split(','));
-    }
-
-    if (args.template_id && args.template_id.toLowerCase() === 'null') {
-        query.isNull('price.template_id');
+    if (args.template_id.length) {
+        if ((args.template_id.length === 1) && (args.template_id[0] === 'null')) {
+            query.isNull('price.template_id');
+        } else {
+            query.equalMany('price.template_id', args.template_id);
+        }
     }
 
     if (args.asset_id) {
-        query.equalMany('price.asset_id', args.asset_id.split(','));
+        query.equalMany('price.asset_id', args.asset_id);
     }
 
     if (args.symbol) {
@@ -202,7 +202,7 @@ export async function getPricesTemplatesAction(params: RequestValues, ctx: Atomi
     const maxLimit = ctx.coreArgs.limits?.prices_templates || 1000;
     const args = filterQueryArgs(params, {
         collection_name: {type: 'string', min: 1},
-        template_id: {type: 'string', min: 1},
+        template_id: {type: 'id[]'},
         schema_name: {type: 'string', min: 1},
         symbol: {type: 'string', min: 1},
 
@@ -234,8 +234,8 @@ export async function getPricesTemplatesAction(params: RequestValues, ctx: Atomi
         query.equalMany('"template".schema_name', args.schema_name.split(','));
     }
 
-    if (args.template_id) {
-        query.equalMany('price.template_id', args.template_id.split(','));
+    if (args.template_id.length) {
+        query.equalMany('price.template_id', args.template_id);
     }
 
     if (args.symbol) {

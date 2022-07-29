@@ -20,7 +20,7 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         memo: {type: 'string', min: 1},
         match_memo: {type: 'string', min: 1},
 
-        asset_id: {type: 'string', min: 1},
+        asset_id: {type: 'id[]'},
 
         recipient_asset_blacklist: {type: 'string', min: 1},
         recipient_asset_whitelist: {type: 'string', min: 1},
@@ -109,12 +109,12 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         query.setVars(assetQuery.buildValues());
     }
 
-    if (args.asset_id) {
+    if (args.asset_id.length) {
         query.addCondition(
             'EXISTS(' +
             'SELECT * FROM atomicassets_offers_assets asset ' +
             'WHERE offer.contract = asset.contract AND offer.offer_id = asset.offer_id AND ' +
-            'asset_id = ANY (' + query.addVariable(args.asset_id.split(',')) + ')' +
+            'asset_id = ANY (' + query.addVariable(args.asset_id) + ')' +
             ')'
         );
     }
