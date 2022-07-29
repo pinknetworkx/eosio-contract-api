@@ -213,7 +213,7 @@ function buildAssetFilterV2(search: SalesSearchOptions): void {
     const {values, query} = search;
 
     const args = filterQueryArgs(values, {
-        asset_id: {type: 'string[]', min: 1},
+        asset_id: {type: 'id[]'},
     });
 
     if (args.asset_id.length) {
@@ -265,7 +265,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
         owner: {type: 'string[]', min: 1, max: 12},
 
         burned: {type: 'bool'},
-        template_id: {type: 'string[]', min: 1},
+        template_id: {type: 'id[]'},
         schema_name: {type: 'string[]', min: 1},
         is_transferable: {type: 'bool'},
         is_burnable: {type: 'bool'},

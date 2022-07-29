@@ -2,7 +2,7 @@ import { RequestValues } from './utils';
 import { isWeakFloat, isWeakInt, toInt } from '../../utils';
 import { ApiError } from '../error';
 
-type FilterType = 'string' | 'string[]' | 'int' | 'int[]' | 'float' | 'float[]' | 'bool' | 'bool[]' | 'name' | 'name[]';
+type FilterType = 'string' | 'string[]' | 'int' | 'int[]' | 'float' | 'float[]' | 'bool' | 'bool[]' | 'name' | 'name[]' | 'id' | 'id[]';
 
 type FilterDefinition = {
     type: FilterType,
@@ -46,6 +46,18 @@ const int = (value: string, filter: FilterDefinition): number => {
     }
 
     return n;
+};
+
+const id = (value: string): string => {
+    if (value.toLowerCase() === 'null') {
+        return 'null';
+    }
+
+    if (!isWeakInt(value)) {
+        throw new Error();
+    }
+
+    return value;
 };
 
 const float = (value: string, filter: FilterDefinition): number => {
@@ -97,6 +109,7 @@ const validationTypes: {[key: string]: (value: string, filter: FilterDefinition)
     float,
     bool,
     name,
+    id,
 };
 
 const typeRE = /^(?<type>\w+)(?<array>\[])?$/;

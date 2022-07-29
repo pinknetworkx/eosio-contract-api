@@ -13,7 +13,7 @@ export async function getBurnsAction(params: RequestValues, ctx: AtomicAssetsCon
 
         collection_name: {type: 'string', min: 1},
         schema_name: {type: 'string', min: 1},
-        template_id: {type: 'string', min: 1},
+        template_id: {type: 'id[]'},
 
         match_owner: {type: 'string', min: 1},
     });

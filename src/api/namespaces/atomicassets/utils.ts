@@ -110,10 +110,10 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
 }
 
 const assetFilters: FiltersDefinition = {
-    asset_id: {type: 'string', min: 1},
+    asset_id: {type: 'id[]'},
     owner: {type: 'string', min: 1},
     burned: {type: 'bool'},
-    template_id: {type: 'string', min: 1},
+    template_id: {type: 'id[]'},
     collection_name: {type: 'string', min: 1},
     schema_name: {type: 'string', min: 1},
     is_transferable: {type: 'bool'},
@@ -133,20 +133,20 @@ export function buildAssetFilter(
         buildDataConditions(values, query, {assetTable: options.assetTable, templateTable: options.templateTable});
     }
 
-    if (args.asset_id) {
-        query.equalMany(options.assetTable + '.asset_id', args.asset_id.split(','));
+    if (args.asset_id.length) {
+        query.equalMany(options.assetTable + '.asset_id', args.asset_id);
     }
 
     if (args.owner) {
         query.equalMany(options.assetTable + '.owner', args.owner.split(','));
     }
 
-    if (args.template_id && args.template_id.toLowerCase() !== 'null') {
-        query.equalMany(options.assetTable + '.template_id', args.template_id.split(','));
-    }
-
-    if (args.template_id && args.template_id.toLowerCase() === 'null') {
-        query.isNull(options.assetTable + '.template_id');
+    if (args.template_id.length) {
+        if ((args.template_id.length === 1) && (args.template_id[0] === 'null')) {
+            query.isNull(options.assetTable + '.template_id');
+        } else {
+            query.equalMany(options.assetTable + '.template_id', args.template_id);
+        }
     }
 
     if (args.collection_name) {
