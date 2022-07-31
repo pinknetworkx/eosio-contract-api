@@ -13,9 +13,9 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         sort: {type: 'string', allowedValues: ['created', 'updated'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
-        account: {type: 'string', min: 1},
-        sender: {type: 'string', min: 1},
-        recipient: {type: 'string', min: 1},
+        account: {type: 'string[]', min: 1},
+        sender: {type: 'string[]', min: 1},
+        recipient: {type: 'string[]', min: 1},
         state: {type: 'string', min: 1},
         memo: {type: 'string', min: 1},
         match_memo: {type: 'string', min: 1},
@@ -43,17 +43,17 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
 
     query.equal('contract', ctx.coreArgs.atomicassets_account);
 
-    if (args.account) {
-        const varName = query.addVariable(args.account.split(','));
+    if (args.account.length) {
+        const varName = query.addVariable(args.account);
         query.addCondition('(sender = ANY (' + varName + ') OR recipient = ANY (' + varName + '))');
     }
 
-    if (args.sender) {
-        query.equalMany('sender', args.sender.split(','));
+    if (args.sender.length) {
+        query.equalMany('sender', args.sender);
     }
 
-    if (args.recipient) {
-        query.equalMany('recipient', args.recipient.split(','));
+    if (args.recipient.length) {
+        query.equalMany('recipient', args.recipient);
     }
 
     if (args.state) {
@@ -80,7 +80,7 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         query.addCondition(
             'NOT EXISTS(SELECT * FROM contract_codes ' +
             'WHERE (account = offer.recipient OR account = offer.sender) AND NOT (account = ANY(' +
-            query.addVariable([args.account, args.sender, args.recipient].filter(row => !!row)) +
+            query.addVariable([...args.account, ...args.sender, ...args.recipient]) +
             ')))'
         );
     }
