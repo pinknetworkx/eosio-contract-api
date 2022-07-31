@@ -8,6 +8,8 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS atomicassets_templates_collection_schema
 CREATE INDEX CONCURRENTLY IF NOT EXISTS atomicassets_transfers_recipient_transfer_id ON atomicassets_transfers (recipient, transfer_id);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS atomicassets_transfers_sender_transfer_id ON atomicassets_transfers (sender, transfer_id);
 
+CREATE INDEX CONCURRENTLY IF NOT EXISTS atomicassets_assets_data ON atomicassets_assets USING gin ((mutable_data || immutable_data)) WHERE (mutable_data || immutable_data)  != '{}';
+
 */
 
 
@@ -35,3 +37,8 @@ CREATE INDEX IF NOT EXISTS atomicassets_transfers_sender_transfer_id ON atomicas
 DROP INDEX IF EXISTS atomicassets_transfers_accounts;
 DROP INDEX IF EXISTS atomicassets_transfers_sender;
 DROP INDEX IF EXISTS atomicassets_transfers_recipient;
+
+CREATE INDEX IF NOT EXISTS atomicassets_assets_data ON atomicassets_assets USING gin ((mutable_data || immutable_data)) WHERE (mutable_data || immutable_data)  != '{}';
+
+DROP INDEX IF EXISTS atomicassets_assets_mutable_data;
+DROP INDEX IF EXISTS atomicassets_assets_immutable_data;

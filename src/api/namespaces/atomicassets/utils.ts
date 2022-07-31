@@ -66,6 +66,17 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
     }
 
     if (options.assetTable) {
+        const assetDataCondition = {
+            ...mutableCondition,
+            ...immutableCondition,
+        };
+
+        if (Object.keys(assetDataCondition).length > 0) {
+            // use combined index
+            query.addCondition(`(${options.assetTable}.mutable_data || ${options.assetTable}.immutable_data) @> ${query.addVariable(JSON.stringify(mutableCondition))}::jsonb`);
+            query.addCondition(`(${options.assetTable}.mutable_data || ${options.assetTable}.immutable_data) != '{}'`);
+        }
+
         if (Object.keys(mutableCondition).length > 0) {
             query.addCondition(options.assetTable + '.mutable_data @> ' + query.addVariable(JSON.stringify(mutableCondition)) + '::jsonb');
         }
