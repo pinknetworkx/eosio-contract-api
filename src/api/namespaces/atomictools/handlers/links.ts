@@ -106,9 +106,13 @@ export async function getLinksCountAction(params: RequestValues, ctx: AtomicTool
 }
 
 export async function getLinkAction(params: RequestValues, ctx: AtomicToolsContext): Promise<any> {
+    const args = filterQueryArgs({link_id: ctx.pathParams.link_id} as RequestValues, {
+        link_id: {type: 'id'},
+    });
+
     const query = await ctx.db.query(
         'SELECT * FROM atomictools_links_master WHERE tools_contract = $1 AND link_id = $2',
-        [ctx.coreArgs.atomictools_account, ctx.pathParams.link_id]
+        [ctx.coreArgs.atomictools_account, args.link_id]
     );
 
     if (query.rowCount === 0) {

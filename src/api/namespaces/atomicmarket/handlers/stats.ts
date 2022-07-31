@@ -290,7 +290,7 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
 
         collection_name: {type: 'string[]', min: 1},
         schema_name: {type: 'string[]', min: 1},
-        template_id: {type: 'id[]', min: 1},
+        template_id: {type: 'id[]'},
 
         search: {type: 'string', min: 1},
 
