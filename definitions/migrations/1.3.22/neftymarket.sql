@@ -36,7 +36,7 @@ INSERT INTO neftymarket_stats_markets (market_contract, listing_type, listing_id
         FROM neftymarket_auctions auction
             JOIN neftymarket_auctions_assets auction_asset ON auction.auction_id = auction_asset.auction_id AND auction.assets_contract = auction_asset.assets_contract
             JOIN atomicassets_assets asset ON auction_asset.asset_id = asset.asset_id AND auction_asset.assets_contract = asset.contract
-        WHERE auction.buyer IS NOT NULL AND auction.state = 1 AND auction.end_time < extract(epoch from now()) * 1000
+        WHERE auction.buyer IS NOT NULL AND (auction.state = 1 OR auction.state = 3) AND auction.end_time < extract(epoch from now()) * 1000
         GROUP BY auction.market_contract, auction.auction_id
 ;
 
@@ -70,7 +70,7 @@ INSERT INTO neftymarket_stats_markets_updates(market_contract, listing_type, lis
         auction.market_contract, 'auction' listing_type, auction.auction_id listing_id,
         auction.end_time * 1000
     FROM neftymarket_auctions auction
-    WHERE auction.buyer IS NOT NULL AND auction.state = 1
+    WHERE auction.buyer IS NOT NULL AND (auction.state = 1 OR auction.state = 3)
 ;
 
 
@@ -80,7 +80,7 @@ DECLARE
     affects_stats_markets BOOLEAN;
 BEGIN
     affects_stats_markets =
-        (TG_OP IN ('INSERT', 'UPDATE') AND NEW.buyer IS NOT NULL AND NEW.state = 1)
+        (TG_OP IN ('INSERT', 'UPDATE') AND NEW.buyer IS NOT NULL AND (NEW.state = 1 OR NEW.state = 3))
         OR
         (TG_OP IN ('DELETE', 'UPDATE') AND OLD.buyer IS NOT NULL AND OLD.state = 1);
     IF (NOT affects_stats_markets)
@@ -140,7 +140,7 @@ BEGIN
         FROM neftymarket_auctions auction
             JOIN neftymarket_auctions_assets auction_asset ON auction.auction_id = auction_asset.auction_id AND auction.assets_contract = auction_asset.assets_contract
             JOIN atomicassets_assets asset ON auction_asset.asset_id = asset.asset_id AND auction_asset.assets_contract = asset.contract
-        WHERE auction.buyer IS NOT NULL AND auction.state = 1 AND auction.end_time < extract(epoch from now())
+        WHERE auction.buyer IS NOT NULL AND (auction.state = 1 OR auction.state = 3) AND auction.end_time < extract(epoch from now()) * 1000
             AND (auction.market_contract, auction.auction_id) IN (
                 SELECT market_contract, listing_id
                 FROM changed_listings
