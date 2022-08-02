@@ -221,7 +221,7 @@ export default class NeftyMarketHandler extends ContractHandler {
 
         this.filler.jobs.add('refresh_neftymarket_stats_market', 60_000, JobQueuePriority.MEDIUM, async () => {
             await this.connection.database.query(
-                'SELECT update_atomicmarket_stats_market()'
+                'SELECT update_neftymarket_stats_market()'
             );
         });
 
