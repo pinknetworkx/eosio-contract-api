@@ -12,9 +12,9 @@ import {ActionHandlerContext} from '../../actionhandler';
 
 export type NeftyDropsNamespaceArgs = {
     neftydrops_account: string,
-    neftymarket_name: string,
+    neftymarket_name?: string,
     atomicassets_account: string,
-    atomicmarket_account: string,
+    atomicmarket_account?: string,
 };
 
 export enum DropApiState {
@@ -52,15 +52,17 @@ export class NeftyDropsNamespace extends ApiNamespace {
             this.args.neftydrops_account = query.rows[0].drops_contract;
         }
 
-        const market_query = await this.connection.database.query(
-            'SELECT * FROM atomicmarket_marketplaces WHERE marketplace_name = $1',
-            [this.args.neftymarket_name]
-        );
+        if (this.args.neftymarket_name) {
+            const market_query = await this.connection.database.query(
+                'SELECT * FROM atomicmarket_marketplaces WHERE marketplace_name = $1',
+                [this.args.neftymarket_name]
+            );
 
-        if (market_query.rowCount === 0) {
-            throw new Error(`NeftyMarket not found: ${this.args.neftymarket_name}`);
-        } else {
-            this.args.atomicmarket_account = market_query.rows[0].market_contract;
+            if (market_query.rowCount === 0) {
+                throw new Error(`NeftyMarket not found: ${this.args.neftymarket_name}`);
+            } else {
+                this.args.atomicmarket_account = market_query.rows[0].market_contract;
+            }
         }
     }
 
@@ -79,7 +81,10 @@ export class NeftyDropsNamespace extends ApiNamespace {
         endpointsDocs.push(dropsEndpoints(this, server, router));
         endpointsDocs.push(statsEndpoints(this, server, router));
         endpointsDocs.push(miningEndpoints(this, server, router));
-        endpointsDocs.push(marketplaceEndpoints(this, server, router));
+
+        if (this.args.neftymarket_name) {
+            endpointsDocs.push(marketplaceEndpoints(this, server, router));
+        }
 
         for (const doc of endpointsDocs) {
             if (doc.tag) {
