@@ -101,7 +101,7 @@ BEGIN
 			NEW.market_contract,
 			'auction',
 			NEW.auction_id,
-			NEW.end_time * 1000
+			NEW.end_time
 		);
     END IF;
 
@@ -133,7 +133,7 @@ BEGIN
             auction.market_contract, 'auction' listing_type, auction.auction_id listing_id,
             auction.buyer, auction.seller, auction.maker_marketplace, auction.taker_marketplace,
             auction.assets_contract, auction.collection_name,
-            auction.token_symbol symbol, auction.price, (auction.end_time * 1000) "time",
+            auction.token_symbol symbol, auction.price, auction.end_time "time",
             CASE WHEN COUNT(*) = 1 THEN MIN(asset.schema_name) END AS schema_name,
             CASE WHEN COUNT(*) = 1 THEN MIN(asset.template_id) END AS template_id,
             CASE WHEN COUNT(*) = 1 THEN MIN(asset.asset_id) END AS asset_id
