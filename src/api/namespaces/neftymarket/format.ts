@@ -104,7 +104,7 @@ export function buildAssetFillerHook(
         }
 
         if (queries[1]) {
-            for (const row of queries[0].rows) {
+            for (const row of queries[1].rows) {
                 assetData[row.asset_id].auctions.push({market_contract: row.market_contract, auction_id: row.auction_id});
             }
         }

@@ -1,7 +1,7 @@
 import { AssetFiller } from '../atomicassets/filler';
 import { formatAsset } from '../atomicassets/format';
 import { DB } from '../../server';
-import { buildAssetFillerHook } from '../neftymarket/format';
+import { buildAssetFillerHook } from './format';
 
 export async function fillAuctions(db: DB, assetContract: string, auctions: any[]): Promise<any[]> {
     const assetIDs: string[] = [];
