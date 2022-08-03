@@ -172,3 +172,14 @@ export async function getDropClaimsAction(params: RequestValues, ctx: NeftyDrops
 export async function getDropClaimsCountAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
     return getDropClaimsAction({...params, count: 'true'}, ctx);
 }
+
+export async function getDropsClaimableAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
+    const args = filterQueryArgs(params, {
+        drops: {type: 'string'},
+        account: {type: 'string'},
+        keys: {type: 'string'}
+    });
+    const drop_ids = args.drops.split(",");
+    const keys = args.keys.split(",");
+    return null;
+}

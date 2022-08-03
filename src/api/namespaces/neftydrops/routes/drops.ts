@@ -13,13 +13,15 @@ import {
     getDropClaimsAction,
     getDropClaimsCountAction,
     getDropsAction,
-    getDropsCountAction
+    getDropsCountAction,
+    getDropsClaimableAction,
 } from '../handlers/drops';
 
 export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, router: express.Router): any {
     const { caching, returnAsJSON } = server.web;
     router.all('/v1/drops', caching(), returnAsJSON(getDropsAction, core));
     router.all('/v1/drops/_count', caching(), returnAsJSON(getDropsCountAction, core));
+    router.all('/v1/drops/claimable', caching(), returnAsJSON(getDropsClaimableAction, core));
     router.all('/v1/drops/:drop_id', caching(), returnAsJSON(getDropAction, core));
     router.all('/v1/drops/:drop_id/claims', caching(), returnAsJSON(getDropClaimsAction, core));
     router.all('/v1/drops/:drop_id/claims/_count', caching(), returnAsJSON(getDropClaimsCountAction, core));
@@ -77,6 +79,42 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'array',
                         items: {'$ref': '#/components/schemas/Drop'}
+                    })
+                }
+            },
+            '/v1/drops/claimable': {
+                get: {
+                    tags: ['drops'],
+                    summary: 'Get drops claimable by a specified wallet',
+                    description: 'Filter out the drop IDs, where the wallet meets the security requirements',
+                    parameters: [
+                        {
+                            name: 'drops',
+                            in: 'query',
+                            description: 'Filter drops by a list of ids - separate multiple with ","',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'account',
+                            in: 'query',
+                            description: 'Account to verify drops pass security checks',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'keys',
+                            in: 'query',
+                            description: 'Private keys used to verify any secured drops if any - separate multiple with ","',
+                            required: false,
+                            schema: {type: 'string'}
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'object',
+                        properties: {
+                            drop_id: {'$ref': '#/components/schemas/ClaimableDrop'}
+                        }
                     })
                 }
             },

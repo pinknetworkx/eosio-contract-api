@@ -16,6 +16,16 @@ export const neftyDropsComponents = {
   },
   BuyersBalance: {
 
+  },
+  'ClaimableDrop': {
+    type: 'object',
+    properties: {
+      drop_id: {type: 'string'},
+      claim_type: {type: 'string'},
+      is_claimable: {type: 'boolean'},
+      claims_left: {type: 'number'},
+      next_claim: {type: 'string'},
+    }
   }
 };
 
