@@ -20,8 +20,6 @@ logger.info('Starting API Server...');
 
 process.on('unhandledRejection', error => {
     logger.error('Unhandled error', error);
-
-    process.exit(1);
 });
 
 const connection = new ConnectionManager(connectionConfig);
