@@ -169,7 +169,7 @@ function buildTransferQuery(args: Record<string, any>, params: RequestValues, ct
         query.addCondition(
             'NOT EXISTS(SELECT * FROM contract_codes ' +
             'WHERE (account = transfer.recipient_name OR account = transfer.sender_name) AND NOT (account = ANY(' +
-            query.addVariable([args.account, args.sender, args.recipient].filter(row => !!row)) +
+            query.addVariable([...args.account, ...args.sender, ...args.recipient]) +
             ')))'
         );
     }

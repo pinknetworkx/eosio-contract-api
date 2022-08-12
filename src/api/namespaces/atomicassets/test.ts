@@ -101,6 +101,8 @@ export class AtomicAssetsTestClient extends TestClient {
             updated_at_time: this.getId(),
             minted_at_block: this.getId(),
             minted_at_time: this.getId(),
+            mutable_data: '{}',
+            immutable_data: '{}',
             ...values,
         });
     }
