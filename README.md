@@ -58,7 +58,7 @@ This file is used to configure the filler
 
 For atomicassets / atomicmarket you should specify the following start blocks
 * `wax-mainnet`: `64000000`
-* `wax-testnet`: `35795000` (Here you need to use it otherwise it will break)
+* `wax-testnet`: `35795440` (Here you need to use it otherwise it will break)
 * `eos-mainnet`: `99070000`
 * `proton-mainnet`: `50289000`
 * `proton-testnet`: `53440000`
