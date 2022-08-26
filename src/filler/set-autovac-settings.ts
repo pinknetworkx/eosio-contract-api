@@ -17,12 +17,12 @@ export async function setAutoVacSettings(connection: ConnectionManager): Promise
         return;
     }
 
-    const {rows} = await connection.database.query(
+    const {rows: tables} = await connection.database.query(
         `SELECT schemaname, relname AS tablename, n_live_tup::INT AS rows FROM pg_stat_user_tables 
         WHERE schemaname = 'public'`
     );
 
-    for (const table of rows) {
+    for (const table of tables) {
         let scale = '0.05';
         let threshold = 50;
         let statistics = 100; // 300 * statistics rows are analysed
@@ -45,21 +45,22 @@ export async function setAutoVacSettings(connection: ConnectionManager): Promise
             threshold = settingOverrides[table.tablename].threshold;
         }
 
+        const updateSQL = `
+            ALTER TABLE ${table.schemaname}.${table.tablename} SET (
+                autovacuum_vacuum_scale_factor = ${scale},
+                autovacuum_vacuum_threshold = ${threshold},
+                autovacuum_analyze_scale_factor = ${scale},
+                autovacuum_analyze_threshold = ${threshold * 10},
+                autovacuum_vacuum_insert_scale_factor = ${scale},
+                autovacuum_vacuum_insert_threshold = ${threshold * 10}
+            ), SET STATISTICS ${statistics}
+        `;
         try {
-            await connection.database.query(`
-                ALTER TABLE ${table.schemaname}.${table.tablename} SET (
-                    autovacuum_vacuum_scale_factor = ${scale},
-                    autovacuum_vacuum_threshold = ${threshold},
-                    autovacuum_analyze_scale_factor = ${scale},
-                    autovacuum_analyze_threshold = ${threshold * 10},
-                    autovacuum_vacuum_insert_scale_factor = ${scale},
-                    autovacuum_vacuum_insert_threshold = ${threshold * 10}
-                ), SET STATISTICS ${statistics}
-            `);
+            await connection.database.query(updateSQL);
 
             logger.info(`Updated autovaccum settings for ${table.schemaname}.${table.tablename}`);
         } catch (error) {
-            logger.error(`Failed to change autovaccum settings for ${table.schemaname}.${table.tablename}`, error);
+            logger.error(`Failed to change autovaccum settings for ${table.schemaname}.${table.tablename}.\nSQL: ${updateSQL}`, error);
         }
     }
 
