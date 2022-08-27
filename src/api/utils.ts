@@ -28,7 +28,7 @@ export function applyActionGreylistFilters(
     args: { action_whitelist: string[], action_blacklist: string[] },
 ): string[] {
     return actions
-        .filter(action => args.action_whitelist.includes(action))
+        .filter(action => !args.action_whitelist.length || args.action_whitelist.includes(action))
         .filter(action => !args.action_blacklist.includes(action));
 }
 

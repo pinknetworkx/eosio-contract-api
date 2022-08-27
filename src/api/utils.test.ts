@@ -14,6 +14,11 @@ describe('utils', () => {
             expect(applyActionGreylistFilters(['a', 'b', 'c', 'd', 'e', 'f'], {action_blacklist, action_whitelist}))
                 .to.deep.equal(['a', 'b']);
         });
+
+        it('handles an empty action_whitelist', () => {
+            expect(applyActionGreylistFilters(['a', 'b', 'c', 'd', 'e', 'f'], {action_blacklist, action_whitelist: []}))
+                .to.deep.equal(['a', 'b', 'f']);
+        });
     });
 
     describe('extractNotificationIdentifiers', () => {
