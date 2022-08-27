@@ -11,10 +11,6 @@ export async function getBurnsAction(params: RequestValues, ctx: AtomicAssetsCon
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
 
-        collection_name: {type: 'string', min: 1},
-        schema_name: {type: 'string', min: 1},
-        template_id: {type: 'id[]'},
-
         match_owner: {type: 'string', min: 1},
     });
 
