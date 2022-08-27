@@ -17,10 +17,14 @@ export async function setAutoVacSettings(connection: ConnectionManager): Promise
         return;
     }
 
-    const {rows: tables} = await connection.database.query(
-        `SELECT schemaname, relname AS tablename, n_live_tup::INT AS rows FROM pg_stat_user_tables 
+    const {rows: tables} = await connection.database.query(`
+        SELECT schemaname, relname AS tablename, n_live_tup::INT AS rows,
+            (SELECT STRING_AGG(quote_ident(attname), ',') FROM pg_attribute WHERE attrelid = relid AND attnum > 0 AND NOT attisdropped) AS columns
+        FROM pg_stat_user_tables 
         WHERE schemaname = 'public'`
     );
+
+    let hasError = false;
 
     for (const table of tables) {
         let scale = '0.05';
@@ -53,20 +57,24 @@ export async function setAutoVacSettings(connection: ConnectionManager): Promise
                 autovacuum_analyze_threshold = ${threshold * 10},
                 autovacuum_vacuum_insert_scale_factor = ${scale},
                 autovacuum_vacuum_insert_threshold = ${threshold * 10}
-            ), SET STATISTICS ${statistics}
+            ), ${table.columns.split(',').map((col: string) => `ALTER COLUMN ${col} SET STATISTICS ${statistics}`).join(',\n')} 
         `;
         try {
             await connection.database.query(updateSQL);
 
             logger.info(`Updated autovaccum settings for ${table.schemaname}.${table.tablename}`);
         } catch (error) {
+            hasError = true;
             logger.error(`Failed to change autovaccum settings for ${table.schemaname}.${table.tablename}.\nSQL: ${updateSQL}`, error);
         }
     }
 
-    if (dbinfo.rows.length === 0) {
-        await connection.database.query(`INSERT INTO dbinfo ("name", "value", updated) VALUES ('vacuum_settings', '${Date.now()}', extract(epoch from current_timestamp)::bigint);`);
-    } else {
-        await connection.database.query(`UPDATE dbinfo SET "value" = '${Date.now()}' WHERE name = 'vacuum_settings';`);
+    if (!hasError) {
+        await connection.database.query(`
+            INSERT INTO dbinfo ("name", "value", updated)
+                VALUES ('vacuum_settings', '${Date.now()}', extract(epoch from current_timestamp)::bigint)
+            ON CONFLICT (name)
+                DO UPDATE SET "value" = EXCLUDED.value
+        `);
     }
 }
