@@ -174,7 +174,7 @@ export async function getPricesSalesDaysAction(params: RequestValues, ctx: Atomi
         }
     }
 
-    if (args.asset_id) {
+    if (args.asset_id.length) {
         query.equalMany('price.asset_id', args.asset_id);
     }
 
