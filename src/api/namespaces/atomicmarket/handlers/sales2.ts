@@ -328,8 +328,6 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
         if (!collectionNames.length) {
             collectionNames.push('\nDOES_NOT_EXIST\n');
         }
-
-        await addIncArrayFilter('collection_name', true, collectionNames);
     } else if (args.collection_blacklist.length) {
         exc.collection_names.push(...args.collection_blacklist);
     }
@@ -342,17 +340,24 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
     await addIncArrayFilter('seller', true);
     await addIncArrayFilter('buyer', true);
 
-    await addIncArrayFilter('schema_name', true);
-
+    const templateIds = [];
     if (args.template_id.find((s: string) => s.toLowerCase() === 'null')) {
         inc.flags.push(SALE_FILTER_FLAG_NO_TEMPLATE);
     } else {
-        await addIncArrayFilter('template_id', true);
+        templateIds.push(...args.template_id);
     }
 
-    if (args.search?.length) {
-        await addIncArrayFilter('template_id', true, await getTemplateIDsForPartialName(args.search, search, collectionNames));
+    const schemaNames = [...args.schema_name];
+
+    if (args.search?.length || templateIds.length) {
+        await addIncArrayFilter('template_id', true, await getTemplateIDs(args.search, search, collectionNames, schemaNames, templateIds));
+        // we don't need to filter by collection or schema since template ids are unique
+        collectionNames.length = 0;
+        schemaNames.length = 0;
     }
+
+    await addIncArrayFilter('schema_name', true, schemaNames);
+    await addIncArrayFilter('collection_name', true, collectionNames);
 
     if (typeof args.burned === 'boolean') {
         if (args.burned) {
@@ -552,16 +557,23 @@ async function limitExecutionTime<T extends Promise<any>>(promise: T, maxTime: n
     return result;
 }
 
-async function getTemplateIDsForPartialName(name: string, search: SalesSearchOptions, collectionNames: string[]): Promise<number[]> {
+async function getTemplateIDs(name: string | undefined, search: SalesSearchOptions, collectionNames: string[], schemaNames: string[], templateIds: string[]): Promise<number[]> {
     const query = new QueryBuilder(`
-        SELECT template_id, collection_name
+        SELECT template_id
         FROM atomicassets_templates    
     `);
     query.equal('contract', search.ctx.coreArgs.atomicassets_account);
-    query.addCondition(`(immutable_data->>'name') %> ${query.addVariable(name)}`);
-
+    if (name !== undefined) {
+        query.addCondition(`(immutable_data->>'name') %> ${query.addVariable(name)}`);
+    }
     if (collectionNames.length) {
         query.equalMany('collection_name', collectionNames);
+    }
+    if (schemaNames.length) {
+        query.equalMany('schema_name', schemaNames);
+    }
+    if (templateIds.length) {
+        query.equalMany('template_id', templateIds);
     }
 
     const {rows} = await search.ctx.db.query(query.buildString(), query.buildValues());
