@@ -12,27 +12,36 @@ export async function getSchemasAction(params: RequestValues, ctx: AtomicAssetsC
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
-        sort: {type: 'string', allowedValues: ['created', 'schema_name'], default: 'created'},
+        sort: {type: 'string', allowedValues: ['created', 'schema_name', 'assets'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
         authorized_account: {type: 'string', min: 1, max: 12},
-        collection_name: {type: 'string', min: 1},
-        schema_name: {type: 'string', min: 1},
+        collection_name: {type: 'string[]', min: 1},
+        schema_name: {type: 'string[]', min: 1},
 
         match: {type: 'string', min: 1, max: 12},
 
         count: {type: 'bool'}
     });
 
-    const query = new QueryBuilder('SELECT * FROM atomicassets_schemas_master');
+    const query = new QueryBuilder(`
+        WITH asset_count AS (
+            SELECT contract, collection_name, schema_name, SUM(assets)::INT assets
+            FROM atomicassets_asset_counts
+            GROUP BY contract, collection_name, schema_name
+        )
+        SELECT m.*, COALESCE(ac.assets, 0) assets
+        FROM atomicassets_schemas_master m
+            LEFT OUTER JOIN asset_count ac USING (contract, collection_name, schema_name)
+    `);
     query.equal('contract', ctx.coreArgs.atomicassets_account);
 
-    if (args.collection_name) {
-        query.equalMany('collection_name', args.collection_name.split(','));
+    if (args.collection_name.length) {
+        query.equalMany('collection_name', args.collection_name);
     }
 
-    if (args.schema_name) {
-        query.equalMany('schema_name', args.schema_name.split(','));
+    if (args.schema_name.length) {
+        query.equalMany('schema_name', args.schema_name);
     }
 
     if (args.authorized_account) {
@@ -57,10 +66,11 @@ export async function getSchemasAction(params: RequestValues, ctx: AtomicAssetsC
 
     const sortColumnMapping: {[key: string]: string} = {
         created: 'created_at_time',
-        schema_name: 'schema_name'
+        schema_name: 'schema_name',
+        assets: 'ac.assets',
     };
 
-    query.append('ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ', schema_name ASC');
+    query.append('ORDER BY ' + sortColumnMapping[args.sort] + ' ' + args.order + ' NULLS LAST, schema_name ASC');
     query.paginate(args.page, args.limit);
 
     const result = await ctx.db.query(query.buildString(), query.buildValues());
@@ -73,31 +83,27 @@ export async function getSchemasCountAction(params: RequestValues, ctx: AtomicAs
 }
 
 export async function getSchemaAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
-    const query = await ctx.db.query(
-        'SELECT * FROM atomicassets_schemas_master WHERE contract = $1 AND collection_name = $2 AND schema_name = $3',
-        [ctx.coreArgs.atomicassets_account, ctx.pathParams.collection_name, ctx.pathParams.schema_name]
-    );
+    const schemas = await getSchemasAction({
+        collection_name: ctx.pathParams.collection_name,
+        schema_name: ctx.pathParams.schema_name,
+    }, ctx);
 
-    if (query.rowCount === 0) {
+    if (schemas.rowCount === 0) {
         throw new ApiError('Schema not found', 404);
     }
 
-    if (query.rows[0].collection_name !== ctx.pathParams.collection_name) {
-        throw new ApiError('Schema not found', 404);
-    }
-
-    return formatSchema(query.rows[0]);
+    return schemas[0];
 }
 
 export async function getSchemaStatsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const query = await ctx.db.query(`
         WITH asset_counts AS (
             SELECT
-                COUNT(*) assets,
-                COUNT(*) FILTER (WHERE owner IS NULL) burned
-            FROM atomicassets_assets
+                SUM(assets) assets,
+                SUM(burned) burned
+            FROM atomicassets_asset_counts
             WHERE contract = $1
-                AND collection_name || '' = $2 -- prevent collection index usage because the schema index is better
+                AND collection_name = $2
                 AND schema_name = $3
         )
         SELECT
@@ -115,7 +121,9 @@ export async function getSchemaLogsAction(params: RequestValues, ctx: AtomicAsse
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
-        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'}
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
+        action_whitelist: {type: 'string[]', min: 1},
+        action_blacklist: {type: 'string[]', min: 1},
     });
 
     return await getContractActionLogs(

@@ -571,14 +571,16 @@ describe('AtomicMarket Sales API', () => {
         });
 
         txit('filters by search (template name filter)', async () => {
+            const {collection_name} = await client.createCollection();
+
             await client.createFullSale({}, {
-                template_id: (await client.createTemplate()).template_id,
+                template_id: (await client.createTemplate({collection_name})).template_id,
             });
 
-            const {template_id} = await client.createTemplate({immutable_data: JSON.stringify({name: 'aTEST'})});
-            const {sale_id} = await client.createFullSale({}, {template_id});
+            const {template_id} = await client.createTemplate({collection_name, immutable_data: JSON.stringify({name: 'aTEST'})});
+            const {sale_id} = await client.createFullSale({collection_name}, {template_id});
 
-            expect(await getSalesIds({'search': 'test'}))
+            expect(await getSalesIds({search: 'test', collection_name}))
                 .to.deep.equal([sale_id]);
         });
 
@@ -751,6 +753,29 @@ describe('AtomicMarket Sales API', () => {
             const {sale_id: sale_id2} = await client.createFullSale({}, {template_mint: 1});
 
             expect(await getSalesIds({sort: 'template_mint'}))
+                .to.deep.equal([sale_id1, sale_id2]);
+        });
+
+        txit('orders by asset name', async () => {
+            const {sale_id: sale_id1} = await client.createFullSale({}, {
+                immutable_data: JSON.stringify({name: 'b'}),
+            });
+
+            const {sale_id: sale_id2} = await client.createFullSale({}, {
+                immutable_data: JSON.stringify({name: 'a'}),
+            });
+
+            expect(await getSalesIds({sort: 'name', order: 'asc'}))
+                .to.deep.equal([sale_id2, sale_id1]);
+        });
+
+        txit('orders correctly when filtering by state', async () => {
+            const sale_id2 = `${client.getId()}`;
+            const {sale_id: sale_id1} = await client.createFullSale({listing_price: 2});
+
+            await client.createFullSale({listing_price: 1, sale_id: sale_id2});
+
+            expect(await getSalesIds({sort: 'price', state: '1'}))
                 .to.deep.equal([sale_id1, sale_id2]);
         });
 

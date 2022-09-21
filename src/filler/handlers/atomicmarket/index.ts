@@ -256,28 +256,28 @@ export default class AtomicMarketHandler extends ContractHandler {
             destructors.push(logProcessor(this, processor));
         }
 
-        this.filler.jobs.add('update_atomicmarket_sale_mints', 30_000, JobQueuePriority.MEDIUM, async () => {
+        this.filler.jobs.add('update_atomicmarket_sale_mints', 60, JobQueuePriority.MEDIUM, async () => {
             await this.connection.database.query(
                 'CALL update_atomicmarket_sale_mints($1, $2)',
                 [this.args.atomicmarket_account, this.filler.reader.lastIrreversibleBlock]
             );
         });
 
-        this.filler.jobs.add('update_atomicmarket_buyoffer_mints', 30_000, JobQueuePriority.MEDIUM, async () => {
+        this.filler.jobs.add('update_atomicmarket_buyoffer_mints', 60, JobQueuePriority.MEDIUM, async () => {
             await this.connection.database.query(
                 'CALL update_atomicmarket_buyoffer_mints($1, $2)',
                 [this.args.atomicmarket_account, this.filler.reader.lastIrreversibleBlock]
             );
         });
 
-        this.filler.jobs.add('update_atomicmarket_auction_mints', 30_000, JobQueuePriority.MEDIUM, async () => {
+        this.filler.jobs.add('update_atomicmarket_auction_mints', 60, JobQueuePriority.MEDIUM, async () => {
             await this.connection.database.query(
                 'CALL update_atomicmarket_auction_mints($1, $2)',
                 [this.args.atomicmarket_account, this.filler.reader.lastIrreversibleBlock]
             );
         });
 
-        this.filler.jobs.add('update_atomicmarket_sales_filters', 20_000, JobQueuePriority.HIGH, async () => {
+        this.filler.jobs.add('update_atomicmarket_sales_filters', 20, JobQueuePriority.HIGH, async () => {
             await this.connection.database.query(
                 'SELECT update_atomicmarket_sales_filters()'
             );
@@ -287,19 +287,19 @@ export default class AtomicMarketHandler extends ContractHandler {
             );
         });
 
-        this.filler.jobs.add('refresh_atomicmarket_sales_filters_price', 60_000 * 60, JobQueuePriority.LOW, async () => {
+        this.filler.jobs.add('refresh_atomicmarket_sales_filters_price', 60 * 60, JobQueuePriority.LOW, async () => {
             await this.connection.database.query(
                 'SELECT refresh_atomicmarket_sales_filters_price()'
             );
         });
 
-        this.filler.jobs.add('update_atomicmarket_stats_market', 60_000, JobQueuePriority.MEDIUM, async () => {
+        this.filler.jobs.add('update_atomicmarket_stats_market', 60 * 2, JobQueuePriority.MEDIUM, async () => {
             await this.connection.database.query(
                 'SELECT update_atomicmarket_stats_market()'
             );
         });
 
-        this.filler.jobs.add('update_atomicmarket_template_prices', 60_000 * 60, JobQueuePriority.MEDIUM, async () => {
+        this.filler.jobs.add('update_atomicmarket_template_prices', 60 * 60, JobQueuePriority.LOW, async () => {
             await this.connection.database.query(
                 'SELECT update_atomicmarket_template_prices()'
             );

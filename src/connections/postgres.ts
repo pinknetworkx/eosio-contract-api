@@ -36,7 +36,7 @@ export default class PostgresConnection {
         exitHook((callback: () => void) => this.pool.end(callback));
     }
 
-    createPool(args: any): Pool {
+    createPool(args: Partial<PoolConfig>): Pool {
         return new Pool({
             ...this.args, ...args
         });

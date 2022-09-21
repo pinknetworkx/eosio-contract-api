@@ -32,10 +32,10 @@ export class JobQueue extends EventEmitter {
         this.pulseInterval = pulseInterval;
     }
 
-    add(name: string, interval: number, priority: JobQueuePriority, fn: () => any): void {
+    add(name: string, intervalSeconds: number, priority: JobQueuePriority, fn: () => any): void {
         this.jobs.push({
             name,
-            interval,
+            interval: intervalSeconds * 1000,
             priority,
             fn,
             nextRun: Date.now(),

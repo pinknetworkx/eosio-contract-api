@@ -379,6 +379,16 @@ describe('AtomicAssets Assets API', () => {
                 .to.deep.equal([asset_id]);
         });
 
+        txit('filters by search (template name)', async () => {
+            await client.createAsset();
+
+            const {template_id} = await client.createTemplate({immutable_data: JSON.stringify({name: 'prefix_par%_tial_postfix'})});
+            const {asset_id} = await client.createAsset({template_id});
+
+            expect(await getAssetIds({'search': 'par%_tial'}))
+                .to.deep.equal([asset_id]);
+        });
+
         txit('returns count', async () => {
             await client.createAsset();
 

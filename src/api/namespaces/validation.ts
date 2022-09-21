@@ -2,7 +2,7 @@ import { RequestValues } from './utils';
 import { isWeakFloat, isWeakInt, toInt } from '../../utils';
 import { ApiError } from '../error';
 
-type FilterType = 'string' | 'string[]' | 'int' | 'int[]' | 'float' | 'float[]' | 'bool' | 'bool[]' | 'name' | 'name[]';
+type FilterType = 'string' | 'string[]' | 'int' | 'int[]' | 'float' | 'float[]' | 'bool' | 'bool[]' | 'name' | 'name[]' | 'id' | 'id[]';
 
 type FilterDefinition = {
     type: FilterType,
@@ -16,7 +16,7 @@ export type FiltersDefinition = {
     [key: string]: FilterDefinition
 };
 export type FilterValues = RequestValues;
-export type FilteredValues = { [key: string]: any };
+export type FilteredValues<T> = Record<keyof T, any>;
 
 const string = (value: string, filter: FilterDefinition): string => {
     if (typeof filter.min === 'number' && value.length < filter.min) {
@@ -46,6 +46,18 @@ const int = (value: string, filter: FilterDefinition): number => {
     }
 
     return n;
+};
+
+const id = (value: string): string => {
+    if (value.toLowerCase() === 'null') {
+        return 'null';
+    }
+
+    if (!isWeakInt(value)) {
+        throw new Error();
+    }
+
+    return value;
 };
 
 const float = (value: string, filter: FilterDefinition): number => {
@@ -97,12 +109,13 @@ const validationTypes: {[key: string]: (value: string, filter: FilterDefinition)
     float,
     bool,
     name,
+    id,
 };
 
 const typeRE = /^(?<type>\w+)(?<array>\[])?$/;
-export function filterQueryArgs(values: FilterValues, filter: FiltersDefinition): FilteredValues {
-    const keys: string[] = Object.keys(filter);
-    const result: RequestValues = {};
+export function filterQueryArgs<T extends FiltersDefinition>(values: {[K in keyof T]?: any}, filter: T): FilteredValues<T> {
+    const keys: (keyof T)[] = Object.keys(filter);
+    const result: FilteredValues<T> = {} as FilteredValues<T>;
 
     for (const key of keys) {
         const currentValue = values[key];

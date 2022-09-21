@@ -22,10 +22,6 @@ export async function getAccountsAction(
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
 
-        collection_name: {type: 'string', min: 1},
-        schema_name: {type: 'string', min: 1},
-        template_id: {type: 'string', min: 1},
-
         match_owner: {type: 'string', min: 1},
 
         count: {type: 'bool'}
@@ -36,7 +32,7 @@ export async function getAccountsAction(
         'LEFT JOIN atomicassets_templates template ON (asset.contract = template.contract AND asset.template_id = template.template_id)'
     );
 
-    query.equal('asset.contract', ctx.coreArgs.atomicassets_account).notNull('asset.owner');
+    query.equal('asset.contract', ctx.coreArgs.atomicassets_account).notNull('asset.owner || \'\'');
 
     if (args.match_owner) {
         query.addCondition('POSITION(' + query.addVariable(args.match_owner.toLowerCase()) + ' IN asset.owner) > 0');

@@ -2,7 +2,8 @@ import { buildBoundaryFilter, RequestValues } from '../../utils';
 import { AtomicAssetsContext } from '../index';
 import QueryBuilder from '../../../builder';
 import { buildAssetFilter, hasAssetFilter } from '../utils';
-import { filterQueryArgs } from '../../validation';
+import { FilteredValues, filterQueryArgs } from '../../validation';
+import { ApiError } from '../../../error';
 
 export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.transfers || 100;
@@ -12,14 +13,14 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
         sort: {type: 'string', allowedValues: ['created'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
-        asset_id: {type: 'string', min: 1},
+        asset_id: {type: 'id[]'},
 
-        collection_blacklist: {type: 'string', min: 1},
-        collection_whitelist: {type: 'string', min: 1},
+        collection_blacklist: {type: 'string[]', min: 1},
+        collection_whitelist: {type: 'string[]', min: 1},
 
-        account: {type: 'string', min: 1},
-        sender: {type: 'string', min: 1},
-        recipient: {type: 'string', min: 1},
+        account: {type: 'string[]', min: 1},
+        sender: {type: 'string[]', min: 1},
+        recipient: {type: 'string[]', min: 1},
         memo: {type: 'string', min: 1},
         match_memo: {type: 'string', min: 1},
 
@@ -28,86 +29,14 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
         count: {type: 'bool'}
     });
 
-    const query = new QueryBuilder('SELECT * FROM atomicassets_transfers_master transfer'); // TODO was ' + this.transferView + '
-    query.equal('contract', ctx.coreArgs.atomicassets_account);
-
-    if (args.account) {
-        const varName = query.addVariable(args.account.split(','));
-        query.addCondition('(sender_name = ANY (' + varName + ') OR recipient_name = ANY (' + varName + '))');
+    if (args.account.length && (args.sender.length || args.recipient.length)) {
+        throw new ApiError('Can not use account and sender or recipient filters at the same time', 400);
     }
 
-    if (args.sender) {
-        query.equalMany('sender_name', args.sender.split(','));
-    }
-
-    if (args.recipient) {
-        query.equalMany('recipient_name', args.recipient.split(','));
-    }
-
-    if (args.memo) {
-        query.equal('memo', args.memo);
-    }
-
-    if (args.match_memo) {
-        query.addCondition(
-            'memo ILIKE ' + query.addVariable('%' + args.match_memo.replace('%', '\\%').replace('_', '\\_') + '%')
-        );
-    }
-
-    if (hasAssetFilter(params, ['asset_id'])) {
-        const assetQuery = new QueryBuilder('SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset', query.buildValues());
-
-        assetQuery.join('asset', 'transfer_asset', ['contract', 'asset_id']);
-        assetQuery.join('transfer_asset', 'transfer', ['contract', 'transfer_id']);
-
-        buildAssetFilter(params, assetQuery, {assetTable: '"asset"', allowDataFilter: false});
-
-        query.addCondition('EXISTS(' + assetQuery.buildString() + ')');
-        query.setVars(assetQuery.buildValues());
-    }
-
-    if (args.asset_id) {
-        query.addCondition(
-            'EXISTS(' +
-            'SELECT * FROM atomicassets_transfers_assets asset ' +
-            'WHERE transfer.contract = asset.contract AND transfer.transfer_id = asset.transfer_id AND ' +
-            'asset_id = ANY (' + query.addVariable(args.asset_id.split(',')) + ')' +
-            ') '
-        );
-    }
-
-    if (args.collection_blacklist) {
-        query.addCondition(
-            'NOT EXISTS(' +
-            'SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset ' +
-            'WHERE transfer_asset.contract = transfer.contract AND transfer_asset.transfer_id = transfer.transfer_id AND ' +
-            'transfer_asset.contract = asset.contract AND transfer_asset.asset_id = asset.asset_id AND ' +
-            'asset.collection_name = ANY (' + query.addVariable(args.collection_blacklist.split(',')) + ')' +
-            ') '
-        );
-    }
-
-    if (args.collection_whitelist) {
-        query.addCondition(
-            'NOT EXISTS(' +
-            'SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset ' +
-            'WHERE transfer_asset.contract = transfer.contract AND transfer_asset.transfer_id = transfer.transfer_id AND ' +
-            'transfer_asset.contract = asset.contract AND transfer_asset.asset_id = asset.asset_id AND ' +
-            'NOT (asset.collection_name = ANY (' + query.addVariable(args.collection_whitelist.split(',')) + '))' +
-            ')'
-        );
-    }
-
-    if (args.hide_contracts) {
-        query.addCondition(
-            'NOT EXISTS(SELECT * FROM contract_codes ' +
-            'WHERE (account = transfer.recipient_name OR account = transfer.sender_name) AND NOT (account = ANY(' +
-            query.addVariable([args.account, args.sender, args.recipient].filter(row => !!row)) +
-            ')))'
-        );
-    }
-
-    buildBoundaryFilter(params, query, 'transfer_id', 'int', 'created_at_time');
+    const unionArgsList = getUnionArgsList(args);
+    const query = unionArgsList.length
+        ? buildUnionQuery(unionArgsList, args, params, ctx)
+        : buildTransferQuery(args, params, ctx);
 
     if (args.count) {
         const countQuery = await ctx.db.query(
@@ -127,6 +56,129 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
 
     return await ctx.db.query(query.buildString(), query.buildValues());
 }
+
+function buildUnionQuery(unionArgsList: any[], args: Record<string, any>, params: RequestValues, ctx: AtomicAssetsContext): QueryBuilder {
+    const query = new QueryBuilder('');
+
+    const unions = [];
+    for (const unionArgs of unionArgsList) {
+        const union = buildTransferQuery(unionArgs, params, ctx, query.buildValues());
+        union.append('ORDER BY transfer_id ' + args.order);
+        union.append(`LIMIT ${union.addVariable(args.page * args.limit)}`);
+
+        unions.push(`(\n${union.buildString()}\n)`);
+        query.setVars(union.buildValues());
+    }
+
+    return new QueryBuilder(unions.join(' UNION '), query.buildValues());
+}
+
+function getUnionArgsList<T extends FilteredValues<T>>(args: Record<string, any>): T[] {
+    if (args.count || (args.sort !== 'created') || ((args.sender.length > 0) && (args.recipient.length > 0))) {
+        return []; // unable to use unions
+    }
+
+    if (args.sender.length > 1) {
+        return args.sender.map((sender: string) => ({...args, sender: [sender]}));
+    }
+
+    if (args.recipient.length > 1) {
+        return args.recipient.map((recipient: string) => ({...args, recipient: [recipient]}));
+    }
+
+    const result = [];
+    for (const account of args.account) {
+        result.push({...args, account: [], sender: [account]} as any as T);
+        result.push({...args, account: [], recipient: [account]} as any as T);
+    }
+    return result;
+}
+
+function buildTransferQuery(args: Record<string, any>, params: RequestValues, ctx: AtomicAssetsContext, queryValues: any[] = []): QueryBuilder {
+    const query = new QueryBuilder('SELECT * FROM atomicassets_transfers_master transfer', queryValues);
+    query.equal('contract', ctx.coreArgs.atomicassets_account);
+
+    if (args.account.length) {
+        const varName = query.addVariable(args.account);
+        query.addCondition(`(sender_name = ANY (${varName}) OR recipient_name = ANY (${varName}))`);
+    }
+
+    if (args.sender.length) {
+        query.equalMany('sender_name', args.sender);
+    }
+
+    if (args.recipient.length) {
+        query.equalMany('recipient_name', args.recipient);
+    }
+
+    if (args.memo) {
+        query.equal('memo', args.memo);
+    }
+
+    if (args.match_memo) {
+        query.addCondition(
+            'memo ILIKE ' + query.addVariable('%' + query.escapeLikeVariable(args.match_memo) + '%')
+        );
+    }
+
+    if (hasAssetFilter(params, ['asset_id'])) {
+        const assetQuery = new QueryBuilder('SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset', query.buildValues());
+
+        assetQuery.join('asset', 'transfer_asset', ['contract', 'asset_id']);
+        assetQuery.join('transfer_asset', 'transfer', ['contract', 'transfer_id']);
+
+        buildAssetFilter(params, assetQuery, {assetTable: '"asset"', allowDataFilter: false});
+
+        query.addCondition('EXISTS(' + assetQuery.buildString() + ')');
+        query.setVars(assetQuery.buildValues());
+    }
+
+    if (args.asset_id.length) {
+        query.addCondition(
+            'EXISTS(' +
+            'SELECT * FROM atomicassets_transfers_assets asset ' +
+            'WHERE transfer.contract = asset.contract AND transfer.transfer_id = asset.transfer_id AND ' +
+            'asset_id = ANY (' + query.addVariable(args.asset_id) + ')' +
+            ') '
+        );
+    }
+
+    if (args.collection_blacklist.length) {
+        query.addCondition(
+            'NOT EXISTS(' +
+            'SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset ' +
+            'WHERE transfer_asset.contract = transfer.contract AND transfer_asset.transfer_id = transfer.transfer_id AND ' +
+            'transfer_asset.contract = asset.contract AND transfer_asset.asset_id = asset.asset_id AND ' +
+            'asset.collection_name = ANY (' + query.addVariable(args.collection_blacklist) + ')' +
+            ') '
+        );
+    }
+
+    if (args.collection_whitelist.length) {
+        query.addCondition(
+            'NOT EXISTS(' +
+            'SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset ' +
+            'WHERE transfer_asset.contract = transfer.contract AND transfer_asset.transfer_id = transfer.transfer_id AND ' +
+            'transfer_asset.contract = asset.contract AND transfer_asset.asset_id = asset.asset_id AND ' +
+            'NOT (asset.collection_name = ANY (' + query.addVariable(args.collection_whitelist) + '))' +
+            ')'
+        );
+    }
+
+    if (args.hide_contracts) {
+        query.addCondition(
+            'NOT EXISTS(SELECT * FROM contract_codes ' +
+            'WHERE (account = transfer.recipient_name OR account = transfer.sender_name) AND NOT (account = ANY(' +
+            query.addVariable([...args.account, ...args.sender, ...args.recipient]) +
+            ')))'
+        );
+    }
+
+    buildBoundaryFilter(params, query, 'transfer_id', 'int', 'created_at_time');
+
+    return query;
+}
+
 
 export async function getTransfersCountAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     return getRawTransfersAction({...params, count: 'true'}, ctx);

@@ -46,7 +46,7 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
     query.addCondition('collection.contract = $1');
 
     if (args.match) {
-        query.addCondition(`collection.collection_name ILIKE ${query.addVariable(`%${args.match.replace('%', '').replace('_', '')}%`)}`);
+        query.addCondition(`collection.collection_name ILIKE ${query.addVariable(`%${query.escapeLikeVariable(args.match)}%`)}`);
     }
 
     if (args.search) {
@@ -231,51 +231,57 @@ export async function getSchemaStatsByCollectionV2Action(params: RequestValues, 
         throw new ApiError('Symbol not found');
     }
 
-    const query = new QueryBuilder(
+    const statsQuery = new QueryBuilder(
         'SELECT template.schema_name, SUM(price.price) volume, COUNT(*) sales ' +
         'FROM atomicmarket_stats_prices_master price, atomicassets_templates "template" '
     );
 
-    query.addCondition('price.assets_contract = template.contract AND price.template_id = template.template_id');
+    statsQuery.addCondition('price.assets_contract = template.contract AND price.template_id = template.template_id');
 
-    query.equal('price.market_contract', ctx.coreArgs.atomicmarket_account);
-    query.equal('price.symbol', args.symbol);
-    query.equal('price.collection_name', ctx.pathParams.collection_name);
+    statsQuery.equal('price.market_contract', ctx.coreArgs.atomicmarket_account);
+    statsQuery.equal('price.symbol', args.symbol);
+    statsQuery.equal('price.collection_name', ctx.pathParams.collection_name);
 
     if (args.after) {
-        query.addCondition('price.time > ' + query.addVariable(args.after) + '::BIGINT');
+        statsQuery.addCondition('price.time > ' + statsQuery.addVariable(args.after) + '::BIGINT');
     }
 
     if (args.before) {
-        query.addCondition('price.time < ' + query.addVariable(args.before) + '::BIGINT');
+        statsQuery.addCondition('price.time < ' + statsQuery.addVariable(args.before) + '::BIGINT');
     }
 
-    query.group(['template.contract', 'template.collection_name', 'template.schema_name']);
+    statsQuery.group(['template.contract', 'template.collection_name', 'template.schema_name']);
 
-    const statsQuery = await ctx.db.query<{ schema_name: string, volume: string, sales: string }>(query.buildString(), query.buildValues());
-    const schemasQuery = await ctx.db.query<{ schema_name: string }>(
-        'SELECT schema_name ' +
-        'FROM atomicassets_schemas "schema" WHERE contract = $1 AND collection_name = $2 AND EXISTS ( ' +
-        'SELECT * FROM atomicassets_assets asset ' +
-        'WHERE asset.contract = "schema".contract AND asset.collection_name = "schema".collection_name AND ' +
-        'asset.schema_name = "schema".schema_name AND "owner" IS NOT NULL ' +
-        ') ',
-        [ctx.coreArgs.atomicassets_account, ctx.pathParams.collection_name]
+    const schemaStatsQuery = new QueryBuilder(`
+        WITH stats AS MATERIALIZED (
+            ${statsQuery.buildString()}
+        ), schemas AS MATERIALIZED (
+            SELECT schema_name
+            FROM atomicassets_asset_counts
+    `, statsQuery.buildValues());
+
+    schemaStatsQuery.equal('contract', ctx.coreArgs.atomicassets_account);
+    schemaStatsQuery.equal('collection_name', ctx.pathParams.collection_name);
+    schemaStatsQuery.group(['schema_name']);
+    schemaStatsQuery.having('SUM(owned) > 0');
+    schemaStatsQuery.append(`
+        )
+
+        SELECT
+            schemas.schema_name,
+            COALESCE(stats.volume, 0) volume,
+            COALESCE(stats.sales, 0) sales
+        FROM schemas
+            LEFT OUTER JOIN stats USING (schema_name)
+            
+        ORDER BY volume DESC
+    `);
+
+    const {rows} = await ctx.db.query<{ schema_name: string, volume: string, sales: string }>(schemaStatsQuery.buildString(),
+        schemaStatsQuery.buildValues()
     );
 
-    const result = schemasQuery.rows.map(row => {
-        const stats = statsQuery.rows.find(row2 => row.schema_name === row2.schema_name);
-
-        return stats ?? {
-            schema_name: row.schema_name,
-            volume: '0',
-            sales: '0'
-        };
-    });
-
-    result.sort((a, b) => parseInt(b.volume, 10) - parseInt(a.volume, 10));
-
-    return {symbol, results: result};
+    return {symbol, results: rows};
 }
 
 export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
@@ -284,7 +290,7 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
 
         collection_name: {type: 'string[]', min: 1},
         schema_name: {type: 'string[]', min: 1},
-        template_id: {type: 'string[]', min: 1},
+        template_id: {type: 'id[]'},
 
         search: {type: 'string', min: 1},
 
@@ -336,10 +342,6 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
 
     if (args.template_id.length > 0) {
         query.equalMany('template.template_id', args.template_id);
-    }
-
-    if (args.search) {
-        query.addCondition(`${query.addVariable(args.search)} <% (template.immutable_data->>'name')`);
     }
 
     if (args.sort === 'sales') {

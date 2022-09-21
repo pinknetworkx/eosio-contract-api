@@ -3,27 +3,26 @@ import { isWeakIntArray } from '../utils';
 export default class QueryBuilder {
     private baseQuery: string;
 
-    private conditions: string[];
-    private aggregations: string[];
-    private ending: string;
+    private conditions: string[] = [];
+    private aggregations: string[] = [];
+    private havingConditions: string[] = [];
+    private ending: string = '';
 
-    private values: any[];
-    private varCounter: number;
+    private variables: any[];
 
-    constructor(query: string, values: any[] = []) {
-        this.values = values;
-        this.varCounter = this.values.length;
+    constructor(query: string, variables: any[] = []) {
+        this.variables = variables;
 
         this.baseQuery = query;
-        this.conditions = [];
-        this.aggregations = [];
-        this.ending = '';
     }
 
     addVariable(value: any): string {
-        this.values.push(value);
+        const existingVariable = this.variables.indexOf(value) + 1;
+        if (existingVariable) {
+            return `$${existingVariable}`;
+        }
 
-        return '$' + ++this.varCounter;
+        return `$${this.variables.push(value)}`;
     }
 
     join(tableA: string, tableB: string, columns: string[]): QueryBuilder {
@@ -114,6 +113,12 @@ export default class QueryBuilder {
         return this;
     }
 
+    having(condition: string): QueryBuilder {
+        this.havingConditions.push(condition);
+
+        return this;
+    }
+
     paginate(page: number, limit: number): QueryBuilder {
         this.append('LIMIT ' + this.addVariable(limit) + ' OFFSET ' + this.addVariable((page - 1) * limit));
 
@@ -133,10 +138,13 @@ export default class QueryBuilder {
     }
 
     setVars(vars: any[]): QueryBuilder {
-        this.values = vars;
-        this.varCounter = vars.length;
+        this.variables = vars;
 
         return this;
+    }
+
+    escapeLikeVariable(s: string): string {
+        return s.replace('%', '\\%').replace('_', '\\_');
     }
 
     buildString(): string {
@@ -150,6 +158,10 @@ export default class QueryBuilder {
             queryString += 'GROUP BY ' + this.aggregations.join(', ') + ' ';
         }
 
+        if (this.havingConditions.length > 0) {
+            queryString += 'HAVING ' + this.havingConditions.join(' AND ') + ' ';
+        }
+
         if (this.ending) {
             queryString += this.ending + ' ';
         }
@@ -158,6 +170,7 @@ export default class QueryBuilder {
     }
 
     buildValues(): any[] {
-        return this.values;
+        return this.variables;
     }
+
 }

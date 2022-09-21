@@ -24,6 +24,7 @@ import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
 import { getAssetLogsAction, getAssetsCountAction, getAssetStatsAction, getRawAssetsAction } from '../handlers/assets';
 import { ApiError } from '../../../error';
+import { filterQueryArgs } from '../../validation';
 
 export class AssetApi {
     constructor(
@@ -90,9 +91,11 @@ export class AssetApi {
     }
 
     getAssetAction = async (params: RequestValues, ctx: AtomicAssetsContext): Promise<any> => {
+        const {asset_id} = await filterQueryArgs({asset_id: ctx.pathParams.asset_id}, {asset_id: {type: 'id'}});
+
         const assets = await fillAssets(
             ctx.db, ctx.coreArgs.atomicassets_account,
-            [ctx.pathParams.asset_id],
+            [asset_id],
             this.assetFormatter, this.assetView, this.fillerHook
         );
 

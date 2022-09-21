@@ -175,7 +175,8 @@ export const atomicassetsComponents = {
                     created_at_block: {type: 'string'},
                     created_at_time: {type: 'string'}
                 }
-            }
+            },
+            assets: {type: 'integer'},
         }
     },
     'Template': {
@@ -329,6 +330,27 @@ export const extendedAssetFilterParameters = [
         description: 'Check if asset is burnable',
         required: false,
         schema: {type: 'boolean'}
+    },
+    {
+        name: 'minter',
+        in: 'query',
+        description: 'Filter by account that minted the asset',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'burner',
+        in: 'query',
+        description: 'Filter by account that burned the asset',
+        required: false,
+        schema: {type: 'string'}
+    },
+    {
+        name: 'initial_receiver',
+        in: 'query',
+        description: 'Filter by account that the asset was minted to',
+        required: false,
+        schema: {type: 'string'}
     },
     ...greylistFilterParameters
 ];

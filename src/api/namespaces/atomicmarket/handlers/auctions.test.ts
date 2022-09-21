@@ -5,7 +5,7 @@ import {RequestValues} from '../../utils';
 import {getTestContext} from '../../../../utils/test';
 import {getAuctionsAction} from './auctions';
 
-
+// TODO add more tests
 describe('auction handler', () => {
     const {client, txit} = initAtomicMarketTest();
 
@@ -55,6 +55,43 @@ describe('auction handler', () => {
                     .to.deep.equal([auction.auction_id]);
             });
         });
+
+        txit('orders by asset name', async () => {
+
+            const auction1 = await client.createAuction();
+            const auction2 = await client.createAuction();
+            const auction3 = await client.createAuction();
+
+            const asset1 = await client.createAsset({
+                mutable_data: {name: 'Z'},
+            });
+            await client.createAuctionAssets({
+                asset_id: asset1.asset_id,
+                auction_id: auction1.auction_id,
+            });
+
+            const asset2 = await client.createAsset({
+                immutable_data: {name: 'A'},
+            });
+            await client.createAuctionAssets({
+                asset_id: asset2.asset_id,
+                auction_id: auction2.auction_id,
+            });
+
+            const asset3 = await client.createAsset({
+                template_id: (await client.createTemplate({
+                    immutable_data: {name: 'H'}
+                })).template_id,
+            });
+            await client.createAuctionAssets({
+                asset_id: asset3.asset_id,
+                auction_id: auction3.auction_id,
+            });
+
+            expect(await getAuctionsIds({sort: 'name', order: 'asc'}))
+                .to.deep.equal([auction2.auction_id, auction3.auction_id, auction1.auction_id]);
+        });
+
     });
 
     after(async () => {
