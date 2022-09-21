@@ -129,7 +129,9 @@ const assetFilters: FiltersDefinition = {
     schema_name: {type: 'string', min: 1},
     is_transferable: {type: 'bool'},
     is_burnable: {type: 'bool'},
-    minter: {type: 'name[]'}
+    minter: {type: 'name[]'},
+    initial_receiver: {type: 'name[]'},
+    burner: {type: 'name[]'},
 };
 
 export function buildAssetFilter(
@@ -174,6 +176,18 @@ export function buildAssetFilter(
             WHERE ${options.assetTable}.contract = mint_table.contract AND ${options.assetTable}.asset_id = mint_table.asset_id
                 AND mint_table.minter = ANY(${query.addVariable(args.minter)})
         )`);
+    }
+
+    if (args.initial_receiver && args.initial_receiver.length > 0) {
+        query.addCondition(`EXISTS (
+            SELECT * FROM atomicassets_mints mint_table 
+            WHERE ${options.assetTable}.contract = mint_table.contract AND ${options.assetTable}.asset_id = mint_table.asset_id
+                AND mint_table.receiver = ANY(${query.addVariable(args.initial_receiver)})
+        )`);
+    }
+
+    if (args.burner && args.burner.length > 0) {
+        query.equalMany(options.assetTable + '.burned_by_account', args.burner);
     }
 
     if (typeof args.burned === 'boolean') {
