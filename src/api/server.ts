@@ -28,6 +28,8 @@ const packageJson: any = require('../../package.json');
 
 export interface DB {
     query<T = any>(queryText: string, values?: any[]): Promise<QueryResult<T>>
+
+    fetchOne<T = any>(queryText: string, values?: any[]): Promise<T>
 }
 
 export class HTTPServer implements DB {
@@ -93,6 +95,12 @@ export class HTTPServer implements DB {
 
             throw error;
         }
+    }
+
+    async fetchOne<T = any>(queryText: string, values: any[] = []): Promise<T> {
+        const {rows} = await this.query(queryText, values);
+
+        return rows[0];
     }
 }
 

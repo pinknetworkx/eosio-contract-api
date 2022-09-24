@@ -8,7 +8,7 @@ import { IConnectionsConfig } from '../types/config';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 export const connectionConfig: IConnectionsConfig = require('../../config/connections.config.json');
 
-export class TestClient extends Client {
+export class TestClient extends Client implements DB {
 
     private id: number = 1;
 
@@ -48,6 +48,34 @@ export class TestClient extends Client {
         });
     }
 
+    async createList(values: Record<string, any> = {}): Promise<Record<string, any>> {
+        return this.insert('lists', {
+            list_name: 'list1',
+            ...values,
+        });
+    }
+
+    async createListItem(values: Record<string, any> = {}): Promise<Record<string, any>> {
+        return this.insert('list_items', {
+            item_name: 'item1',
+            ...values,
+        });
+    }
+
+    async createFullList(listValues: Record<string, any> = {}, itemValues: Record<string, any> = {}): Promise<Record<string, any>> {
+        const list = await this.createList(listValues);
+
+        const listItem = await this.createListItem({
+            ...itemValues,
+            list_id: list.id,
+        });
+
+        return {
+            list,
+            listItem,
+        };
+    }
+
     protected async insert(table: string, data: Record<string, any>): Promise<Record<string, any>> {
         data = data || {};
 
@@ -60,6 +88,12 @@ export class TestClient extends Client {
         const sql = `INSERT INTO ${table} ${columnsSQL} ${valuesSQL} RETURNING *`;
 
         const {rows} = await this.query(sql, values);
+
+        return rows[0];
+    }
+
+    async fetchOne<T = any>(queryText: string, values: any[] = []): Promise<T> {
+        const {rows} = await this.query(queryText, values);
 
         return rows[0];
     }
