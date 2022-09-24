@@ -108,10 +108,18 @@ export interface IReaderConfig {
 
     modules?: string[],
     contracts: IContractConfig[];
+
+    list_polls?: IListPollConfig[]
 }
 
 export interface IContractConfig {
     handler: string;
 
     args: any;
+}
+
+export interface IListPollConfig {
+    url: string
+    api_key: string
+    frequency?: number
 }

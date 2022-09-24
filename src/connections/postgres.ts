@@ -48,6 +48,12 @@ export default class PostgresConnection {
         return await this.pool.query(queryText, values);
     }
 
+    async fetchOne<T = any>(queryText: string, values: any[] = []): Promise<T> {
+        const {rows} = await this.query(queryText, values);
+
+        return rows[0];
+    }
+
     async begin(): Promise<PoolClient> {
         await this.connect();
 

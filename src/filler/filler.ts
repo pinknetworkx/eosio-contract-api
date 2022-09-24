@@ -7,6 +7,7 @@ import { getHandlers } from './handlers';
 import { ContractHandler } from './handlers/interfaces';
 import { ModuleLoader } from './modules';
 import { JobQueue } from './jobqueue';
+import ListPoller from './list-poller';
 
 function estimateSeconds(blocks: number, speed: number, depth: number = 0): number {
     if (blocks <= 2) {
@@ -35,10 +36,18 @@ export default class Filler {
 
     private readonly handlers: ContractHandler[];
 
+    private readonly listPollers: ListPoller[] = []
+
     constructor(private readonly config: IReaderConfig, readonly connection: ConnectionManager) {
         this.handlers = getHandlers(config.contracts, this);
         this.modules = new ModuleLoader(config.modules || []);
         this.reader = new StateReceiver(config, connection, this.handlers, this.modules);
+
+        for (const listPollConfig of (config.list_polls ?? [])) {
+            const listPoller = new ListPoller(listPollConfig, connection.database);
+            this.listPollers.push(listPoller);
+            listPoller.start();
+        }
 
         this.jobs = new JobQueue();
 
