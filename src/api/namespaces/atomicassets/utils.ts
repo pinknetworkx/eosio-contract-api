@@ -219,7 +219,7 @@ export async function buildGreylistFilter(values: FilterValues, query: QueryBuil
     const args = await filterQueryArgs(values, {
         collection_blacklist: {type: 'list[]', min: 1},
         collection_whitelist: {type: 'list[]', min: 1},
-        account_blacklist: {type: 'string', min: 1}
+        account_blacklist: {type: 'list[]', min: 1}
     });
 
     const collectionBlacklist: string[] = args.collection_blacklist;
@@ -239,15 +239,11 @@ export async function buildGreylistFilter(values: FilterValues, query: QueryBuil
         }
     }
 
-    if (columns.account?.length > 0 && args.account_blacklist) {
-        const accounts = args.account_blacklist.split(',');
-
-        if (accounts.length > 0) {
-            query.addCondition(
-                'AND NOT EXISTS (SELECT * FROM UNNEST(' + query.addVariable(accounts) + '::text[]) ' +
-                'WHERE ' + columns.account.map(column => ('"unnest" = ' + column)).join(' OR ') + ') '
-            );
-        }
+    if (columns.account?.length && args.account_blacklist.length) {
+        query.addCondition(
+            'AND NOT EXISTS (SELECT * FROM UNNEST(' + query.addVariable(args.account_blacklist) + '::text[]) ' +
+            'WHERE ' + columns.account.map(column => ('"unnest" = ' + column)).join(' OR ') + ') '
+        );
     }
 }
 

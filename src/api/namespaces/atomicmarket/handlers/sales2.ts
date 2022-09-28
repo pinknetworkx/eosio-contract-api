@@ -251,8 +251,8 @@ const SALE_FILTER_FLAG_NOT_BURNABLE = 'nb';
 async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
     const {values, query} = search;
     const args = await filterQueryArgs(values, {
-        seller_blacklist: {type: 'string[]', min: 1},
-        buyer_blacklist: {type: 'string[]', min: 1},
+        seller_blacklist: {type: 'list[]', min: 1},
+        buyer_blacklist: {type: 'list[]', min: 1},
 
         account: {type: 'string[]', min: 1},
         seller: {type: 'string[]', min: 1},

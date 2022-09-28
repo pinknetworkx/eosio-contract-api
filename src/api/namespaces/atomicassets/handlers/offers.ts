@@ -26,8 +26,8 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         recipient_asset_whitelist: {type: 'string', min: 1},
         sender_asset_blacklist: {type: 'string', min: 1},
         sender_asset_whitelist: {type: 'string', min: 1},
-        account_whitelist: {type: 'string', min: 1},
-        account_blacklist: {type: 'string', min: 1},
+        account_whitelist: {type: 'list[]', min: 1},
+        account_blacklist: {type: 'list[]', min: 1},
         collection_blacklist: {type: 'list[]', min: 1},
         collection_whitelist: {type: 'list[]', min: 1},
 
@@ -141,13 +141,13 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         );
     }
 
-    if (args.account_blacklist) {
-        const varName = query.addVariable(args.account_blacklist.split(','));
+    if (args.account_blacklist.length) {
+        const varName = query.addVariable(args.account_blacklist);
         query.addCondition('NOT (offer.sender = ANY(' + varName + ') OR offer.recipient = ANY(' + varName + '))');
     }
 
-    if (args.account_whitelist) {
-        const varName = query.addVariable(args.account_whitelist.split(','));
+    if (args.account_whitelist.length) {
+        const varName = query.addVariable(args.account_whitelist);
         query.addCondition('(offer.sender = ANY(' + varName + ') OR offer.recipient = ANY(' + varName + '))');
     }
 

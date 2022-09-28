@@ -26,8 +26,8 @@ export async function buildListingFilter(values: FilterValues, query: QueryBuild
         show_seller_contracts: {type: 'bool', default: true},
         contract_whitelist: {type: 'string', min: 1, default: ''},
 
-        seller_blacklist: {type: 'string', min: 1},
-        buyer_blacklist: {type: 'string', min: 1},
+        seller_blacklist: {type: 'list[]', min: 1},
+        buyer_blacklist: {type: 'list[]', min: 1},
 
         maker_marketplace: {type: 'string', min: 1, max: 12},
         taker_marketplace: {type: 'string', min: 1, max: 12},
@@ -67,13 +67,13 @@ export async function buildListingFilter(values: FilterValues, query: QueryBuild
         );
     }
 
-    if (args.seller_blacklist) {
-        query.notMany('listing.seller', args.seller_blacklist.split(','));
+    if (args.seller_blacklist.length) {
+        query.notMany('listing.seller', args.seller_blacklist);
     }
 
-    if (args.buyer_blacklist) {
+    if (args.buyer_blacklist.length) {
         // TODO this excludes listings without a buyer, is that expected?
-        query.notMany('listing.buyer', args.buyer_blacklist.split(','));
+        query.notMany('listing.buyer', args.buyer_blacklist);
     }
 
     if (args.marketplace) {
