@@ -15,7 +15,7 @@ export async function getPricesAction(params: RequestValues, ctx: AtomicMarketCo
     const args = await filterQueryArgs(params, {
         collection_name: {type: 'list[]', min: 1},
         template_id: {type: 'id[]'},
-        schema_name: {type: 'string', min: 1},
+        schema_name: {type: 'list[]', min: 1},
         asset_id: {type: 'id[]'},
         symbol: {type: 'string', min: 1}
     });
@@ -35,8 +35,8 @@ export async function getPricesAction(params: RequestValues, ctx: AtomicMarketCo
         query.equalMany('price.collection_name', args.collection_name);
     }
 
-    if (args.schema_name) {
-        query.equalMany('price.schema_name', args.schema_name.split(','));
+    if (args.schema_name.length) {
+        query.equalMany('price.schema_name', args.schema_name);
     }
 
     if (args.template_id.length) {
@@ -141,7 +141,7 @@ export async function getPricesSalesDaysAction(params: RequestValues, ctx: Atomi
     const args = await filterQueryArgs(params, {
         collection_name: {type: 'list[]', min: 1},
         template_id: {type: 'id[]'},
-        schema_name: {type: 'string', min: 1},
+        schema_name: {type: 'list[]', min: 1},
         asset_id: {type: 'id[]'},
         symbol: {type: 'string', min: 1}
     });
@@ -162,8 +162,8 @@ export async function getPricesSalesDaysAction(params: RequestValues, ctx: Atomi
         query.equalMany('price.collection_name', args.collection_name);
     }
 
-    if (args.schema_name) {
-        query.equalMany('price.schema_name', args.schema_name.split(','));
+    if (args.schema_name.length) {
+        query.equalMany('price.schema_name', args.schema_name);
     }
 
     if (args.template_id.length) {
@@ -203,7 +203,7 @@ export async function getPricesTemplatesAction(params: RequestValues, ctx: Atomi
     const args = await filterQueryArgs(params, {
         collection_name: {type: 'list[]', min: 1},
         template_id: {type: 'id[]'},
-        schema_name: {type: 'string', min: 1},
+        schema_name: {type: 'list[]', min: 1},
         symbol: {type: 'string', min: 1},
 
         page: {type: 'int', min: 1, default: 1},
@@ -230,8 +230,8 @@ export async function getPricesTemplatesAction(params: RequestValues, ctx: Atomi
         query.equalMany('price.collection_name', args.collection_name);
     }
 
-    if (args.schema_name) {
-        query.equalMany('"template".schema_name', args.schema_name.split(','));
+    if (args.schema_name.length) {
+        query.equalMany('"template".schema_name', args.schema_name);
     }
 
     if (args.template_id.length) {

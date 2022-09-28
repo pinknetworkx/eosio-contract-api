@@ -126,7 +126,7 @@ const assetFilters: FiltersDefinition = {
     burned: {type: 'bool'},
     template_id: {type: 'id[]'},
     collection_name: {type: 'list[]', min: 1},
-    schema_name: {type: 'string', min: 1},
+    schema_name: {type: 'list[]', min: 1},
     is_transferable: {type: 'bool'},
     is_burnable: {type: 'bool'},
     minter: {type: 'name[]'},
@@ -166,11 +166,11 @@ export async function buildAssetFilter(
         query.equalMany(options.assetTable + '.collection_name', args.collection_name);
     }
 
-    if (args.schema_name) {
-        query.equalMany(options.assetTable + '.schema_name', args.schema_name.split(','));
+    if (args.schema_name.length) {
+        query.equalMany(options.assetTable + '.schema_name', args.schema_name);
     }
 
-    if (args.minter && args.minter.length > 0) {
+    if (args.minter.length) {
         query.addCondition(`EXISTS (
             SELECT * FROM atomicassets_mints mint_table 
             WHERE ${options.assetTable}.contract = mint_table.contract AND ${options.assetTable}.asset_id = mint_table.asset_id
@@ -178,7 +178,7 @@ export async function buildAssetFilter(
         )`);
     }
 
-    if (args.initial_receiver && args.initial_receiver.length > 0) {
+    if (args.initial_receiver.length) {
         query.addCondition(`EXISTS (
             SELECT * FROM atomicassets_mints mint_table 
             WHERE ${options.assetTable}.contract = mint_table.contract AND ${options.assetTable}.asset_id = mint_table.asset_id
@@ -186,7 +186,7 @@ export async function buildAssetFilter(
         )`);
     }
 
-    if (args.burner && args.burner.length > 0) {
+    if (args.burner.length) {
         query.equalMany(options.assetTable + '.burned_by_account', args.burner);
     }
 

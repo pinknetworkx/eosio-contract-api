@@ -16,7 +16,7 @@ export async function getTemplatesAction(params: RequestValues, ctx: AtomicAsset
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
         collection_name: {type: 'list[]', min: 1},
-        schema_name: {type: 'string', min: 1},
+        schema_name: {type: 'list[]', min: 1},
         authorized_account: {type: 'string', min: 1, max: 12},
 
         issued_supply: {type: 'int', min: 0},
@@ -41,8 +41,8 @@ export async function getTemplatesAction(params: RequestValues, ctx: AtomicAsset
         query.equalMany('template.collection_name', args.collection_name);
     }
 
-    if (args.schema_name) {
-        query.equalMany('template.schema_name', args.schema_name.split(','));
+    if (args.schema_name.length) {
+        query.equalMany('template.schema_name', args.schema_name);
     }
 
     if (typeof args.issued_supply === 'number') {

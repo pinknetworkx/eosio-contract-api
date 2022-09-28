@@ -17,7 +17,7 @@ export async function getSchemasAction(params: RequestValues, ctx: AtomicAssetsC
 
         authorized_account: {type: 'string', min: 1, max: 12},
         collection_name: {type: 'list[]', min: 1},
-        schema_name: {type: 'string[]', min: 1},
+        schema_name: {type: 'list[]', min: 1},
 
         match: {type: 'string', min: 1, max: 12},
 

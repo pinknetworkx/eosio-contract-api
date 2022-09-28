@@ -266,7 +266,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
 
         burned: {type: 'bool'},
         template_id: {type: 'id[]'},
-        schema_name: {type: 'string[]', min: 1},
+        schema_name: {type: 'list[]', min: 1},
         is_transferable: {type: 'bool'},
         is_burnable: {type: 'bool'},
 
