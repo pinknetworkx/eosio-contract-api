@@ -13,7 +13,7 @@ import {oneLine} from 'common-tags';
 
 export async function getPricesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
-        collection_name: {type: 'string', min: 1},
+        collection_name: {type: 'list[]', min: 1},
         template_id: {type: 'id[]'},
         schema_name: {type: 'string', min: 1},
         asset_id: {type: 'id[]'},
@@ -31,8 +31,8 @@ export async function getPricesAction(params: RequestValues, ctx: AtomicMarketCo
         'price.market_contract = token.market_contract AND price.symbol = token.token_symbol'
     );
 
-    if (args.collection_name) {
-        query.equalMany('price.collection_name', args.collection_name.split(','));
+    if (args.collection_name.length) {
+        query.equalMany('price.collection_name', args.collection_name);
     }
 
     if (args.schema_name) {
@@ -139,7 +139,7 @@ export async function getAssetSalesAction(params: RequestValues, ctx: AtomicMark
 
 export async function getPricesSalesDaysAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
-        collection_name: {type: 'string', min: 1},
+        collection_name: {type: 'list[]', min: 1},
         template_id: {type: 'id[]'},
         schema_name: {type: 'string', min: 1},
         asset_id: {type: 'id[]'},
@@ -158,8 +158,8 @@ export async function getPricesSalesDaysAction(params: RequestValues, ctx: Atomi
     query.equal('price.market_contract', ctx.coreArgs.atomicmarket_account);
     query.addCondition('price.market_contract = token.market_contract AND price.symbol = token.token_symbol');
 
-    if (args.collection_name) {
-        query.equalMany('price.collection_name', args.collection_name.split(','));
+    if (args.collection_name.length) {
+        query.equalMany('price.collection_name', args.collection_name);
     }
 
     if (args.schema_name) {
@@ -201,7 +201,7 @@ export async function getPricesSalesDaysAction(params: RequestValues, ctx: Atomi
 export async function getPricesTemplatesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.prices_templates || 1000;
     const args = await filterQueryArgs(params, {
-        collection_name: {type: 'string', min: 1},
+        collection_name: {type: 'list[]', min: 1},
         template_id: {type: 'id[]'},
         schema_name: {type: 'string', min: 1},
         symbol: {type: 'string', min: 1},
@@ -226,8 +226,8 @@ export async function getPricesTemplatesAction(params: RequestValues, ctx: Atomi
         '"price".market_contract = "token".market_contract AND "price".symbol = "token".token_symbol'
     );
 
-    if (args.collection_name) {
-        query.equalMany('price.collection_name', args.collection_name.split(','));
+    if (args.collection_name.length) {
+        query.equalMany('price.collection_name', args.collection_name);
     }
 
     if (args.schema_name) {

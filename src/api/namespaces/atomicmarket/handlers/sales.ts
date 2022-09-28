@@ -49,7 +49,7 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
     const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
-        collection_name: {type: 'string', min: 1},
+        collection_name: {type: 'list[]', min: 1},
         state: {type: 'string', min: 1},
         sort: {
             type: 'string',
@@ -85,7 +85,7 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
 
     await buildSaleFilter(params, query);
 
-    if (!args.collection_name) {
+    if (!args.collection_name.length) {
         await buildGreylistFilter(params, query, {collectionName: 'listing.collection_name'});
     }
 

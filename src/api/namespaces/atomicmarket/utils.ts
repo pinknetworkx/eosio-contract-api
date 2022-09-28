@@ -37,7 +37,7 @@ export async function buildListingFilter(values: FilterValues, query: QueryBuild
         seller: {type: 'list[]', min: 1},
         buyer: {type: 'list[]', min: 1},
 
-        collection_name: {type: 'string', min: 1},
+        collection_name: {type: 'list[]', min: 1},
     });
 
     if (args.account.length) {
@@ -54,8 +54,8 @@ export async function buildListingFilter(values: FilterValues, query: QueryBuild
         query.equalMany('listing.buyer', args.buyer);
     }
 
-    if (args.collection_name) {
-        query.equalMany('listing.collection_name', args.collection_name.split(','));
+    if (args.collection_name.length) {
+        query.equalMany('listing.collection_name', args.collection_name);
     }
 
     if (!args.show_seller_contracts) {

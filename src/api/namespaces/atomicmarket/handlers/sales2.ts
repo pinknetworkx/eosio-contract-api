@@ -258,7 +258,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
         seller: {type: 'list[]', min: 1},
         buyer: {type: 'list[]', min: 1},
 
-        collection_name: {type: 'string[]', min: 1},
+        collection_name: {type: 'list[]', min: 1},
         collection_blacklist: {type: 'list[]', min: 1},
         collection_whitelist: {type: 'list[]', min: 1},
 

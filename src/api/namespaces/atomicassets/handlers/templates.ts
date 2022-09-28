@@ -15,7 +15,7 @@ export async function getTemplatesAction(params: RequestValues, ctx: AtomicAsset
         sort: {type: 'string', allowedValues: ['created', 'name'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
-        collection_name: {type: 'string', min: 1},
+        collection_name: {type: 'list[]', min: 1},
         schema_name: {type: 'string', min: 1},
         authorized_account: {type: 'string', min: 1, max: 12},
 
@@ -37,8 +37,8 @@ export async function getTemplatesAction(params: RequestValues, ctx: AtomicAsset
 
     buildDataConditions(params, query, {templateTable: '"template"'});
 
-    if (args.collection_name) {
-        query.equalMany('template.collection_name', args.collection_name.split(','));
+    if (args.collection_name.length) {
+        query.equalMany('template.collection_name', args.collection_name);
     }
 
     if (args.schema_name) {

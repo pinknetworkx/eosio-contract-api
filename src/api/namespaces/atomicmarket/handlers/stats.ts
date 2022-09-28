@@ -17,7 +17,7 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
         before: {type: 'int', min: 1},
         after: {type: 'int', min: 1},
 
-        collection_name: {type: 'string', min: 1},
+        collection_name: {type: 'list[]', min: 1},
         collection_whitelist: {type: 'list[]', min: 1},
         collection_blacklist: {type: 'list[]', min: 1},
 
@@ -53,8 +53,8 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
         query.addCondition(`${query.addVariable(args.search)} <% (collection.collection_name || ' ' || COALESCE(collection.data->>'name', ''))`);
     }
 
-    if (args.collection_name) {
-        query.equal('collection.collection_name', args.collection_name);
+    if (args.collection_name.length) {
+        query.equal('collection.collection_name', args.collection_name.length);
     }
 
     if (args.collection_whitelist.length) {
@@ -288,7 +288,7 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
     const args = await filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
 
-        collection_name: {type: 'string[]', min: 1},
+        collection_name: {type: 'list[]', min: 1},
         schema_name: {type: 'string[]', min: 1},
         template_id: {type: 'id[]'},
 

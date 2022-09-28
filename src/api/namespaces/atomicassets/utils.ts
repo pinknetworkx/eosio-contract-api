@@ -125,7 +125,7 @@ const assetFilters: FiltersDefinition = {
     owner: {type: 'list[]', min: 1},
     burned: {type: 'bool'},
     template_id: {type: 'id[]'},
-    collection_name: {type: 'string', min: 1},
+    collection_name: {type: 'list[]', min: 1},
     schema_name: {type: 'string', min: 1},
     is_transferable: {type: 'bool'},
     is_burnable: {type: 'bool'},
@@ -162,8 +162,8 @@ export async function buildAssetFilter(
         }
     }
 
-    if (args.collection_name) {
-        query.equalMany(options.assetTable + '.collection_name', args.collection_name.split(','));
+    if (args.collection_name.length) {
+        query.equalMany(options.assetTable + '.collection_name', args.collection_name);
     }
 
     if (args.schema_name) {
