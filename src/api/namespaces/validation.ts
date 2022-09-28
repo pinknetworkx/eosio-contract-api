@@ -2,9 +2,9 @@ import { RequestValues } from './utils';
 import { isWeakFloat, isWeakInt, toInt } from '../../utils';
 import { ApiError } from '../error';
 
-type FilterType = 'string' | 'string[]' | 'int' | 'int[]' | 'float' | 'float[]' | 'bool' | 'bool[]' | 'name' | 'name[]' | 'id' | 'id[]';
+type FilterType = 'string' | 'string[]' | 'int' | 'int[]' | 'float' | 'float[]' | 'bool' | 'bool[]' | 'name' | 'name[]' | 'id' | 'id[]' | 'list[]';
 
-type FilterDefinition = {
+export type FilterDefinition = {
     type: FilterType,
     min?: number,
     max?: number,
@@ -26,7 +26,7 @@ export function addValidationType(name: string, func: ValidationFunction): void 
     validationTypes[name] = func;
 }
 
-async function validateString(values: string[], filter: FilterDefinition): Promise<string[]> {
+export async function validateString(values: string[], filter: FilterDefinition): Promise<string[]> {
     return values.map(value => {
         if (typeof filter.min === 'number' && value.length < filter.min) {
             throw Error();

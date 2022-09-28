@@ -22,6 +22,7 @@ import {ApiNamespace} from './namespaces/interfaces';
 import {mergeRequestData} from './namespaces/utils';
 import {Send} from 'express-serve-static-core';
 import {GetInfoResult} from 'eosjs/dist/eosjs-rpc-interfaces';
+import { initListValidator } from './namespaces/lists';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson: any = require('../../package.json');
@@ -66,6 +67,8 @@ export class HTTPServer implements DB {
 
         this.socket = new SocketServer(this);
         this.docs = new DocumentationServer(this);
+
+        initListValidator(this);
     }
 
     listen(): void {

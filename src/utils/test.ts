@@ -4,6 +4,7 @@ import { DB } from '../api/server';
 import { RequestValues } from '../api/namespaces/utils';
 import { AtomicMarketContext } from '../api/namespaces/atomicmarket';
 import { IConnectionsConfig } from '../types/config';
+import { initListValidator } from '../api/namespaces/lists';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 export const connectionConfig: IConnectionsConfig = require('../../config/connections.config.json');
@@ -103,6 +104,8 @@ export class TestClient extends Client implements DB {
 export function createTxIt(client: TestClient): any {
     async function runTxTest(fn: () => Promise<void>, self: any): Promise<any> {
         await client.query('BEGIN');
+
+        initListValidator(client);
 
         try {
             await client.init();

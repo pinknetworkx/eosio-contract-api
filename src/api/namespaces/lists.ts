@@ -1,5 +1,6 @@
-import { DB } from './server';
+import { DB } from '../server';
 import moize from 'moize';
+import { addValidationType, validateString } from './validation';
 
 export async function expandLists(strings: string[], db: DB): Promise<string[]> {
     const result: string[] = [];
@@ -30,3 +31,11 @@ const getListItems = moize({
 
     return items ?? [];
 });
+
+export function initListValidator(db: DB): void {
+    addValidationType('list', async (values, filter) => {
+        const result = await expandLists(values, db);
+
+        return await validateString(result, filter);
+    });
+}
