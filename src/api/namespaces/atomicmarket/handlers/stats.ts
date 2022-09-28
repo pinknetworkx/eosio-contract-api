@@ -18,7 +18,7 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
         after: {type: 'int', min: 1},
 
         collection_name: {type: 'string', min: 1},
-        collection_whitelist: {type: 'string[]', min: 1},
+        collection_whitelist: {type: 'list[]', min: 1},
         collection_blacklist: {type: 'string[]', min: 1},
 
         sort: {type: 'string', allowedValues: ['volume', 'sales'], default: 'volume'},
@@ -104,7 +104,7 @@ export async function getCollectionStatsAction(params: RequestValues, ctx: Atomi
 
 export async function getAllAccountStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
-        collection_whitelist: {type: 'string', min: 1, default: ''},
+        collection_whitelist: {type: 'list[]', min: 1},
         collection_blacklist: {type: 'string', min: 1, default: ''},
 
         symbol: {type: 'string', min: 1},
@@ -126,7 +126,7 @@ export async function getAllAccountStatsAction(params: RequestValues, ctx: Atomi
     let queryString = buildAccountStatsQuery(args.after, args.before);
     const queryValues = [
         ctx.coreArgs.atomicmarket_account, args.symbol,
-        args.collection_whitelist.split(',').filter((x: string) => !!x),
+        args.collection_whitelist,
         args.collection_blacklist.split(',').filter((x: string) => !!x)
     ];
     let varCounter = queryValues.length;
@@ -149,7 +149,7 @@ export async function getAllAccountStatsAction(params: RequestValues, ctx: Atomi
 
 export async function getAccountStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
-        collection_whitelist: {type: 'string', min: 1, default: ''},
+        collection_whitelist: {type: 'list[]', min: 1},
         collection_blacklist: {type: 'string', min: 1, default: ''},
 
         symbol: {type: 'string', min: 1}
@@ -164,7 +164,7 @@ export async function getAccountStatsAction(params: RequestValues, ctx: AtomicMa
     const queryString = buildAccountStatsQuery(null, null, '$5');
     const queryValues = [
         ctx.coreArgs.atomicmarket_account, args.symbol,
-        args.collection_whitelist.split(',').filter((x: string) => !!x),
+        args.collection_whitelist,
         args.collection_blacklist.split(',').filter((x: string) => !!x),
         ctx.pathParams.account
     ];
@@ -376,7 +376,7 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
 
 export async function getMarketStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
-        collection_whitelist: {type: 'string', min: 1, default: ''},
+        collection_whitelist: {type: 'list[]', min: 1},
         collection_blacklist: {type: 'string', min: 1, default: ''},
 
         symbol: {type: 'string', min: 1},
@@ -393,7 +393,7 @@ export async function getMarketStatsAction(params: RequestValues, ctx: AtomicMar
     let queryString = 'SELECT * FROM (' + buildMarketStatsQuery(args.after, args.before) + ') x ';
     const queryValues = [
         ctx.coreArgs.atomicmarket_account, args.symbol,
-        args.collection_whitelist.split(',').filter((x: string) => !!x),
+        args.collection_whitelist,
         args.collection_blacklist.split(',').filter((x: string) => !!x),
     ];
 
@@ -410,7 +410,7 @@ export async function getMarketStatsAction(params: RequestValues, ctx: AtomicMar
 
 export async function getStatsGraphAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
-        collection_whitelist: {type: 'string', min: 1, default: ''},
+        collection_whitelist: {type: 'list[]', min: 1},
         collection_blacklist: {type: 'string', min: 1, default: ''},
 
         taker_marketplace: {type: 'string'},
@@ -435,7 +435,7 @@ export async function getStatsGraphAction(params: RequestValues, ctx: AtomicMark
                `;
     const queryValues = [
         ctx.coreArgs.atomicmarket_account, args.symbol,
-        args.collection_whitelist.split(',').filter((x: string) => !!x),
+        args.collection_whitelist,
         args.collection_blacklist.split(',').filter((x: string) => !!x),
     ];
     let varCounter = queryValues.length;

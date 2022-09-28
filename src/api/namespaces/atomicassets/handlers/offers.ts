@@ -29,7 +29,7 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         account_whitelist: {type: 'string', min: 1},
         account_blacklist: {type: 'string', min: 1},
         collection_blacklist: {type: 'string', min: 1},
-        collection_whitelist: {type: 'string', min: 1},
+        collection_whitelist: {type: 'list[]', min: 1},
 
         is_recipient_contract: {type: 'bool'},
 
@@ -130,13 +130,13 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         );
     }
 
-    if (args.collection_whitelist) {
+    if (args.collection_whitelist.length) {
         query.addCondition(
             'NOT EXISTS(' +
             'SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
             'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
             'offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND ' +
-            'NOT (asset.collection_name = ANY (' + query.addVariable(args.collection_whitelist.split(',')) + '))' +
+            'NOT (asset.collection_name = ANY (' + query.addVariable(args.collection_whitelist) + '))' +
             ')'
         );
     }

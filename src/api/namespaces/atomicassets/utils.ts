@@ -218,19 +218,15 @@ export async function buildAssetFilter(
 export async function buildGreylistFilter(values: FilterValues, query: QueryBuilder, columns: { collectionName?: string, account?: string[] }): Promise<void> {
     const args = await filterQueryArgs(values, {
         collection_blacklist: {type: 'string', min: 1},
-        collection_whitelist: {type: 'string', min: 1},
+        collection_whitelist: {type: 'list[]', min: 1},
         account_blacklist: {type: 'string', min: 1}
     });
 
     let collectionBlacklist: string[] = [];
-    let collectionWhitelist: string[] = [];
+    const collectionWhitelist: string[] = args.collection_whitelist;
 
     if (args.collection_blacklist) {
         collectionBlacklist = args.collection_blacklist.split(',');
-    }
-
-    if (args.collection_whitelist) {
-        collectionWhitelist = args.collection_whitelist.split(',');
     }
 
     if (columns.collectionName) {

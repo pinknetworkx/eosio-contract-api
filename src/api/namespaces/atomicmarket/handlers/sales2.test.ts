@@ -628,6 +628,18 @@ describe('AtomicMarket Sales API', () => {
                 .to.deep.equal([sale_id]);
         });
 
+        txit('filters by collection_whitelist with lists', async () => {
+            await client.createFullList({list_name: 'whitelist'}, {item_name: 'zz'});
+
+            await client.createFullSale();
+
+            const {collection_name} = await client.createCollection({collection_name: 'zz'});
+            const {sale_id} = await client.createFullSale({collection_name});
+
+            expect(await getSalesIds({collection_whitelist: '$list:whitelist,abc'}))
+                .to.deep.equal([sale_id]);
+        });
+
         txit('filters by collection_blacklist', async () => {
             const {collection_name} = await client.createCollection({collection_name: 'x'});
             await client.createFullSale({collection_name});

@@ -16,7 +16,7 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
         asset_id: {type: 'id[]'},
 
         collection_blacklist: {type: 'string[]', min: 1},
-        collection_whitelist: {type: 'string[]', min: 1},
+        collection_whitelist: {type: 'list[]', min: 1},
 
         account: {type: 'string[]', min: 1},
         sender: {type: 'string[]', min: 1},

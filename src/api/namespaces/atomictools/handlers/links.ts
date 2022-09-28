@@ -17,7 +17,7 @@ export async function getLinksAction(params: RequestValues, ctx: AtomicToolsCont
         state: {type: 'string'},
 
         collection_blacklist: {type: 'string', min: 1},
-        collection_whitelist: {type: 'string', min: 1},
+        collection_whitelist: {type: 'list[]', min: 1},
 
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
@@ -61,13 +61,13 @@ export async function getLinksAction(params: RequestValues, ctx: AtomicToolsCont
         );
     }
 
-    if (args.collection_whitelist) {
+    if (args.collection_whitelist.length) {
         query.addCondition(
             'NOT EXISTS(' +
             'SELECT * FROM atomictools_links_assets asset_l, atomicassets_assets asset_a ' +
             'WHERE asset_l.tools_contract = link.tools_contract AND asset_l.link_id = link.link_id AND ' +
             'asset_l.assets_contract = asset_a.contract AND asset_l.asset_id = asset_a.asset_id AND ' +
-            'NOT (asset_a.collection_name = ANY (' + query.addVariable(args.collection_whitelist.split(',')) + '))' +
+            'NOT (asset_a.collection_name = ANY (' + query.addVariable(args.collection_whitelist) + '))' +
             ') '
         );
     }

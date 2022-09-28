@@ -260,7 +260,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
 
         collection_name: {type: 'string[]', min: 1},
         collection_blacklist: {type: 'string[]', min: 1},
-        collection_whitelist: {type: 'string[]', min: 1},
+        collection_whitelist: {type: 'list[]', min: 1},
 
         owner: {type: 'string[]', min: 1, max: 12},
 
@@ -585,7 +585,7 @@ export async function getSalesTemplatesV2Action(params: RequestValues, ctx: Atom
     const maxLimit = ctx.coreArgs.limits?.sales_templates || 100;
     const args = await filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
-        collection_whitelist: {type: 'string', min: 1},
+        collection_whitelist: {type: 'list[]', min: 1},
 
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
@@ -601,7 +601,7 @@ export async function getSalesTemplatesV2Action(params: RequestValues, ctx: Atom
         throw new ApiError('symbol parameter is required', 400);
     }
 
-    if (!hasAssetFilter(params) && !args.collection_whitelist) {
+    if (!hasAssetFilter(params) && !args.collection_whitelist.length) {
         throw new ApiError('You need to specify an asset filter!', 400);
     }
 
