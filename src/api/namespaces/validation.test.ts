@@ -55,12 +55,12 @@ describe('filterQueryArgs', () => {
 
     it('throws error when array value is not in allowedValues', async () => {
         try {
-            await filterQueryArgs({a: '2'}, {a: {type: 'int[]', allowedValues: [1]}});
+            await filterQueryArgs({a: 'b'}, {a: {type: 'int[]', allowedValues: ['B']}});
             expect.fail();
         } catch (e) {
+            expect(e.message).to.equal('Invalid value for parameter a');
             expect(e).to.be.instanceof(ApiError);
             expect(e.code).to.equal(400);
-            expect(e.message).to.equal('Invalid value for parameter a');
         }
     });
 
@@ -70,9 +70,9 @@ describe('filterQueryArgs', () => {
                 await filterQueryArgs({a: value}, {a: {type: 'int[]'}});
                 expect.fail();
             } catch (e) {
+                expect(e.message).to.equal('Invalid value for parameter a');
                 expect(e).to.be.instanceof(ApiError);
                 expect(e.code).to.equal(400);
-                expect(e.message).to.equal('Invalid value for parameter a');
             }
         }
     });
@@ -106,9 +106,9 @@ describe('filterQueryArgs', () => {
                     await filterQueryArgs({a: value}, {a: {type: 'int'}});
                     expect.fail();
                 } catch (e) {
+                    expect(e.message).to.equal('Invalid value for parameter a');
                     expect(e).to.be.instanceof(ApiError);
                     expect(e.code).to.equal(400);
-                    expect(e.message).to.equal('Invalid value for parameter a');
                 }
             }
         });
@@ -119,9 +119,9 @@ describe('filterQueryArgs', () => {
                     await filterQueryArgs({a: value}, {a: {type: 'int', min: 2, max: 3}});
                     expect.fail();
                 } catch (e) {
+                    expect(e.message).to.equal('Invalid value for parameter a');
                     expect(e).to.be.instanceof(ApiError);
                     expect(e.code).to.equal(400);
-                    expect(e.message).to.equal('Invalid value for parameter a');
                 }
             }
         });
@@ -150,9 +150,9 @@ describe('filterQueryArgs', () => {
                     await filterQueryArgs({a: value}, {a: {type: 'string', min: 2, max: 3}});
                     expect.fail();
                 } catch (e) {
+                    expect(e.message).to.equal('Invalid value for parameter a');
                     expect(e).to.be.instanceof(ApiError);
                     expect(e.code).to.equal(400);
-                    expect(e.message).to.equal('Invalid value for parameter a');
                 }
             }
         });
@@ -181,9 +181,9 @@ describe('filterQueryArgs', () => {
                     await filterQueryArgs({a: value}, {a: {type: 'float'}});
                     expect.fail();
                 } catch (e) {
+                    expect(e.message).to.equal('Invalid value for parameter a');
                     expect(e).to.be.instanceof(ApiError);
                     expect(e.code).to.equal(400);
-                    expect(e.message).to.equal('Invalid value for parameter a');
                 }
             }
         });
@@ -194,9 +194,9 @@ describe('filterQueryArgs', () => {
                     await filterQueryArgs({a: value}, {a: {type: 'float', min: 1.4, max: 3.4}});
                     expect.fail();
                 } catch (e) {
+                    expect(e.message).to.equal('Invalid value for parameter a');
                     expect(e).to.be.instanceof(ApiError);
                     expect(e.code).to.equal(400);
-                    expect(e.message).to.equal('Invalid value for parameter a');
                 }
             }
         });
@@ -224,9 +224,9 @@ describe('filterQueryArgs', () => {
                     await filterQueryArgs({a: value}, {a: {type: 'bool'}});
                     expect.fail();
                 } catch (e) {
+                    expect(e.message).to.equal('Invalid value for parameter a');
                     expect(e).to.be.instanceof(ApiError);
                     expect(e.code).to.equal(400);
-                    expect(e.message).to.equal('Invalid value for parameter a');
                 }
             }
         });
@@ -255,9 +255,9 @@ describe('filterQueryArgs', () => {
                     await filterQueryArgs({a: value}, {a: {type: 'name'}});
                     expect.fail();
                 } catch (e) {
+                    expect(e.message).to.equal('Invalid value for parameter a');
                     expect(e).to.be.instanceof(ApiError);
                     expect(e.code).to.equal(400);
-                    expect(e.message).to.equal('Invalid value for parameter a');
                 }
             }
         });
@@ -286,9 +286,9 @@ describe('filterQueryArgs', () => {
                     await filterQueryArgs({a: value}, {a: {type: 'id'}});
                     expect.fail();
                 } catch (e) {
+                    expect(e.message).to.equal('Invalid value for parameter a');
                     expect(e).to.be.instanceof(ApiError);
                     expect(e.code).to.equal(400);
-                    expect(e.message).to.equal('Invalid value for parameter a');
                 }
             }
         });
