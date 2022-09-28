@@ -13,9 +13,9 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         sort: {type: 'string', allowedValues: ['created', 'updated'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
-        account: {type: 'string[]', min: 1},
-        sender: {type: 'string[]', min: 1},
-        recipient: {type: 'string[]', min: 1},
+        account: {type: 'list[]', min: 1},
+        sender: {type: 'list[]', min: 1},
+        recipient: {type: 'list[]', min: 1},
         state: {type: 'string', min: 1},
         memo: {type: 'string', min: 1},
         match_memo: {type: 'string', min: 1},

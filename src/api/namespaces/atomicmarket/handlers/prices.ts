@@ -74,8 +74,8 @@ export async function getPricesAction(params: RequestValues, ctx: AtomicMarketCo
 
 export async function getAssetSalesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
-        seller: {type: 'string', min: 1},
-        buyer: {type: 'string', min: 1},
+        seller: {type: 'list[]', min: 1},
+        buyer: {type: 'list[]', min: 1},
         symbol: {type: 'string', min: 1},
         limit: {type: 'int', min: 1, default: 100},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
@@ -122,12 +122,12 @@ export async function getAssetSalesAction(params: RequestValues, ctx: AtomicMark
         query.equalMany('t1.token_symbol', args.symbol.split(','));
     }
 
-    if (args.seller) {
-        query.equalMany('t1.seller', args.seller.split(','));
+    if (args.seller.length) {
+        query.equalMany('t1.seller', args.seller);
     }
 
-    if (args.buyer) {
-        query.equalMany('t1.buyer', args.buyer.split(','));
+    if (args.buyer.length) {
+        query.equalMany('t1.buyer', args.buyer);
     }
 
     query.append(`ORDER BY t1.block_time ${args.order} LIMIT 500`);

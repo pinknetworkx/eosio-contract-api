@@ -254,15 +254,15 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
         seller_blacklist: {type: 'list[]', min: 1},
         buyer_blacklist: {type: 'list[]', min: 1},
 
-        account: {type: 'string[]', min: 1},
-        seller: {type: 'string[]', min: 1},
-        buyer: {type: 'string[]', min: 1},
+        account: {type: 'list[]', min: 1},
+        seller: {type: 'list[]', min: 1},
+        buyer: {type: 'list[]', min: 1},
 
         collection_name: {type: 'string[]', min: 1},
         collection_blacklist: {type: 'list[]', min: 1},
         collection_whitelist: {type: 'list[]', min: 1},
 
-        owner: {type: 'string[]', min: 1, max: 12},
+        owner: {type: 'list[]', min: 1, max: 12},
 
         burned: {type: 'bool'},
         template_id: {type: 'id[]'},

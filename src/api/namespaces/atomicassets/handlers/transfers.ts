@@ -18,9 +18,9 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
         collection_blacklist: {type: 'list[]', min: 1},
         collection_whitelist: {type: 'list[]', min: 1},
 
-        account: {type: 'string[]', min: 1},
-        sender: {type: 'string[]', min: 1},
-        recipient: {type: 'string[]', min: 1},
+        account: {type: 'list[]', min: 1},
+        sender: {type: 'list[]', min: 1},
+        recipient: {type: 'list[]', min: 1},
         memo: {type: 'string', min: 1},
         match_memo: {type: 'string', min: 1},
 

@@ -33,25 +33,25 @@ export async function buildListingFilter(values: FilterValues, query: QueryBuild
         taker_marketplace: {type: 'string', min: 1, max: 12},
         marketplace: {type: 'string', min: 1, max: 12},
 
-        account: {type: 'string', min: 1},
-        seller: {type: 'string', min: 1},
-        buyer: {type: 'string', min: 1},
+        account: {type: 'list[]', min: 1},
+        seller: {type: 'list[]', min: 1},
+        buyer: {type: 'list[]', min: 1},
 
         collection_name: {type: 'string', min: 1},
     });
 
-    if (args.account) {
-        const varName = query.addVariable(args.account.split(','));
+    if (args.account.length) {
+        const varName = query.addVariable(args.account);
 
         query.addCondition('(listing.buyer = ANY (' + varName + ') OR listing.seller = ANY (' + varName + '))');
     }
 
-    if (args.seller) {
-        query.equalMany('listing.seller', args.seller.split(','));
+    if (args.seller.length) {
+        query.equalMany('listing.seller', args.seller);
     }
 
-    if (args.buyer) {
-        query.equalMany('listing.buyer', args.buyer.split(','));
+    if (args.buyer.length) {
+        query.equalMany('listing.buyer', args.buyer);
     }
 
     if (args.collection_name) {
