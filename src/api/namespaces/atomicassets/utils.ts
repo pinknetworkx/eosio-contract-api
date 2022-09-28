@@ -134,13 +134,13 @@ const assetFilters: FiltersDefinition = {
     burner: {type: 'name[]'},
 };
 
-export function buildAssetFilter(
+export async function buildAssetFilter(
     values: FilterValues, query: QueryBuilder,
     options: { assetTable?: string, templateTable?: string, allowDataFilter?: boolean } = {}
-): void {
+): Promise<void> {
     options = {allowDataFilter: true, ...options};
 
-    const args = filterQueryArgs(values, assetFilters);
+    const args = await filterQueryArgs(values, assetFilters);
 
     if (options.allowDataFilter !== false) {
         buildDataConditions(values, query, {assetTable: options.assetTable, templateTable: options.templateTable});
@@ -215,8 +215,8 @@ export function buildAssetFilter(
     }
 }
 
-export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, columns: { collectionName?: string, account?: string[] }): void {
-    const args = filterQueryArgs(values, {
+export async function buildGreylistFilter(values: FilterValues, query: QueryBuilder, columns: { collectionName?: string, account?: string[] }): Promise<void> {
+    const args = await filterQueryArgs(values, {
         collection_blacklist: {type: 'string', min: 1},
         collection_whitelist: {type: 'string', min: 1},
         account_blacklist: {type: 'string', min: 1}
@@ -259,8 +259,8 @@ export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, c
     }
 }
 
-export function buildHideOffersFilter(values: FilterValues, query: QueryBuilder, assetTable: string): void {
-    const args = filterQueryArgs(values, {
+export async function buildHideOffersFilter(values: FilterValues, query: QueryBuilder, assetTable: string): Promise<void> {
+    const args = await filterQueryArgs(values, {
         hide_offers: {type: 'bool', default: false}
     });
 

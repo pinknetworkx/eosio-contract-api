@@ -10,7 +10,7 @@ import { filterQueryArgs } from '../../validation';
 
 export async function getLinksAction(params: RequestValues, ctx: AtomicToolsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.links || 100;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         creator: {type: 'string', min: 1},
         claimer: {type: 'string', min: 1},
         public_key: {type: 'string', min: 1},
@@ -72,7 +72,7 @@ export async function getLinksAction(params: RequestValues, ctx: AtomicToolsCont
         );
     }
 
-    buildBoundaryFilter(
+    await buildBoundaryFilter(
         params, query, 'link_id', 'int',
         args.sort === 'updated' ? 'updated_at_time' : 'created_at_time'
     );
@@ -106,7 +106,7 @@ export async function getLinksCountAction(params: RequestValues, ctx: AtomicTool
 }
 
 export async function getLinkAction(params: RequestValues, ctx: AtomicToolsContext): Promise<any> {
-    const args = filterQueryArgs({link_id: ctx.pathParams.link_id} as RequestValues, {
+    const args = await filterQueryArgs({link_id: ctx.pathParams.link_id} as RequestValues, {
         link_id: {type: 'id'},
     });
 
@@ -128,7 +128,7 @@ export async function getLinkAction(params: RequestValues, ctx: AtomicToolsConte
 
 export async function getLinkLogsAction(params: RequestValues, ctx: AtomicToolsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.logs || 100;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},

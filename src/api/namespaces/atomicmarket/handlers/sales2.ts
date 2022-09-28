@@ -21,7 +21,7 @@ type SalesSearchOptions = {
 const LISTING_ORDER_MARKER = '/*listing_order_marker*/';
 export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.sales_v2 || 100;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         state: {type: 'string[]', min: 1},
 
         page: {type: 'int', min: 1, default: 1},
@@ -55,7 +55,7 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
 
     await buildSaleFilterV2(search);
 
-    buildBoundaryFilter(
+    await buildBoundaryFilter(
         params, query, 'listing.sale_id', 'int',
         args.sort === 'updated' ? 'listing.updated_at_time' : 'listing.created_at_time'
     );
@@ -151,7 +151,7 @@ export async function getSalesCountV2Action(params: RequestValues, ctx: AtomicMa
 
 async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
     const {values, query, ctx} = search;
-    const args = filterQueryArgs(values, {
+    const args = await filterQueryArgs(values, {
         max_assets: {type: 'int', min: 1},
         min_assets: {type: 'int', min: 1},
 
@@ -163,9 +163,9 @@ async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
     });
 
     await buildMainFilterV2(search);
-    buildListingFilterV2(search);
+    await buildListingFilterV2(search);
 
-    buildAssetFilterV2(search);
+    await buildAssetFilterV2(search);
 
     if (args.template_blacklist.length) {
         const ignore = args.template_blacklist.map((t: number) => `t${t}`);
@@ -209,10 +209,10 @@ async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
     }
 }
 
-function buildAssetFilterV2(search: SalesSearchOptions): void {
+async function buildAssetFilterV2(search: SalesSearchOptions): Promise<void> {
     const {values, query} = search;
 
-    const args = filterQueryArgs(values, {
+    const args = await filterQueryArgs(values, {
         asset_id: {type: 'id[]'},
     });
 
@@ -250,7 +250,7 @@ const SALE_FILTER_FLAG_NOT_BURNABLE = 'nb';
 
 async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
     const {values, query} = search;
-    const args = filterQueryArgs(values, {
+    const args = await filterQueryArgs(values, {
         seller_blacklist: {type: 'string[]', min: 1},
         buyer_blacklist: {type: 'string[]', min: 1},
 
@@ -423,9 +423,9 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
     }
 }
 
-function buildListingFilterV2(search: SalesSearchOptions): void {
+async function buildListingFilterV2(search: SalesSearchOptions): Promise<void> {
     const {values, query} = search;
-    const args = filterQueryArgs(values, {
+    const args = await filterQueryArgs(values, {
         show_seller_contracts: {type: 'bool', default: true},
         contract_whitelist: {type: 'string[]', min: 1},
 
@@ -454,7 +454,7 @@ function buildListingFilterV2(search: SalesSearchOptions): void {
         }
     }
 
-    buildTemplateMintFilter(values, query);
+    await buildTemplateMintFilter(values, query);
 }
 
 function getDataFilters(search: SalesSearchOptions): string[] {
@@ -583,7 +583,7 @@ async function getTemplateIDs(name: string | undefined, search: SalesSearchOptio
 
 export async function getSalesTemplatesV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.sales_templates || 100;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
         collection_whitelist: {type: 'string', min: 1},
 

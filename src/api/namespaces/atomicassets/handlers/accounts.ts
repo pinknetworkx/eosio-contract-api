@@ -18,7 +18,7 @@ export async function getAccountsAction(
     ctx: AtomicAssetsContext,
 ): Promise<any> { // TODO: Use a proper type here - can't be at the moment different return types
     const maxLimit = ctx.coreArgs.limits?.accounts || 5000;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
 
@@ -38,11 +38,11 @@ export async function getAccountsAction(
         query.addCondition('POSITION(' + query.addVariable(args.match_owner.toLowerCase()) + ' IN asset.owner) > 0');
     }
 
-    buildAssetFilter(params, query,  {assetTable: 'asset', templateTable: 'template', allowDataFilter: true});
-    buildGreylistFilter(params, query, {collectionName: 'asset.collection_name'});
+    await buildAssetFilter(params, query,  {assetTable: 'asset', templateTable: 'template', allowDataFilter: true});
+    await buildGreylistFilter(params, query, {collectionName: 'asset.collection_name'});
 
-    buildHideOffersFilter(params, query, 'asset');
-    buildBoundaryFilter(params, query, 'owner', 'string', null);
+    await buildHideOffersFilter(params, query, 'asset');
+    await buildBoundaryFilter(params, query, 'owner', 'string', null);
 
     query.group(['asset.owner']);
 

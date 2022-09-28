@@ -7,7 +7,7 @@ import { filterQueryArgs } from '../../validation';
 
 export async function getBurnsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.burns || 5000;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
 
@@ -25,11 +25,11 @@ export async function getBurnsAction(params: RequestValues, ctx: AtomicAssetsCon
         query.addCondition('POSITION(' + query.addVariable(args.match_owner.toLowerCase()) + ' IN asset.burned_by_account) > 0');
     }
 
-    buildAssetFilter(params, query,  {assetTable: 'asset', templateTable: 'template', allowDataFilter: true});
-    buildGreylistFilter(params, query, {collectionName: 'asset.collection_name'});
+    await buildAssetFilter(params, query,  {assetTable: 'asset', templateTable: 'template', allowDataFilter: true});
+    await buildGreylistFilter(params, query, {collectionName: 'asset.collection_name'});
 
-    buildHideOffersFilter(params, query, 'asset');
-    buildBoundaryFilter(params, query, 'burned_by_account', 'string', null);
+    await buildHideOffersFilter(params, query, 'asset');
+    await buildBoundaryFilter(params, query, 'burned_by_account', 'string', null);
 
     query.group(['asset.burned_by_account']);
 
@@ -50,8 +50,8 @@ export async function getBurnsAccountAction(params: RequestValues, ctx: AtomicAs
     collectionQuery.equal('contract', ctx.coreArgs.atomicassets_account);
     collectionQuery.equal('burned_by_account', ctx.pathParams.account);
 
-    buildGreylistFilter(params, collectionQuery, {collectionName: 'asset.collection_name'});
-    buildHideOffersFilter(params, collectionQuery, 'asset');
+    await buildGreylistFilter(params, collectionQuery, {collectionName: 'asset.collection_name'});
+    await buildHideOffersFilter(params, collectionQuery, 'asset');
 
     collectionQuery.group(['contract', 'collection_name']);
     collectionQuery.append('ORDER BY assets DESC');
@@ -66,8 +66,8 @@ export async function getBurnsAccountAction(params: RequestValues, ctx: AtomicAs
     templateQuery.equal('contract', ctx.coreArgs.atomicassets_account);
     templateQuery.equal('burned_by_account', ctx.pathParams.account);
 
-    buildGreylistFilter(params, templateQuery, {collectionName: 'asset.collection_name'});
-    buildHideOffersFilter(params, templateQuery, 'asset');
+    await buildGreylistFilter(params, templateQuery, {collectionName: 'asset.collection_name'});
+    await buildHideOffersFilter(params, templateQuery, 'asset');
 
     templateQuery.group(['contract', 'collection_name', 'template_id']);
     templateQuery.append('ORDER BY assets DESC');

@@ -11,12 +11,12 @@ export function mergeRequestData(req: express.Request): RequestValues {
     return {...req.query, ...req.body};
 }
 
-export function buildBoundaryFilter(
+export async function buildBoundaryFilter(
     values: FilterValues, query: QueryBuilder,
     primaryColumn: string, primaryType: 'string' | 'int',
     dateColumn: string | null
-): void {
-    const args = filterQueryArgs(values, {
+): Promise<void> {
+    const args = await filterQueryArgs(values, {
         lower_bound: {type: primaryType, min: 1},
         upper_bound: {type: primaryType, min: 1},
         before: {type: 'int', min: 1},

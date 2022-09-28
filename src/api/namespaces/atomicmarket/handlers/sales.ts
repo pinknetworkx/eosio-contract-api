@@ -28,7 +28,7 @@ export async function getSaleAction(params: RequestValues, ctx: AtomicMarketCont
 
 export async function getSaleLogsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.logs || 100;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
@@ -46,7 +46,7 @@ export async function getSaleLogsAction(params: RequestValues, ctx: AtomicMarket
 
 export async function getSalesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.sales || 100;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         collection_name: {type: 'string', min: 1},
@@ -83,13 +83,13 @@ export async function getSalesAction(params: RequestValues, ctx: AtomicMarketCon
 
     query.equal('listing.market_contract', ctx.coreArgs.atomicmarket_account);
 
-    buildSaleFilter(params, query);
+    await buildSaleFilter(params, query);
 
     if (!args.collection_name) {
-        buildGreylistFilter(params, query, {collectionName: 'listing.collection_name'});
+        await buildGreylistFilter(params, query, {collectionName: 'listing.collection_name'});
     }
 
-    buildBoundaryFilter(
+    await buildBoundaryFilter(
         params, query, 'listing.sale_id', 'int',
         args.sort === 'updated' ? 'listing.updated_at_time' : 'listing.created_at_time'
     );

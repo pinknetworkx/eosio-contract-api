@@ -9,7 +9,7 @@ import { filterQueryArgs } from '../../validation';
 
 export async function getSchemasAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.schemas || 1000;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         sort: {type: 'string', allowedValues: ['created', 'schema_name', 'assets'], default: 'created'},
@@ -52,8 +52,8 @@ export async function getSchemasAction(params: RequestValues, ctx: AtomicAssetsC
         query.addCondition('POSITION(' + query.addVariable(args.match.toLowerCase()) + ' IN schema_name) > 0');
     }
 
-    buildBoundaryFilter(params, query, 'schema_name', 'string', 'created_at_time');
-    buildGreylistFilter(params, query, {collectionName: 'collection_name'});
+    await buildBoundaryFilter(params, query, 'schema_name', 'string', 'created_at_time');
+    await buildGreylistFilter(params, query, {collectionName: 'collection_name'});
 
     if (args.count) {
         const countQuery = await ctx.db.query(
@@ -118,7 +118,7 @@ export async function getSchemaStatsAction(params: RequestValues, ctx: AtomicAss
 
 export async function getSchemaLogsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.logs || 100;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},

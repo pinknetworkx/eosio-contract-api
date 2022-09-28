@@ -7,7 +7,7 @@ import { filterQueryArgs } from '../../validation';
 
 export async function getRawOffersAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.offers || 100;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         sort: {type: 'string', allowedValues: ['created', 'updated'], default: 'created'},
@@ -103,7 +103,7 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         assetQuery.join('asset', 'offer_asset', ['contract', 'asset_id']);
         assetQuery.join('offer_asset', 'offer', ['contract', 'offer_id']);
 
-        buildAssetFilter(params, assetQuery, {assetTable: '"asset"', allowDataFilter: false});
+        await buildAssetFilter(params, assetQuery, {assetTable: '"asset"', allowDataFilter: false});
 
         query.addCondition('EXISTS(' + assetQuery.buildString() + ')');
         query.setVars(assetQuery.buildValues());
@@ -191,7 +191,7 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         );
     }
 
-    buildBoundaryFilter(
+    await buildBoundaryFilter(
         params, query, 'offer_id', 'int',
         args.sort === 'updated' ? 'updated_at_time' : 'created_at_time'
     );
@@ -222,7 +222,7 @@ export async function getOffersCountAction(params: RequestValues, ctx: AtomicAss
 
 export async function getOfferLogsCountAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.logs || 100;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},

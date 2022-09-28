@@ -113,7 +113,7 @@ const validationTypes: {[key: string]: (value: string, filter: FilterDefinition)
 };
 
 const typeRE = /^(?<type>\w+)(?<array>\[])?$/;
-export function filterQueryArgs<T extends FiltersDefinition>(values: {[K in keyof T]?: any}, filter: T): FilteredValues<T> {
+export async function filterQueryArgs<T extends FiltersDefinition>(values: {[K in keyof T]?: any}, filter: T): Promise<FilteredValues<T>> {
     const keys: (keyof T)[] = Object.keys(filter);
     const result: FilteredValues<T> = {} as FilteredValues<T>;
 

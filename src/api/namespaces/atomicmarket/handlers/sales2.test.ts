@@ -804,7 +804,7 @@ describe('AtomicMarket Sales API', () => {
         });
 
         context('with template_blacklist arg', () => {
-            txit('filters out the sales that contains the template id', async () => {
+            txit('filters out sales that contain the template id', async () => {
                 const included = await client.createTemplate();
                 const {sale_id: sale_id1} = await client.createFullSale({}, {
                     template_id: included.template_id,
@@ -817,7 +817,7 @@ describe('AtomicMarket Sales API', () => {
                     template_id: excludedTemplate.template_id,
                 });
 
-                expect((await getSalesIds({template_blacklist: [excludedTemplate.template_id].join(',')})).sort())
+                expect((await getSalesIds({template_blacklist: `${excludedTemplate.template_id}`})).sort())
                     .to.deep.equal([sale_id1, sale_id2].sort());
             });
         });

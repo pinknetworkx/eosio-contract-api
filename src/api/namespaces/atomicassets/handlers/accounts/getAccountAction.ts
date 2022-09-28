@@ -36,7 +36,7 @@ export async function getAccountAction(params: RequestValues, ctx: AtomicAssetsC
     };
 }
 
-function getAssetCountByCollection(params: RequestValues, ctx: AtomicAssetsContext): Promise<QueryResult<{
+async function getAssetCountByCollection(params: RequestValues, ctx: AtomicAssetsContext): Promise<QueryResult<{
     collection_name: string;
     assets: string;
 }>> {
@@ -48,8 +48,8 @@ function getAssetCountByCollection(params: RequestValues, ctx: AtomicAssetsConte
     collectionQuery.equal('contract', ctx.coreArgs.atomicassets_account);
     collectionQuery.equal('owner', ctx.pathParams.account);
 
-    buildGreylistFilter(params, collectionQuery, {collectionName: 'asset.collection_name'});
-    buildHideOffersFilter(params, collectionQuery, 'asset');
+    await buildGreylistFilter(params, collectionQuery, {collectionName: 'asset.collection_name'});
+    await buildHideOffersFilter(params, collectionQuery, 'asset');
 
     collectionQuery.group(['contract', 'collection_name']);
     collectionQuery.append('ORDER BY assets DESC');
@@ -57,7 +57,7 @@ function getAssetCountByCollection(params: RequestValues, ctx: AtomicAssetsConte
     return ctx.db.query(collectionQuery.buildString(), collectionQuery.buildValues());
 }
 
-function getAssetCountByTemplate(params: RequestValues, ctx: AtomicAssetsContext): Promise<QueryResult<{
+async function getAssetCountByTemplate(params: RequestValues, ctx: AtomicAssetsContext): Promise<QueryResult<{
     collection_name: string;
     assets: string;
     template_id: null | string;
@@ -69,8 +69,8 @@ function getAssetCountByTemplate(params: RequestValues, ctx: AtomicAssetsContext
     templateQuery.equal('contract', ctx.coreArgs.atomicassets_account);
     templateQuery.equal('owner', ctx.pathParams.account);
 
-    buildGreylistFilter(params, templateQuery, {collectionName: 'asset.collection_name'});
-    buildHideOffersFilter(params, templateQuery, 'asset');
+    await buildGreylistFilter(params, templateQuery, {collectionName: 'asset.collection_name'});
+    await buildHideOffersFilter(params, templateQuery, 'asset');
 
     templateQuery.group(['contract', 'collection_name', 'template_id']);
     templateQuery.append('ORDER BY assets DESC');

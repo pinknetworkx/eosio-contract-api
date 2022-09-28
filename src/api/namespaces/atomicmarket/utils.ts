@@ -21,8 +21,8 @@ export function hasListingFilter(values: FilterValues, blacklist: string[] = [])
     return false;
 }
 
-export function buildListingFilter(values: FilterValues, query: QueryBuilder): void {
-    const args = filterQueryArgs(values, {
+export async function buildListingFilter(values: FilterValues, query: QueryBuilder): Promise<void> {
+    const args = await filterQueryArgs(values, {
         show_seller_contracts: {type: 'bool', default: true},
         contract_whitelist: {type: 'string', min: 1, default: ''},
 
@@ -89,11 +89,11 @@ export function buildListingFilter(values: FilterValues, query: QueryBuilder): v
         }
     }
 
-    buildTemplateMintFilter(values, query);
+    await buildTemplateMintFilter(values, query);
 }
 
-export function buildTemplateMintFilter(values: FilterValues, query: QueryBuilder): void {
-    const args = filterQueryArgs(values, {
+export async function buildTemplateMintFilter(values: FilterValues, query: QueryBuilder): Promise<void> {
+    const args = await filterQueryArgs(values, {
         min_template_mint: {type: 'int', min: 1},
         max_template_mint: {type: 'int', min: 1}
     });
@@ -116,8 +116,8 @@ export function buildTemplateMintFilter(values: FilterValues, query: QueryBuilde
     }
 }
 
-export function buildSaleFilter(values: FilterValues, query: QueryBuilder): void {
-    const args = filterQueryArgs(values, {
+export async function buildSaleFilter(values: FilterValues, query: QueryBuilder): Promise<void> {
+    const args = await filterQueryArgs(values, {
         state: {type: 'string', min: 1},
 
         max_assets: {type: 'int', min: 1},
@@ -134,7 +134,7 @@ export function buildSaleFilter(values: FilterValues, query: QueryBuilder): void
         throw new ApiError('Price filters are removed in /v1/sales, use /v2/sales', 400);
     }
 
-    buildListingFilter(values, query);
+    await buildListingFilter(values, query);
 
     if (args.template_blacklist.length || hasAssetFilter(values, ['collection_name']) || hasDataFilters(values)) {
         const assetQuery = new QueryBuilder(
@@ -151,7 +151,7 @@ export function buildSaleFilter(values: FilterValues, query: QueryBuilder): void
         }
 
 
-        buildAssetFilter(values, assetQuery, {
+        await buildAssetFilter(values, assetQuery, {
             assetTable: '"asset"',
             templateTable: '"template"',
             allowDataFilter: true
@@ -214,8 +214,8 @@ export function buildSaleFilter(values: FilterValues, query: QueryBuilder): void
     }
 }
 
-export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): void {
-    const args = filterQueryArgs(values, {
+export async function buildAuctionFilter(values: FilterValues, query: QueryBuilder): Promise<void> {
+    const args = await filterQueryArgs(values, {
         state: {type: 'string', min: 1},
 
         min_assets: {type: 'int', min: 1},
@@ -232,7 +232,7 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
         template_blacklist: {type: 'int[]', min: 1},
     });
 
-    buildListingFilter(values, query);
+    await buildListingFilter(values, query);
 
     if (args.template_blacklist.length || hasAssetFilter(values, ['collection_name']) || hasDataFilters(values)) {
         const assetQuery = new QueryBuilder(
@@ -343,8 +343,8 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
     }
 }
 
-export function buildBuyofferFilter(values: FilterValues, query: QueryBuilder): void {
-    const args = filterQueryArgs(values, {
+export async function buildBuyofferFilter(values: FilterValues, query: QueryBuilder): Promise<void> {
+    const args = await filterQueryArgs(values, {
         state: {type: 'string', min: 1},
 
         min_assets: {type: 'int', min: 1},
@@ -355,7 +355,7 @@ export function buildBuyofferFilter(values: FilterValues, query: QueryBuilder): 
         max_price: {type: 'float', min: 0}
     });
 
-    buildListingFilter(values, query);
+    await buildListingFilter(values, query);
 
     if (hasAssetFilter(values, ['collection_name']) || hasDataFilters(values)) {
         const assetQuery = new QueryBuilder(
