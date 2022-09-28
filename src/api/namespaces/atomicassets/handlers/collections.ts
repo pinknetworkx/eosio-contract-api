@@ -15,7 +15,7 @@ export async function getCollectionsAction(params: RequestValues, ctx: AtomicAss
         sort: {type: 'string', allowedValues: ['created', 'collection_name'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
-        author: {type: 'string', min: 1, max: 12},
+        author: {type: 'string[]', min: 1, max: 12},
         authorized_account: {type: 'string', min: 1, max: 12},
         notify_account: {type: 'string', min: 1, max: 12},
 
@@ -29,8 +29,8 @@ export async function getCollectionsAction(params: RequestValues, ctx: AtomicAss
 
     query.equal('contract', ctx.coreArgs.atomicassets_account);
 
-    if (args.author) {
-        query.equalMany('author', args.author.split(','));
+    if (args.author.length) {
+        query.equalMany('author', args.author);
     }
 
     if (args.authorized_account) {

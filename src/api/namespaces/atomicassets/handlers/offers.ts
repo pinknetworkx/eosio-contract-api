@@ -22,10 +22,10 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
 
         asset_id: {type: 'id[]'},
 
-        recipient_asset_blacklist: {type: 'string', min: 1},
-        recipient_asset_whitelist: {type: 'string', min: 1},
-        sender_asset_blacklist: {type: 'string', min: 1},
-        sender_asset_whitelist: {type: 'string', min: 1},
+        recipient_asset_blacklist: {type: 'list[]', min: 1},
+        recipient_asset_whitelist: {type: 'list[]', min: 1},
+        sender_asset_blacklist: {type: 'list[]', min: 1},
+        sender_asset_whitelist: {type: 'list[]', min: 1},
         account_whitelist: {type: 'list[]', min: 1},
         account_blacklist: {type: 'list[]', min: 1},
         collection_blacklist: {type: 'list[]', min: 1},
@@ -151,42 +151,42 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         query.addCondition('(offer.sender = ANY(' + varName + ') OR offer.recipient = ANY(' + varName + '))');
     }
 
-    if (args.recipient_asset_blacklist) {
+    if (args.recipient_asset_blacklist.length) {
         query.addCondition(
             'NOT EXISTS(' +
             'SELECT * FROM atomicassets_offers_assets offer_asset ' +
             'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
-            'offer_asset.owner = offer.recipient AND offer_asset.asset_id = ANY (' + query.addVariable(args.recipient_asset_blacklist.split(',')) + ')' +
+            'offer_asset.owner = offer.recipient AND offer_asset.asset_id = ANY (' + query.addVariable(args.recipient_asset_blacklist) + ')' +
             ')'
         );
     }
 
-    if (args.recipient_asset_whitelist) {
+    if (args.recipient_asset_whitelist.length) {
         query.addCondition(
             'NOT EXISTS(' +
             'SELECT * FROM atomicassets_offers_assets offer_asset ' +
             'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
-            'offer_asset.owner = offer.recipient AND NOT (offer_asset.asset_id = ANY (' + query.addVariable(args.recipient_asset_whitelist.split(',')) + '))' +
+            'offer_asset.owner = offer.recipient AND NOT (offer_asset.asset_id = ANY (' + query.addVariable(args.recipient_asset_whitelist) + '))' +
             ')'
         );
     }
 
-    if (args.sender_asset_blacklist) {
+    if (args.sender_asset_blacklist.length) {
         query.addCondition(
             'NOT EXISTS(' +
             'SELECT * FROM atomicassets_offers_assets offer_asset ' +
             'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
-            'offer_asset.owner = offer.sender AND offer_asset.asset_id = ANY (' + query.addVariable(args.sender_asset_blacklist.split(',')) + ')' +
+            'offer_asset.owner = offer.sender AND offer_asset.asset_id = ANY (' + query.addVariable(args.sender_asset_blacklist) + ')' +
             ')'
         );
     }
 
-    if (args.sender_asset_whitelist) {
+    if (args.sender_asset_whitelist.length) {
         query.addCondition(
             'NOT EXISTS(' +
             'SELECT * FROM atomicassets_offers_assets offer_asset ' +
             'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
-            'offer_asset.owner = offer.sender AND NOT (offer_asset.asset_id = ANY (' + query.addVariable(args.sender_asset_whitelist.split(',')) + '))' +
+            'offer_asset.owner = offer.sender AND NOT (offer_asset.asset_id = ANY (' + query.addVariable(args.sender_asset_whitelist) + '))' +
             ')'
         );
     }

@@ -226,7 +226,7 @@ export async function buildAuctionFilter(values: FilterValues, query: QueryBuild
         max_price: {type: 'float', min: 0},
 
         participant: {type: 'string', min: 1},
-        bidder: {type: 'string', min: 1},
+        bidder: {type: 'list[]', min: 1},
 
         hide_empty_auctions: {type: 'bool'},
         template_blacklist: {type: 'list[]', min: 1},
@@ -296,10 +296,10 @@ export async function buildAuctionFilter(values: FilterValues, query: QueryBuild
         );
     }
 
-    if (args.bidder) {
+    if (args.bidder.length) {
         query.addCondition('EXISTS(SELECT * FROM atomicmarket_auctions_bids bid ' +
             'WHERE bid.market_contract = listing.market_contract AND bid.auction_id = listing.auction_id AND ' +
-            'bid.account = ANY(' + query.addVariable(args.bidder.split(',')) + ') )');
+            'bid.account = ANY(' + query.addVariable(args.bidder) + ') )');
     }
 
     if (args.symbol) {

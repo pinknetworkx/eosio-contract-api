@@ -11,8 +11,8 @@ import { filterQueryArgs } from '../../validation';
 export async function getLinksAction(params: RequestValues, ctx: AtomicToolsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.links || 100;
     const args = await filterQueryArgs(params, {
-        creator: {type: 'string', min: 1},
-        claimer: {type: 'string', min: 1},
+        creator: {type: 'list[]', min: 1},
+        claimer: {type: 'list[]', min: 1},
         public_key: {type: 'string', min: 1},
         state: {type: 'string'},
 
@@ -31,12 +31,12 @@ export async function getLinksAction(params: RequestValues, ctx: AtomicToolsCont
 
     query.equal('tools_contract', ctx.coreArgs.atomictools_account);
 
-    if (args.creator) {
-        query.equalMany('creator', args.creator.split(','));
+    if (args.creator.length) {
+        query.equalMany('creator', args.creator);
     }
 
-    if (args.claimer) {
-        query.equalMany('claimer', args.claimer.split(','));
+    if (args.claimer.length) {
+        query.equalMany('claimer', args.claimer);
     }
 
     if (args.public_key) {
