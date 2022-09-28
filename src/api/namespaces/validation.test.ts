@@ -264,5 +264,34 @@ describe('filterQueryArgs', () => {
 
     });
 
-    // TODO add id?!
+    describe('id type', () => {
+
+        it('allows valid id values', async () => {
+            for (const value of ['123', 'null', '99999999999999999999999999999999999999999999999999999999999999999999999999']) {
+                const {a} = await filterQueryArgs({a: value}, {a: {type: 'id'}});
+                expect(a).to.deep.equal(value);
+            }
+        });
+
+        it('allows valid array name values', async () => {
+            for (const value of ['123,null,99999999999999999999999999999999999999999999999999999999999999999999999999']) {
+                const {a} = await filterQueryArgs({a: value}, {a: {type: 'id[]'}});
+                expect(a).to.deep.equal(value.split(','));
+            }
+        });
+
+        it('throws errors for invalid id values', async () => {
+            for (const value of ['1e9', 'a']) {
+                try {
+                    await filterQueryArgs({a: value}, {a: {type: 'id'}});
+                    expect.fail();
+                } catch (e) {
+                    expect(e).to.be.instanceof(ApiError);
+                    expect(e.code).to.equal(400);
+                    expect(e.message).to.equal('Invalid value for parameter a');
+                }
+            }
+        });
+
+    });
 });
