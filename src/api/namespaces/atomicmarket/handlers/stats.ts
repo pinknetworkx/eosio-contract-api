@@ -19,7 +19,7 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
 
         collection_name: {type: 'string', min: 1},
         collection_whitelist: {type: 'list[]', min: 1},
-        collection_blacklist: {type: 'string[]', min: 1},
+        collection_blacklist: {type: 'list[]', min: 1},
 
         sort: {type: 'string', allowedValues: ['volume', 'sales'], default: 'volume'},
         page: {type: 'int', min: 1, default: 1},
@@ -105,7 +105,7 @@ export async function getCollectionStatsAction(params: RequestValues, ctx: Atomi
 export async function getAllAccountStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
         collection_whitelist: {type: 'list[]', min: 1},
-        collection_blacklist: {type: 'string', min: 1, default: ''},
+        collection_blacklist: {type: 'list[]', min: 1},
 
         symbol: {type: 'string', min: 1},
 
@@ -127,7 +127,7 @@ export async function getAllAccountStatsAction(params: RequestValues, ctx: Atomi
     const queryValues = [
         ctx.coreArgs.atomicmarket_account, args.symbol,
         args.collection_whitelist,
-        args.collection_blacklist.split(',').filter((x: string) => !!x)
+        args.collection_blacklist
     ];
     let varCounter = queryValues.length;
 
@@ -150,7 +150,7 @@ export async function getAllAccountStatsAction(params: RequestValues, ctx: Atomi
 export async function getAccountStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
         collection_whitelist: {type: 'list[]', min: 1},
-        collection_blacklist: {type: 'string', min: 1, default: ''},
+        collection_blacklist: {type: 'list[]', min: 1},
 
         symbol: {type: 'string', min: 1}
     });
@@ -165,7 +165,7 @@ export async function getAccountStatsAction(params: RequestValues, ctx: AtomicMa
     const queryValues = [
         ctx.coreArgs.atomicmarket_account, args.symbol,
         args.collection_whitelist,
-        args.collection_blacklist.split(',').filter((x: string) => !!x),
+        args.collection_blacklist,
         ctx.pathParams.account
     ];
 
@@ -377,7 +377,7 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
 export async function getMarketStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
         collection_whitelist: {type: 'list[]', min: 1},
-        collection_blacklist: {type: 'string', min: 1, default: ''},
+        collection_blacklist: {type: 'list[]', min: 1},
 
         symbol: {type: 'string', min: 1},
         before: {type: 'int', min: 1},
@@ -394,7 +394,7 @@ export async function getMarketStatsAction(params: RequestValues, ctx: AtomicMar
     const queryValues = [
         ctx.coreArgs.atomicmarket_account, args.symbol,
         args.collection_whitelist,
-        args.collection_blacklist.split(',').filter((x: string) => !!x),
+        args.collection_blacklist,
     ];
 
     // @ts-ignore
@@ -411,7 +411,7 @@ export async function getMarketStatsAction(params: RequestValues, ctx: AtomicMar
 export async function getStatsGraphAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
         collection_whitelist: {type: 'list[]', min: 1},
-        collection_blacklist: {type: 'string', min: 1, default: ''},
+        collection_blacklist: {type: 'list[]', min: 1},
 
         taker_marketplace: {type: 'string'},
         maker_marketplace: {type: 'string'},
@@ -436,7 +436,7 @@ export async function getStatsGraphAction(params: RequestValues, ctx: AtomicMark
     const queryValues = [
         ctx.coreArgs.atomicmarket_account, args.symbol,
         args.collection_whitelist,
-        args.collection_blacklist.split(',').filter((x: string) => !!x),
+        args.collection_blacklist,
     ];
     let varCounter = queryValues.length;
 

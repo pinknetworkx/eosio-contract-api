@@ -259,7 +259,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
         buyer: {type: 'string[]', min: 1},
 
         collection_name: {type: 'string[]', min: 1},
-        collection_blacklist: {type: 'string[]', min: 1},
+        collection_blacklist: {type: 'list[]', min: 1},
         collection_whitelist: {type: 'list[]', min: 1},
 
         owner: {type: 'string[]', min: 1, max: 12},
