@@ -17,7 +17,7 @@ export async function buildAssetQueryCondition(
 ): Promise<void> {
     const args = await filterQueryArgs(values, {
         authorized_account: {type: 'string', min: 1, max: 12},
-        hide_templates_by_accounts: {type: 'string', min: 1},
+        hide_templates_by_accounts: {type: 'list[]', min: 1},
 
         only_duplicate_templates: {type: 'bool'},
         has_backed_tokens: {type: 'bool'},
@@ -27,8 +27,8 @@ export async function buildAssetQueryCondition(
         min_template_mint: {type: 'int', min: 1},
         max_template_mint: {type: 'int', min: 1},
 
-        template_blacklist: {type: 'string', min: 1},
-        template_whitelist: {type: 'string', min: 1}
+        template_blacklist: {type: 'list[]', min: 1},
+        template_whitelist: {type: 'list[]', min: 1}
     });
 
     if (args.authorized_account) {
@@ -41,12 +41,12 @@ export async function buildAssetQueryCondition(
         );
     }
 
-    if (args.hide_templates_by_accounts) {
+    if (args.hide_templates_by_accounts.length) {
         query.addCondition(
             'NOT EXISTS(' +
             'SELECT * FROM atomicassets_assets asset2 ' +
             'WHERE asset2.template_id = ' + options.assetTable + '.template_id AND asset2.contract = ' + options.assetTable + '.contract ' +
-            'AND asset2.owner = ANY(' + query.addVariable(args.hide_templates_by_accounts.split(',')) + ')' +
+            'AND asset2.owner = ANY(' + query.addVariable(args.hide_templates_by_accounts) + ')' +
             ')'
         );
     }
@@ -97,12 +97,12 @@ export async function buildAssetQueryCondition(
     await buildAssetFilter(values, query, {assetTable: options.assetTable, templateTable: options.templateTable});
     await buildGreylistFilter(values, query, {collectionName: options.assetTable + '.collection_name'});
 
-    if (args.template_blacklist) {
-        query.notMany(`COALESCE(${options.assetTable}.template_id, 9223372036854775807)`, args.template_blacklist.split(','));
+    if (args.template_blacklist.length) {
+        query.notMany(`COALESCE(${options.assetTable}.template_id, 9223372036854775807)`, args.template_blacklist);
     }
 
-    if (args.template_whitelist) {
-        query.equalMany(options.assetTable + '.template_id', args.template_whitelist.split(','));
+    if (args.template_whitelist.length) {
+        query.equalMany(options.assetTable + '.template_id', args.template_whitelist);
     }
 }
 

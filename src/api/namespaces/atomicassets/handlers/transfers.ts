@@ -127,7 +127,7 @@ async function buildTransferQuery(args: Record<string, any>, params: RequestValu
         assetQuery.join('asset', 'transfer_asset', ['contract', 'asset_id']);
         assetQuery.join('transfer_asset', 'transfer', ['contract', 'transfer_id']);
 
-        buildAssetFilter(params, assetQuery, {assetTable: '"asset"', allowDataFilter: false});
+        await buildAssetFilter(params, assetQuery, {assetTable: '"asset"', allowDataFilter: false});
 
         query.addCondition('EXISTS(' + assetQuery.buildString() + ')');
         query.setVars(assetQuery.buildValues());

@@ -24,7 +24,7 @@ export function hasListingFilter(values: FilterValues, blacklist: string[] = [])
 export async function buildListingFilter(values: FilterValues, query: QueryBuilder): Promise<void> {
     const args = await filterQueryArgs(values, {
         show_seller_contracts: {type: 'bool', default: true},
-        contract_whitelist: {type: 'string', min: 1, default: ''},
+        contract_whitelist: {type: 'list[]', min: 1, default: ''},
 
         seller_blacklist: {type: 'list[]', min: 1},
         buyer_blacklist: {type: 'list[]', min: 1},
@@ -62,7 +62,7 @@ export async function buildListingFilter(values: FilterValues, query: QueryBuild
         query.addCondition(
             'NOT EXISTS(' +
             'SELECT * FROM contract_codes code ' +
-            'WHERE code.account = listing.seller AND code.account != ALL(' + query.addVariable(args.contract_whitelist.split(',')) + ')' +
+            'WHERE code.account = listing.seller AND code.account != ALL(' + query.addVariable(args.contract_whitelist) + ')' +
             ')'
         );
     }
@@ -127,7 +127,7 @@ export async function buildSaleFilter(values: FilterValues, query: QueryBuilder)
         min_price: {type: 'float', min: 0},
         max_price: {type: 'float', min: 0},
 
-        template_blacklist: {type: 'int[]', min: 1},
+        template_blacklist: {type: 'list[]', min: 1},
     });
 
     if (args.min_price || args.max_price) {
@@ -229,7 +229,7 @@ export async function buildAuctionFilter(values: FilterValues, query: QueryBuild
         bidder: {type: 'string', min: 1},
 
         hide_empty_auctions: {type: 'bool'},
-        template_blacklist: {type: 'int[]', min: 1},
+        template_blacklist: {type: 'list[]', min: 1},
     });
 
     await buildListingFilter(values, query);
@@ -248,7 +248,7 @@ export async function buildAuctionFilter(values: FilterValues, query: QueryBuild
             assetQuery.notMany('"asset"."template_id"', args.template_blacklist, true);
         }
 
-        buildAssetFilter(values, assetQuery, {
+        await buildAssetFilter(values, assetQuery, {
             assetTable: '"asset"',
             templateTable: '"template"',
             allowDataFilter: true
@@ -367,7 +367,7 @@ export async function buildBuyofferFilter(values: FilterValues, query: QueryBuil
         assetQuery.addCondition('asset.contract = buyoffer_asset.assets_contract AND asset.asset_id = buyoffer_asset.asset_id');
         assetQuery.join('buyoffer_asset', 'listing', ['market_contract', 'buyoffer_id']);
 
-        buildAssetFilter(values, assetQuery, {
+        await buildAssetFilter(values, assetQuery, {
             assetTable: '"asset"',
             templateTable: '"template"',
             allowDataFilter: true

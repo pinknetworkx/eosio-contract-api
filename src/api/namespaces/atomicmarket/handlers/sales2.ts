@@ -159,7 +159,7 @@ async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
         min_price: {type: 'float', min: 0},
         max_price: {type: 'float', min: 0},
 
-        template_blacklist: {type: 'int[]', min: 1},
+        template_blacklist: {type: 'list[]', min: 1},
     });
 
     await buildMainFilterV2(search);
@@ -427,7 +427,7 @@ async function buildListingFilterV2(search: SalesSearchOptions): Promise<void> {
     const {values, query} = search;
     const args = await filterQueryArgs(values, {
         show_seller_contracts: {type: 'bool', default: true},
-        contract_whitelist: {type: 'string[]', min: 1},
+        contract_whitelist: {type: 'list[]', min: 1},
 
         maker_marketplace: {type: 'string[]', min: 1},
         taker_marketplace: {type: 'string[]', min: 1},
