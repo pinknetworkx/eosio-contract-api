@@ -11,13 +11,13 @@ import { filterQueryArgs } from '../../validation';
 export async function getLinksAction(params: RequestValues, ctx: AtomicToolsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.links || 100;
     const args = await filterQueryArgs(params, {
-        creator: {type: 'list[]', min: 1},
-        claimer: {type: 'list[]', min: 1},
+        creator: {type: 'list[name]'},
+        claimer: {type: 'list[name]'},
         public_key: {type: 'string', min: 1},
         state: {type: 'string'},
 
-        collection_blacklist: {type: 'list[]', min: 1},
-        collection_whitelist: {type: 'list[]', min: 1},
+        collection_blacklist: {type: 'list[name]'},
+        collection_whitelist: {type: 'list[name]'},
 
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},

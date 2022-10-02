@@ -16,8 +16,8 @@ export async function buildAssetQueryCondition(
     options: { assetTable: string, templateTable?: string }
 ): Promise<void> {
     const args = await filterQueryArgs(values, {
-        authorized_account: {type: 'string', min: 1, max: 12},
-        hide_templates_by_accounts: {type: 'list[]', min: 1},
+        authorized_account: {type: 'name'},
+        hide_templates_by_accounts: {type: 'list[name]'},
 
         only_duplicate_templates: {type: 'bool'},
         has_backed_tokens: {type: 'bool'},
@@ -27,8 +27,8 @@ export async function buildAssetQueryCondition(
         min_template_mint: {type: 'int', min: 1},
         max_template_mint: {type: 'int', min: 1},
 
-        template_blacklist: {type: 'list[]', min: 1},
-        template_whitelist: {type: 'list[]', min: 1}
+        template_blacklist: {type: 'list[id]'},
+        template_whitelist: {type: 'list[id]'}
     });
 
     if (args.authorized_account) {

@@ -465,7 +465,7 @@ describe('AtomicMarket Sales API', () => {
             const {schema_name} = await client.createSchema();
             const {sale_id} = await client.createFullSale({}, {schema_name});
 
-            expect(await getSalesIds({schema_name: `${schema_name},-1`}))
+            expect(await getSalesIds({schema_name: `${schema_name},z`}))
                 .to.deep.equal([sale_id]);
         });
 

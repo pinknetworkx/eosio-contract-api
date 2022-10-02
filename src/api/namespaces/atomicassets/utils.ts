@@ -121,17 +121,17 @@ export function buildDataConditions(values: FilterValues, query: QueryBuilder, o
 }
 
 const assetFilters: FiltersDefinition = {
-    asset_id: {type: 'id[]'},
-    owner: {type: 'list[]', min: 1},
+    asset_id: {type: 'list[id]'},
+    owner: {type: 'list[name]'},
     burned: {type: 'bool'},
-    template_id: {type: 'id[]'},
-    collection_name: {type: 'list[]', min: 1},
-    schema_name: {type: 'list[]', min: 1},
+    template_id: {type: 'list[id]'},
+    collection_name: {type: 'list[name]'},
+    schema_name: {type: 'list[name]'},
     is_transferable: {type: 'bool'},
     is_burnable: {type: 'bool'},
-    minter: {type: 'name[]'},
-    initial_receiver: {type: 'name[]'},
-    burner: {type: 'name[]'},
+    minter: {type: 'list[name]'},
+    initial_receiver: {type: 'list[name]'},
+    burner: {type: 'list[name]'},
 };
 
 export async function buildAssetFilter(
@@ -217,9 +217,9 @@ export async function buildAssetFilter(
 
 export async function buildGreylistFilter(values: FilterValues, query: QueryBuilder, columns: { collectionName?: string, account?: string[] }): Promise<void> {
     const args = await filterQueryArgs(values, {
-        collection_blacklist: {type: 'list[]', min: 1},
-        collection_whitelist: {type: 'list[]', min: 1},
-        account_blacklist: {type: 'list[]', min: 1}
+        collection_blacklist: {type: 'list[name]'},
+        collection_whitelist: {type: 'list[name]'},
+        account_blacklist: {type: 'list[name]'},
     });
 
     const collectionBlacklist: string[] = args.collection_blacklist;

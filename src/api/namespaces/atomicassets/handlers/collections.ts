@@ -15,11 +15,11 @@ export async function getCollectionsAction(params: RequestValues, ctx: AtomicAss
         sort: {type: 'string', allowedValues: ['created', 'collection_name'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
-        author: {type: 'string[]', min: 1, max: 12},
-        authorized_account: {type: 'string', min: 1, max: 12},
-        notify_account: {type: 'string', min: 1, max: 12},
+        author: {type: 'list[name]'},
+        authorized_account: {type: 'name'},
+        notify_account: {type: 'name'},
 
-        match: {type: 'string', min: 1},
+        match: {type: 'name'},
         search: {type: 'string', min: 1},
 
         count: {type: 'bool'}

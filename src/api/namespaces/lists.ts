@@ -1,6 +1,6 @@
 import { DB } from '../server';
 import moize from 'moize';
-import { addValidationType, validateString } from './validation';
+import { addValidationType, parseTypeString, validateId, validateName, validateString } from './validation';
 
 export async function expandLists(strings: string[], db: DB): Promise<string[]> {
     const result: string[] = [];
@@ -36,6 +36,15 @@ export function initListValidator(db: DB): void {
     addValidationType('list', async (values, filter) => {
         const result = await expandLists(values, db);
 
-        return await validateString(result, filter);
+        const {innerType} = parseTypeString(filter.type);
+
+        switch (innerType) {
+            case 'id':
+                return validateId(result);
+            case 'name':
+                return validateName(result);
+            default:
+                return validateString(result, filter);
+        }
     });
 }

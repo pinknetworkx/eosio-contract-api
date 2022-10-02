@@ -24,20 +24,20 @@ export function hasListingFilter(values: FilterValues, blacklist: string[] = [])
 export async function buildListingFilter(values: FilterValues, query: QueryBuilder): Promise<void> {
     const args = await filterQueryArgs(values, {
         show_seller_contracts: {type: 'bool', default: true},
-        contract_whitelist: {type: 'list[]', min: 1, default: ''},
+        contract_whitelist: {type: 'list[name]', default: ['']},
 
-        seller_blacklist: {type: 'list[]', min: 1},
-        buyer_blacklist: {type: 'list[]', min: 1},
+        seller_blacklist: {type: 'list[name]'},
+        buyer_blacklist: {type: 'list[name]'},
 
         maker_marketplace: {type: 'string', min: 1, max: 12},
         taker_marketplace: {type: 'string', min: 1, max: 12},
         marketplace: {type: 'string', min: 1, max: 12},
 
-        account: {type: 'list[]', min: 1},
-        seller: {type: 'list[]', min: 1},
-        buyer: {type: 'list[]', min: 1},
+        account: {type: 'list[name]'},
+        seller: {type: 'list[name]'},
+        buyer: {type: 'list[name]'},
 
-        collection_name: {type: 'list[]', min: 1},
+        collection_name: {type: 'list[name]'},
     });
 
     if (args.account.length) {
@@ -127,7 +127,7 @@ export async function buildSaleFilter(values: FilterValues, query: QueryBuilder)
         min_price: {type: 'float', min: 0},
         max_price: {type: 'float', min: 0},
 
-        template_blacklist: {type: 'list[]', min: 1},
+        template_blacklist: {type: 'list[id]'},
     });
 
     if (args.min_price || args.max_price) {
@@ -225,11 +225,11 @@ export async function buildAuctionFilter(values: FilterValues, query: QueryBuild
         min_price: {type: 'float', min: 0},
         max_price: {type: 'float', min: 0},
 
-        participant: {type: 'string', min: 1},
-        bidder: {type: 'list[]', min: 1},
+        participant: {type: 'name'},
+        bidder: {type: 'list[name]'},
 
         hide_empty_auctions: {type: 'bool'},
-        template_blacklist: {type: 'list[]', min: 1},
+        template_blacklist: {type: 'list[id]'},
     });
 
     await buildListingFilter(values, query);

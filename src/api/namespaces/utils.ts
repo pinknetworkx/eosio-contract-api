@@ -21,11 +21,11 @@ export async function buildBoundaryFilter(
         upper_bound: {type: primaryType, min: 1},
         before: {type: 'int', min: 1},
         after: {type: 'int', min: 1},
-        ids: {type: 'string', min: 1}
+        ids: {type: 'list[id]'},
     });
 
-    if (primaryColumn && args.ids) {
-        query.equalMany(primaryColumn, args.ids.split(','));
+    if (primaryColumn && args.ids.length) {
+        query.equalMany(primaryColumn, args.ids);
     }
 
     if (primaryColumn && args.lower_bound) {

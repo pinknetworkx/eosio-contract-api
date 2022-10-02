@@ -13,14 +13,14 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
         sort: {type: 'string', allowedValues: ['created'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
-        asset_id: {type: 'id[]'},
+        asset_id: {type: 'list[id]'},
 
-        collection_blacklist: {type: 'list[]', min: 1},
-        collection_whitelist: {type: 'list[]', min: 1},
+        collection_blacklist: {type: 'list[name]'},
+        collection_whitelist: {type: 'list[name]'},
 
-        account: {type: 'list[]', min: 1},
-        sender: {type: 'list[]', min: 1},
-        recipient: {type: 'list[]', min: 1},
+        account: {type: 'list[name]'},
+        sender: {type: 'list[name]'},
+        recipient: {type: 'list[name]'},
         memo: {type: 'string', min: 1},
         match_memo: {type: 'string', min: 1},
 

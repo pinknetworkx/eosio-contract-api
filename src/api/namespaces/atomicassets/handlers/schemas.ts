@@ -15,11 +15,11 @@ export async function getSchemasAction(params: RequestValues, ctx: AtomicAssetsC
         sort: {type: 'string', allowedValues: ['created', 'schema_name', 'assets'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
-        authorized_account: {type: 'string', min: 1, max: 12},
-        collection_name: {type: 'list[]', min: 1},
-        schema_name: {type: 'list[]', min: 1},
+        authorized_account: {type: 'name'},
+        collection_name: {type: 'list[name]'},
+        schema_name: {type: 'list[name]'},
 
-        match: {type: 'string', min: 1, max: 12},
+        match: {type: 'name'},
 
         count: {type: 'bool'}
     });

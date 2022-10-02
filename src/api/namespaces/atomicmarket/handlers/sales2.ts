@@ -159,7 +159,7 @@ async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
         min_price: {type: 'float', min: 0},
         max_price: {type: 'float', min: 0},
 
-        template_blacklist: {type: 'list[]', min: 1},
+        template_blacklist: {type: 'list[id]'},
     });
 
     await buildMainFilterV2(search);
@@ -213,7 +213,7 @@ async function buildAssetFilterV2(search: SalesSearchOptions): Promise<void> {
     const {values, query} = search;
 
     const args = await filterQueryArgs(values, {
-        asset_id: {type: 'id[]'},
+        asset_id: {type: 'list[id]'},
     });
 
     if (args.asset_id.length) {
@@ -251,22 +251,22 @@ const SALE_FILTER_FLAG_NOT_BURNABLE = 'nb';
 async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
     const {values, query} = search;
     const args = await filterQueryArgs(values, {
-        seller_blacklist: {type: 'list[]', min: 1},
-        buyer_blacklist: {type: 'list[]', min: 1},
+        seller_blacklist: {type: 'list[name]'},
+        buyer_blacklist: {type: 'list[name]'},
 
-        account: {type: 'list[]', min: 1},
-        seller: {type: 'list[]', min: 1},
-        buyer: {type: 'list[]', min: 1},
+        account: {type: 'list[name]'},
+        seller: {type: 'list[name]'},
+        buyer: {type: 'list[name]'},
 
-        collection_name: {type: 'list[]', min: 1},
-        collection_blacklist: {type: 'list[]', min: 1},
-        collection_whitelist: {type: 'list[]', min: 1},
+        collection_name: {type: 'list[name]'},
+        collection_blacklist: {type: 'list[name]'},
+        collection_whitelist: {type: 'list[name]'},
 
-        owner: {type: 'list[]', min: 1, max: 12},
+        owner: {type: 'list[name]'},
 
         burned: {type: 'bool'},
-        template_id: {type: 'id[]'},
-        schema_name: {type: 'list[]', min: 1},
+        template_id: {type: 'list[id]'},
+        schema_name: {type: 'list[name]'},
         is_transferable: {type: 'bool'},
         is_burnable: {type: 'bool'},
 
@@ -427,7 +427,7 @@ async function buildListingFilterV2(search: SalesSearchOptions): Promise<void> {
     const {values, query} = search;
     const args = await filterQueryArgs(values, {
         show_seller_contracts: {type: 'bool', default: true},
-        contract_whitelist: {type: 'list[]', min: 1},
+        contract_whitelist: {type: 'list[name]'},
 
         maker_marketplace: {type: 'string[]', min: 1},
         taker_marketplace: {type: 'string[]', min: 1},
@@ -585,7 +585,7 @@ export async function getSalesTemplatesV2Action(params: RequestValues, ctx: Atom
     const maxLimit = ctx.coreArgs.limits?.sales_templates || 100;
     const args = await filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
-        collection_whitelist: {type: 'list[]', min: 1},
+        collection_whitelist: {type: 'list[name]'},
 
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},

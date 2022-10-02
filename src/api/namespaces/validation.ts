@@ -2,7 +2,12 @@ import { RequestValues } from './utils';
 import { isWeakFloat, isWeakInt, toInt } from '../../utils';
 import { ApiError } from '../error';
 
-type FilterType = 'string' | 'string[]' | 'int' | 'int[]' | 'float' | 'float[]' | 'bool' | 'bool[]' | 'name' | 'name[]' | 'id' | 'id[]' | 'list[]';
+type FilterType = 'string' | 'string[]' | 'list[string]'
+    | 'int' | 'int[]'
+    | 'float' | 'float[]'
+    | 'bool' | 'bool[]'
+    | 'name' | 'name[]' | 'list[name]'
+    | 'id' | 'id[]' | 'list[id]';
 
 export type FilterDefinition = {
     type: FilterType,
@@ -66,7 +71,7 @@ async function validateInt(values: string[], filter: FilterDefinition): Promise<
 }
 addValidationType('int', validateInt);
 
-async function validateId(values: string[]): Promise<string[]> {
+export async function validateId(values: string[]): Promise<string[]> {
     return values.map(value => {
         if (value.toLowerCase() === 'null') {
             return 'null';
@@ -102,7 +107,7 @@ async function validateFloat(values: string[], filter: FilterDefinition): Promis
 }
 addValidationType('float', validateFloat);
 
-async function validateBool(values: string[], _: FilterDefinition): Promise<boolean[]> {
+async function validateBool(values: string[]): Promise<boolean[]> {
     return values.map(value => {
         if (value === 'true' || value === '1') {
             return true;
@@ -121,7 +126,7 @@ async function validateBool(values: string[], _: FilterDefinition): Promise<bool
 addValidationType('bool', validateBool);
 
 const nameRE = /^[.1-5a-z]{1,12}[.1-5a-j]?$/;
-async function validateName(values: string[], _: FilterDefinition): Promise<string[]> {
+export async function validateName(values: string[]): Promise<string[]> {
     return values.map(value => {
 
         if (!nameRE.test(value)) {
@@ -133,7 +138,13 @@ async function validateName(values: string[], _: FilterDefinition): Promise<stri
 }
 addValidationType('name', validateName);
 
-const typeRE = /^(?<type>\w+)(?<array>\[])?$/;
+const typeRE = /^(?<type>\w+)(?<array>\[(?<innerType>[^\]]*)])?$/;
+export function parseTypeString(typeString: string): {type: string, array: boolean, innerType?: string} {
+    const {type, array, innerType} = typeString.match(typeRE).groups;
+
+    return {type, array: !!array, innerType};
+}
+
 export async function filterQueryArgs<T extends FiltersDefinition>(values: {[K in keyof T]?: any}, filter: T): Promise<FilteredValues<T>> {
     const keys: (keyof T)[] = Object.keys(filter);
     const result: FilteredValues<T> = {} as FilteredValues<T>;
@@ -142,7 +153,7 @@ export async function filterQueryArgs<T extends FiltersDefinition>(values: {[K i
         const currentValue = values[key];
         const currentFilter = filter[key];
 
-        const {array} = currentFilter.type.match(typeRE).groups;
+        const {array} = parseTypeString(currentFilter.type);
 
         if (typeof currentValue !== 'string' || currentValue === '') {
             if (array && !Array.isArray(filter[key].default)) {
@@ -169,7 +180,7 @@ export async function filterQueryArgs<T extends FiltersDefinition>(values: {[K i
 }
 
 async function validateValues(values: string[], filter: FilterDefinition): Promise<any[]> {
-    const {type, array} = filter.type.match(typeRE).groups;
+    const {type, array} = parseTypeString(filter.type);
 
     const result = await validationTypes[type](values, filter);
 

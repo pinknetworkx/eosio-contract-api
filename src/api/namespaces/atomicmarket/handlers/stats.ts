@@ -11,15 +11,15 @@ import {filterQueryArgs} from '../../validation';
 export async function getAllCollectionStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
-        match: {type: 'string', min: 1},
+        match: {type: 'name'},
         search: {type: 'string', min: 1},
 
         before: {type: 'int', min: 1},
         after: {type: 'int', min: 1},
 
-        collection_name: {type: 'list[]', min: 1},
-        collection_whitelist: {type: 'list[]', min: 1},
-        collection_blacklist: {type: 'list[]', min: 1},
+        collection_name: {type: 'list[name]'},
+        collection_whitelist: {type: 'list[name]'},
+        collection_blacklist: {type: 'list[name]'},
 
         sort: {type: 'string', allowedValues: ['volume', 'sales'], default: 'volume'},
         page: {type: 'int', min: 1, default: 1},
@@ -104,8 +104,8 @@ export async function getCollectionStatsAction(params: RequestValues, ctx: Atomi
 
 export async function getAllAccountStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
-        collection_whitelist: {type: 'list[]', min: 1},
-        collection_blacklist: {type: 'list[]', min: 1},
+        collection_whitelist: {type: 'list[name]'},
+        collection_blacklist: {type: 'list[name]'},
 
         symbol: {type: 'string', min: 1},
 
@@ -149,8 +149,8 @@ export async function getAllAccountStatsAction(params: RequestValues, ctx: Atomi
 
 export async function getAccountStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
-        collection_whitelist: {type: 'list[]', min: 1},
-        collection_blacklist: {type: 'list[]', min: 1},
+        collection_whitelist: {type: 'list[name]'},
+        collection_blacklist: {type: 'list[name]'},
 
         symbol: {type: 'string', min: 1}
     });
@@ -181,7 +181,7 @@ export async function getAccountStatsAction(params: RequestValues, ctx: AtomicMa
 export async function getSchemaStatsByCollectionV1Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
-        match: {type: 'string', min: 1},
+        match: {type: 'name'},
 
         before: {type: 'int', min: 1},
         after: {type: 'int', min: 1},
@@ -288,9 +288,9 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
     const args = await filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
 
-        collection_name: {type: 'list[]', min: 1},
-        schema_name: {type: 'list[]', min: 1},
-        template_id: {type: 'id[]'},
+        collection_name: {type: 'list[name]'},
+        schema_name: {type: 'list[name]'},
+        template_id: {type: 'list[id]'},
 
         search: {type: 'string', min: 1},
 
@@ -376,8 +376,8 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
 
 export async function getMarketStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
-        collection_whitelist: {type: 'list[]', min: 1},
-        collection_blacklist: {type: 'list[]', min: 1},
+        collection_whitelist: {type: 'list[name]'},
+        collection_blacklist: {type: 'list[name]'},
 
         symbol: {type: 'string', min: 1},
         before: {type: 'int', min: 1},
@@ -410,8 +410,8 @@ export async function getMarketStatsAction(params: RequestValues, ctx: AtomicMar
 
 export async function getStatsGraphAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
-        collection_whitelist: {type: 'list[]', min: 1},
-        collection_blacklist: {type: 'list[]', min: 1},
+        collection_whitelist: {type: 'list[name]'},
+        collection_blacklist: {type: 'list[name]'},
 
         taker_marketplace: {type: 'string'},
         maker_marketplace: {type: 'string'},

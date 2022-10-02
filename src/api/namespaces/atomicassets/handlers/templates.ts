@@ -15,9 +15,9 @@ export async function getTemplatesAction(params: RequestValues, ctx: AtomicAsset
         sort: {type: 'string', allowedValues: ['created', 'name'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
-        collection_name: {type: 'list[]', min: 1},
-        schema_name: {type: 'list[]', min: 1},
-        authorized_account: {type: 'string', min: 1, max: 12},
+        collection_name: {type: 'list[name]'},
+        schema_name: {type: 'list[name]'},
+        authorized_account: {type: 'name'},
 
         issued_supply: {type: 'int', min: 0},
         min_issued_supply: {type: 'int', min: 0},

@@ -27,6 +27,17 @@ export class TestClient extends Client implements DB {
         return ++this.id;
     }
 
+    getName(): string {
+        const replacements: Record<string, string> = {
+            '6': 'a',
+            '7': 'b',
+            '8': 'c',
+            '9': 'd',
+            '0': 'e',
+        };
+        return `n${String(this.getId()).split('').map(char => replacements[char] ?? char).join('')}`;
+    }
+
     async init(): Promise<void> {}
 
     async createContractCode(values: Record<string, any> = {}): Promise<Record<string, any>> {

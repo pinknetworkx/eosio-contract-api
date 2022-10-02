@@ -13,10 +13,10 @@ import {oneLine} from 'common-tags';
 
 export async function getPricesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
-        collection_name: {type: 'list[]', min: 1},
-        template_id: {type: 'id[]'},
-        schema_name: {type: 'list[]', min: 1},
-        asset_id: {type: 'id[]'},
+        collection_name: {type: 'list[name]'},
+        template_id: {type: 'list[id]'},
+        schema_name: {type: 'list[name]'},
+        asset_id: {type: 'list[id]'},
         symbol: {type: 'string', min: 1}
     });
 
@@ -74,8 +74,8 @@ export async function getPricesAction(params: RequestValues, ctx: AtomicMarketCo
 
 export async function getAssetSalesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
-        seller: {type: 'list[]', min: 1},
-        buyer: {type: 'list[]', min: 1},
+        seller: {type: 'list[name]'},
+        buyer: {type: 'list[name]'},
         symbol: {type: 'string', min: 1},
         limit: {type: 'int', min: 1, default: 100},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
@@ -139,10 +139,10 @@ export async function getAssetSalesAction(params: RequestValues, ctx: AtomicMark
 
 export async function getPricesSalesDaysAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
-        collection_name: {type: 'list[]', min: 1},
-        template_id: {type: 'id[]'},
-        schema_name: {type: 'list[]', min: 1},
-        asset_id: {type: 'id[]'},
+        collection_name: {type: 'list[name]'},
+        template_id: {type: 'list[id]'},
+        schema_name: {type: 'list[name]'},
+        asset_id: {type: 'list[id]'},
         symbol: {type: 'string', min: 1}
     });
 
@@ -201,9 +201,9 @@ export async function getPricesSalesDaysAction(params: RequestValues, ctx: Atomi
 export async function getPricesTemplatesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.prices_templates || 1000;
     const args = await filterQueryArgs(params, {
-        collection_name: {type: 'list[]', min: 1},
-        template_id: {type: 'id[]'},
-        schema_name: {type: 'list[]', min: 1},
+        collection_name: {type: 'list[name]'},
+        template_id: {type: 'list[id]'},
+        schema_name: {type: 'list[name]'},
         symbol: {type: 'string', min: 1},
 
         page: {type: 'int', min: 1, default: 1},
