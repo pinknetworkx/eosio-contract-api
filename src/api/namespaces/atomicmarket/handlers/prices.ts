@@ -12,11 +12,11 @@ import {
 import {oneLine} from 'common-tags';
 
 export async function getPricesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
-    const args = filterQueryArgs(params, {
-        collection_name: {type: 'string', min: 1},
-        template_id: {type: 'id[]'},
-        schema_name: {type: 'string', min: 1},
-        asset_id: {type: 'id[]'},
+    const args = await filterQueryArgs(params, {
+        collection_name: {type: 'list[name]'},
+        template_id: {type: 'list[id]'},
+        schema_name: {type: 'list[name]'},
+        asset_id: {type: 'list[id]'},
         symbol: {type: 'string', min: 1}
     });
 
@@ -31,12 +31,12 @@ export async function getPricesAction(params: RequestValues, ctx: AtomicMarketCo
         'price.market_contract = token.market_contract AND price.symbol = token.token_symbol'
     );
 
-    if (args.collection_name) {
-        query.equalMany('price.collection_name', args.collection_name.split(','));
+    if (args.collection_name.length) {
+        query.equalMany('price.collection_name', args.collection_name);
     }
 
-    if (args.schema_name) {
-        query.equalMany('price.schema_name', args.schema_name.split(','));
+    if (args.schema_name.length) {
+        query.equalMany('price.schema_name', args.schema_name);
     }
 
     if (args.template_id.length) {
@@ -73,9 +73,9 @@ export async function getPricesAction(params: RequestValues, ctx: AtomicMarketCo
 }
 
 export async function getAssetSalesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
-    const args = filterQueryArgs(params, {
-        seller: {type: 'string', min: 1},
-        buyer: {type: 'string', min: 1},
+    const args = await filterQueryArgs(params, {
+        seller: {type: 'list[name]'},
+        buyer: {type: 'list[name]'},
         symbol: {type: 'string', min: 1},
         limit: {type: 'int', min: 1, default: 100},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
@@ -122,12 +122,12 @@ export async function getAssetSalesAction(params: RequestValues, ctx: AtomicMark
         query.equalMany('t1.token_symbol', args.symbol.split(','));
     }
 
-    if (args.seller) {
-        query.equalMany('t1.seller', args.seller.split(','));
+    if (args.seller.length) {
+        query.equalMany('t1.seller', args.seller);
     }
 
-    if (args.buyer) {
-        query.equalMany('t1.buyer', args.buyer.split(','));
+    if (args.buyer.length) {
+        query.equalMany('t1.buyer', args.buyer);
     }
 
     query.append(`ORDER BY t1.block_time ${args.order} LIMIT 500`);
@@ -138,11 +138,11 @@ export async function getAssetSalesAction(params: RequestValues, ctx: AtomicMark
 }
 
 export async function getPricesSalesDaysAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
-    const args = filterQueryArgs(params, {
-        collection_name: {type: 'string', min: 1},
-        template_id: {type: 'id[]'},
-        schema_name: {type: 'string', min: 1},
-        asset_id: {type: 'id[]'},
+    const args = await filterQueryArgs(params, {
+        collection_name: {type: 'list[name]'},
+        template_id: {type: 'list[id]'},
+        schema_name: {type: 'list[name]'},
+        asset_id: {type: 'list[id]'},
         symbol: {type: 'string', min: 1}
     });
 
@@ -158,12 +158,12 @@ export async function getPricesSalesDaysAction(params: RequestValues, ctx: Atomi
     query.equal('price.market_contract', ctx.coreArgs.atomicmarket_account);
     query.addCondition('price.market_contract = token.market_contract AND price.symbol = token.token_symbol');
 
-    if (args.collection_name) {
-        query.equalMany('price.collection_name', args.collection_name.split(','));
+    if (args.collection_name.length) {
+        query.equalMany('price.collection_name', args.collection_name);
     }
 
-    if (args.schema_name) {
-        query.equalMany('price.schema_name', args.schema_name.split(','));
+    if (args.schema_name.length) {
+        query.equalMany('price.schema_name', args.schema_name);
     }
 
     if (args.template_id.length) {
@@ -200,10 +200,10 @@ export async function getPricesSalesDaysAction(params: RequestValues, ctx: Atomi
 
 export async function getPricesTemplatesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.prices_templates || 1000;
-    const args = filterQueryArgs(params, {
-        collection_name: {type: 'string', min: 1},
-        template_id: {type: 'id[]'},
-        schema_name: {type: 'string', min: 1},
+    const args = await filterQueryArgs(params, {
+        collection_name: {type: 'list[name]'},
+        template_id: {type: 'list[id]'},
+        schema_name: {type: 'list[name]'},
         symbol: {type: 'string', min: 1},
 
         page: {type: 'int', min: 1, default: 1},
@@ -226,12 +226,12 @@ export async function getPricesTemplatesAction(params: RequestValues, ctx: Atomi
         '"price".market_contract = "token".market_contract AND "price".symbol = "token".token_symbol'
     );
 
-    if (args.collection_name) {
-        query.equalMany('price.collection_name', args.collection_name.split(','));
+    if (args.collection_name.length) {
+        query.equalMany('price.collection_name', args.collection_name);
     }
 
-    if (args.schema_name) {
-        query.equalMany('"template".schema_name', args.schema_name.split(','));
+    if (args.schema_name.length) {
+        query.equalMany('"template".schema_name', args.schema_name);
     }
 
     if (args.template_id.length) {
@@ -266,8 +266,8 @@ export async function getPricesAssetsAction(params: RequestValues, ctx: AtomicMa
         'token.market_contract = price.market_contract AND token.token_symbol = price.symbol'
     );
 
-    buildAssetQueryCondition(params, query, {assetTable: '"asset"', templateTable: '"template"'});
-    buildBoundaryFilter(params, query, 'asset.asset_id', 'int', null);
+    await buildAssetQueryCondition(params, query, {assetTable: '"asset"', templateTable: '"template"'});
+    await buildBoundaryFilter(params, query, 'asset.asset_id', 'int', null);
 
     query.append('GROUP BY token.token_symbol, token.token_precision, token.token_contract');
 
@@ -300,8 +300,8 @@ export async function getUsersInventoryPrices(params: RequestValues, ctx: Atomic
       AND token.token_symbol = price.symbol`
     );
 
-    buildAssetQueryCondition(params, query, {assetTable: '"asset"', templateTable: '"template"'});
-    buildBoundaryFilter(params, query, 'asset.asset_id', 'int', null);
+    await buildAssetQueryCondition(params, query, {assetTable: '"asset"', templateTable: '"template"'});
+    await buildBoundaryFilter(params, query, 'asset.asset_id', 'int', null);
 
     query.append('GROUP BY token.token_symbol, token.token_precision, token.token_contract, asset.collection_name');
 

@@ -21,7 +21,7 @@ type SalesSearchOptions = {
 const LISTING_ORDER_MARKER = '/*listing_order_marker*/';
 export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.sales_v2 || 100;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         state: {type: 'string[]', min: 1},
 
         page: {type: 'int', min: 1, default: 1},
@@ -55,7 +55,7 @@ export async function getSalesV2Action(params: RequestValues, ctx: AtomicMarketC
 
     await buildSaleFilterV2(search);
 
-    buildBoundaryFilter(
+    await buildBoundaryFilter(
         params, query, 'listing.sale_id', 'int',
         args.sort === 'updated' ? 'listing.updated_at_time' : 'listing.created_at_time'
     );
@@ -151,7 +151,7 @@ export async function getSalesCountV2Action(params: RequestValues, ctx: AtomicMa
 
 async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
     const {values, query, ctx} = search;
-    const args = filterQueryArgs(values, {
+    const args = await filterQueryArgs(values, {
         max_assets: {type: 'int', min: 1},
         min_assets: {type: 'int', min: 1},
 
@@ -159,13 +159,13 @@ async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
         min_price: {type: 'float', min: 0},
         max_price: {type: 'float', min: 0},
 
-        template_blacklist: {type: 'int[]', min: 1},
+        template_blacklist: {type: 'list[id]'},
     });
 
     await buildMainFilterV2(search);
-    buildListingFilterV2(search);
+    await buildListingFilterV2(search);
 
-    buildAssetFilterV2(search);
+    await buildAssetFilterV2(search);
 
     if (args.template_blacklist.length) {
         const ignore = args.template_blacklist.map((t: number) => `t${t}`);
@@ -209,11 +209,11 @@ async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
     }
 }
 
-function buildAssetFilterV2(search: SalesSearchOptions): void {
+async function buildAssetFilterV2(search: SalesSearchOptions): Promise<void> {
     const {values, query} = search;
 
-    const args = filterQueryArgs(values, {
-        asset_id: {type: 'id[]'},
+    const args = await filterQueryArgs(values, {
+        asset_id: {type: 'list[id]'},
     });
 
     if (args.asset_id.length) {
@@ -250,23 +250,23 @@ const SALE_FILTER_FLAG_NOT_BURNABLE = 'nb';
 
 async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
     const {values, query} = search;
-    const args = filterQueryArgs(values, {
-        seller_blacklist: {type: 'string[]', min: 1},
-        buyer_blacklist: {type: 'string[]', min: 1},
+    const args = await filterQueryArgs(values, {
+        seller_blacklist: {type: 'list[name]'},
+        buyer_blacklist: {type: 'list[name]'},
 
-        account: {type: 'string[]', min: 1},
-        seller: {type: 'string[]', min: 1},
-        buyer: {type: 'string[]', min: 1},
+        account: {type: 'list[name]'},
+        seller: {type: 'list[name]'},
+        buyer: {type: 'list[name]'},
 
-        collection_name: {type: 'string[]', min: 1},
-        collection_blacklist: {type: 'string[]', min: 1},
-        collection_whitelist: {type: 'string[]', min: 1},
+        collection_name: {type: 'list[name]'},
+        collection_blacklist: {type: 'list[name]'},
+        collection_whitelist: {type: 'list[name]'},
 
-        owner: {type: 'string[]', min: 1, max: 12},
+        owner: {type: 'list[name]'},
 
         burned: {type: 'bool'},
-        template_id: {type: 'id[]'},
-        schema_name: {type: 'string[]', min: 1},
+        template_id: {type: 'list[id]'},
+        schema_name: {type: 'list[name]'},
         is_transferable: {type: 'bool'},
         is_burnable: {type: 'bool'},
 
@@ -423,11 +423,11 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
     }
 }
 
-function buildListingFilterV2(search: SalesSearchOptions): void {
+async function buildListingFilterV2(search: SalesSearchOptions): Promise<void> {
     const {values, query} = search;
-    const args = filterQueryArgs(values, {
+    const args = await filterQueryArgs(values, {
         show_seller_contracts: {type: 'bool', default: true},
-        contract_whitelist: {type: 'string[]', min: 1},
+        contract_whitelist: {type: 'list[name]'},
 
         maker_marketplace: {type: 'string[]', min: 1},
         taker_marketplace: {type: 'string[]', min: 1},
@@ -454,7 +454,7 @@ function buildListingFilterV2(search: SalesSearchOptions): void {
         }
     }
 
-    buildTemplateMintFilter(values, query);
+    await buildTemplateMintFilter(values, query);
 }
 
 function getDataFilters(search: SalesSearchOptions): string[] {
@@ -583,9 +583,9 @@ async function getTemplateIDs(name: string | undefined, search: SalesSearchOptio
 
 export async function getSalesTemplatesV2Action(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.sales_templates || 100;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
-        collection_whitelist: {type: 'string', min: 1},
+        collection_whitelist: {type: 'list[name]'},
 
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
@@ -601,7 +601,7 @@ export async function getSalesTemplatesV2Action(params: RequestValues, ctx: Atom
         throw new ApiError('symbol parameter is required', 400);
     }
 
-    if (!hasAssetFilter(params) && !args.collection_whitelist) {
+    if (!hasAssetFilter(params) && !args.collection_whitelist.length) {
         throw new ApiError('You need to specify an asset filter!', 400);
     }
 

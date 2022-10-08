@@ -11,7 +11,7 @@ import { filterQueryArgs } from '../../validation';
 
 export async function getBuyOffersAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.buyoffers || 100;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         sort: {
@@ -58,9 +58,9 @@ export async function getBuyOffersAction(params: RequestValues, ctx: AtomicMarke
         )
     `);
 
-    buildBuyofferFilter(params, query);
-    buildGreylistFilter(params, query, {collectionName: 'listing.collection_name'});
-    buildBoundaryFilter(
+    await buildBuyofferFilter(params, query);
+    await buildGreylistFilter(params, query, {collectionName: 'listing.collection_name'});
+    await buildBoundaryFilter(
         params, query, 'listing.buyoffer_id', 'int',
         args.sort === 'updated' ? 'listing.updated_at_time' : 'listing.created_at_time'
     );
@@ -133,7 +133,7 @@ export async function getBuyOfferAction(params: RequestValues, ctx: AtomicMarket
 
 export async function getBuyOfferLogsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.logs || 100;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},

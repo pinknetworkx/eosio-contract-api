@@ -9,15 +9,15 @@ import { filterQueryArgs } from '../../validation';
 
 export async function getTemplatesAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.templates || 1000;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         sort: {type: 'string', allowedValues: ['created', 'name'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
-        collection_name: {type: 'string', min: 1},
-        schema_name: {type: 'string', min: 1},
-        authorized_account: {type: 'string', min: 1, max: 12},
+        collection_name: {type: 'list[name]'},
+        schema_name: {type: 'list[name]'},
+        authorized_account: {type: 'name'},
 
         issued_supply: {type: 'int', min: 0},
         min_issued_supply: {type: 'int', min: 0},
@@ -37,12 +37,12 @@ export async function getTemplatesAction(params: RequestValues, ctx: AtomicAsset
 
     buildDataConditions(params, query, {templateTable: '"template"'});
 
-    if (args.collection_name) {
-        query.equalMany('template.collection_name', args.collection_name.split(','));
+    if (args.collection_name.length) {
+        query.equalMany('template.collection_name', args.collection_name);
     }
 
-    if (args.schema_name) {
-        query.equalMany('template.schema_name', args.schema_name.split(','));
+    if (args.schema_name.length) {
+        query.equalMany('template.schema_name', args.schema_name);
     }
 
     if (typeof args.issued_supply === 'number') {
@@ -96,8 +96,8 @@ export async function getTemplatesAction(params: RequestValues, ctx: AtomicAsset
         );
     }
 
-    buildBoundaryFilter(params, query, 'template.template_id', 'int', 'template.created_at_time');
-    buildGreylistFilter(params, query, {collectionName: 'collection_name'});
+    await buildBoundaryFilter(params, query, 'template.template_id', 'int', 'template.created_at_time');
+    await buildGreylistFilter(params, query, {collectionName: 'collection_name'});
 
     if (args.count) {
         const countQuery = await ctx.db.query(
@@ -167,7 +167,7 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicA
 
 export async function getTemplateLogsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.logs || 100;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},

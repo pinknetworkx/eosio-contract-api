@@ -28,10 +28,10 @@ describe('AtomicAssets Assets API', () => {
         txit('filters by authorized collection account', async () => {
             await client.createAsset();
 
-            const {collection_name} = await client.createCollection({authorized_accounts: ['Z']});
+            const {collection_name} = await client.createCollection({authorized_accounts: ['z']});
             const {asset_id} = await client.createAsset({collection_name});
 
-            expect(await getAssetIds({authorized_account: 'Z'}))
+            expect(await getAssetIds({authorized_account: 'z'}))
                 .to.deep.equal([asset_id]);
         });
 
@@ -39,10 +39,10 @@ describe('AtomicAssets Assets API', () => {
             const {asset_id} = await client.createAsset();
 
             const {template_id} = await client.createTemplate();
-            await client.createAsset({template_id, owner: 'X'});
+            await client.createAsset({template_id, owner: 'x'});
             await client.createAsset({template_id});
 
-            expect(await getAssetIds({hide_templates_by_accounts: 'X'}))
+            expect(await getAssetIds({hide_templates_by_accounts: 'x'}))
                 .to.deep.equal([asset_id]);
         });
 
@@ -178,9 +178,9 @@ describe('AtomicAssets Assets API', () => {
         txit('filters by owner', async () => {
             await client.createAsset();
 
-            const {asset_id} = await client.createAsset({owner: 'X'});
+            const {asset_id} = await client.createAsset({owner: 'x'});
 
-            expect(await getAssetIds({owner: 'X'}))
+            expect(await getAssetIds({owner: 'x'}))
                 .to.deep.equal([asset_id]);
         });
 
@@ -207,10 +207,10 @@ describe('AtomicAssets Assets API', () => {
         txit('filters by collection name', async () => {
             await client.createAsset();
 
-            const {collection_name} = await client.createCollection({collection_name: 'X'});
+            const {collection_name} = await client.createCollection({collection_name: 'x'});
             const {asset_id} = await client.createAsset({collection_name});
 
-            expect(await getAssetIds({collection_name: 'X,abc'}))
+            expect(await getAssetIds({collection_name: 'x,abc'}))
                 .to.deep.equal([asset_id]);
         });
 
@@ -235,7 +235,7 @@ describe('AtomicAssets Assets API', () => {
         txit('filters by not being burned', async () => {
             await client.createAsset({owner: null});
 
-            const {asset_id} = await client.createAsset({owner: 'X'});
+            const {asset_id} = await client.createAsset({owner: 'x'});
 
             expect(await getAssetIds({burned: 'false'}))
                 .to.deep.equal([asset_id]);
@@ -294,22 +294,22 @@ describe('AtomicAssets Assets API', () => {
         });
 
         txit('filters by collection blacklist', async () => {
-            const {collection_name} = await client.createCollection({collection_name: 'X'});
+            const {collection_name} = await client.createCollection({collection_name: 'x'});
             await client.createAsset({collection_name});
 
             const {asset_id} = await client.createAsset();
 
-            expect(await getAssetIds({collection_blacklist: 'X,abc'}))
+            expect(await getAssetIds({collection_blacklist: 'x,abc'}))
                 .to.deep.equal([asset_id]);
         });
 
         txit('filters by collection whitelist', async () => {
             await client.createAsset();
 
-            const {collection_name} = await client.createCollection({collection_name: 'X'});
+            const {collection_name} = await client.createCollection({collection_name: 'x'});
             const {asset_id} = await client.createAsset({collection_name});
 
-            expect(await getAssetIds({collection_whitelist: 'X,abc'}))
+            expect(await getAssetIds({collection_whitelist: 'x,abc'}))
                 .to.deep.equal([asset_id]);
         });
 

@@ -15,7 +15,7 @@ export class AtomicAssetsTestClient extends TestClient {
         return this.insert('atomicassets_schemas', {
             contract: 'aatest',
             collection_name: values.collection_name ?? (await this.createCollection()).collection_name,
-            schema_name: this.getId(),
+            schema_name: this.getName(),
             format: '{}',
             created_at_block: this.getId(),
             created_at_time: this.getId(),
@@ -25,7 +25,7 @@ export class AtomicAssetsTestClient extends TestClient {
 
     async createCollection(values: Record<string, any> = {}): Promise<Record<string, any>> {
         return this.insert('atomicassets_collections', {
-            collection_name: this.getId(),
+            collection_name: this.getName(),
             contract: 'aatest',
             author: 'author',
             allow_notify: false,
