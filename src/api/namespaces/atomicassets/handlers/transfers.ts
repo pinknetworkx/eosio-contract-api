@@ -143,11 +143,18 @@ async function buildTransferQuery(args: Record<string, any>, params: RequestValu
         );
     }
 
+    /*
+        the collection_whitelist and collection_blacklist filters have + 0 on the transfer.transfer_id
+        to prevent postgres from rewriting the query in very inefficient way.
+        we want the outer query to lead using the recipient or sender index, and only validate those results
+        against the lists
+    */
+
     if (args.collection_blacklist.length) {
         query.addCondition(
             'NOT EXISTS(' +
             'SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset ' +
-            'WHERE transfer_asset.contract = transfer.contract AND transfer_asset.transfer_id = transfer.transfer_id AND ' +
+            'WHERE transfer_asset.contract = transfer.contract AND transfer_asset.transfer_id = transfer.transfer_id + 0 AND ' +
             'transfer_asset.contract = asset.contract AND transfer_asset.asset_id = asset.asset_id AND ' +
             'asset.collection_name = ANY (' + query.addVariable(args.collection_blacklist) + ')' +
             ') '
@@ -158,7 +165,7 @@ async function buildTransferQuery(args: Record<string, any>, params: RequestValu
         query.addCondition(
             'NOT EXISTS(' +
             'SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset ' +
-            'WHERE transfer_asset.contract = transfer.contract AND transfer_asset.transfer_id = transfer.transfer_id AND ' +
+            'WHERE transfer_asset.contract = transfer.contract AND transfer_asset.transfer_id = transfer.transfer_id + 0 AND ' +
             'transfer_asset.contract = asset.contract AND transfer_asset.asset_id = asset.asset_id AND ' +
             'NOT (asset.collection_name = ANY (' + query.addVariable(args.collection_whitelist) + '))' +
             ')'
