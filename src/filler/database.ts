@@ -525,7 +525,7 @@ export class ContractDBTransaction {
 
             const query = await this.clientQuery(
                 'SELECT operation, "table", "values", condition ' +
-                'FROM reversible_queries WHERE block_num >= $1 AND reader = $2' +
+                'FROM reversible_queries WHERE block_num >= $1 AND reader = $2 ' +
                 'ORDER BY block_num DESC, id DESC;',
                 [blockNum, this.name]
             );
