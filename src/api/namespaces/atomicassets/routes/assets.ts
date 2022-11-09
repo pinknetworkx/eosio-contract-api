@@ -91,7 +91,7 @@ export class AssetApi {
     }
 
     getAssetAction = async (params: RequestValues, ctx: AtomicAssetsContext): Promise<any> => {
-        const {asset_id} = await filterQueryArgs({asset_id: ctx.pathParams.asset_id}, {asset_id: {type: 'id'}});
+        const {asset_id} = await filterQueryArgs(ctx.pathParams, {asset_id: {type: 'id'}});
 
         const assets = await fillAssets(
             ctx.db, ctx.coreArgs.atomicassets_account,

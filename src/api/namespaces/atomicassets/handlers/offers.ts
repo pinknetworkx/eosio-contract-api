@@ -222,7 +222,8 @@ export async function getOffersCountAction(params: RequestValues, ctx: AtomicAss
 
 export async function getOfferLogsCountAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.logs || 100;
-    const args = await filterQueryArgs(params, {
+    const args = await filterQueryArgs({...ctx.pathParams, ...params}, {
+        offer_id: {type: 'id'},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
@@ -233,7 +234,7 @@ export async function getOfferLogsCountAction(params: RequestValues, ctx: Atomic
     return await getContractActionLogs(
         ctx.db, ctx.coreArgs.atomicassets_account,
         applyActionGreylistFilters(['lognewoffer', 'acceptoffer', 'declineoffer', 'canceloffer'], args),
-        {offer_id: ctx.pathParams.offer_id},
+        {offer_id: args.offer_id},
         (args.page - 1) * args.limit, args.limit, args.order
     );
 }

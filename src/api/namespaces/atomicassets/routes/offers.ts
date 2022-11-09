@@ -21,6 +21,7 @@ import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
 import { getOfferLogsCountAction, getOffersCountAction, getRawOffersAction } from '../handlers/offers';
 import { ApiError } from '../../../error';
+import { filterQueryArgs } from '../../validation';
 
 export class OfferApi {
     constructor(
@@ -57,9 +58,13 @@ export class OfferApi {
     }
 
     getOfferAction = async (params: RequestValues, ctx: AtomicAssetsContext): Promise<any> => {
+        const args = await filterQueryArgs(ctx.pathParams, {
+            offer_id: {type: 'id'},
+        });
+
         const query = await this.server.query(
             'SELECT * FROM atomicassets_offers_master WHERE contract = $1 AND offer_id = $2',
-            [ctx.coreArgs.atomicassets_account, ctx.pathParams.offer_id]
+            [ctx.coreArgs.atomicassets_account, args.offer_id]
         );
 
         if (query.rowCount === 0) {
