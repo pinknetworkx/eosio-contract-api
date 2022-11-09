@@ -106,7 +106,7 @@ export async function getLinksCountAction(params: RequestValues, ctx: AtomicTool
 }
 
 export async function getLinkAction(params: RequestValues, ctx: AtomicToolsContext): Promise<any> {
-    const args = await filterQueryArgs({link_id: ctx.pathParams.link_id} as RequestValues, {
+    const args = await filterQueryArgs(ctx.pathParams, {
         link_id: {type: 'id'},
     });
 
@@ -128,7 +128,8 @@ export async function getLinkAction(params: RequestValues, ctx: AtomicToolsConte
 
 export async function getLinkLogsAction(params: RequestValues, ctx: AtomicToolsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.logs || 100;
-    const args = await filterQueryArgs(params, {
+    const args = await filterQueryArgs({...ctx.pathParams, ... params}, {
+        link_id: {type: 'id'},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
@@ -139,7 +140,7 @@ export async function getLinkLogsAction(params: RequestValues, ctx: AtomicToolsC
     return await getContractActionLogs(
         ctx.db, ctx.coreArgs.atomictools_account,
         applyActionGreylistFilters(['lognewlink', 'loglinkstart', 'cancellink', 'claimlink'], args),
-        {link_id: ctx.pathParams.link_id},
+        {link_id: args.link_id},
         (args.page - 1) * args.limit, args.limit, args.order
     );
 }

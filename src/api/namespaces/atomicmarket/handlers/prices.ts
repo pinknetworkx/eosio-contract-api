@@ -73,7 +73,8 @@ export async function getPricesAction(params: RequestValues, ctx: AtomicMarketCo
 }
 
 export async function getAssetSalesAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
-    const args = await filterQueryArgs(params, {
+    const args = await filterQueryArgs({...ctx.pathParams, ... params}, {
+        asset_id: {type: 'id'},
         seller: {type: 'list[name]'},
         buyer: {type: 'list[name]'},
         symbol: {type: 'string', min: 1},
@@ -114,7 +115,7 @@ export async function getAssetSalesAction(params: RequestValues, ctx: AtomicMark
                             AND listing."state" = 3 AND asset.asset_id = $1
                     )
                 ) t1
-            `, [ctx.pathParams.asset_id]);
+            `, [args.asset_id]);
 
     query.equal('t1.market_contract', ctx.coreArgs.atomicmarket_account);
 

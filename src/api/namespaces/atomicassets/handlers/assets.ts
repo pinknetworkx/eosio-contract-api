@@ -223,9 +223,13 @@ export async function getAssetsCountAction(params: RequestValues, ctx: AtomicAss
 }
 
 export async function getAssetStatsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
+    const args = await filterQueryArgs(ctx.pathParams, {
+        asset_id: {type: 'id'},
+    });
+
     const assetQuery = await ctx.db.query(
         'SELECT * FROM atomicassets_assets WHERE contract = $1 AND asset_id = $2',
-        [this.core.args.atomicassets_account, ctx.pathParams.params.asset_id]
+        [ctx.coreArgs.atomicassets_account, args.asset_id]
     );
 
     if (assetQuery.rowCount === 0) {
@@ -236,7 +240,7 @@ export async function getAssetStatsAction(params: RequestValues, ctx: AtomicAsse
 
     const query = await ctx.db.query(
         'SELECT COUNT(*) template_mint FROM atomicassets_assets WHERE contract = $1 AND asset_id <= $2 AND template_id = $3 AND schema_name = $4 AND collection_name = $5',
-        [this.core.args.atomicassets_account, asset.asset_id, asset.template_id, asset.schema_name, asset.collection_name]
+        [ctx.coreArgs.atomicassets_account, asset.asset_id, asset.template_id, asset.schema_name, asset.collection_name]
     );
 
     return query.rows[0];
@@ -244,7 +248,8 @@ export async function getAssetStatsAction(params: RequestValues, ctx: AtomicAsse
 
 export async function getAssetLogsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.logs || 100;
-    const args = await filterQueryArgs(params, {
+    const args = await filterQueryArgs({...ctx.pathParams, ...params}, {
+        asset_id: {type: 'id'},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
@@ -255,7 +260,7 @@ export async function getAssetLogsAction(params: RequestValues, ctx: AtomicAsset
     return await getContractActionLogs(
         ctx.db, ctx.coreArgs.atomicassets_account,
         applyActionGreylistFilters(['logmint', 'logburnasset', 'logbackasset', 'logsetdata'], args),
-        {asset_id: ctx.pathParams.asset_id},
+        {asset_id: args.asset_id},
         (args.page - 1) * args.limit, args.limit, args.order
     );
 }
