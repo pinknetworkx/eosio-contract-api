@@ -168,6 +168,11 @@ export async function buildAssetFilter(
 
     if (args.schema_name.length) {
         query.equalMany(options.assetTable + '.schema_name', args.schema_name);
+
+        if (!args.collection_name.length) {
+            // makes collection/schema index faster to use
+            query.addCondition(`${options.assetTable}.collection_name IN (SELECT collection_name FROM atomicassets_schemas WHERE schema_name = ANY(${query.addVariable(args.schema_name)}))`);
+        }
     }
 
     if (args.minter.length) {
