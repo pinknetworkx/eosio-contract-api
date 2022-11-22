@@ -138,9 +138,13 @@ export async function getTemplatesCountAction(params: RequestValues, ctx: Atomic
 }
 
 export async function getTemplateAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
+    const args = await filterQueryArgs(ctx.pathParams, {
+        template_id: {type: 'id'},
+    });
+
     const query = await ctx.db.query(
         'SELECT * FROM atomicassets_templates_master WHERE contract = $1 AND template_id = $2 LIMIT 1',
-        [ctx.coreArgs.atomicassets_account, ctx.pathParams.template_id]
+        [ctx.coreArgs.atomicassets_account, args.template_id]
     );
 
     if (query.rowCount === 0) {
@@ -155,11 +159,15 @@ export async function getTemplateAction(params: RequestValues, ctx: AtomicAssets
 }
 
 export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
+    const args = await filterQueryArgs(ctx.pathParams, {
+        template_id: {type: 'id'},
+    });
+
     const query = await ctx.db.query(
         `SELECT SUM(assets) AS assets, SUM(burned) AS burned
                 FROM atomicassets_asset_counts
                 WHERE contract = $1 AND template_id = $2`,
-        [ctx.coreArgs.atomicassets_account, ctx.pathParams.template_id]
+        [ctx.coreArgs.atomicassets_account, args.template_id]
     );
 
     return {assets: query.rows[0].assets || '0', burned: query.rows[0].burned || '0'};
@@ -167,7 +175,8 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicA
 
 export async function getTemplateLogsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.logs || 100;
-    const args = await filterQueryArgs(params, {
+    const args = await filterQueryArgs({...ctx.pathParams, ...params}, {
+        template_id: {type: 'id'},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
@@ -178,7 +187,7 @@ export async function getTemplateLogsAction(params: RequestValues, ctx: AtomicAs
     return await getContractActionLogs(
         ctx.db, ctx.coreArgs.atomicassets_account,
         applyActionGreylistFilters(['lognewtempl', 'locktemplate'], args),
-        {collection_name: ctx.pathParams.collection_name, template_id: parseInt(ctx.pathParams.template_id, 10)},
+        {collection_name: ctx.pathParams.collection_name, template_id: parseInt(args.template_id, 10)},
         (args.page - 1) * args.limit, args.limit, args.order
     );
 }

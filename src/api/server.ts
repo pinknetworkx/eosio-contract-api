@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as express from 'express';
 import {Server} from 'socket.io';
 import * as http from 'http';
@@ -113,6 +114,8 @@ export class WebServer {
     readonly limiter: express.Handler;
     readonly caching: ExpressRedisCacheHandler;
 
+    private gitRevision?: string;
+
     constructor(readonly server: HTTPServer) {
         this.express = express();
 
@@ -125,6 +128,9 @@ export class WebServer {
 
         this.express.use(((req, res, next) => {
             res.setHeader('Last-Modified', (new Date()).toUTCString());
+            if (this.gitRevision) {
+                res.setHeader('X-Revision', this.gitRevision);
+            }
             next();
         }));
 
@@ -188,6 +194,8 @@ export class WebServer {
 
         this.middleware();
         this.routes();
+
+        this.loadGitRevision();
     }
 
     returnAsJSON = (handler: ActionHandler, core: ApiNamespace): express.Handler => {
@@ -225,6 +233,22 @@ export class WebServer {
 
             next();
         });
+    }
+
+    private loadGitRevision(): void {
+        try {
+            const headRef = fs.readFileSync(`${__dirname}/../../.git/HEAD`).toString()
+                .replace(/^ref: /, '').replace(/\s/g, '');
+            const revision = fs.readFileSync(`${__dirname}/../../.git/${headRef}`).toString()
+                .replace(/\s/g, '').substring(0, 7);
+            if (revision) {
+                this.gitRevision = revision;
+
+                logger.info(`git revision ${this.gitRevision}`);
+            }
+        } catch (error) {
+            logger.warn('Failed to load git revision', error);
+        }
     }
 
     private routes(): void {

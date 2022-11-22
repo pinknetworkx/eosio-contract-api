@@ -1,12 +1,65 @@
 import {OfferState} from '../../../filler/handlers/atomicassets';
 import QueryBuilder from '../../builder';
 import {filterQueryArgs, FiltersDefinition, FilterValues} from '../validation';
+import moize from 'moize';
+import { AtomicAssetsContext } from './index';
 
 export function hasAssetFilter(values: FilterValues, blacklist: string[] = []): boolean {
     return Object.keys(values)
         .filter(key => !blacklist.includes(key))
         .some(key => assetFilters[key]);
 }
+
+export async function hasStrongAssetFilter(values: FilterValues, ctx: AtomicAssetsContext): Promise<boolean> {
+
+    if (await hasStrongCollectionSchemaFilter(values.collection_name || [], values.schema_name || [], ctx)) {
+        return true;
+    }
+
+    return hasAssetFilter(values, ['collection_name', 'schema_name']);
+}
+
+const strongCollectionSchemaFilterLimit = 75_000;
+async function hasStrongCollectionSchemaFilter(collection_names: string[], schema_names: string[], ctx: AtomicAssetsContext): Promise<boolean> {
+    if (!collection_names.length) {
+        return false;
+    }
+
+    let count = 0;
+
+    if (!schema_names.length) {
+        schema_names = [null];
+    }
+
+    for (const collectionName of collection_names) {
+        for (const schemaName of (schema_names ?? [null])) {
+            count += await getSchemaAssetCount(collectionName, schemaName, ctx);
+
+            if (count > strongCollectionSchemaFilterLimit) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+const getSchemaAssetCount = moize({
+    isPromise: true,
+    maxAge: 1000 * 60 * 60 * 24,
+    maxArgs: 2,
+    maxSize: 1_000_000,
+})(async (collection_name: string, schema_name: string | null, ctx: AtomicAssetsContext): Promise<number> => {
+    const {ct} = await ctx.db.fetchOne(`
+        SELECT SUM(owned)::INT ct
+        FROM atomicassets_asset_counts
+        WHERE contract = $1 
+            AND (collection_name = $2)
+            AND (schema_name = $3 OR $3 IS NULL)
+    `, [ctx.coreArgs.atomicassets_account, collection_name, schema_name]);
+
+    return ct;
+});
 
 export function hasDataFilters(values: FilterValues): boolean {
     const keys = Object.keys(values);
@@ -168,6 +221,11 @@ export async function buildAssetFilter(
 
     if (args.schema_name.length) {
         query.equalMany(options.assetTable + '.schema_name', args.schema_name);
+
+        if (!args.collection_name.length) {
+            // makes collection/schema index faster to use
+            query.addCondition(`${options.assetTable}.collection_name IN (SELECT collection_name FROM atomicassets_schemas WHERE schema_name = ANY(${query.addVariable(args.schema_name)}))`);
+        }
     }
 
     if (args.minter.length) {

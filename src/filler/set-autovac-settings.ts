@@ -21,8 +21,9 @@ export async function setAutoVacSettings(connection: ConnectionManager): Promise
         SELECT schemaname, relname AS tablename, n_live_tup::INT AS rows,
             (SELECT STRING_AGG(quote_ident(attname), ',') FROM pg_attribute WHERE attrelid = relid AND attnum > 0 AND NOT attisdropped) AS columns
         FROM pg_stat_user_tables 
-        WHERE schemaname = 'public'`
-    );
+        WHERE schemaname = 'public'
+            AND relid NOT IN (SELECT inhparent FROM pg_inherits)
+    `);
 
     let hasError = false;
 

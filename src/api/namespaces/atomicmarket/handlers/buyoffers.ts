@@ -115,9 +115,13 @@ export async function getBuyOffersCountAction(params: RequestValues, ctx: Atomic
 }
 
 export async function getBuyOfferAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
+    const args = await filterQueryArgs(ctx.pathParams, {
+        buyoffer_id: {type: 'id'},
+    });
+
     const query = await ctx.db.query(
         'SELECT * FROM atomicmarket_buyoffers_master WHERE market_contract = $1 AND buyoffer_id = $2',
-        [ctx.coreArgs.atomicmarket_account, ctx.pathParams.buyoffer_id]
+        [ctx.coreArgs.atomicmarket_account, args.buyoffer_id]
     );
 
     if (query.rowCount === 0) {
@@ -133,7 +137,8 @@ export async function getBuyOfferAction(params: RequestValues, ctx: AtomicMarket
 
 export async function getBuyOfferLogsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.logs || 100;
-    const args = await filterQueryArgs(params, {
+    const args = await filterQueryArgs({...ctx.pathParams, ...params}, {
+        buyoffer_id: {type: 'id'},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
@@ -144,7 +149,7 @@ export async function getBuyOfferLogsAction(params: RequestValues, ctx: AtomicMa
     return await getContractActionLogs(
         ctx.db, ctx.coreArgs.atomicmarket_account,
         applyActionGreylistFilters(['lognewbuyo', 'cancelbuyo', 'acceptbuyo', 'declinebuyo'], args),
-        {buyoffer_id: ctx.pathParams.buyoffer_id},
+        {buyoffer_id: args.buyoffer_id},
         (args.page - 1) * args.limit, args.limit, args.order
     );
 }
