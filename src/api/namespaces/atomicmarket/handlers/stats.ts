@@ -54,7 +54,7 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
     }
 
     if (args.collection_name.length) {
-        query.equal('collection.collection_name', args.collection_name.length);
+        query.equalMany('collection.collection_name', args.collection_name);
     }
 
     if (args.collection_whitelist.length) {
