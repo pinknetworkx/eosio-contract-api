@@ -21,7 +21,7 @@ export async function buildBoundaryFilter(
         upper_bound: {type: primaryType, min: 1},
         before: {type: 'int', min: 1},
         after: {type: 'int', min: 1},
-        ids: {type: 'list[id]'},
+        ids: {type: 'list[string]'},
     });
 
     if (primaryColumn && args.ids.length) {

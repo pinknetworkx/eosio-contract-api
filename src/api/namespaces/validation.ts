@@ -172,7 +172,7 @@ export async function filterQueryArgs<T extends FiltersDefinition>(values: {[K i
                 result[key] = (await validateValues([currentValue], currentFilter))[0];
             }
         } catch (e) {
-            throw new ApiError(`Invalid value for parameter ${key}`, 400);
+            throw new ApiError(`Invalid value for parameter ${String(key)}`, 400);
         }
     }
 
