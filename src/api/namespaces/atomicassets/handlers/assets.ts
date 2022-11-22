@@ -6,7 +6,7 @@ import {
 } from '../../utils';
 import { AtomicAssetsContext } from '../index';
 import QueryBuilder from '../../../builder';
-import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter, hasAssetFilter, hasDataFilters } from '../utils';
+import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter, hasStrongAssetFilter, hasDataFilters } from '../utils';
 import { ApiError } from '../../../error';
 import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
 import { filterQueryArgs, FilterValues } from '../../validation';
@@ -169,7 +169,7 @@ export async function getRawAssetsAction(
         sorting = {column: 'asset.asset_id', nullable: false, numericIndex: true};
     }
 
-    const ignoreIndex = (hasStrongTemplateFilter || hasAssetFilter(params) || hasDataFilters(params))
+    const ignoreIndex = (hasStrongTemplateFilter || await hasStrongAssetFilter(params, ctx) || hasDataFilters(params))
         && sorting.numericIndex;
 
     query.append('ORDER BY ' + sorting.column + (ignoreIndex ? ' + 1 ' : ' ') + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC');
