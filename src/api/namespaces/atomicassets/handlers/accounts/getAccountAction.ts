@@ -48,7 +48,8 @@ async function getAssetCountByCollection(params: RequestValues, ctx: AtomicAsset
     collectionQuery.equal('contract', ctx.coreArgs.atomicassets_account);
     collectionQuery.equal('owner', ctx.pathParams.account);
 
-    await buildGreylistFilter(params, collectionQuery, {collectionName: 'asset.collection_name'});
+    // prevent index usage (atomicassets_assets_collection_schema_active) that results in a very slow query for large accounts
+    await buildGreylistFilter(params, collectionQuery, {collectionName: `asset.collection_name || ''`});
     await buildHideOffersFilter(params, collectionQuery, 'asset');
 
     collectionQuery.group(['contract', 'collection_name']);
