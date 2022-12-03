@@ -16,7 +16,7 @@ export async function hasStrongAssetFilter(values: FilterValues, ctx: AtomicAsse
         return true;
     }
 
-    return hasAssetFilter(values, ['collection_name', 'schema_name']);
+    return hasAssetFilter(values, ['collection_name', 'schema_name', 'burned', 'is_transferable', 'is_burnable']);
 }
 
 const strongCollectionSchemaFilterLimit = 75_000;
