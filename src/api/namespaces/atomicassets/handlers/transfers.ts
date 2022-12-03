@@ -95,7 +95,7 @@ function getUnionArgsList<T extends FilteredValues<T>>(args: Record<string, any>
 }
 
 async function buildTransferQuery(args: Record<string, any>, params: RequestValues, ctx: AtomicAssetsContext, queryValues: any[] = []): Promise<QueryBuilder> {
-    const query = new QueryBuilder('SELECT * FROM atomicassets_transfers_master transfer', queryValues);
+    const query = new QueryBuilder('SELECT DISTINCT transfer.* FROM atomicassets_transfers_master transfer', queryValues);
     query.equal('contract', ctx.coreArgs.atomicassets_account);
 
     if (args.account.length) {
@@ -122,14 +122,16 @@ async function buildTransferQuery(args: Record<string, any>, params: RequestValu
     }
 
     if (hasAssetFilter(params, ['asset_id'])) {
-        const assetQuery = new QueryBuilder('SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset', query.buildValues());
+        const assetQuery = new QueryBuilder('SELECT transfer_asset.transfer_id transfer_join_id FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset', query.buildValues());
+
+        assetQuery.equal('asset.contract', ctx.coreArgs.atomicassets_account);
 
         assetQuery.join('asset', 'transfer_asset', ['contract', 'asset_id']);
-        assetQuery.join('transfer_asset', 'transfer', ['contract', 'transfer_id']);
 
         await buildAssetFilter(params, assetQuery, {assetTable: '"asset"', allowDataFilter: false});
 
-        query.addCondition('EXISTS(' + assetQuery.buildString() + ')');
+        query.appendToBase(` JOIN (${assetQuery.buildString()}) assets ON transfer.transfer_id = assets.transfer_join_id`);
+
         query.setVars(assetQuery.buildValues());
     }
 
