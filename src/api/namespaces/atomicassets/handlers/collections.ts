@@ -9,17 +9,17 @@ import { filterQueryArgs } from '../../validation';
 
 export async function getCollectionsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.collections || 1000;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         sort: {type: 'string', allowedValues: ['created', 'collection_name'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
-        author: {type: 'string', min: 1, max: 12},
-        authorized_account: {type: 'string', min: 1, max: 12},
-        notify_account: {type: 'string', min: 1, max: 12},
+        author: {type: 'list[name]'},
+        authorized_account: {type: 'name'},
+        notify_account: {type: 'name'},
 
-        match: {type: 'string', min: 1},
+        match: {type: 'name'},
         search: {type: 'string', min: 1},
 
         count: {type: 'bool'}
@@ -29,8 +29,8 @@ export async function getCollectionsAction(params: RequestValues, ctx: AtomicAss
 
     query.equal('contract', ctx.coreArgs.atomicassets_account);
 
-    if (args.author) {
-        query.equalMany('author', args.author.split(','));
+    if (args.author.length) {
+        query.equalMany('author', args.author);
     }
 
     if (args.authorized_account) {
@@ -49,8 +49,8 @@ export async function getCollectionsAction(params: RequestValues, ctx: AtomicAss
         query.addCondition(`${query.addVariable(args.search)} <% (collection.collection_name || ' ' || COALESCE(collection.data->>'name', ''))`);
     }
 
-    buildBoundaryFilter(params, query, 'collection.collection_name', 'string', 'collection.created_at_time');
-    buildGreylistFilter(params, query, {collectionName: 'collection.collection_name'});
+    await buildBoundaryFilter(params, query, 'collection.collection_name', 'string', 'collection.created_at_time');
+    await buildGreylistFilter(params, query, {collectionName: 'collection.collection_name'});
 
     if (args.count) {
         const countQuery = await ctx.db.query(
@@ -145,7 +145,7 @@ export async function getCollectionSchemasAction(params: RequestValues, ctx: Ato
 
 export async function getCollectionLogsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.logs || 100;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},

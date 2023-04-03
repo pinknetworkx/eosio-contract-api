@@ -465,7 +465,7 @@ describe('AtomicMarket Sales API', () => {
             const {schema_name} = await client.createSchema();
             const {sale_id} = await client.createFullSale({}, {schema_name});
 
-            expect(await getSalesIds({schema_name: `${schema_name},-1`}))
+            expect(await getSalesIds({schema_name: `${schema_name},z`}))
                 .to.deep.equal([sale_id]);
         });
 
@@ -625,6 +625,18 @@ describe('AtomicMarket Sales API', () => {
             const {sale_id} = await client.createFullSale({collection_name});
 
             expect(await getSalesIds({collection_whitelist: 'x,abc'}))
+                .to.deep.equal([sale_id]);
+        });
+
+        txit('filters by collection_whitelist with lists', async () => {
+            await client.createFullList({list_name: 'whitelist'}, {item_name: 'zz'});
+
+            await client.createFullSale();
+
+            const {collection_name} = await client.createCollection({collection_name: 'zz'});
+            const {sale_id} = await client.createFullSale({collection_name});
+
+            expect(await getSalesIds({collection_whitelist: '$list:whitelist,abc'}))
                 .to.deep.equal([sale_id]);
         });
 
@@ -804,7 +816,7 @@ describe('AtomicMarket Sales API', () => {
         });
 
         context('with template_blacklist arg', () => {
-            txit('filters out the sales that contains the template id', async () => {
+            txit('filters out sales that contain the template id', async () => {
                 const included = await client.createTemplate();
                 const {sale_id: sale_id1} = await client.createFullSale({}, {
                     template_id: included.template_id,
@@ -817,7 +829,7 @@ describe('AtomicMarket Sales API', () => {
                     template_id: excludedTemplate.template_id,
                 });
 
-                expect((await getSalesIds({template_blacklist: [excludedTemplate.template_id].join(',')})).sort())
+                expect((await getSalesIds({template_blacklist: `${excludedTemplate.template_id}`})).sort())
                     .to.deep.equal([sale_id1, sale_id2].sort());
             });
         });

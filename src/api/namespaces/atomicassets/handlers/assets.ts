@@ -6,18 +6,18 @@ import {
 } from '../../utils';
 import { AtomicAssetsContext } from '../index';
 import QueryBuilder from '../../../builder';
-import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter, hasAssetFilter, hasDataFilters } from '../utils';
+import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter, hasStrongAssetFilter, hasDataFilters } from '../utils';
 import { ApiError } from '../../../error';
 import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
 import { filterQueryArgs, FilterValues } from '../../validation';
 
-export function buildAssetQueryCondition(
+export async function buildAssetQueryCondition(
     values: FilterValues, query: QueryBuilder,
     options: { assetTable: string, templateTable?: string }
-): void {
-    const args = filterQueryArgs(values, {
-        authorized_account: {type: 'string', min: 1, max: 12},
-        hide_templates_by_accounts: {type: 'string', min: 1},
+): Promise<void> {
+    const args = await filterQueryArgs(values, {
+        authorized_account: {type: 'name'},
+        hide_templates_by_accounts: {type: 'list[name]'},
 
         only_duplicate_templates: {type: 'bool'},
         has_backed_tokens: {type: 'bool'},
@@ -27,8 +27,8 @@ export function buildAssetQueryCondition(
         min_template_mint: {type: 'int', min: 1},
         max_template_mint: {type: 'int', min: 1},
 
-        template_blacklist: {type: 'string', min: 1},
-        template_whitelist: {type: 'string', min: 1}
+        template_blacklist: {type: 'list[id]'},
+        template_whitelist: {type: 'list[id]'}
     });
 
     if (args.authorized_account) {
@@ -41,12 +41,12 @@ export function buildAssetQueryCondition(
         );
     }
 
-    if (args.hide_templates_by_accounts) {
+    if (args.hide_templates_by_accounts.length) {
         query.addCondition(
             'NOT EXISTS(' +
             'SELECT * FROM atomicassets_assets asset2 ' +
             'WHERE asset2.template_id = ' + options.assetTable + '.template_id AND asset2.contract = ' + options.assetTable + '.contract ' +
-            'AND asset2.owner = ANY(' + query.addVariable(args.hide_templates_by_accounts.split(',')) + ')' +
+            'AND asset2.owner = ANY(' + query.addVariable(args.hide_templates_by_accounts) + ')' +
             ')'
         );
     }
@@ -75,7 +75,7 @@ export function buildAssetQueryCondition(
         }
     }
 
-    buildHideOffersFilter(values, query, options.assetTable);
+    await buildHideOffersFilter(values, query, options.assetTable);
 
     if (args.template_mint) {
         query.equal(options.assetTable + '.template_mint', args.template_mint);
@@ -94,15 +94,15 @@ export function buildAssetQueryCondition(
         query.addCondition('(' + condition + ')');
     }
 
-    buildAssetFilter(values, query, {assetTable: options.assetTable, templateTable: options.templateTable});
-    buildGreylistFilter(values, query, {collectionName: options.assetTable + '.collection_name'});
+    await buildAssetFilter(values, query, {assetTable: options.assetTable, templateTable: options.templateTable});
+    await buildGreylistFilter(values, query, {collectionName: options.assetTable + '.collection_name'});
 
-    if (args.template_blacklist) {
-        query.notMany(`COALESCE(${options.assetTable}.template_id, 9223372036854775807)`, args.template_blacklist.split(','));
+    if (args.template_blacklist.length) {
+        query.notMany(`COALESCE(${options.assetTable}.template_id, 9223372036854775807)`, args.template_blacklist);
     }
 
-    if (args.template_whitelist) {
-        query.equalMany(options.assetTable + '.template_id', args.template_whitelist.split(','));
+    if (args.template_whitelist.length) {
+        query.equalMany(options.assetTable + '.template_id', args.template_whitelist);
     }
 }
 
@@ -111,7 +111,7 @@ export async function getRawAssetsAction(
     ctx: AtomicAssetsContext,
     options?: {extraTables: string, extraSort: SortColumnMapping}): Promise<Array<number> | string> {
     const maxLimit = ctx.coreArgs.limits?.assets || 1000;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         sort: {type: 'string', min: 1},
@@ -132,8 +132,8 @@ export async function getRawAssetsAction(
 
     query.equal('asset.contract', ctx.coreArgs.atomicassets_account);
 
-    buildAssetQueryCondition(params, query, {assetTable: '"asset"', templateTable: '"template"'});
-    buildBoundaryFilter(
+    await buildAssetQueryCondition(params, query, {assetTable: '"asset"', templateTable: '"template"'});
+    await buildBoundaryFilter(
         params, query, 'asset.asset_id', 'int',
         args.sort === 'updated' ? 'asset.updated_at_time' : 'asset.minted_at_time'
     );
@@ -169,7 +169,7 @@ export async function getRawAssetsAction(
         sorting = {column: 'asset.asset_id', nullable: false, numericIndex: true};
     }
 
-    const ignoreIndex = (hasStrongTemplateFilter || hasAssetFilter(params) || hasDataFilters(params))
+    const ignoreIndex = (hasStrongTemplateFilter || await hasStrongAssetFilter(params, ctx) || hasDataFilters(params))
         && sorting.numericIndex;
 
     query.append('ORDER BY ' + sorting.column + (ignoreIndex ? ' + 1 ' : ' ') + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC');
@@ -223,9 +223,13 @@ export async function getAssetsCountAction(params: RequestValues, ctx: AtomicAss
 }
 
 export async function getAssetStatsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
+    const args = await filterQueryArgs(ctx.pathParams, {
+        asset_id: {type: 'id'},
+    });
+
     const assetQuery = await ctx.db.query(
         'SELECT * FROM atomicassets_assets WHERE contract = $1 AND asset_id = $2',
-        [this.core.args.atomicassets_account, ctx.pathParams.params.asset_id]
+        [ctx.coreArgs.atomicassets_account, args.asset_id]
     );
 
     if (assetQuery.rowCount === 0) {
@@ -236,7 +240,7 @@ export async function getAssetStatsAction(params: RequestValues, ctx: AtomicAsse
 
     const query = await ctx.db.query(
         'SELECT COUNT(*) template_mint FROM atomicassets_assets WHERE contract = $1 AND asset_id <= $2 AND template_id = $3 AND schema_name = $4 AND collection_name = $5',
-        [this.core.args.atomicassets_account, asset.asset_id, asset.template_id, asset.schema_name, asset.collection_name]
+        [ctx.coreArgs.atomicassets_account, asset.asset_id, asset.template_id, asset.schema_name, asset.collection_name]
     );
 
     return query.rows[0];
@@ -244,7 +248,8 @@ export async function getAssetStatsAction(params: RequestValues, ctx: AtomicAsse
 
 export async function getAssetLogsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.logs || 100;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs({...ctx.pathParams, ...params}, {
+        asset_id: {type: 'id'},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
@@ -255,7 +260,7 @@ export async function getAssetLogsAction(params: RequestValues, ctx: AtomicAsset
     return await getContractActionLogs(
         ctx.db, ctx.coreArgs.atomicassets_account,
         applyActionGreylistFilters(['logmint', 'logburnasset', 'logbackasset', 'logsetdata'], args),
-        {asset_id: ctx.pathParams.asset_id},
+        {asset_id: args.asset_id},
         (args.page - 1) * args.limit, args.limit, args.order
     );
 }

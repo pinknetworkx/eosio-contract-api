@@ -18,33 +18,36 @@ export async function getAccountsAction(
     ctx: AtomicAssetsContext,
 ): Promise<any> { // TODO: Use a proper type here - can't be at the moment different return types
     const maxLimit = ctx.coreArgs.limits?.accounts || 5000;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
 
-        match_owner: {type: 'string', min: 1},
+        match_owner: {type: 'name'},
 
         count: {type: 'bool'}
     });
 
     const query = new QueryBuilder(
-        'SELECT owner account, COUNT(*) as assets FROM atomicassets_assets asset ' +
-        'LEFT JOIN atomicassets_templates template ON (asset.contract = template.contract AND asset.template_id = template.template_id)'
+        'SELECT owner account, COUNT(*) as assets FROM atomicassets_assets asset '
     );
 
-    query.equal('asset.contract', ctx.coreArgs.atomicassets_account).notNull('asset.owner || \'\'');
+    query.equal('asset.contract', ctx.coreArgs.atomicassets_account).notNull('asset.owner');
 
     if (args.match_owner) {
         query.addCondition('POSITION(' + query.addVariable(args.match_owner.toLowerCase()) + ' IN asset.owner) > 0');
     }
 
-    buildAssetFilter(params, query,  {assetTable: 'asset', templateTable: 'template', allowDataFilter: true});
-    buildGreylistFilter(params, query, {collectionName: 'asset.collection_name'});
+    await buildAssetFilter(params, query,  {assetTable: 'asset', templateTable: 'template', allowDataFilter: true});
+    await buildGreylistFilter(params, query, {collectionName: 'asset.collection_name'});
 
-    buildHideOffersFilter(params, query, 'asset');
-    buildBoundaryFilter(params, query, 'owner', 'string', null);
+    await buildHideOffersFilter(params, query, 'asset');
+    await buildBoundaryFilter(params, query, 'owner', 'string', null);
 
     query.group(['asset.owner']);
+
+    if (query.buildString().includes('template.')) {
+        query.appendToBase('LEFT JOIN atomicassets_templates template ON asset.contract = template.contract AND asset.template_id = template.template_id');
+    }
 
     if (args.count) {
         const countQuery = await ctx.db.query('SELECT COUNT(*) counter FROM (' + query.buildString() + ') x', query.buildValues());

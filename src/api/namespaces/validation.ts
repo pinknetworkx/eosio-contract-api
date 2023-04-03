@@ -2,14 +2,19 @@ import { RequestValues } from './utils';
 import { isWeakFloat, isWeakInt, toInt } from '../../utils';
 import { ApiError } from '../error';
 
-type FilterType = 'string' | 'string[]' | 'int' | 'int[]' | 'float' | 'float[]' | 'bool' | 'bool[]' | 'name' | 'name[]' | 'id' | 'id[]';
+type FilterType = 'string' | 'string[]' | 'list[string]'
+    | 'int' | 'int[]'
+    | 'float' | 'float[]'
+    | 'bool' | 'bool[]'
+    | 'name' | 'name[]' | 'list[name]'
+    | 'id' | 'id[]' | 'list[id]';
 
-type FilterDefinition = {
+export type FilterDefinition = {
     type: FilterType,
     min?: number,
     max?: number,
     default?: any,
-    allowedValues?: any[]
+    allowedValues?: string[]
 };
 
 export type FiltersDefinition = {
@@ -18,102 +23,129 @@ export type FiltersDefinition = {
 export type FilterValues = RequestValues;
 export type FilteredValues<T> = Record<keyof T, any>;
 
-const string = (value: string, filter: FilterDefinition): string => {
-    if (typeof filter.min === 'number' && value.length < filter.min) {
-        throw Error();
-    }
+type ValidationFunction = (values: string[], filter: FilterDefinition) => Promise<any[]>;
 
-    if (typeof filter.max === 'number' && value.length > filter.max) {
-        throw Error();
-    }
+const validationTypes: {[key: string]: ValidationFunction} = {};
 
-    return value;
-};
+export function addValidationType(name: string, func: ValidationFunction): void {
+    validationTypes[name] = func;
+}
 
-const int = (value: string, filter: FilterDefinition): number => {
-    const n = toInt(value);
+export async function validateString(values: string[], filter: FilterDefinition): Promise<string[]> {
+    return values.map(value => {
+        if (typeof filter.min === 'number' && value.length < filter.min) {
+            throw Error();
+        }
 
-    if (!isWeakInt(value) || isNaN(n)) {
+        if (typeof filter.max === 'number' && value.length > filter.max) {
+            throw Error();
+        }
+
+        if (filter.allowedValues && !filter.allowedValues.includes(value)) {
+            throw new Error();
+        }
+
+        return value;
+    });
+}
+addValidationType('string', validateString);
+
+async function validateInt(values: string[], filter: FilterDefinition): Promise<number[]> {
+    return values.map(value => {
+        const n = toInt(value);
+
+        if (!isWeakInt(value) || isNaN(n)) {
+            throw new Error();
+        }
+
+        if (typeof filter.min === 'number' && n < filter.min) {
+            throw new Error();
+        }
+
+        if (typeof filter.max === 'number' && n > filter.max) {
+            throw new Error();
+        }
+
+        return n;
+    });
+}
+addValidationType('int', validateInt);
+
+export async function validateId(values: string[]): Promise<string[]> {
+    return values.map(value => {
+        if (value.toLowerCase() === 'null') {
+            return 'null';
+        }
+
+        if (!isWeakInt(value)) {
+            throw new Error();
+        }
+
+        return value;
+    });
+}
+addValidationType('id', validateId);
+
+async function validateFloat(values: string[], filter: FilterDefinition): Promise<number[]> {
+    return values.map(value => {
+        const n = parseFloat(value);
+
+        if (!isWeakFloat(value) || isNaN(n)) {
+            throw new Error();
+        }
+
+        if (typeof filter.min === 'number' && n < filter.min) {
+            throw new Error();
+        }
+
+        if (typeof filter.max === 'number' && n > filter.max) {
+            throw new Error();
+        }
+
+        return n;
+    });
+}
+addValidationType('float', validateFloat);
+
+async function validateBool(values: string[]): Promise<boolean[]> {
+    return values.map(value => {
+        if (value === 'true' || value === '1') {
+            return true;
+        }
+        if (value === 'false' || value === '0') {
+            return false;
+        }
+
+        if (value === 'empty') {
+            return undefined;
+        }
+
         throw new Error();
-    }
-
-    if (typeof filter.min === 'number' && n < filter.min) {
-        throw new Error();
-    }
-
-    if (typeof filter.max === 'number' && n > filter.max) {
-        throw new Error();
-    }
-
-    return n;
-};
-
-const id = (value: string): string => {
-    if (value.toLowerCase() === 'null') {
-        return 'null';
-    }
-
-    if (!isWeakInt(value)) {
-        throw new Error();
-    }
-
-    return value;
-};
-
-const float = (value: string, filter: FilterDefinition): number => {
-    const n = parseFloat(value);
-
-    if (!isWeakFloat(value) || isNaN(n)) {
-        throw new Error();
-    }
-
-    if (typeof filter.min === 'number' && n < filter.min) {
-        throw new Error();
-    }
-
-    if (typeof filter.max === 'number' && n > filter.max) {
-        throw new Error();
-    }
-
-    return n;
-};
-
-const bool = (value: string, _: FilterDefinition): boolean => {
-    if (value === 'true' || value === '1') {
-        return true;
-    }
-    if (value === 'false' || value === '0') {
-        return false;
-    }
-
-    if (value === 'empty') {
-        return undefined;
-    }
-
-    throw new Error();
-};
+    });
+}
+addValidationType('bool', validateBool);
 
 const nameRE = /^[.1-5a-z]{1,12}[.1-5a-j]?$/;
-const name = (value: string, _: FilterDefinition): string => {
+export async function validateName(values: string[]): Promise<string[]> {
+    return values.map(value => {
 
-    if (!nameRE.test(value)) {
-        throw new Error();
-    }
+        if (!nameRE.test(value)) {
+            throw new Error();
+        }
 
-    return value;
-};
+        return value;
+    });
+}
+addValidationType('name', validateName);
 
-const validationTypes: {[key: string]: (value: string, filter: FilterDefinition) => any} = {
-    string,
-    int,
-    float,
-    bool,
-    name,
-    id,
-};
+const typeRE = /^(?<type>\w+)(?<array>\[(?<innerType>[^\]]*)])?$/;
+export function parseTypeString(typeString: string): {type: string, array: boolean, innerType?: string} {
+    const {type, array, innerType} = typeString.match(typeRE).groups;
 
-const typeRE = /^(?<type>\w+)(?<array>\[])?$/;
-export function filterQueryArgs<T extends FiltersDefinition>(values: {[K in keyof T]?: any}, filter: T): FilteredValues<T> {
+    return {type, array: !!array, innerType};
+}
+
+export async function filterQueryArgs<T extends FiltersDefinition>(values: {[K in keyof T]?: any}, filter: T): Promise<FilteredValues<T>> {
     const keys: (keyof T)[] = Object.keys(filter);
     const result: FilteredValues<T> = {} as FilteredValues<T>;
 
@@ -121,7 +153,7 @@ export function filterQueryArgs<T extends FiltersDefinition>(values: {[K in keyo
         const currentValue = values[key];
         const currentFilter = filter[key];
 
-        const {type, array} = currentFilter.type.match(typeRE).groups;
+        const {array} = parseTypeString(currentFilter.type);
 
         if (typeof currentValue !== 'string' || currentValue === '') {
             if (array && !Array.isArray(filter[key].default)) {
@@ -133,32 +165,29 @@ export function filterQueryArgs<T extends FiltersDefinition>(values: {[K in keyo
             continue;
         }
 
-        // eslint-disable-next-line no-inner-declarations
-        function validateValue(value: string): any {
-            const result = validationTypes[type](value, currentFilter);
-
-            if (typeof result === 'undefined') {
-                return array ? undefined : currentFilter.default;
-            }
-
-            if (currentFilter.allowedValues && !currentFilter.allowedValues.includes(result)) {
-                throw new Error();
-            }
-
-            return result;
-        }
-
         try {
             if (array) {
-                result[key] = currentValue.split(',')
-                    .map(validateValue)
-                    .filter(x => typeof x !== 'undefined');
+                result[key] = await validateValues(currentValue.split(','), currentFilter);
             } else {
-                result[key] = validateValue(currentValue);
+                result[key] = (await validateValues([currentValue], currentFilter))[0];
             }
         } catch (e) {
-            throw new ApiError(`Invalid value for parameter ${key}`, 400);
+            throw new ApiError(`Invalid value for parameter ${String(key)}`, 400);
         }
+    }
+
+    return result;
+}
+
+async function validateValues(values: string[], filter: FilterDefinition): Promise<any[]> {
+    const {type, array} = parseTypeString(filter.type);
+
+    const result = await validationTypes[type](values, filter);
+
+    if (array) {
+        return result.filter(x => x !== undefined);
+    } else if (result[0] === undefined) {
+        return [filter.default];
     }
 
     return result;

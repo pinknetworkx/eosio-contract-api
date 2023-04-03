@@ -2,48 +2,49 @@ import 'mocha';
 import { expect } from 'chai';
 import { filterQueryArgs } from './validation';
 import { ApiError } from '../error';
+import { toInt } from '../../utils';
 
 describe('filterQueryArgs', () => {
 
-    it('removes values that are not defined in the filter', () => {
-        const result = filterQueryArgs({a: 1, b: 2} as any, {a: {type: 'string'}});
+    it('removes values that are not defined in the filter', async () => {
+        const result = await filterQueryArgs({a: 1, b: 2} as any, {a: {type: 'string'}});
 
         expect(Object.keys(result)).to.deep.equal(['a']);
     });
 
-    it('returns the default value when the value is null', () => {
-        const result = filterQueryArgs({a: null}, {a: {type: 'string', default: 1}});
+    it('returns the default value when the value is null', async () => {
+        const result = await filterQueryArgs({a: null}, {a: {type: 'string', default: 1}});
 
         expect(result.a).to.equal(1);
     });
 
-    it('returns the default value when the value is undefined', () => {
-        const result = filterQueryArgs({a: undefined}, {a: {type: 'string', default: 1}});
+    it('returns the default value when the value is undefined', async () => {
+        const result = await filterQueryArgs({a: undefined}, {a: {type: 'string', default: 1}});
 
         expect(result.a).to.equal(1);
     });
 
-    it('returns the default value for arrays when the value is an empty string', () => {
-        const result = filterQueryArgs({a: ''}, {a: {type: 'string[]', default: [1]}});
+    it('returns the default value for arrays when the value is an empty string', async () => {
+        const result = await filterQueryArgs({a: ''}, {a: {type: 'string[]', default: [1]}});
 
         expect(result.a).to.deep.equal([1]);
     });
 
-    it('returns an empty array for arrays when the value is an empty string', () => {
-        const result = filterQueryArgs({a: ''}, {a: {type: 'string[]'}});
+    it('returns an empty array for arrays when the value is an empty string', async () => {
+        const result = await filterQueryArgs({a: ''}, {a: {type: 'string[]'}});
 
         expect(result.a).to.deep.equal([]);
     });
 
-    it('returns an empty array for arrays when the value is not set', () => {
-        const result = filterQueryArgs({}, {a: {type: 'int[]'}});
+    it('returns an empty array for arrays when the value is not set', async () => {
+        const result = await filterQueryArgs({}, {a: {type: 'int[]'}});
 
         expect(result.a).to.deep.equal([]);
     });
 
-    it('throws error when value is not in allowedValues', () => {
+    it('throws error when value is not in allowedValues', async () => {
         try {
-            filterQueryArgs({a: 'A'}, {a: {type: 'string', allowedValues: ['a']}});
+            await filterQueryArgs({a: 'A'}, {a: {type: 'string', allowedValues: ['a']}});
             expect.fail();
         } catch (e) {
             expect(e).to.be.instanceof(ApiError);
@@ -52,77 +53,75 @@ describe('filterQueryArgs', () => {
         }
     });
 
-    it('throws error when array value is not in allowedValues', () => {
+    it('throws error when array value is not in allowedValues', async () => {
         try {
-            filterQueryArgs({a: '2'}, {a: {type: 'int[]', allowedValues: [1]}});
+            await filterQueryArgs({a: 'b'}, {a: {type: 'int[]', allowedValues: ['B']}});
             expect.fail();
         } catch (e) {
+            expect(e.message).to.equal('Invalid value for parameter a');
             expect(e).to.be.instanceof(ApiError);
             expect(e.code).to.equal(400);
-            expect(e.message).to.equal('Invalid value for parameter a');
         }
     });
 
-    it('throws error when array value is not valid', () => {
+    it('throws error when array value is not valid', async () => {
         for (const value of ['a', '1,a', '1,,2']) {
             try {
-                filterQueryArgs({a: value}, {a: {type: 'int[]'}});
+                await filterQueryArgs({a: value}, {a: {type: 'int[]'}});
                 expect.fail();
             } catch (e) {
+                expect(e.message).to.equal('Invalid value for parameter a');
                 expect(e).to.be.instanceof(ApiError);
                 expect(e.code).to.equal(400);
-                expect(e.message).to.equal('Invalid value for parameter a');
             }
         }
     });
 
-    it('allows valid valid values that are in allowedValues', () => {
-        const result = ['a']
-            .map(value => filterQueryArgs({a: value}, {a: {type: 'string', allowedValues: ['a']}}).a);
-
-        expect(result).to.deep.equal(['a']);
+    it('allows valid values that are in allowedValues', async () => {
+        for (const value of ['a']) {
+            const {a} = await filterQueryArgs({a: value}, {a: {type: 'string', allowedValues: ['a']}});
+            expect(a).to.deep.equal(value);
+        }
     });
 
     describe('int type', () => {
 
-        it('allows valid int values', () => {
-            const result = ['1', '9223372036854775807', '-1']
-                .map(value => filterQueryArgs({a: value}, {a: {type: 'int'}}).a);
-
-            // eslint-disable-next-line @typescript-eslint/no-loss-of-precision
-            expect(result).to.deep.equal([1, 9223372036854775807, -1]);
+        it('allows valid int values', async () => {
+            for (const value of ['1', '9223372036854775807', '-1']) {
+                const {a} = await filterQueryArgs({a: value}, {a: {type: 'int'}});
+                expect(a).to.deep.equal(toInt(value));
+            }
         });
 
-        it('allows valid array int values', () => {
-            const result = ['1,9223372036854775807,-1']
-                .map(value => filterQueryArgs({a: value}, {a: {type: 'int[]'}}).a);
-
-            // eslint-disable-next-line @typescript-eslint/no-loss-of-precision
-            expect(result).to.deep.equal([[1, 9223372036854775807, -1]]);
+        it('allows valid array int values', async () => {
+            for (const value of ['1,9223372036854775807,-1']) {
+                const {a} = await filterQueryArgs({a: value}, {a: {type: 'int[]'}});
+                expect(a).to.deep.equal(value.split(',').map(toInt));
+            }
         });
 
-        it('throws errors for invalid int values', () => {
+        it('throws errors for invalid int values', async () => {
             for (const value of ['a', '1.1', '1a']) {
                 try {
-                    filterQueryArgs({a: value}, {a: {type: 'int'}});
+                    await filterQueryArgs({a: value}, {a: {type: 'int'}});
                     expect.fail();
                 } catch (e) {
+                    expect(e.message).to.equal('Invalid value for parameter a');
                     expect(e).to.be.instanceof(ApiError);
                     expect(e.code).to.equal(400);
-                    expect(e.message).to.equal('Invalid value for parameter a');
                 }
             }
         });
 
-        it('throws error when int values are out of bounds', () => {
+        it('throws error when int values are out of bounds', async () => {
             for (const value of ['1', '4']) {
                 try {
-                    filterQueryArgs({a: value}, {a: {type: 'int', min: 2, max: 3}});
+                    await filterQueryArgs({a: value}, {a: {type: 'int', min: 2, max: 3}});
                     expect.fail();
                 } catch (e) {
+                    expect(e.message).to.equal('Invalid value for parameter a');
                     expect(e).to.be.instanceof(ApiError);
                     expect(e.code).to.equal(400);
-                    expect(e.message).to.equal('Invalid value for parameter a');
                 }
             }
         });
@@ -131,73 +130,73 @@ describe('filterQueryArgs', () => {
 
     describe('string type', () => {
 
-        it('allows valid string values', () => {
-            const result = ['a']
-                .map(value => filterQueryArgs({a: value}, {a: {type: 'string'}}).a);
-
-            expect(result).to.deep.equal(['a']);
+        it('allows valid string values', async () => {
+            for (const value of ['a']) {
+                const {a} = await filterQueryArgs({a: value}, {a: {type: 'string'}});
+                expect(a).to.deep.equal(value);
+            }
         });
 
-        it('allows valid array string values', () => {
-            const result = ['a,2']
-                .map(value => filterQueryArgs({a: value}, {a: {type: 'string[]'}}).a);
-
-            expect(result).to.deep.equal([['a', '2']]);
+        it('allows valid array string values', async () => {
+            for (const value of ['a,2']) {
+                const {a} = await filterQueryArgs({a: value}, {a: {type: 'string[]'}});
+                expect(a).to.deep.equal(value.split(','));
+            }
         });
 
-        it('throws error when string values are out of bounds', () => {
+        it('throws error when string values are out of bounds', async () => {
             for (const value of ['a', 'abcd']) {
                 try {
-                    filterQueryArgs({a: value}, {a: {type: 'string', min: 2, max: 3}});
+                    await filterQueryArgs({a: value}, {a: {type: 'string', min: 2, max: 3}});
                     expect.fail();
                 } catch (e) {
+                    expect(e.message).to.equal('Invalid value for parameter a');
                     expect(e).to.be.instanceof(ApiError);
                     expect(e.code).to.equal(400);
-                    expect(e.message).to.equal('Invalid value for parameter a');
                 }
             }
         });
 
     });
 
-    describe('string type', () => {
+    describe('float type', () => {
 
-        it('allows valid float values', () => {
-            const result = ['0.1', '1', '1.1', '-0.1']
-                .map(value => filterQueryArgs({a: value}, {a: {type: 'float'}}).a);
-
-            expect(result).to.deep.equal([0.1, 1, 1.1, -0.1]);
+        it('allows valid float values', async () => {
+            for (const value of ['0.1', '1', '1.1', '-0.1']) {
+                const {a} = await filterQueryArgs({a: value}, {a: {type: 'float'}});
+                expect(a).to.deep.equal(parseFloat(value));
+            }
         });
 
-        it('allows valid array float values', () => {
-            const result = ['0.1,1,1.1,-0.1']
-                .map(value => filterQueryArgs({a: value}, {a: {type: 'float[]'}}).a);
-
-            expect(result).to.deep.equal([[0.1, 1, 1.1, -0.1]]);
+        it('allows valid array float values', async () => {
+            for (const value of ['0.1,1,1.1,-0.1']) {
+                const {a} = await filterQueryArgs({a: value}, {a: {type: 'float[]'}});
+                expect(a).to.deep.equal(value.split(',').map(parseFloat));
+            }
         });
 
-        it('throws errors for invalid float values', () => {
+        it('throws errors for invalid float values', async () => {
             for (const value of ['a', '..1', '1a', '1..']) {
                 try {
-                    filterQueryArgs({a: value}, {a: {type: 'float'}});
+                    await filterQueryArgs({a: value}, {a: {type: 'float'}});
                     expect.fail();
                 } catch (e) {
+                    expect(e.message).to.equal('Invalid value for parameter a');
                     expect(e).to.be.instanceof(ApiError);
                     expect(e.code).to.equal(400);
-                    expect(e.message).to.equal('Invalid value for parameter a');
                 }
             }
         });
 
-        it('throws error when float values are out of bounds', () => {
+        it('throws error when float values are out of bounds', async () => {
             for (const value of ['1.3', '3.5']) {
                 try {
-                    filterQueryArgs({a: value}, {a: {type: 'float', min: 1.4, max: 3.4}});
+                    await filterQueryArgs({a: value}, {a: {type: 'float', min: 1.4, max: 3.4}});
                     expect.fail();
                 } catch (e) {
+                    expect(e.message).to.equal('Invalid value for parameter a');
                     expect(e).to.be.instanceof(ApiError);
                     expect(e.code).to.equal(400);
-                    expect(e.message).to.equal('Invalid value for parameter a');
                 }
             }
         });
@@ -206,29 +205,28 @@ describe('filterQueryArgs', () => {
 
     describe('bool type', () => {
 
-        it('allows valid bool values', () => {
-            const result = ['true', '1', 'false', '0']
-                .map(value => filterQueryArgs({a: value}, {a: {type: 'bool'}}).a);
-
-            expect(result).to.deep.equal([true, true, false, false]);
+        it('allows valid bool values', async () => {
+            for (const value of ['true', '1', 'false', '0']) {
+                const {a} = await filterQueryArgs({a: value}, {a: {type: 'bool'}});
+                expect(a).to.deep.equal(['true', '1'].includes(value));
+            }
         });
 
-        it('allows valid array bool values', () => {
-            const result = ['true,1,false,0']
-                .map(value => filterQueryArgs({a: value}, {a: {type: 'bool[]'}}).a);
+        it('allows valid array bool values', async () => {
+            const {a} = await filterQueryArgs({a: 'true,1,false,0'}, {a: {type: 'bool[]'}});
 
-            expect(result).to.deep.equal([[true, true, false, false]]);
+            expect(a).to.deep.equal([true, true, false, false]);
         });
 
-        it('throws errors for invalid bool values', () => {
+        it('throws errors for invalid bool values', async () => {
             for (const value of ['a', 'FALSE', 'TRUE', '2']) {
                 try {
-                    filterQueryArgs({a: value}, {a: {type: 'bool'}});
+                    await filterQueryArgs({a: value}, {a: {type: 'bool'}});
                     expect.fail();
                 } catch (e) {
+                    expect(e.message).to.equal('Invalid value for parameter a');
                     expect(e).to.be.instanceof(ApiError);
                     expect(e.code).to.equal(400);
-                    expect(e.message).to.equal('Invalid value for parameter a');
                 }
             }
         });
@@ -237,29 +235,60 @@ describe('filterQueryArgs', () => {
 
     describe('name type', () => {
 
-        it('allows valid name values', () => {
-            const result = ['a', '12345.abcdezj']
-                .map(value => filterQueryArgs({a: value}, {a: {type: 'name'}}).a);
-
-            expect(result).to.deep.equal(['a', '12345.abcdezj']);
+        it('allows valid name values', async () => {
+            for (const value of ['a', '12345.abcdezj']) {
+                const {a} = await filterQueryArgs({a: value}, {a: {type: 'name'}});
+                expect(a).to.deep.equal(value);
+            }
         });
 
-        it('allows valid array name values', () => {
-            const result = ['a']
-                .map(value => filterQueryArgs({a: value}, {a: {type: 'name[]'}}).a);
-
-            expect(result).to.deep.equal([['a']]);
+        it('allows valid array name values', async () => {
+            for (const value of ['a,12345.abcdezj']) {
+                const {a} = await filterQueryArgs({a: value}, {a: {type: 'name[]'}});
+                expect(a).to.deep.equal(value.split(','));
+            }
         });
 
-        it('throws errors for invalid name values', () => {
+        it('throws errors for invalid name values', async () => {
             for (const value of ['6', '12345.abcdezz', '12345.abcdezja']) {
                 try {
-                    filterQueryArgs({a: value}, {a: {type: 'name'}});
+                    await filterQueryArgs({a: value}, {a: {type: 'name'}});
                     expect.fail();
                 } catch (e) {
+                    expect(e.message).to.equal('Invalid value for parameter a');
                     expect(e).to.be.instanceof(ApiError);
                     expect(e.code).to.equal(400);
+                }
+            }
+        });
+
+    });
+
+    describe('id type', () => {
+
+        it('allows valid id values', async () => {
+            for (const value of ['123', 'null', '99999999999999999999999999999999999999999999999999999999999999999999999999']) {
+                const {a} = await filterQueryArgs({a: value}, {a: {type: 'id'}});
+                expect(a).to.deep.equal(value);
+            }
+        });
+
+        it('allows valid array name values', async () => {
+            for (const value of ['123,null,99999999999999999999999999999999999999999999999999999999999999999999999999']) {
+                const {a} = await filterQueryArgs({a: value}, {a: {type: 'id[]'}});
+                expect(a).to.deep.equal(value.split(','));
+            }
+        });
+
+        it('throws errors for invalid id values', async () => {
+            for (const value of ['1e9', 'a']) {
+                try {
+                    await filterQueryArgs({a: value}, {a: {type: 'id'}});
+                    expect.fail();
+                } catch (e) {
                     expect(e.message).to.equal('Invalid value for parameter a');
+                    expect(e).to.be.instanceof(ApiError);
+                    expect(e.code).to.equal(400);
                 }
             }
         });

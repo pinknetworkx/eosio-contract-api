@@ -7,20 +7,20 @@ import { ApiError } from '../../../error';
 
 export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.transfers || 100;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         sort: {type: 'string', allowedValues: ['created'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
-        asset_id: {type: 'id[]'},
+        asset_id: {type: 'list[id]'},
 
-        collection_blacklist: {type: 'string[]', min: 1},
-        collection_whitelist: {type: 'string[]', min: 1},
+        collection_blacklist: {type: 'list[name]'},
+        collection_whitelist: {type: 'list[name]'},
 
-        account: {type: 'string[]', min: 1},
-        sender: {type: 'string[]', min: 1},
-        recipient: {type: 'string[]', min: 1},
+        account: {type: 'list[name]'},
+        sender: {type: 'list[name]'},
+        recipient: {type: 'list[name]'},
         memo: {type: 'string', min: 1},
         match_memo: {type: 'string', min: 1},
 
@@ -35,8 +35,8 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
 
     const unionArgsList = getUnionArgsList(args);
     const query = unionArgsList.length
-        ? buildUnionQuery(unionArgsList, args, params, ctx)
-        : buildTransferQuery(args, params, ctx);
+        ? await buildUnionQuery(unionArgsList, args, params, ctx)
+        : await buildTransferQuery(args, params, ctx);
 
     if (args.count) {
         const countQuery = await ctx.db.query(
@@ -57,12 +57,12 @@ export async function getRawTransfersAction(params: RequestValues, ctx: AtomicAs
     return await ctx.db.query(query.buildString(), query.buildValues());
 }
 
-function buildUnionQuery(unionArgsList: any[], args: Record<string, any>, params: RequestValues, ctx: AtomicAssetsContext): QueryBuilder {
+async function buildUnionQuery(unionArgsList: any[], args: Record<string, any>, params: RequestValues, ctx: AtomicAssetsContext): Promise<QueryBuilder> {
     const query = new QueryBuilder('');
 
     const unions = [];
     for (const unionArgs of unionArgsList) {
-        const union = buildTransferQuery(unionArgs, params, ctx, query.buildValues());
+        const union = await buildTransferQuery(unionArgs, params, ctx, query.buildValues());
         union.append('ORDER BY transfer_id ' + args.order);
         union.append(`LIMIT ${union.addVariable(args.page * args.limit)}`);
 
@@ -94,8 +94,8 @@ function getUnionArgsList<T extends FilteredValues<T>>(args: Record<string, any>
     return result;
 }
 
-function buildTransferQuery(args: Record<string, any>, params: RequestValues, ctx: AtomicAssetsContext, queryValues: any[] = []): QueryBuilder {
-    const query = new QueryBuilder('SELECT * FROM atomicassets_transfers_master transfer', queryValues);
+async function buildTransferQuery(args: Record<string, any>, params: RequestValues, ctx: AtomicAssetsContext, queryValues: any[] = []): Promise<QueryBuilder> {
+    const query = new QueryBuilder('SELECT DISTINCT transfer.* FROM atomicassets_transfers_master transfer', queryValues);
     query.equal('contract', ctx.coreArgs.atomicassets_account);
 
     if (args.account.length) {
@@ -122,14 +122,16 @@ function buildTransferQuery(args: Record<string, any>, params: RequestValues, ct
     }
 
     if (hasAssetFilter(params, ['asset_id'])) {
-        const assetQuery = new QueryBuilder('SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset', query.buildValues());
+        const assetQuery = new QueryBuilder('SELECT transfer_asset.transfer_id transfer_join_id FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset', query.buildValues());
+
+        assetQuery.equal('asset.contract', ctx.coreArgs.atomicassets_account);
 
         assetQuery.join('asset', 'transfer_asset', ['contract', 'asset_id']);
-        assetQuery.join('transfer_asset', 'transfer', ['contract', 'transfer_id']);
 
-        buildAssetFilter(params, assetQuery, {assetTable: '"asset"', allowDataFilter: false});
+        await buildAssetFilter(params, assetQuery, {assetTable: '"asset"', allowDataFilter: false});
 
-        query.addCondition('EXISTS(' + assetQuery.buildString() + ')');
+        query.appendToBase(` JOIN (${assetQuery.buildString()}) assets ON transfer.transfer_id = assets.transfer_join_id`);
+
         query.setVars(assetQuery.buildValues());
     }
 
@@ -143,11 +145,18 @@ function buildTransferQuery(args: Record<string, any>, params: RequestValues, ct
         );
     }
 
+    /*
+        the collection_whitelist and collection_blacklist filters have + 0 on the transfer.transfer_id
+        to prevent postgres from rewriting the query in very inefficient way.
+        we want the outer query to lead using the recipient or sender index, and only validate those results
+        against the lists
+    */
+
     if (args.collection_blacklist.length) {
         query.addCondition(
             'NOT EXISTS(' +
             'SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset ' +
-            'WHERE transfer_asset.contract = transfer.contract AND transfer_asset.transfer_id = transfer.transfer_id AND ' +
+            'WHERE transfer_asset.contract = transfer.contract AND transfer_asset.transfer_id = transfer.transfer_id + 0 AND ' +
             'transfer_asset.contract = asset.contract AND transfer_asset.asset_id = asset.asset_id AND ' +
             'asset.collection_name = ANY (' + query.addVariable(args.collection_blacklist) + ')' +
             ') '
@@ -158,7 +167,7 @@ function buildTransferQuery(args: Record<string, any>, params: RequestValues, ct
         query.addCondition(
             'NOT EXISTS(' +
             'SELECT * FROM atomicassets_transfers_assets transfer_asset, atomicassets_assets asset ' +
-            'WHERE transfer_asset.contract = transfer.contract AND transfer_asset.transfer_id = transfer.transfer_id AND ' +
+            'WHERE transfer_asset.contract = transfer.contract AND transfer_asset.transfer_id = transfer.transfer_id + 0 AND ' +
             'transfer_asset.contract = asset.contract AND transfer_asset.asset_id = asset.asset_id AND ' +
             'NOT (asset.collection_name = ANY (' + query.addVariable(args.collection_whitelist) + '))' +
             ')'
@@ -174,7 +183,7 @@ function buildTransferQuery(args: Record<string, any>, params: RequestValues, ct
         );
     }
 
-    buildBoundaryFilter(params, query, 'transfer_id', 'int', 'created_at_time');
+    await buildBoundaryFilter(params, query, 'transfer_id', 'int', 'created_at_time');
 
     return query;
 }

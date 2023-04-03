@@ -21,59 +21,59 @@ export function hasListingFilter(values: FilterValues, blacklist: string[] = [])
     return false;
 }
 
-export function buildListingFilter(values: FilterValues, query: QueryBuilder): void {
-    const args = filterQueryArgs(values, {
+export async function buildListingFilter(values: FilterValues, query: QueryBuilder): Promise<void> {
+    const args = await filterQueryArgs(values, {
         show_seller_contracts: {type: 'bool', default: true},
-        contract_whitelist: {type: 'string', min: 1, default: ''},
+        contract_whitelist: {type: 'list[name]', default: ['']},
 
-        seller_blacklist: {type: 'string', min: 1},
-        buyer_blacklist: {type: 'string', min: 1},
+        seller_blacklist: {type: 'list[name]'},
+        buyer_blacklist: {type: 'list[name]'},
 
         maker_marketplace: {type: 'string', min: 1, max: 12},
         taker_marketplace: {type: 'string', min: 1, max: 12},
         marketplace: {type: 'string', min: 1, max: 12},
 
-        account: {type: 'string', min: 1},
-        seller: {type: 'string', min: 1},
-        buyer: {type: 'string', min: 1},
+        account: {type: 'list[name]'},
+        seller: {type: 'list[name]'},
+        buyer: {type: 'list[name]'},
 
-        collection_name: {type: 'string', min: 1},
+        collection_name: {type: 'list[name]'},
     });
 
-    if (args.account) {
-        const varName = query.addVariable(args.account.split(','));
+    if (args.account.length) {
+        const varName = query.addVariable(args.account);
 
         query.addCondition('(listing.buyer = ANY (' + varName + ') OR listing.seller = ANY (' + varName + '))');
     }
 
-    if (args.seller) {
-        query.equalMany('listing.seller', args.seller.split(','));
+    if (args.seller.length) {
+        query.equalMany('listing.seller', args.seller);
     }
 
-    if (args.buyer) {
-        query.equalMany('listing.buyer', args.buyer.split(','));
+    if (args.buyer.length) {
+        query.equalMany('listing.buyer', args.buyer);
     }
 
-    if (args.collection_name) {
-        query.equalMany('listing.collection_name', args.collection_name.split(','));
+    if (args.collection_name.length) {
+        query.equalMany('listing.collection_name', args.collection_name);
     }
 
     if (!args.show_seller_contracts) {
         query.addCondition(
             'NOT EXISTS(' +
             'SELECT * FROM contract_codes code ' +
-            'WHERE code.account = listing.seller AND code.account != ALL(' + query.addVariable(args.contract_whitelist.split(',')) + ')' +
+            'WHERE code.account = listing.seller AND code.account != ALL(' + query.addVariable(args.contract_whitelist) + ')' +
             ')'
         );
     }
 
-    if (args.seller_blacklist) {
-        query.notMany('listing.seller', args.seller_blacklist.split(','));
+    if (args.seller_blacklist.length) {
+        query.notMany('listing.seller', args.seller_blacklist);
     }
 
-    if (args.buyer_blacklist) {
+    if (args.buyer_blacklist.length) {
         // TODO this excludes listings without a buyer, is that expected?
-        query.notMany('listing.buyer', args.buyer_blacklist.split(','));
+        query.notMany('listing.buyer', args.buyer_blacklist);
     }
 
     if (args.marketplace) {
@@ -89,11 +89,11 @@ export function buildListingFilter(values: FilterValues, query: QueryBuilder): v
         }
     }
 
-    buildTemplateMintFilter(values, query);
+    await buildTemplateMintFilter(values, query);
 }
 
-export function buildTemplateMintFilter(values: FilterValues, query: QueryBuilder): void {
-    const args = filterQueryArgs(values, {
+export async function buildTemplateMintFilter(values: FilterValues, query: QueryBuilder): Promise<void> {
+    const args = await filterQueryArgs(values, {
         min_template_mint: {type: 'int', min: 1},
         max_template_mint: {type: 'int', min: 1}
     });
@@ -116,8 +116,8 @@ export function buildTemplateMintFilter(values: FilterValues, query: QueryBuilde
     }
 }
 
-export function buildSaleFilter(values: FilterValues, query: QueryBuilder): void {
-    const args = filterQueryArgs(values, {
+export async function buildSaleFilter(values: FilterValues, query: QueryBuilder): Promise<void> {
+    const args = await filterQueryArgs(values, {
         state: {type: 'string', min: 1},
 
         max_assets: {type: 'int', min: 1},
@@ -127,14 +127,14 @@ export function buildSaleFilter(values: FilterValues, query: QueryBuilder): void
         min_price: {type: 'float', min: 0},
         max_price: {type: 'float', min: 0},
 
-        template_blacklist: {type: 'int[]', min: 1},
+        template_blacklist: {type: 'list[id]'},
     });
 
     if (args.min_price || args.max_price) {
         throw new ApiError('Price filters are removed in /v1/sales, use /v2/sales', 400);
     }
 
-    buildListingFilter(values, query);
+    await buildListingFilter(values, query);
 
     if (args.template_blacklist.length || hasAssetFilter(values, ['collection_name']) || hasDataFilters(values)) {
         const assetQuery = new QueryBuilder(
@@ -151,7 +151,7 @@ export function buildSaleFilter(values: FilterValues, query: QueryBuilder): void
         }
 
 
-        buildAssetFilter(values, assetQuery, {
+        await buildAssetFilter(values, assetQuery, {
             assetTable: '"asset"',
             templateTable: '"template"',
             allowDataFilter: true
@@ -214,8 +214,8 @@ export function buildSaleFilter(values: FilterValues, query: QueryBuilder): void
     }
 }
 
-export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): void {
-    const args = filterQueryArgs(values, {
+export async function buildAuctionFilter(values: FilterValues, query: QueryBuilder): Promise<void> {
+    const args = await filterQueryArgs(values, {
         state: {type: 'string', min: 1},
 
         min_assets: {type: 'int', min: 1},
@@ -225,14 +225,14 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
         min_price: {type: 'float', min: 0},
         max_price: {type: 'float', min: 0},
 
-        participant: {type: 'string', min: 1},
-        bidder: {type: 'string', min: 1},
+        participant: {type: 'name'},
+        bidder: {type: 'list[name]'},
 
         hide_empty_auctions: {type: 'bool'},
-        template_blacklist: {type: 'int[]', min: 1},
+        template_blacklist: {type: 'list[id]'},
     });
 
-    buildListingFilter(values, query);
+    await buildListingFilter(values, query);
 
     if (args.template_blacklist.length || hasAssetFilter(values, ['collection_name']) || hasDataFilters(values)) {
         const assetQuery = new QueryBuilder(
@@ -248,7 +248,7 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
             assetQuery.notMany('"asset"."template_id"', args.template_blacklist, true);
         }
 
-        buildAssetFilter(values, assetQuery, {
+        await buildAssetFilter(values, assetQuery, {
             assetTable: '"asset"',
             templateTable: '"template"',
             allowDataFilter: true
@@ -296,10 +296,10 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
         );
     }
 
-    if (args.bidder) {
+    if (args.bidder.length) {
         query.addCondition('EXISTS(SELECT * FROM atomicmarket_auctions_bids bid ' +
             'WHERE bid.market_contract = listing.market_contract AND bid.auction_id = listing.auction_id AND ' +
-            'bid.account = ANY(' + query.addVariable(args.bidder.split(',')) + ') )');
+            'bid.account = ANY(' + query.addVariable(args.bidder) + ') )');
     }
 
     if (args.symbol) {
@@ -343,8 +343,8 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
     }
 }
 
-export function buildBuyofferFilter(values: FilterValues, query: QueryBuilder): void {
-    const args = filterQueryArgs(values, {
+export async function buildBuyofferFilter(values: FilterValues, query: QueryBuilder): Promise<void> {
+    const args = await filterQueryArgs(values, {
         state: {type: 'string', min: 1},
 
         min_assets: {type: 'int', min: 1},
@@ -355,7 +355,7 @@ export function buildBuyofferFilter(values: FilterValues, query: QueryBuilder): 
         max_price: {type: 'float', min: 0}
     });
 
-    buildListingFilter(values, query);
+    await buildListingFilter(values, query);
 
     if (hasAssetFilter(values, ['collection_name']) || hasDataFilters(values)) {
         const assetQuery = new QueryBuilder(
@@ -367,7 +367,7 @@ export function buildBuyofferFilter(values: FilterValues, query: QueryBuilder): 
         assetQuery.addCondition('asset.contract = buyoffer_asset.assets_contract AND asset.asset_id = buyoffer_asset.asset_id');
         assetQuery.join('buyoffer_asset', 'listing', ['market_contract', 'buyoffer_id']);
 
-        buildAssetFilter(values, assetQuery, {
+        await buildAssetFilter(values, assetQuery, {
             assetTable: '"asset"',
             templateTable: '"template"',
             allowDataFilter: true

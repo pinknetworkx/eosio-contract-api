@@ -210,17 +210,20 @@ describe('Account handler', () => {
 
         context('when filter schema name is given', () => {
             txit('returns asset count filtered by schema name', async () => {
+                const schema1 = await client.createSchema();
+                const schema2 = await client.createSchema();
+
                 const asset1 = await client.createAsset({
                     owner: 'account1',
-                    contract: 'contract1',
-                    schema_name: 'schema1'
+                    collection_name: schema1.collection_name,
+                    schema_name: schema1.schema_name,
                 });
 
-                // Won't appear different collection
+                // Won't appear different schema
                 await client.createAsset({
                     owner: asset1['owner'],
-                    contract: asset1['contract'],
-                    schema_name: 'schema2'
+                    collection_name: schema2.collection_name,
+                    schema_name: schema2.schema_name,
                 });
 
                 const response = await getAccountsAction({

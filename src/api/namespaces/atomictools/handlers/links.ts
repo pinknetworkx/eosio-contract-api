@@ -10,14 +10,14 @@ import { filterQueryArgs } from '../../validation';
 
 export async function getLinksAction(params: RequestValues, ctx: AtomicToolsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.links || 100;
-    const args = filterQueryArgs(params, {
-        creator: {type: 'string', min: 1},
-        claimer: {type: 'string', min: 1},
+    const args = await filterQueryArgs(params, {
+        creator: {type: 'list[name]'},
+        claimer: {type: 'list[name]'},
         public_key: {type: 'string', min: 1},
         state: {type: 'string'},
 
-        collection_blacklist: {type: 'string', min: 1},
-        collection_whitelist: {type: 'string', min: 1},
+        collection_blacklist: {type: 'list[name]'},
+        collection_whitelist: {type: 'list[name]'},
 
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
@@ -31,12 +31,12 @@ export async function getLinksAction(params: RequestValues, ctx: AtomicToolsCont
 
     query.equal('tools_contract', ctx.coreArgs.atomictools_account);
 
-    if (args.creator) {
-        query.equalMany('creator', args.creator.split(','));
+    if (args.creator.length) {
+        query.equalMany('creator', args.creator);
     }
 
-    if (args.claimer) {
-        query.equalMany('claimer', args.claimer.split(','));
+    if (args.claimer.length) {
+        query.equalMany('claimer', args.claimer);
     }
 
     if (args.public_key) {
@@ -50,29 +50,29 @@ export async function getLinksAction(params: RequestValues, ctx: AtomicToolsCont
         query.equalMany('state', args.state.split(','));
     }
 
-    if (args.collection_blacklist) {
+    if (args.collection_blacklist.length) {
         query.addCondition(
             'NOT EXISTS(' +
             'SELECT * FROM atomictools_links_assets asset_l, atomicassets_assets asset_a ' +
             'WHERE asset_l.tools_contract = link.tools_contract AND asset_l.link_id = link.link_id AND ' +
             'asset_l.assets_contract = asset_a.contract AND asset_l.asset_id = asset_a.asset_id AND ' +
-            'asset_a.collection_name = ANY (' + query.addVariable(args.collection_blacklist.split(',')) + ')' +
+            'asset_a.collection_name = ANY (' + query.addVariable(args.collection_blacklist) + ')' +
             ')'
         );
     }
 
-    if (args.collection_whitelist) {
+    if (args.collection_whitelist.length) {
         query.addCondition(
             'NOT EXISTS(' +
             'SELECT * FROM atomictools_links_assets asset_l, atomicassets_assets asset_a ' +
             'WHERE asset_l.tools_contract = link.tools_contract AND asset_l.link_id = link.link_id AND ' +
             'asset_l.assets_contract = asset_a.contract AND asset_l.asset_id = asset_a.asset_id AND ' +
-            'NOT (asset_a.collection_name = ANY (' + query.addVariable(args.collection_whitelist.split(',')) + '))' +
+            'NOT (asset_a.collection_name = ANY (' + query.addVariable(args.collection_whitelist) + '))' +
             ') '
         );
     }
 
-    buildBoundaryFilter(
+    await buildBoundaryFilter(
         params, query, 'link_id', 'int',
         args.sort === 'updated' ? 'updated_at_time' : 'created_at_time'
     );
@@ -106,7 +106,7 @@ export async function getLinksCountAction(params: RequestValues, ctx: AtomicTool
 }
 
 export async function getLinkAction(params: RequestValues, ctx: AtomicToolsContext): Promise<any> {
-    const args = filterQueryArgs({link_id: ctx.pathParams.link_id} as RequestValues, {
+    const args = await filterQueryArgs(ctx.pathParams, {
         link_id: {type: 'id'},
     });
 
@@ -128,7 +128,8 @@ export async function getLinkAction(params: RequestValues, ctx: AtomicToolsConte
 
 export async function getLinkLogsAction(params: RequestValues, ctx: AtomicToolsContext): Promise<any> {
     const maxLimit = ctx.coreArgs.limits?.logs || 100;
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs({...ctx.pathParams, ... params}, {
+        link_id: {type: 'id'},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
@@ -139,7 +140,7 @@ export async function getLinkLogsAction(params: RequestValues, ctx: AtomicToolsC
     return await getContractActionLogs(
         ctx.db, ctx.coreArgs.atomictools_account,
         applyActionGreylistFilters(['lognewlink', 'loglinkstart', 'cancellink', 'claimlink'], args),
-        {link_id: ctx.pathParams.link_id},
+        {link_id: args.link_id},
         (args.page - 1) * args.limit, args.limit, args.order
     );
 }

@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as express from 'express';
 import {Server} from 'socket.io';
 import * as http from 'http';
@@ -22,12 +23,15 @@ import {ApiNamespace} from './namespaces/interfaces';
 import {mergeRequestData} from './namespaces/utils';
 import {Send} from 'express-serve-static-core';
 import {GetInfoResult} from 'eosjs/dist/eosjs-rpc-interfaces';
+import { initListValidator } from './namespaces/lists';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson: any = require('../../package.json');
 
 export interface DB {
     query<T = any>(queryText: string, values?: any[]): Promise<QueryResult<T>>
+
+    fetchOne<T = any>(queryText: string, values?: any[]): Promise<T>
 }
 
 export class HTTPServer implements DB {
@@ -64,6 +68,8 @@ export class HTTPServer implements DB {
 
         this.socket = new SocketServer(this);
         this.docs = new DocumentationServer(this);
+
+        initListValidator(this);
     }
 
     listen(): void {
@@ -94,6 +100,12 @@ export class HTTPServer implements DB {
             throw error;
         }
     }
+
+    async fetchOne<T = any>(queryText: string, values: any[] = []): Promise<T> {
+        const {rows} = await this.query(queryText, values);
+
+        return rows[0];
+    }
 }
 
 export class WebServer {
@@ -101,6 +113,8 @@ export class WebServer {
 
     readonly limiter: express.Handler;
     readonly caching: ExpressRedisCacheHandler;
+
+    private gitRevision?: string;
 
     constructor(readonly server: HTTPServer) {
         this.express = express();
@@ -114,6 +128,9 @@ export class WebServer {
 
         this.express.use(((req, res, next) => {
             res.setHeader('Last-Modified', (new Date()).toUTCString());
+            if (this.gitRevision) {
+                res.setHeader('X-Revision', this.gitRevision);
+            }
             next();
         }));
 
@@ -177,6 +194,8 @@ export class WebServer {
 
         this.middleware();
         this.routes();
+
+        this.loadGitRevision();
     }
 
     returnAsJSON = (handler: ActionHandler, core: ApiNamespace): express.Handler => {
@@ -214,6 +233,22 @@ export class WebServer {
 
             next();
         });
+    }
+
+    private loadGitRevision(): void {
+        try {
+            const headRef = fs.readFileSync(`${__dirname}/../../.git/HEAD`).toString()
+                .replace(/^ref: /, '').replace(/\s/g, '');
+            const revision = fs.readFileSync(`${__dirname}/../../.git/${headRef}`).toString()
+                .replace(/\s/g, '').substring(0, 7);
+            if (revision) {
+                this.gitRevision = revision;
+
+                logger.info(`git revision ${this.gitRevision}`);
+            }
+        } catch (error) {
+            logger.warn('Failed to load git revision', error);
+        }
     }
 
     private routes(): void {

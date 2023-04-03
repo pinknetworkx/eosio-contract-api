@@ -73,11 +73,11 @@ For atomicassets / atomicmarket you should specify the following start blocks
     "stop_block": 0, // stop at a specific block
     "irreversible_only": false, // If you need data for a lot of contracts and do not need live data, this option is faster
 
-    "ship_prefetch_blocks": 50, // How much unconfirmed blocks ship will send
-    "ship_min_block_confirmation": 30, // After how much blocks the reader will confirm the blocks
-    "ship_ds_queue_size": 20, // how much blocks the reader should preserialize the action / table data
+    "ship_prefetch_blocks": 50, // How many unconfirmed blocks ship will send
+    "ship_min_block_confirmation": 30, // After how many blocks the reader will confirm the blocks
+    "ship_ds_queue_size": 20, // how many blocks the reader should pre-serialize the action / table data
       
-    "ds_ship_threads": 4, // How much threads should be used to deserialize traces and table deltas
+    "ds_ship_threads": 4, // How many threads should be used to deserialize traces and table deltas
 
     "db_group_blocks": 10, // In catchup mode, the reader will group this amount of bl
 
@@ -90,6 +90,14 @@ For atomicassets / atomicmarket you should specify the following start blocks
           "store_logs": true, // store logs
           "store_transfers": true // store the transfer history
         }
+      }
+    ],
+    
+    "list_polls": [ // optional
+      {
+        url: 'https://example.com/lists', // endpoint for the lists
+        api_key: '123', // send as X-API-Key header to the server
+        frequency: 600, // optional, poll frequency in seconds, defaults to 10 minutes
       }
     ]
   }
