@@ -43,7 +43,7 @@ definitions:
         deployment: production
         trigger: manual
         script:
-          - pipe: &trigger-pipeline atlassian/trigger-pipeline:5.0.0
+          - pipe: &trigger-pipeline atlassian/trigger-pipeline:5.1.0
             variables: &deployment-variables
               BITBUCKET_USERNAME: $BITBUCKET_USERNAME
               BITBUCKET_APP_PASSWORD: $BITBUCKET_APP_PASSWORD
