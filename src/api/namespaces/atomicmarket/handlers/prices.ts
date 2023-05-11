@@ -151,6 +151,7 @@ export async function getPricesSalesDaysAction(params: RequestValues, ctx: Atomi
                 SELECT 
                     (PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY price.price))::bigint median, 
                     AVG(price.price)::bigint average,
+                    SUM(price.price)::bigint volume,
                     COUNT(*) sales, token.token_symbol, token.token_precision, token.token_contract,
                     (price.time / (3600 * 24 * 1000)) daytime
                 FROM atomicmarket_stats_prices_master price, atomicmarket_tokens token 
@@ -191,6 +192,7 @@ export async function getPricesSalesDaysAction(params: RequestValues, ctx: Atomi
     return prices.rows.map(row => ({
         median: row.median,
         average: row.average,
+        volume: row.volume,
         sales: row.sales,
         token_symbol: row.token_symbol,
         token_precision: row.token_precision,
