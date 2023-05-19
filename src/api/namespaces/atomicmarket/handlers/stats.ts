@@ -222,7 +222,9 @@ export async function getSchemaStatsByCollectionV2Action(params: RequestValues, 
         symbol: {type: 'string', min: 1},
 
         before: {type: 'int', min: 1},
-        after: {type: 'int', min: 1}
+        after: {type: 'int', min: 1},
+
+        sort: {type: 'string', allowedValues: ['volume', 'sales'], default: 'volume'}
     });
 
     const symbol = await fetchSymbol(ctx.db, ctx.coreArgs.atomicmarket_account, args.symbol);
@@ -264,6 +266,11 @@ export async function getSchemaStatsByCollectionV2Action(params: RequestValues, 
     schemaStatsQuery.equal('collection_name', ctx.pathParams.collection_name);
     schemaStatsQuery.group(['schema_name']);
     schemaStatsQuery.having('SUM(owned) > 0');
+
+    const sortColumnMapping = {
+        volume: 'volume',
+        sales: 'sales'
+    };
     schemaStatsQuery.append(`
         )
 
@@ -274,14 +281,27 @@ export async function getSchemaStatsByCollectionV2Action(params: RequestValues, 
         FROM schemas
             LEFT OUTER JOIN stats USING (schema_name)
             
-        ORDER BY volume DESC
+        ORDER BY ${sortColumnMapping[args.sort as keyof typeof sortColumnMapping]} DESC
     `);
 
     const {rows} = await ctx.db.query<{ schema_name: string, volume: string, sales: string }>(schemaStatsQuery.buildString(),
         schemaStatsQuery.buildValues()
     );
 
-    return {symbol, results: rows};
+    const result = await ctx.db.query(
+        `SELECT json_object_agg(schema_name, row_to_json(s)) schema_lookup
+        FROM atomicassets_schemas_master s WHERE contract = $1 AND collection_name = $2 AND schema_name = ANY ($3)`,
+        [ctx.coreArgs.atomicassets_account, ctx.pathParams.collection_name, rows.map((row: any) => row.schema_name)]
+    );
+    const schemaLookup: { [key: string]: any } = result.rows[0].schema_lookup || {};
+
+    return {
+        symbol,
+        results: rows.map((row: any) => ({
+            ...row,
+            schema: schemaLookup[String(row.schema_name)]
+        }))
+    };
 }
 
 export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
