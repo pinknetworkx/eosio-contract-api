@@ -75,6 +75,16 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     };
 
+    const SchemaV2Result = {
+        type: 'object',
+        properties: {
+            schema_name: {type: 'string'},
+            sales: {type: 'string'},
+            volume: {type: 'string'},
+            schema: atomicassetsComponents.Schema
+        }
+    };
+
     const TemplateResult = {
         type: 'object',
         properties: {
@@ -287,6 +297,52 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                         properties: {
                             symbol: SymbolResult,
                             results: {type: 'array', items: SchemaResult}
+                        }
+                    })
+                }
+            },
+            '/v2/stats/schemas/{collection_name}': {
+                get: {
+                    tags: ['stats'],
+                    summary: 'Get market schemas sorted by volume or listings',
+                    parameters: [
+                        {
+                            name: 'collection_name',
+                            in: 'path',
+                            description: 'Collection Name',
+                            required: true,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
+                        {
+                            name: 'symbol',
+                            in: 'query',
+                            description: 'Token Symbol',
+                            required: true,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
+                        ...dateBoundaryParameters,
+                        ...paginationParameters,
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                                enum: ['volume', 'sales'],
+                                default: 'volume'
+                            }
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'object',
+                        properties: {
+                            symbol: SymbolResult,
+                            results: {type: 'array', items: SchemaV2Result}
                         }
                     })
                 }
