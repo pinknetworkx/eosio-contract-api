@@ -5,8 +5,8 @@ import { HTTPServer } from '../../../server';
 import {
     dateBoundaryParameters,
     getOpenAPI3Responses,
+    getPrimaryBoundaryParams,
     paginationParameters,
-    primaryBoundaryParameters
 } from '../../../docs';
 import {
     extendedAssetFilterParameters,
@@ -39,7 +39,7 @@ export function assetsEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                         ...completeAssetFilterParameters,
                         ...hideOffersParameters,
                         ...greylistFilterParameters,
-                        ...primaryBoundaryParameters,
+                        ...getPrimaryBoundaryParams('asset_id'),
                         ...dateBoundaryParameters,
                         ...paginationParameters,
                         {

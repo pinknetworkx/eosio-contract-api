@@ -8,8 +8,8 @@ import {
     actionGreylistParameters,
     dateBoundaryParameters,
     getOpenAPI3Responses,
+    getPrimaryBoundaryParams,
     paginationParameters,
-    primaryBoundaryParameters
 } from '../../../docs';
 import { OfferState } from '../../../../filler/handlers/atomicassets';
 import { greylistFilterParameters } from '../openapi';
@@ -241,7 +241,7 @@ export class OfferApi {
                                 required: false,
                                 schema: {type: 'boolean'}
                             },
-                            ...primaryBoundaryParameters,
+                            ...getPrimaryBoundaryParams('offer_id'),
                             ...dateBoundaryParameters,
                             ...greylistFilterParameters,
                             ...paginationParameters,

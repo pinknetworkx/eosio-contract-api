@@ -9,8 +9,8 @@ import {
     actionGreylistParameters,
     dateBoundaryParameters,
     getOpenAPI3Responses,
-    paginationParameters,
-    primaryBoundaryParameters
+    getPrimaryBoundaryParams,
+    paginationParameters
 } from '../../../docs';
 import { listingFilterParameters } from '../openapi';
 import {
@@ -77,7 +77,7 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                         ...listingFilterParameters,
                         ...baseAssetFilterParameters,
                         ...extendedAssetFilterParameters,
-                        ...primaryBoundaryParameters,
+                        ...getPrimaryBoundaryParams('sale_id'),
                         ...dateBoundaryParameters,
                         ...paginationParameters,
                         {
@@ -130,7 +130,6 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                         },
                         ...baseAssetFilterParameters,
                         ...extendedAssetFilterParameters,
-                        ...primaryBoundaryParameters,
                         ...paginationParameters,
                         {
                             name: 'sort',

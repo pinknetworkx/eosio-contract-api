@@ -2,7 +2,11 @@ import * as express from 'express';
 
 import { AtomicMarketNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
+import {
+    getOpenAPI3Responses,
+    getPrimaryBoundaryParams,
+    paginationParameters,
+} from '../../../docs';
 import {
     extendedAssetFilterParameters,
     baseAssetFilterParameters,
@@ -217,7 +221,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                         },
                         ...hideOffersParameters,
                         ...greylistFilterParameters,
-                        ...primaryBoundaryParameters
+                        ...getPrimaryBoundaryParams('asset_id'),
                     ],
                     responses: getOpenAPI3Responses([500, 200], {
                         type: 'array',
@@ -256,7 +260,7 @@ export function pricesEndpoints(core: AtomicMarketNamespace, server: HTTPServer,
                         },
                         ...hideOffersParameters,
                         ...greylistFilterParameters,
-                        ...primaryBoundaryParameters
+                        ...getPrimaryBoundaryParams('asset_id'),
                     ],
                     responses: getOpenAPI3Responses([500, 200], {
                         type: 'object',

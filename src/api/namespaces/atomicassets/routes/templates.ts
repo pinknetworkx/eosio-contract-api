@@ -6,8 +6,8 @@ import {
     actionGreylistParameters,
     dateBoundaryParameters,
     getOpenAPI3Responses,
+    getPrimaryBoundaryParams,
     paginationParameters,
-    primaryBoundaryParameters
 } from '../../../docs';
 import { atomicDataFilter, greylistFilterParameters } from '../openapi';
 import {
@@ -120,7 +120,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                             schema: {type: 'string'}
                         },
                         ...greylistFilterParameters,
-                        ...primaryBoundaryParameters,
+                        ...getPrimaryBoundaryParams('template_id'),
                         ...dateBoundaryParameters,
                         ...paginationParameters,
                         {

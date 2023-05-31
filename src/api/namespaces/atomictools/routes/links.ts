@@ -6,8 +6,8 @@ import {
     actionGreylistParameters,
     dateBoundaryParameters,
     getOpenAPI3Responses,
+    getPrimaryBoundaryParams,
     paginationParameters,
-    primaryBoundaryParameters
 } from '../../../docs';
 import { LinkState } from '../../../../filler/handlers/atomictools';
 import { greylistFilterParameters } from '../../atomicassets/openapi';
@@ -68,7 +68,7 @@ export function linksEndpoints(core: AtomicToolsNamespace, server: HTTPServer, r
                             schema: {type: 'string'}
                         },
                         ...greylistFilterParameters,
-                        ...primaryBoundaryParameters,
+                        ...getPrimaryBoundaryParams('link_id'),
                         ...dateBoundaryParameters,
                         ...paginationParameters,
                         {

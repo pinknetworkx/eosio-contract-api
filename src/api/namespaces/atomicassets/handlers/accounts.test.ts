@@ -2,7 +2,7 @@ import {expect} from 'chai';
 
 import {initAtomicAssetsTest} from '../test';
 import {getAccountAction, getAccountCollectionAction, getAccountsAction} from './accounts';
-import {formatCollection} from '../format';
+import {formatCollection, formatSchema, formatTemplate} from '../format';
 
 describe('Account handler', () => {
     const {client, txit} = initAtomicAssetsTest();
@@ -12,14 +12,19 @@ describe('Account handler', () => {
             const collection = await client.createCollection({
                 collection_name: 'collection',
             });
+            const schema = await client.createSchema({
+                collection_name: collection['collection_name'],
+            });
             const template = await client.createTemplate({
                 collection_name: collection['collection_name'],
+                schema_name: schema['schema_name'],
             });
 
             const asset = await client.createAsset({
                 owner: 'account1',
                 collection_name: collection['collection_name'],
                 template_id: template['template_id'],
+                schema_name: schema['schema_name'],
             });
 
             // Another contract won't show
@@ -27,12 +32,23 @@ describe('Account handler', () => {
                 owner: 'account1',
                 collection_name: collection['collection_name'],
                 template_id: template['template_id'],
+                schema_name: schema['schema_name'],
                 contract: 'another_cont'
             });
 
             const collectionViewInfo = await client.query(
                 'SELECT * FROM atomicassets_collections_master WHERE collection_name = $1',
                 [collection['collection_name']],
+            );
+
+            const schemaViewInfo = await client.query(
+                'SELECT * FROM atomicassets_schemas_master WHERE schema_name = $1',
+                [schema['schema_name']],
+            );
+
+            const templateViewInfo = await client.query(
+                'SELECT * FROM atomicassets_templates_master WHERE template_id = $1',
+                [template['template_id']],
             );
 
             const response = await getAccountAction({}, {
@@ -55,10 +71,18 @@ describe('Account handler', () => {
                 assets: '1',
             });
 
+            const resSchemas = response.schemas;
+            expect(resSchemas).length(1);
+            expect(resSchemas[0]).to.deep.equal({
+                schema: formatSchema(schemaViewInfo.rows[0]),
+                assets: '1',
+            });
+
             const resTemplates = response.templates;
             expect(resTemplates).length(1);
             expect(resTemplates[0]).to.deep.equal({
                 template_id: template['template_id'],
+                template: formatTemplate(templateViewInfo.rows[0]),
                 assets: '1',
                 collection_name: asset['collection_name'],
             });
