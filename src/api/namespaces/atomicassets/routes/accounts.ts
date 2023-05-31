@@ -87,12 +87,24 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                                         }
                                     }
                                 },
+                                schemas: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            schema: {'$ref': '#/components/schemas/Schema'},
+                                            assets: {type: 'string'}
+                                        }
+                                    }
+                                },
                                 templates: {
                                     type: 'array',
                                     items: {
                                         type: 'object',
                                         properties: {
+                                            collection_name: {type: 'string'},
                                             template_id: {type: 'string'},
+                                            template: {'$ref': '#/components/schemas/Template'},
                                             assets: {type: 'string'}
                                         }
                                     }
