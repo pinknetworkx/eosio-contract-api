@@ -23,11 +23,12 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
     router.all('/v1/templates', caching(), returnAsJSON(getTemplatesAction, core));
     router.all('/v1/templates/_count', caching(), returnAsJSON(getTemplatesCountAction, core));
 
-    router.all('/v1/templates/:collection_name/:template_id', caching({ignoreQueryString: true}), returnAsJSON(getTemplateAction, core));
-
-    router.all('/v1/templates/:collection_name/:template_id/stats', caching({ignoreQueryString: true}), returnAsJSON(getTemplateStatsAction, core));
+    router.all(['/v1/templates/:template_id/stats', '/v1/templates/:collection_name/:template_id/stats'],
+        caching({ignoreQueryString: true}), returnAsJSON(getTemplateStatsAction, core));
 
     router.all('/v1/templates/:collection_name/:template_id/logs', caching(), returnAsJSON(getTemplateLogsAction, core));
+
+    router.all('/v1/templates/:collection_name/:template_id', caching({ignoreQueryString: true}), returnAsJSON(getTemplateAction, core));
 
     return {
         tag: {
