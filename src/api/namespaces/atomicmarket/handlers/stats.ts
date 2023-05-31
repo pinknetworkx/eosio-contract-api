@@ -360,10 +360,6 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
         query.equalMany('template.schema_name', args.schema_name);
     }
 
-    if (args.template_id.length > 0) {
-        query.equalMany('template.template_id', args.template_id);
-    }
-
     if (args.sort === 'sales') {
         query.append('ORDER BY sales DESC NULLS LAST, template_id ASC');
     } else {

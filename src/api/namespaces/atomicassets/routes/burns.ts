@@ -1,6 +1,10 @@
 import * as express from 'express';
 
-import { getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
+import {
+    getOpenAPI3Responses,
+    getPrimaryBoundaryParams,
+    paginationParameters,
+} from '../../../docs';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { baseAssetFilterParameters, greylistFilterParameters, hideOffersParameters } from '../openapi';
@@ -33,7 +37,7 @@ export function burnEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, r
                         },
                         ...baseAssetFilterParameters,
                         ...greylistFilterParameters,
-                        ...primaryBoundaryParameters,
+                        ...getPrimaryBoundaryParams('burned_by_account'),
                         ...paginationParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {

@@ -7,8 +7,8 @@ import {
     actionGreylistParameters,
     dateBoundaryParameters,
     getOpenAPI3Responses,
-    paginationParameters,
-    primaryBoundaryParameters
+    getPrimaryBoundaryParams,
+    paginationParameters
 } from '../../../docs';
 import {
     atomicDataFilter,
@@ -68,7 +68,7 @@ export class AssetApi {
                             ...completeAssetFilterParameters,
                             ...hideOffersParameters,
                             ...greylistFilterParameters,
-                            ...primaryBoundaryParameters,
+                            ...getPrimaryBoundaryParams('asset_id'),
                             ...dateBoundaryParameters,
                             ...paginationParameters,
                             {

@@ -3,7 +3,12 @@ import * as express from 'express';
 import { AtomicMarketNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { atomicassetsComponents, greylistFilterParameters } from '../../atomicassets/openapi';
-import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
+import {
+    dateBoundaryParameters,
+    getOpenAPI3Responses,
+    getPrimaryBoundaryParams,
+    paginationParameters
+} from '../../../docs';
 import {
     getAccountStatsAction,
     getAllAccountStatsAction,
@@ -123,7 +128,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
-                        ...primaryBoundaryParameters,
+                        ...getPrimaryBoundaryParams('collection_name'),
                         ...dateBoundaryParameters,
                         ...paginationParameters,
                         ...greylistFilterParameters,
@@ -195,7 +200,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
-                        ...primaryBoundaryParameters,
                         ...dateBoundaryParameters,
                         ...greylistFilterParameters,
                         ...paginationParameters,
@@ -277,7 +281,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
-                        ...primaryBoundaryParameters,
                         ...dateBoundaryParameters,
                         ...paginationParameters,
                         {
@@ -398,6 +401,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             }
                         },
                         ...dateBoundaryParameters,
+                        ...getPrimaryBoundaryParams('template_id'),
                         ...paginationParameters,
                         {
                             name: 'sort',

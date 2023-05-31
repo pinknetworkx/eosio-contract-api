@@ -8,8 +8,8 @@ import {
     actionGreylistParameters,
     dateBoundaryParameters,
     getOpenAPI3Responses,
+    getPrimaryBoundaryParams,
     paginationParameters,
-    primaryBoundaryParameters
 } from '../../../docs';
 import { extendedAssetFilterParameters, atomicDataFilter, baseAssetFilterParameters } from '../../atomicassets/openapi';
 import { listingFilterParameters } from '../openapi';
@@ -81,7 +81,7 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                         ...listingFilterParameters,
                         ...baseAssetFilterParameters,
                         ...extendedAssetFilterParameters,
-                        ...primaryBoundaryParameters,
+                        ...getPrimaryBoundaryParams('auction_id'),
                         ...dateBoundaryParameters,
                         ...paginationParameters,
                         {

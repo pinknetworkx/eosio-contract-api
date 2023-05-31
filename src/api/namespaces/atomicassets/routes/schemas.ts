@@ -6,8 +6,8 @@ import {
     actionGreylistParameters,
     dateBoundaryParameters,
     getOpenAPI3Responses,
+    getPrimaryBoundaryParams,
     paginationParameters,
-    primaryBoundaryParameters
 } from '../../../docs';
 import { greylistFilterParameters } from '../openapi';
 import {
@@ -69,7 +69,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                             schema: {type: 'string'}
                         },
                         ...greylistFilterParameters,
-                        ...primaryBoundaryParameters,
+                        ...getPrimaryBoundaryParams('schema_name'),
                         ...dateBoundaryParameters,
                         ...paginationParameters,
                         {

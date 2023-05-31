@@ -7,8 +7,8 @@ import { FillerHook, fillTransfers } from '../filler';
 import {
     dateBoundaryParameters,
     getOpenAPI3Responses,
-    paginationParameters,
-    primaryBoundaryParameters
+    getPrimaryBoundaryParams,
+    paginationParameters
 } from '../../../docs';
 import { greylistFilterParameters } from '../openapi';
 import ApiNotificationReceiver from '../../../notification';
@@ -125,7 +125,7 @@ export class TransferApi {
                                 required: false,
                                 schema: {type: 'boolean'}
                             },
-                            ...primaryBoundaryParameters,
+                            ...getPrimaryBoundaryParams('transfer_id'),
                             ...dateBoundaryParameters,
                             ...greylistFilterParameters,
                             ...paginationParameters,
