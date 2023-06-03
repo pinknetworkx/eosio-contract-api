@@ -29,6 +29,15 @@ export async function getAccountAction(params: RequestValues, ctx: AtomicAssetsC
 }> {
     const templateCount = await getAssetCountByTemplate(params, ctx);
 
+    if (templateCount.rows.length === 0) {
+        return {
+            collections: [],
+            schemas: [],
+            templates: [],
+            assets: '0'
+        };
+    }
+
     const collections = await ctx.db.query(`SELECT json_object_agg(collection_name, row_to_json(c)) collection_lookup
         FROM (SELECT *, created_at_block::text, created_at_time::text FROM atomicassets_collections_master) c WHERE contract = $1 AND collection_name = ANY ($2)`,
         [ctx.coreArgs.atomicassets_account, templateCount.rows.map((row: any) => row.collection_name)]
