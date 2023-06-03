@@ -6,6 +6,7 @@ import {buildGreylistFilter, buildHideOffersFilter} from '../../utils';
 import {ICollection, ITemplate} from 'atomicassets/build/API/Explorer/Objects';
 import {formatCollection, formatSchema, formatTemplate} from '../../format';
 import {ISchema} from 'atomicassets/build/Schema';
+import { arrayUnique } from '../../../../../utils';
 
 /**
  * Retrieves the account stats lie collection and assets count and templates
@@ -38,26 +39,31 @@ export async function getAccountAction(params: RequestValues, ctx: AtomicAssetsC
         };
     }
 
+    const uniqueCollections = arrayUnique(templateCount.rows.map((row: any) => row.collection_name));
+
     const collections = await ctx.db.query(`SELECT json_object_agg(collection_name, row_to_json(c)) collection_lookup
         FROM (SELECT *, created_at_block::text, created_at_time::text FROM atomicassets_collections_master) c WHERE contract = $1 AND collection_name = ANY ($2)`,
-        [ctx.coreArgs.atomicassets_account, templateCount.rows.map((row: any) => row.collection_name)]
+        [ctx.coreArgs.atomicassets_account, uniqueCollections]
     );
     const collectionLookup: { [key: string]: any } = collections.rows[0].collection_lookup || {};
 
+
+    const uniqueSchemas = arrayUnique(templateCount.rows.map((row: any) => [row.collection_name, row.schema_name]), (a, b) => a[0] == b[0] && a[1] == b[1]);
+
     let nbVariables = 1;
-    const valuePlaceholders = templateCount.rows.map(() => `($${++nbVariables}::text, $${++nbVariables}::text)`).join(', ');
+    const valuePlaceholders = uniqueSchemas.map(() => `($${++nbVariables}::text, $${++nbVariables}::text)`).join(',');
 
     const schemas = await ctx.db.query(
         `SELECT json_object_agg(collection_name || ':' || schema_name, row_to_json(s)) schema_lookup
         FROM (SELECT *, created_at_block::text, created_at_time::text FROM atomicassets_schemas_master WHERE contract = $1 AND (collection_name, schema_name) IN (${valuePlaceholders})) s`,
-        [ctx.coreArgs.atomicassets_account, ...templateCount.rows.map((row: any) => [row.collection_name, row.schema_name]).flat()]
+        [ctx.coreArgs.atomicassets_account, ...uniqueSchemas.flat()]
     );
     const schemaLookup: { [key: string]: any } = schemas.rows[0].schema_lookup || {};
 
     const templates = await ctx.db.query(
         `SELECT json_object_agg(template_id, row_to_json(t)) template_lookup
         FROM (SELECT *, issued_supply::text, max_supply::text, created_at_block::text, created_at_time::text FROM atomicassets_templates_master WHERE contract = $1 AND template_id = ANY ($2)) t`,
-        [ctx.coreArgs.atomicassets_account, templateCount.rows.map((row: any) => row.template_id)]
+        [ctx.coreArgs.atomicassets_account, templateCount.rows.filter(row => !!row.template_id).map((row: any) => row.template_id)]
     );
     const templateLookup: { [key: string]: any } = templates.rows[0].template_lookup || {};
 

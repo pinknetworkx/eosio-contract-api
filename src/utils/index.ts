@@ -18,6 +18,10 @@ export function arrayChunk(arr: any[], size: number): any[] {
     );
 }
 
+export function arrayUnique<T>(array: T[], compare: (a: T, b: T) => boolean = (a, b) => a === b): T[] {
+    return array.filter((v, i, a) => a.findIndex(x => compare(v, x)) === i);
+}
+
 export function getStackTrace(): any {
     const obj: any = {};
     Error.captureStackTrace(obj, getStackTrace);
