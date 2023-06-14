@@ -33,6 +33,7 @@ CREATE OR REPLACE VIEW atomicmarket_buyoffers_master AS
             'collection_name', collection.collection_name,
             'name', collection.data->>'name',
             'img', collection.data->>'img',
+            'images', collection.data->>'images',
             'author', collection.author,
             'allow_notify', collection.allow_notify,
             'authorized_accounts', collection.authorized_accounts,
