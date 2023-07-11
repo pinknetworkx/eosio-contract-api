@@ -200,6 +200,15 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
+                        {
+                            name: 'collection_name',
+                            in: 'query',
+                            description: 'Collection Name',
+                            required: false,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
                         ...dateBoundaryParameters,
                         ...greylistFilterParameters,
                         ...paginationParameters,
