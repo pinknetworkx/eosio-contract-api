@@ -106,6 +106,7 @@ export async function getAllAccountStatsAction(params: RequestValues, ctx: Atomi
     const args = await filterQueryArgs(params, {
         collection_whitelist: {type: 'list[name]'},
         collection_blacklist: {type: 'list[name]'},
+        collection_name: {type: 'list[name]'},
 
         symbol: {type: 'string', min: 1},
 
@@ -126,7 +127,7 @@ export async function getAllAccountStatsAction(params: RequestValues, ctx: Atomi
     let queryString = buildAccountStatsQuery(args.after, args.before);
     const queryValues = [
         ctx.coreArgs.atomicmarket_account, args.symbol,
-        args.collection_whitelist,
+        [...args.collection_whitelist, ...args.collection_name],
         args.collection_blacklist
     ];
     let varCounter = queryValues.length;
