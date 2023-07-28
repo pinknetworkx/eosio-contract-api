@@ -160,12 +160,22 @@ async function buildSaleFilterV2(search: SalesSearchOptions): Promise<void> {
         max_price: {type: 'float', min: 0},
 
         template_blacklist: {type: 'list[id]'},
+
+        hide_templates_by_accounts: { type: 'list[name]' },
     });
 
     await buildMainFilterV2(search);
     await buildListingFilterV2(search);
 
     await buildAssetFilterV2(search);
+
+    if (args.hide_templates_by_accounts.length) {
+        query.addCondition(`NOT EXISTS(
+            SELECT asset_id FROM atomicassets_assets asset
+            WHERE asset.contract = listing.assets_contract AND (array['t' || asset.template_id] && listing.filter)
+            AND (asset.owner = ANY(${query.addVariable(args.hide_templates_by_accounts)}))
+        )`);
+    }
 
     if (args.template_blacklist.length) {
         const ignore = args.template_blacklist.map((t: number) => `t${t}`);
