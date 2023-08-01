@@ -119,7 +119,7 @@ export default class Filler {
         let lastBlockNum = 0;
         let lastOperations = 0;
 
-        let timeout = 3600 * 1000;
+        let timeout = 6 * 3600 * 1000;
 
         const interval = setInterval(async () => {
             if (!this.running) {
