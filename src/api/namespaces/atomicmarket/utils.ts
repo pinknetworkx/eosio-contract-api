@@ -228,13 +228,15 @@ export async function buildAuctionFilter(values: FilterValues, query: QueryBuild
         participant: {type: 'name'},
         bidder: {type: 'list[name]'},
 
+        hide_templates_by_accounts: {type: 'list[name]'},
+
         hide_empty_auctions: {type: 'bool'},
         template_blacklist: {type: 'list[id]'},
     });
 
     await buildListingFilter(values, query);
 
-    if (args.template_blacklist.length || hasAssetFilter(values, ['collection_name']) || hasDataFilters(values)) {
+    if (args.hide_templates_by_accounts.length || args.template_blacklist.length || hasAssetFilter(values, ['collection_name']) || hasDataFilters(values)) {
         const assetQuery = new QueryBuilder(
             'SELECT * FROM atomicmarket_auctions_assets auction_asset, ' +
             'atomicassets_assets asset LEFT JOIN atomicassets_templates "template" ON ("asset".contract = "template".contract AND "asset".template_id = "template".template_id)',
@@ -243,6 +245,15 @@ export async function buildAuctionFilter(values: FilterValues, query: QueryBuild
 
         assetQuery.addCondition('asset.contract = auction_asset.assets_contract AND asset.asset_id = auction_asset.asset_id');
         assetQuery.join('auction_asset', 'listing', ['market_contract', 'auction_id']);
+
+        if (args.hide_templates_by_accounts.length) {
+            assetQuery.addCondition(`NOT EXISTS(
+                SELECT asset_id FROM atomicassets_assets asset2 
+                WHERE owner = ANY(${assetQuery.addVariable(args.hide_templates_by_accounts)}) 
+                AND asset2.contract = asset.contract
+                AND asset2.template_id = asset.template_id
+            )`);
+        }
 
         if (args.template_blacklist.length) {
             assetQuery.notMany('"asset"."template_id"', args.template_blacklist, true);

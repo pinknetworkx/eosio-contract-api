@@ -313,6 +313,8 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
         schema_name: {type: 'list[name]'},
         template_id: {type: 'list[id]'},
 
+        hide_unlisted_templates: {type: 'bool', default: false},
+
         search: {type: 'string', min: 1},
 
         sort: {type: 'string', allowedValues: ['volume', 'sales'], default: 'volume'},
@@ -352,6 +354,13 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicM
     await buildGreylistFilter(params, query, { collectionName: '"template".collection_name' });
     await buildBoundaryFilter(params, query, '"template".template_id', 'int', null);
     buildDataConditions(params, query, {templateTable: '"template"'});
+
+    if (args.hide_unlisted_templates) {
+        query.addCondition(`EXISTS(
+            SELECT sale_id FROM atomicmarket_sales_filters_listed listing
+            WHERE listing.assets_contract = template.contract AND array['t' || template.template_id] && listing.filter
+        )`);
+    }
 
     if (args.collection_name.length > 0) {
         query.equalMany('template.collection_name', args.collection_name);

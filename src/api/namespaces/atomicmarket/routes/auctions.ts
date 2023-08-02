@@ -78,6 +78,15 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                             required: false,
                             schema: {type: 'boolean'}
                         },
+                        {
+                            name: 'hide_templates_by_accounts',
+                            in: 'query',
+                            description: 'Hide templates that are owned by specific accounts',
+                            required: false,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
                         ...listingFilterParameters,
                         ...baseAssetFilterParameters,
                         ...extendedAssetFilterParameters,

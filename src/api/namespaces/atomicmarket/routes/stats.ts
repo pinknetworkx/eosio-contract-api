@@ -409,6 +409,15 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
+                        {
+                            name: 'hide_unlisted_templates',
+                            in: 'query',
+                            description: 'Hide templates without any listed sale',
+                            required: false,
+                            schema: {
+                                type: 'boolean',
+                            }
+                        },
                         ...dateBoundaryParameters,
                         ...getPrimaryBoundaryParams('template_id'),
                         ...paginationParameters,
