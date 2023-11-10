@@ -135,5 +135,36 @@ export function logProcessor(core: AtomicMarketHandler, processor: DataProcessor
         }, AtomicMarketUpdatePriority.LOGS.valueOf()
     ));
 
+    /* TEMPLATE BUYOFFERS */
+    destructors.push(processor.onActionTrace(
+        contract, 'lognewtbuyo',
+        async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogNewBuyofferActionData>): Promise<void> => {
+            await db.logTrace(block, tx, trace, {
+                buyoffer_id: trace.act.data.buyoffer_id,
+                maker_marketplace: trace.act.data.maker_marketplace,
+                collection_fee: trace.act.data.collection_fee
+            });
+        }, AtomicMarketUpdatePriority.LOGS.valueOf()
+    ));
+
+    destructors.push(processor.onActionTrace(
+        contract, 'canceltbuyo',
+        async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<CancelBuyofferActionData>): Promise<void> => {
+            await db.logTrace(block, tx, trace, {
+                buyoffer_id: trace.act.data.buyoffer_id
+            });
+        }, AtomicMarketUpdatePriority.LOGS.valueOf()
+    ));
+
+    destructors.push(processor.onActionTrace(
+        contract, 'fulfilltbuyo',
+        async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<AcceptBuyofferActionData>): Promise<void> => {
+            await db.logTrace(block, tx, trace, {
+                buyoffer_id: trace.act.data.buyoffer_id,
+                taker_marketplace: trace.act.data.taker_marketplace
+            });
+        }, AtomicMarketUpdatePriority.LOGS.valueOf()
+    ));
+
     return (): any => destructors.map(fn => fn());
 }

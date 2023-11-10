@@ -1,6 +1,6 @@
 import { formatAsset } from '../atomicassets/format';
-import { AuctionState, BuyofferState, SaleState } from '../../../filler/handlers/atomicmarket';
-import { AuctionApiState, BuyofferApiState, SaleApiState } from './index';
+import { AuctionState, BuyofferState, SaleState, TemplateBuyofferState } from '../../../filler/handlers/atomicmarket';
+import { AuctionApiState, BuyofferApiState, SaleApiState, TemplateBuyofferApiState } from './index';
 import { OfferState } from '../../../filler/handlers/atomicassets';
 import { DB } from '../../server';
 import { FillerHook } from '../atomicassets/filler';
@@ -54,6 +54,29 @@ export function formatBuyoffer(row: any): any {
     delete data.raw_token_symbol;
     delete data.raw_token_precision;
     delete data.collection_name;
+    delete data.buyoffer_state;
+
+    return data;
+}
+
+export function formatTemplateBuyoffer(row: any): any {
+    const data = {...row};
+
+    data.price.amount = row.raw_price;
+
+    if (row.buyoffer_state === TemplateBuyofferState.LISTED.valueOf()) {
+        data.state = TemplateBuyofferApiState.LISTED.valueOf();
+    } else if (row.buyoffer_state === TemplateBuyofferState.CANCELED.valueOf()) {
+        data.state = TemplateBuyofferApiState.CANCELED.valueOf();
+    } else if (row.buyoffer_state === TemplateBuyofferState.SOLD.valueOf()) {
+        data.state = TemplateBuyofferState.SOLD.valueOf();
+    }
+
+    delete data.raw_price;
+    delete data.raw_token_symbol;
+    delete data.raw_token_precision;
+    delete data.collection_name;
+    delete data.template_id;
     delete data.buyoffer_state;
 
     return data;
