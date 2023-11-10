@@ -1,0 +1,63 @@
+name: Main workflow
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+    inputs:
+      namespace:
+        description: 'Namespace to run deployment against'
+        type: choice
+        options:
+          - eos-mainnet-1
+          - wax-mainnet-1
+          - wax-testnet-1
+          - proton-mainnet-1
+          - proton-testnet-1
+        required: true
+
+jobs:
+  test:
+    name: Test
+    uses: Spielworks-Market/backend-workflows/.github/workflows/test.yaml@main
+    secrets: inherit
+    with:
+      run_test_e2e: false
+      run_unit_test: false
+
+  build:
+    if: contains(fromJSON('["eos-mainnet-1", "wax-mainnet-1", "wax-testnet-1", "proton-mainnet-1", "proton-testnet-1"]'), inputs.namespace)
+    name: Build
+    needs: test
+    uses: Spielworks-Market/backend-workflows/.github/workflows/docker.yaml@main
+    with:
+      repository: eosio-contract-api
+    permissions:
+      id-token: write
+      contents: read
+
+  deploy-filler:
+    if: contains(fromJSON('["eos-mainnet-1", "wax-mainnet-1", "wax-testnet-1", "proton-mainnet-1", "proton-testnet-1"]'), inputs.namespace) && github.ref == 'refs/heads/main'
+    name: Prod filler
+    needs: build
+    uses: Spielworks-Market/eosio-contract-api-deployment/.github/workflows/deployment.yaml
+    with:
+      helm-namespace: ${{ inputs.namespace }}
+      release: filler
+    permissions:
+      id-token: write
+    secrets: inherit
+
+  deploy-server:
+    if: contains(fromJSON('["eos-mainnet-1", "wax-mainnet-1", "wax-testnet-1", "proton-mainnet-1", "proton-testnet-1"]'), inputs.namespace) && github.ref == 'refs/heads/main'
+    name: Prod server
+    needs: build
+    uses: Spielworks-Market/eosio-contract-api-deployment/.github/workflows/deployment.yaml
+    with:
+      helm-namespace: ${{ inputs.namespace }}
+      release: server
+    permissions:
+      id-token: write
+    secrets: inherit
