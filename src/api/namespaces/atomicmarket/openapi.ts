@@ -25,6 +25,17 @@ export const atomicmarketComponents = {
                     }
                 }
             },
+            template_buyoffers: {
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        market_contract: {type: 'string'},
+                        buyoffer_id: {type: 'string'},
+                        token_symbol: {type: 'string'},
+                    }
+                }
+            },
             prices: {
                 type: 'array',
                 items: {

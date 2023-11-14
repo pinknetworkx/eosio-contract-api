@@ -124,19 +124,34 @@ export class AtomicMarketNamespace extends ApiNamespace {
         const assetApi = new AssetApi(
             this, server, 'ListingAsset',
             'atomicassets_assets_master',
-            formatListingAsset, buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true})
+            formatListingAsset, buildAssetFillerHook({
+                fetchSales: true,
+                fetchAuctions: true,
+                fetchTemplateBuyoffers: true,
+                fetchPrices: true,
+            }),
         );
         const transferApi = new TransferApi(
             this, server, 'ListingTransfer',
             'atomicassets_transfers_master', formatTransfer,
             'atomicassets_assets_master',
-            formatListingAsset, buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true})
+            formatListingAsset, buildAssetFillerHook({
+                fetchSales: true,
+                fetchAuctions: true,
+                fetchTemplateBuyoffers: true,
+                fetchPrices: true,
+            })
         );
         const offerApi = new OfferApi(
             this, server, 'ListingOffer',
             'atomicassets_offers_master', formatOffer,
             'atomicassets_assets_master',
-            formatListingAsset, buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true})
+            formatListingAsset, buildAssetFillerHook({
+                fetchSales: true,
+                fetchAuctions: true,
+                fetchTemplateBuyoffers: true,
+                fetchPrices: true,
+            }),
         );
 
         endpointsDocs.push(assetsEndpoints(this, server, router));
