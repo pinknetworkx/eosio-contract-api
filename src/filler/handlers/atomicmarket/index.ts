@@ -18,6 +18,7 @@ import { saleProcessor } from './processors/sales';
 import { buyofferProcessor } from './processors/buyoffers';
 import { bonusfeeProcessor } from './processors/bonusfees';
 import { JobQueuePriority } from '../../jobqueue';
+import { templateBuyofferProcessor } from './processors/template-buyoffers';
 
 export const ATOMICMARKET_BASE_PRIORITY = Math.max(ATOMICASSETS_BASE_PRIORITY, DELPHIORACLE_BASE_PRIORITY) + 1000;
 
@@ -49,6 +50,12 @@ export enum BuyofferState {
     ACCEPTED = 3
 }
 
+export enum TemplateBuyofferState {
+    LISTED = 0,
+    CANCELED = 1,
+    SOLD = 2
+}
+
 export enum AtomicMarketUpdatePriority {
     TABLE_BALANCES = ATOMICMARKET_BASE_PRIORITY + 10,
     TABLE_MARKETPLACES = ATOMICMARKET_BASE_PRIORITY + 10,
@@ -57,10 +64,12 @@ export enum AtomicMarketUpdatePriority {
     ACTION_CREATE_SALE = ATOMICMARKET_BASE_PRIORITY + 20,
     ACTION_CREATE_AUCTION = ATOMICMARKET_BASE_PRIORITY + 20,
     ACTION_CREATE_BUYOFFER = ATOMICMARKET_BASE_PRIORITY + 20,
+    ACTION_CREATE_TEMPLATE_BUYOFFER = ATOMICMARKET_BASE_PRIORITY + 20,
     TABLE_AUCTIONS = ATOMICMARKET_BASE_PRIORITY + 30,
     ACTION_UPDATE_SALE = ATOMICMARKET_BASE_PRIORITY + 40,
     ACTION_UPDATE_AUCTION = ATOMICMARKET_BASE_PRIORITY + 40,
     ACTION_UPDATE_BUYOFFER = ATOMICMARKET_BASE_PRIORITY + 40,
+    ACTION_UPDATE_TEMPLATE_BUYOFFER = ATOMICMARKET_BASE_PRIORITY + 40,
     LOGS = ATOMICMARKET_BASE_PRIORITY
 }
 
@@ -80,7 +89,8 @@ export default class AtomicMarketHandler extends ContractHandler {
         const views = [
             'atomicmarket_assets_master', 'atomicmarket_auctions_master',
             'atomicmarket_sales_master', 'atomicmarket_sale_prices_master',
-            'atomicmarket_stats_prices_master', 'atomicmarket_buyoffers_master'
+            'atomicmarket_stats_prices_master', 'atomicmarket_buyoffers_master',
+            'atomicmarket_template_buyoffers_master'
         ];
 
         const procedures = ['atomicmarket_auction_mints', 'atomicmarket_buyoffer_mints', 'atomicmarket_sale_mints'];
@@ -136,6 +146,11 @@ export default class AtomicMarketHandler extends ContractHandler {
             await client.query(fs.readFileSync('./definitions/views/atomicmarket_auctions_master.sql', {encoding: 'utf8'}));
             await client.query(fs.readFileSync('./definitions/views/atomicmarket_buyoffers_master.sql', {encoding: 'utf8'}));
             await client.query(fs.readFileSync('./definitions/views/atomicmarket_sales_master.sql', {encoding: 'utf8'}));
+        }
+
+        if (version === '1.3.21') {
+            await client.query(fs.readFileSync('./definitions/views/atomicmarket_template_buyoffers_master.sql', {encoding: 'utf8'}));
+            await client.query(fs.readFileSync('./definitions/procedures/atomicmarket_template_buyoffer_mints.sql', {encoding: 'utf8'}));
         }
     }
 
@@ -237,6 +252,7 @@ export default class AtomicMarketHandler extends ContractHandler {
             'atomicmarket_config', 'atomicmarket_delphi_pairs', 'atomicmarket_marketplaces',
             'atomicmarket_token_symbols', 'atomicmarket_bonusfees', 'atomicmarket_balances',
             'atomicmarket_stats_markets', 'atomicmarket_template_prices',
+            'atomicmarket_template_buyoffers', 'atomicmarket_template_buyoffers_assets',
         ];
 
         for (const table of tables) {
@@ -254,6 +270,7 @@ export default class AtomicMarketHandler extends ContractHandler {
         destructors.push(balanceProcessor(this, processor));
         destructors.push(bonusfeeProcessor(this, processor));
         destructors.push(buyofferProcessor(this, processor, notifier));
+        destructors.push(templateBuyofferProcessor(this, processor, notifier));
         destructors.push(configProcessor(this, processor));
         destructors.push(marketplaceProcessor(this, processor));
         destructors.push(saleProcessor(this, processor, notifier));

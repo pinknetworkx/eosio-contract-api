@@ -175,6 +175,39 @@ CREATE TABLE atomicmarket_buyoffers_assets
     CONSTRAINT atomicmarket_buyoffers_assets_pkey PRIMARY KEY (market_contract, buyoffer_id, assets_contract, asset_id)
 );
 
+CREATE TABLE atomicmarket_template_buyoffers
+(
+    market_contract character varying(12) NOT NULL,
+    buyoffer_id bigint NOT NULL,
+    buyer character varying(12) NOT NULL,
+    seller character varying(12),
+    price bigint NOT NULL,
+    token_symbol character varying(12) NOT NULL,
+    assets_contract character varying(12) NOT NULL,
+    maker_marketplace character varying(12) NOT NULL,
+    taker_marketplace character varying(12),
+    template_mint int4range,
+    collection_name character varying(12) NOT NULL,
+    collection_fee double precision NOT NULL,
+    template_id bigint NOT NULL,
+    state smallint NOT NULL,
+    updated_at_block bigint NOT NULL,
+    updated_at_time bigint NOT NULL,
+    created_at_block bigint NOT NULL,
+    created_at_time bigint NOT NULL,
+    CONSTRAINT atomicmarket_template_buyoffers_pkey PRIMARY KEY (market_contract, buyoffer_id)
+);
+
+CREATE TABLE atomicmarket_template_buyoffers_assets
+(
+    market_contract character varying(12) NOT NULL,
+    buyoffer_id bigint NOT NULL,
+    assets_contract character varying(12) NOT NULL,
+    "index" integer NOT NULL,
+    asset_id bigint NOT NULL,
+    CONSTRAINT atomicmarket_template_buyoffers_assets_pkey PRIMARY KEY (market_contract, buyoffer_id, assets_contract, asset_id)
+);
+
 CREATE TABLE atomicmarket_stats_markets (
     listing_id bigint not null,
     price bigint not null,
@@ -254,6 +287,26 @@ ALTER TABLE ONLY atomicmarket_buyoffers_assets
 
 
 
+ALTER TABLE ONLY atomicmarket_template_buyoffers
+    ADD CONSTRAINT atomicmarket_template_buyoffers_token_symbol_fkey FOREIGN KEY (market_contract, token_symbol)
+    REFERENCES atomicmarket_tokens (market_contract, token_symbol) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+
+ALTER TABLE ONLY atomicmarket_template_buyoffers
+    ADD CONSTRAINT atomicmarket_template_buyoffers_maker_marketplace_fkey FOREIGN KEY (market_contract, maker_marketplace)
+    REFERENCES atomicmarket_marketplaces (market_contract, marketplace_name) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+
+ALTER TABLE ONLY atomicmarket_template_buyoffers
+    ADD CONSTRAINT atomicmarket_template_buyoffers_taker_marketplace_fkey FOREIGN KEY (market_contract, taker_marketplace)
+    REFERENCES atomicmarket_marketplaces (market_contract, marketplace_name) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+
+
+
+ALTER TABLE ONLY atomicmarket_template_buyoffers_assets
+    ADD CONSTRAINT atomicmarket_template_buyoffers_assets_template_buyoffers_fkey FOREIGN KEY (market_contract, buyoffer_id)
+    REFERENCES atomicmarket_template_buyoffers (market_contract, buyoffer_id) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+
+
+
 -- Indexes
 CREATE INDEX atomicmarket_auctions_auction_id ON atomicmarket_auctions USING btree (auction_id);
 CREATE INDEX atomicmarket_auctions_seller ON atomicmarket_auctions USING hash (seller);
@@ -293,10 +346,23 @@ CREATE INDEX atomicmarket_buyoffers_created_at_time ON atomicmarket_buyoffers US
 
 CREATE INDEX atomicmarket_buyoffers_assets_asset_id ON atomicmarket_buyoffers_assets USING btree (asset_id);
 
+CREATE INDEX atomicmarket_template_buyoffers_buyoffer_id ON atomicmarket_template_buyoffers USING btree (buyoffer_id);
+CREATE INDEX atomicmarket_template_buyoffers_seller ON atomicmarket_template_buyoffers USING hash (seller);
+CREATE INDEX atomicmarket_template_buyoffers_buyer ON atomicmarket_template_buyoffers USING hash (buyer);
+CREATE INDEX atomicmarket_template_buyoffers_price ON atomicmarket_template_buyoffers USING btree (price);
+CREATE INDEX atomicmarket_template_buyoffers_collection_name ON atomicmarket_template_buyoffers USING btree (collection_name);
+CREATE INDEX atomicmarket_template_buyoffers_template_id ON atomicmarket_template_buyoffers USING btree (template_id);
+CREATE INDEX atomicmarket_template_buyoffers_state ON atomicmarket_template_buyoffers USING btree (state);
+CREATE INDEX atomicmarket_template_buyoffers_updated_at_time ON atomicmarket_template_buyoffers USING btree (updated_at_time);
+CREATE INDEX atomicmarket_template_buyoffers_created_at_time ON atomicmarket_template_buyoffers USING btree (created_at_time);
+
+CREATE INDEX atomicmarket_template_buyoffers_assets_asset_id ON atomicmarket_template_buyoffers_assets USING btree (asset_id);
+
 
 CREATE INDEX atomicmarket_sales_missing_mint ON atomicmarket_sales(assets_contract, sale_id, offer_id) WHERE template_mint IS NULL;
 CREATE INDEX atomicmarket_buyoffers_missing_mint ON atomicmarket_buyoffers(assets_contract, buyoffer_id) WHERE template_mint IS NULL;
 CREATE INDEX atomicmarket_auctions_missing_mint ON atomicmarket_auctions(assets_contract, auction_id) WHERE template_mint IS NULL;
+CREATE INDEX atomicmarket_template_buyoffers_missing_mint ON atomicmarket_template_buyoffers(assets_contract, buyoffer_id) WHERE template_mint IS NULL AND "state" = 2; -- Only SOLD template_buyoffers have an nft
 
 
 CREATE INDEX atomicmarket_stats_markets_collection_name ON atomicmarket_stats_markets USING btree (collection_name);
