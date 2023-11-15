@@ -203,6 +203,46 @@ export const atomicmarketComponents = {
             created_at_time: {type: 'string'}
         }
     },
+    TemplateBuyoffer: {
+        type: 'object',
+        properties: {
+            market_contract: {type: 'string'},
+            assets_contract: {type: 'string'},
+            buyoffer_id: {type: 'string'},
+
+            seller: {type: 'string'},
+            buyer: {type: 'string'},
+
+            price: {
+                type: 'object',
+                properties: {
+                    amount: {type: 'string'},
+                    token_precision: {type: 'integer'},
+                    token_contract: {type: 'string'},
+                    token_symbol: {type: 'string'}
+                }
+            },
+
+            assets: {
+                type: 'array',
+                items: {'$ref': '#/components/schemas/Asset'}
+            },
+
+            maker_marketplace: {type: 'string', nullable: true},
+            taker_marketplace: {type: 'string', nullable: true},
+
+            collection: atomicassetsComponents.Asset.properties.collection,
+
+            template: atomicassetsComponents.Asset.properties.template,
+
+            state: {type: 'integer'},
+
+            updated_at_block: {type: 'string'},
+            updated_at_time: {type: 'string'},
+            created_at_block: {type: 'string'},
+            created_at_time: {type: 'string'}
+        }
+    },
     Marketplace: {
         type: 'object',
         properties: {
