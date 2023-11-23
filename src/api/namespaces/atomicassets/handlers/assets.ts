@@ -10,6 +10,7 @@ import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter, hasStrong
 import { ApiError } from '../../../error';
 import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
 import { filterQueryArgs, FilterValues } from '../../validation';
+import { TemplateBuyofferState } from '../../../../filler/handlers/atomicmarket';
 
 export async function buildAssetQueryCondition(
     values: FilterValues, query: QueryBuilder,
@@ -21,6 +22,7 @@ export async function buildAssetQueryCondition(
 
         only_duplicate_templates: {type: 'bool'},
         has_backed_tokens: {type: 'bool'},
+        has_template_buyoffer: {type: 'bool'},
 
         template_mint: {type: 'int', min: 1},
 
@@ -71,6 +73,24 @@ export async function buildAssetQueryCondition(
             query.addCondition('NOT EXISTS (' +
                 'SELECT * FROM atomicassets_assets_backed_tokens token ' +
                 'WHERE ' + options.assetTable + '.contract = token.contract AND ' + options.assetTable + '.asset_id = token.asset_id' +
+                ')');
+        }
+    }
+
+    if (typeof args.has_template_buyoffer === 'boolean') {
+        if (args.has_template_buyoffer) {
+            query.addCondition('EXISTS (' +
+                'SELECT * FROM atomicmarket_template_buyoffers t_buyoffer ' +
+                'WHERE ' + options.assetTable + '.contract = t_buyoffer.assets_contract ' +
+                'AND ' + options.assetTable + '.template_id = t_buyoffer.template_id ' +
+                'AND t_buyoffer.state = ' + TemplateBuyofferState.LISTED +
+                ')');
+        } else {
+            query.addCondition('NOT EXISTS (' +
+                'SELECT * FROM atomicmarket_template_buyoffers t_buyoffer ' +
+                'WHERE ' + options.assetTable + '.contract = t_buyoffer.assets_contract ' +
+                'AND ' + options.assetTable + '.template_id = t_buyoffer.template_id ' +
+                'AND t_buyoffer.state = ' + TemplateBuyofferState.LISTED +
                 ')');
         }
     }

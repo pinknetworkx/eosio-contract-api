@@ -110,10 +110,11 @@ export function formatListingAsset(row: any): any {
 }
 
 export function buildAssetFillerHook(
-    options: {fetchAuctions?: boolean, fetchSales?: boolean, fetchPrices?: boolean}
+    options: {fetchTemplateBuyoffers?: boolean, fetchAuctions?: boolean, fetchSales?: boolean, fetchPrices?: boolean}
 ): FillerHook {
     return async (db: DB, contract: string, rows: any[]): Promise<any[]> => {
         const assetIDs = rows.map(asset => asset.asset_id);
+        const templateIDs = new Set(rows.map(asset => asset.template_id).filter((templateID: any) => templateID !== null && templateID > -1));
 
         const queries = await Promise.all([
             options.fetchSales && db.query(
@@ -133,6 +134,20 @@ export function buildAssetFillerHook(
                 'auction.state = ' + AuctionState.LISTED.valueOf() + ' AND auction.end_time > ' + (Date.now() / 1000) + '::BIGINT ',
                 [contract, assetIDs]
             ),
+            options.fetchTemplateBuyoffers && db.query(
+                'SELECT t_buyoffer.market_contract, t_buyoffer.template_id, t_buyoffer.token_symbol, ' +
+                'MAX(t_buyoffer.price) price, ( ' +
+                    'SELECT t_buyoffer2.buyoffer_id ' +
+                    'FROM atomicmarket_template_buyoffers t_buyoffer2 ' +
+                    'WHERE t_buyoffer2.market_contract = t_buyoffer.market_contract AND t_buyoffer2.template_id = t_buyoffer.template_id ' +
+                    'AND t_buyoffer2.token_symbol = t_buyoffer.token_symbol AND t_buyoffer2.price = MAX(t_buyoffer.price) AND state = 0 ' +
+                ') buyoffer_id ' +
+                'FROM atomicmarket_template_buyoffers t_buyoffer ' +
+                'WHERE t_buyoffer.assets_contract = $1 AND t_buyoffer.template_id = ANY($2) AND ' +
+                't_buyoffer.state = ' + TemplateBuyofferState.LISTED.valueOf() + ' ' +
+                'GROUP BY market_contract, template_id, token_symbol',
+                [contract, [...templateIDs]]
+            ),
             options.fetchPrices && db.query(
                 'SELECT DISTINCT ON (price.market_contract, price.collection_name, price.template_id, price.symbol) ' +
                 'price.market_contract, asset.collection_name, asset.template_id, ' +
@@ -148,7 +163,7 @@ export function buildAssetFillerHook(
         ]);
 
         const assetData: {[key: string]: {sales: any[], auctions: any[]}} = {};
-        const templateData: {[key: string]: {prices: any[]}} = {};
+        const templateData: {[key: string]: {prices: any[], template_buyoffers: any[]}} = {};
 
         for (const row of rows) {
             assetData[row.asset_id] = {sales: [], auctions: []};
@@ -159,7 +174,7 @@ export function buildAssetFillerHook(
                 continue;
             }
 
-            templateData[row.template.template_id] = {prices: []};
+            templateData[row.template.template_id] = {prices: [], template_buyoffers: []};
         }
 
         if (queries[0]) {
@@ -176,6 +191,16 @@ export function buildAssetFillerHook(
 
         if (queries[2]) {
             for (const row of queries[2].rows) {
+                templateData[row.template_id].template_buyoffers.push({
+                    market_contract: row.market_contract,
+                    buyoffer_id: row.buyoffer_id,
+                    token_symbol: row.token_symbol,
+                });
+            }
+        }
+
+        if (queries[3]) {
+            for (const row of queries[3].rows) {
                 templateData[row.template_id].prices.push({
                     market_contract: row.market_contract,
                     token: {
