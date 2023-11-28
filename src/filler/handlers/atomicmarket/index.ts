@@ -138,7 +138,7 @@ export default class AtomicMarketHandler extends ContractHandler {
             await client.query(fs.readFileSync('./definitions/views/atomicmarket_sales_master.sql', {encoding: 'utf8'}));
         }
 
-        if (version === '1.3.23') {
+        if (version === '1.3.24') {
             await client.query(fs.readFileSync('./definitions/views/atomicmarket_auctions_master.sql', {encoding: 'utf8'}));
             await client.query(fs.readFileSync('./definitions/views/atomicmarket_buyoffers_master.sql', {encoding: 'utf8'}));
             await client.query(fs.readFileSync('./definitions/views/atomicmarket_template_buyoffers_master.sql', {encoding: 'utf8'}));
