@@ -83,30 +83,64 @@ export class AtomicMarketTestClient extends AtomicAssetsTestClient {
 
     async createBuyOffer(values: Record<string, any> = {}): Promise<Record<string, any>> {
         return this.insert('atomicmarket_buyoffers', {
-              market_contract: 'amtest',
-              buyoffer_id: values?.buyoffer_id ?? this.getId(),
-              buyer: 'buyer',
-              seller: 'seller',
-              price: Math.floor(Math.random()*100),
-              token_symbol: 'TEST',
-              assets_contract: 'aatest',
-              maker_marketplace: 'marketplace',
-              taker_marketplace: 'marketplace',
-              collection_name: values.collection_name ?? (await this.createCollection()).collection_name,
-              collection_fee: Math.random(),
-              state: SaleState.SOLD,
-              memo: 'memo',
-              decline_memo: 'something',
-              updated_at_block: Math.floor(Math.random()*100),
-              updated_at_time: Date.now(),
-              created_at_block: Math.floor(Math.random()*100),
-              created_at_time: Date.now(),
+            market_contract: 'amtest',
+            buyoffer_id: values?.buyoffer_id ?? this.getId(),
+            buyer: 'buyer',
+            seller: 'seller',
+            price: Math.floor(Math.random()*100),
+            token_symbol: 'TEST',
+            assets_contract: 'aatest',
+            maker_marketplace: 'marketplace',
+            taker_marketplace: 'marketplace',
+            collection_name: values.collection_name ?? (await this.createCollection()).collection_name,
+            collection_fee: Math.random(),
+            state: SaleState.SOLD,
+            memo: 'memo',
+            decline_memo: 'something',
+            updated_at_block: Math.floor(Math.random()*100),
+            updated_at_time: Date.now(),
+            created_at_block: Math.floor(Math.random()*100),
+            created_at_time: Date.now(),
             ...values,
         });
     }
 
     async createBuyOfferAssets(values: Record<string, any> = {}): Promise<Record<string, any>> {
         return this.insert('atomicmarket_buyoffers_assets', {
+            market_contract: 'amtest',
+            buyoffer_id: values?.buyoffer_id ?? this.getId(),
+            assets_contract: 'aatest',
+            index: 1,
+            asset_id: values?.asset_id ?? this.getId(),
+            ...values,
+        });
+    }
+
+    async createTemplateBuyOffer(values: Record<string, any> = {}): Promise<Record<string, any>> {
+        return this.insert('atomicmarket_template_buyoffers', {
+            market_contract: 'amtest',
+            buyoffer_id: values?.buyoffer_id ?? this.getId(),
+            buyer: 'buyer',
+            seller: 'seller',
+            price: Math.floor(Math.random()*100),
+            token_symbol: 'TEST',
+            assets_contract: 'aatest',
+            maker_marketplace: 'marketplace',
+            taker_marketplace: 'marketplace',
+            collection_name: values.collection_name ?? (await this.createCollection()).collection_name,
+            collection_fee: Math.random(),
+            template_id: this.getId(),
+            state: SaleState.SOLD,
+            updated_at_block: Math.floor(Math.random()*100),
+            updated_at_time: Date.now(),
+            created_at_block: Math.floor(Math.random()*100),
+            created_at_time: Date.now(),
+            ...values,
+        });
+    }
+
+    async createTemplateBuyOfferAssets(values: Record<string, any> = {}): Promise<Record<string, any>> {
+        return this.insert('atomicmarket_template_buyoffers_assets', {
             market_contract: 'amtest',
             buyoffer_id: values?.buyoffer_id ?? this.getId(),
             assets_contract: 'aatest',

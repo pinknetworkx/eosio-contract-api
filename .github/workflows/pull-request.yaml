@@ -1,0 +1,15 @@
+name: PR workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Test
+    uses: Spielworks-Market/backend-workflows/.github/workflows/test.yaml@main
+    secrets: inherit
+    with:
+      run_test_e2e: false
+      run_unit_test: false
