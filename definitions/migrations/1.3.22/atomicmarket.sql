@@ -12,3 +12,7 @@ ALTER TABLE atomicmarket_auctions ALTER COLUMN maker_marketplace TYPE CHARACTER 
 ALTER TABLE atomicmarket_auctions ALTER COLUMN taker_marketplace TYPE CHARACTER VARYING(13);
 ALTER TABLE atomicmarket_buyoffers ALTER COLUMN maker_marketplace TYPE CHARACTER VARYING(13);
 ALTER TABLE atomicmarket_buyoffers ALTER COLUMN taker_marketplace TYPE CHARACTER VARYING(13);
+ALTER TABLE atomicmarket_template_buyoffers ALTER COLUMN maker_marketplace TYPE CHARACTER VARYING(13);
+ALTER TABLE atomicmarket_template_buyoffers ALTER COLUMN taker_marketplace TYPE CHARACTER VARYING(13);
+ALTER TABLE atomicmarket_stats_markets ALTER COLUMN maker_marketplace TYPE CHARACTER VARYING(13);
+ALTER TABLE atomicmarket_stats_markets ALTER COLUMN taker_marketplace TYPE CHARACTER VARYING(13);
