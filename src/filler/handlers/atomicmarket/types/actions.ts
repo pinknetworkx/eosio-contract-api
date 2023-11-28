@@ -112,3 +112,21 @@ export type AcceptBuyofferActionData = {
     expected_price: string,
     taker_marketplace: string
 }
+
+export type LogNewTemplateBuyofferActionData = {
+    buyoffer_id: string;
+    buyer: string;
+    price: string;
+    template_id: string;
+    maker_marketplace: string;
+    collection_name: string;
+    collection_fee: number;
+}
+
+export interface FulfillTemplateBuyofferActionData {
+    seller: string;
+    buyoffer_id: string;
+    asset_id: string;
+    expected_price: string;
+    taker_marketplace: string;
+}

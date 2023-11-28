@@ -22,8 +22,8 @@ export async function getMarketAssetsAction(params: RequestValues, ctx: AtomicMa
     return await fillAssets(
         ctx.db, ctx.coreArgs.atomicassets_account,
         result,
-        formatListingAsset, 'atomicmarket_assets_master',
-        buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true})
+        formatListingAsset, 'atomicassets_assets_master',
+        buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchTemplateBuyoffers: true, fetchPrices: true})
     );
 }
 

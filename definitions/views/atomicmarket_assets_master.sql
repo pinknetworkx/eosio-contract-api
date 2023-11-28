@@ -23,5 +23,17 @@ CREATE OR REPLACE VIEW atomicmarket_assets_master AS
             WHERE auction.market_contract = auction_asset.market_contract AND auction.auction_id = auction_asset.auction_id AND
                 auction_asset.assets_contract = asset.contract AND auction_asset.asset_id = asset.asset_id AND
                 auction.state = 1 AND auction.end_time > (extract(epoch from now()) * 1000)::bigint
-        ) auctions
+        ) auctions,
+        ARRAY(
+            SELECT
+            		(SELECT json_build_object(
+            			'market_contract', t_buyoffer2.market_contract,
+            			'buyoffer_id', t_buyoffer2.buyoffer_id,
+            			'token_symbol', t_buyoffer2.token_symbol
+            		) FROM atomicmarket_template_buyoffers t_buyoffer2 WHERE t_buyoffer2.template_id = t_buyoffer.template_id AND t_buyoffer2.token_symbol = t_buyoffer.token_symbol AND t_buyoffer2.price = MAX(t_buyoffer.price) AND state = 0)
+            	FROM atomicmarket_template_buyoffers t_buyoffer
+            	WHERE t_buyoffer.assets_contract = asset.contract AND t_buyoffer.template_id = asset.template_id AND
+            		t_buyoffer.state = 0
+            	GROUP BY template_id, token_symbol
+        ) template_buyoffers
     FROM atomicassets_assets_master asset
