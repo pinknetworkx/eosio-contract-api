@@ -141,6 +141,7 @@ export function buildAssetFillerHook(
                     'FROM atomicmarket_template_buyoffers t_buyoffer2 ' +
                     'WHERE t_buyoffer2.market_contract = t_buyoffer.market_contract AND t_buyoffer2.template_id = t_buyoffer.template_id ' +
                     'AND t_buyoffer2.token_symbol = t_buyoffer.token_symbol AND t_buyoffer2.price = MAX(t_buyoffer.price) AND state = 0 ' +
+                    'LIMIT 1 ' +
                 ') buyoffer_id ' +
                 'FROM atomicmarket_template_buyoffers t_buyoffer ' +
                 'WHERE t_buyoffer.assets_contract = $1 AND t_buyoffer.template_id = ANY($2) AND ' +
