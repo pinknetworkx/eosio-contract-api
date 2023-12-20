@@ -4,11 +4,12 @@ import { handlers } from './handlers/loader';
 import { compareVersionString } from '../utils';
 import PostgresConnection from '../connections/postgres';
 import { IReaderConfig } from '../types/config';
+import { fixTemplateBuyoffers } from '../utils/fix-import-template-buyoffers';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const readerConfigs: IReaderConfig[] = require('../../config/readers.config.json');
 
-export async function upgradeDb(database: PostgresConnection): Promise<void> {
+export async function upgradeDb(database: PostgresConnection, chainId: string): Promise<void> {
     if (!(await database.tableExists('dbinfo'))) {
         logger.info('Could not find base tables. Create them now...');
 
@@ -94,6 +95,12 @@ export async function upgradeDb(database: PostgresConnection): Promise<void> {
 
             await client.query('COMMIT');
         }
+    }
+    const atomicmarketReader = readerConfigs.filter(row => row.contracts.find(contract => contract.handler === 'atomicmarket') != null);
+    if (atomicmarketReader.length === 1) {
+        await fixTemplateBuyoffers(client, chainId, atomicmarketReader[0].name);
+    } else {
+        throw new Error('Could not find one specific atomicmarket reader config');
     }
 
     client.release();

@@ -47,7 +47,7 @@ if (cluster.isPrimary || cluster.isMaster) {
         }
 
         try {
-            await upgradeDb(connection.database);
+            await upgradeDb(connection.database, connectionConfig.chain.chain_id);
         } catch (error) {
             logger.error('Failed to execute migration scripts', error);
 

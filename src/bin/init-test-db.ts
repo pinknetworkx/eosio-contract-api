@@ -18,7 +18,7 @@ async function main(): Promise<void> {
 
     const connection = new PostgresConnection(pg.host, pg.port, pg.user, pg.password, db);
 
-    await upgradeDb(connection);
+    await upgradeDb(connection, connectionConfig.chain.chain_id);
 
     process.exit(0);
 }
