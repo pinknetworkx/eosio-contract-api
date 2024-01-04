@@ -235,11 +235,11 @@ export async function getSchemaStatsByCollectionV2Action(params: RequestValues, 
     }
 
     const statsQuery = new QueryBuilder(
-        'SELECT template.schema_name, SUM(price.price) volume, COUNT(*) sales ' +
-        'FROM atomicmarket_stats_prices_master price, atomicassets_templates "template" '
+        'SELECT schema.schema_name, SUM(price.price) volume, COUNT(*) sales ' +
+        'FROM atomicmarket_stats_prices_master price, atomicassets_schemas "schema" '
     );
 
-    statsQuery.addCondition('price.assets_contract = template.contract AND price.template_id = template.template_id');
+    statsQuery.addCondition('price.assets_contract = schema.contract AND price.schema_name = schema.schema_name AND price.collection_name = schema.collection_name');
 
     statsQuery.equal('price.market_contract', ctx.coreArgs.atomicmarket_account);
     statsQuery.equal('price.symbol', args.symbol);
@@ -253,7 +253,7 @@ export async function getSchemaStatsByCollectionV2Action(params: RequestValues, 
         statsQuery.addCondition('price.time < ' + statsQuery.addVariable(args.before) + '::BIGINT');
     }
 
-    statsQuery.group(['template.contract', 'template.collection_name', 'template.schema_name']);
+    statsQuery.group(['schema.contract', 'schema.collection_name', 'schema.schema_name']);
 
     const schemaStatsQuery = new QueryBuilder(`
         WITH stats AS MATERIALIZED (
