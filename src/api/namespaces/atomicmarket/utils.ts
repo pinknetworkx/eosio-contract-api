@@ -1,6 +1,6 @@
 import {buildAssetFilter, hasAssetFilter, hasDataFilters} from '../atomicassets/utils';
-import {AuctionApiState, BuyofferApiState, SaleApiState} from './index';
-import {AuctionState, BuyofferState, SaleState} from '../../../filler/handlers/atomicmarket';
+import {AuctionApiState, BuyofferApiState, SaleApiState, TemplateBuyofferApiState} from './index';
+import {AuctionState, BuyofferState, SaleState, TemplateBuyofferState} from '../../../filler/handlers/atomicmarket';
 import {OfferState} from '../../../filler/handlers/atomicassets';
 import QueryBuilder from '../../builder';
 import {ApiError} from '../../error';
@@ -457,6 +457,75 @@ export async function buildBuyofferFilter(values: FilterValues, query: QueryBuil
                             asset.owner != listing.seller
                     )
                 )`);
+        }
+
+        query.addCondition('(' + stateConditions.join(' OR ') + ')');
+    }
+}
+
+export async function buildTemplateBuyofferFilter(values: FilterValues, query: QueryBuilder): Promise<void> {
+    const args = await filterQueryArgs(values, {
+        state: {type: 'string', min: 1},
+
+        symbol: {type: 'string', min: 1},
+        min_price: {type: 'float', min: 0},
+        max_price: {type: 'float', min: 0},
+
+        template_id: {type: 'list[id]'},
+    });
+
+    await buildListingFilter(values, query);
+
+    if (hasAssetFilter(values, ['collection_name', 'template_id']) || hasDataFilters(values)) {
+        const assetQuery = new QueryBuilder(
+            `SELECT * FROM atomicassets_templates "template" 
+                   LEFT JOIN atomicmarket_template_buyoffers_assets buyoffer_asset ON (listing.market_contract = buyoffer_asset.market_contract AND listing.buyoffer_id = buyoffer_asset.buyoffer_id)
+                   LEFT JOIN atomicassets_assets asset ON (asset.contract = buyoffer_asset.assets_contract AND asset.asset_id = buyoffer_asset.asset_id)`,
+            query.buildValues()
+        );
+        assetQuery.addCondition('"template".contract = listing.assets_contract AND "template".template_id = listing.template_id');
+
+        await buildAssetFilter(values, assetQuery, {
+            assetTable: '"asset"',
+            templateTable: '"template"',
+            allowDataFilter: true
+        });
+
+        query.addCondition('EXISTS(' + assetQuery.buildString() + ')');
+        query.setVars(assetQuery.buildValues());
+    }
+
+    if (args.template_id.length) {
+        query.equalMany('listing.template_id', args.template_id);
+    }
+
+    if (args.symbol) {
+        query.equal('listing.token_symbol', args.symbol);
+
+        if (args.min_price) {
+            query.addCondition('listing.price >= 1.0 * ' + query.addVariable(args.min_price) + ' * POWER(10, "token".token_precision)');
+        }
+
+        if (args.max_price) {
+            query.addCondition('listing.price <= 1.0 * ' + query.addVariable(args.max_price) + ' * POWER(10, "token".token_precision)');
+        }
+    } else if (args.min_price || args.max_price) {
+        throw new ApiError('Price range filters require the "symbol" filter');
+    }
+
+    if (args.state) {
+        const stateConditions: string[] = [];
+
+        if (args.state.split(',').indexOf(String(TemplateBuyofferApiState.LISTED.valueOf())) >= 0) {
+            stateConditions.push(`(listing.state = ${TemplateBuyofferState.LISTED.valueOf()})`);
+        }
+
+        if (args.state.split(',').indexOf(String(TemplateBuyofferApiState.CANCELED.valueOf())) >= 0) {
+            stateConditions.push(`(listing.state = ${TemplateBuyofferState.CANCELED.valueOf()})`);
+        }
+
+        if (args.state.split(',').indexOf(String(TemplateBuyofferApiState.SOLD.valueOf())) >= 0) {
+            stateConditions.push(`(listing.state = ${TemplateBuyofferState.SOLD.valueOf()})`);
         }
 
         query.addCondition('(' + stateConditions.join(' OR ') + ')');

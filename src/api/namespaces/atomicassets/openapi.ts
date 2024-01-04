@@ -421,6 +421,15 @@ export const completeAssetFilterParameters = [
         }
     },
     {
+        name: 'has_template_buyoffer',
+        in: 'query',
+        description: 'Show only assets that have a listed template buyoffer',
+        required: false,
+        schema: {
+            type: 'boolean'
+        }
+    },
+    {
         name: 'authorized_account',
         in: 'query',
         description: 'Filter for assets the provided account can edit. ',
