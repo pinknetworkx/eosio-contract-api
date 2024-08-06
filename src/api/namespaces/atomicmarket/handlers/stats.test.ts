@@ -1,6 +1,6 @@
 import {initAtomicMarketTest} from '../test';
 import {getTestContext} from '../../../../utils/test';
-import {getTemplateStatsAction} from './stats';
+import {getSchemaStatsByCollectionV2Action, getTemplateStatsAction} from './stats';
 import {SaleApiState} from '../index';
 import {expect} from 'chai';
 
@@ -215,6 +215,96 @@ describe('AtomicMarket Stats API', () => {
                 expect(t2Result).to.deep.contains({
                     volume: '0', sales: '0',
                 });
+            });
+        });
+    });
+
+    describe('getSchemaStatsByCollectionV2Action', () => {
+        txit('gets the schema sales and volume for sales with templates', async () => {
+            await client.createContractReader();
+
+            await client.createToken({token_symbol: 'TOKEN1'});
+            const { collection_name } = await client.createCollection();
+            const { schema_name } = await client.createSchema({ collection_name });
+            const { template_id } = await client.createTemplate({ collection_name, schema_name });
+            const { template_id: templateId2 } = await client.createTemplate({ collection_name, schema_name });
+
+            const context = getTestContext(client, {
+                collection_name,
+            });
+
+            await client.createFullSale({
+                final_price: 1,
+                listing_price: 1, 
+                listing_symbol: 'TOKEN1',
+                settlement_symbol: 'TOKEN1',
+                state: SaleApiState.SOLD,
+                taker_marketplace: 'X',
+                collection_name,
+            }, {template_id, schema_name});
+
+            await client.createFullSale({
+                final_price: 1,
+                listing_price: 1,
+                listing_symbol: 'TOKEN1',
+                settlement_symbol: 'TOKEN1',
+                state: SaleApiState.SOLD,
+                taker_marketplace: 'X',
+                collection_name,
+            }, {template_id: templateId2, schema_name});
+
+            await client.refreshTemplatePrices();
+
+            const response = await getSchemaStatsByCollectionV2Action({symbol: 'TOKEN1'}, context);
+
+            expect(response.results.length).to.equal(1);
+
+            expect(response.results.find((r: any) => r.schema_name === schema_name)).to.deep.contains({
+                volume: '2',
+                sales: '2'
+            });
+        });
+
+        txit('gets the schema sales and volume for sales without templates', async () => {
+            await client.createContractReader();
+
+            await client.createToken({token_symbol: 'TOKEN1'});
+            const { collection_name } = await client.createCollection();
+            const { schema_name } = await client.createSchema({ collection_name });
+
+            const context = getTestContext(client, {
+                collection_name,
+            });
+
+            await client.createFullSale({
+                final_price: 1,
+                listing_price: 1, 
+                listing_symbol: 'TOKEN1',
+                settlement_symbol: 'TOKEN1',
+                state: SaleApiState.SOLD,
+                taker_marketplace: 'X',
+                collection_name,
+            }, {schema_name});
+
+            await client.createFullSale({
+                final_price: 1,
+                listing_price: 1,
+                listing_symbol: 'TOKEN1',
+                settlement_symbol: 'TOKEN1',
+                state: SaleApiState.SOLD,
+                taker_marketplace: 'X',
+                collection_name,
+            }, {schema_name});
+
+            await client.refreshTemplatePrices();
+
+            const response = await getSchemaStatsByCollectionV2Action({symbol: 'TOKEN1'}, context);
+
+            expect(response.results.length).to.equal(1);
+
+            expect(response.results.find((r: any) => r.schema_name === schema_name)).to.deep.contains({
+                volume: '2',
+                sales: '2'
             });
         });
     });
