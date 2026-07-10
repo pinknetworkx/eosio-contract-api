@@ -39,7 +39,7 @@ BEGIN
     FOR rec IN
         WITH templates AS MATERIALIZED (
             SELECT DISTINCT template_id, assets_contract
-            FROM atomicmarket_stats_prices_master
+            FROM atomicmarket_stats_markets
             WHERE template_id IS NOT NULL
         ), sales AS MATERIALIZED (
             SELECT assets_contract, SUBSTRING(f FROM 2)::BIGINT template_id, MIN(price) min_price
@@ -60,14 +60,14 @@ BEGIN
                 FROM (
                         (
                             SELECT listing_id /* not used, but required to prevent the same price being discarded in the union*/, price
-                            FROM atomicmarket_stats_prices_master
+                            FROM atomicmarket_stats_markets
                             WHERE template_id = templates.template_id AND assets_contract = templates.assets_contract
                                 AND time >= ((extract(epoch from now() - '3 days'::INTERVAL)) * 1000)::BIGINT
                         )
                         UNION
                         (
                             SELECT listing_id, price
-                            FROM atomicmarket_stats_prices_master
+                            FROM atomicmarket_stats_markets
                             WHERE template_id = templates.template_id AND assets_contract = templates.assets_contract
                             ORDER BY time DESC
                             LIMIT 5
@@ -84,7 +84,7 @@ BEGIN
 				rec.suggested_median,
 				rec.suggested_average,
 				MIN(price) "min", MAX(price) "max", COUNT(*) sales
-			FROM atomicmarket_stats_prices_master
+			FROM atomicmarket_stats_markets
 			WHERE template_id = rec.template_id AND assets_contract = rec.assets_contract
 			GROUP BY market_contract, assets_contract, collection_name, template_id, symbol
 		ON CONFLICT (market_contract, assets_contract, collection_name, template_id, symbol)
@@ -113,7 +113,7 @@ BEGIN
         DELETE FROM atomicmarket_template_prices
         WHERE (template_id, assets_contract) NOT IN (
             SELECT DISTINCT template_id, assets_contract
-            FROM atomicmarket_stats_prices_master
+            FROM atomicmarket_stats_markets
             WHERE template_id IS NOT NULL
         );
         GET DIAGNOSTICS temp = ROW_COUNT;
